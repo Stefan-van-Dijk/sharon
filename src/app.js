@@ -1,10 +1,10 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.11';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.11';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.11';
-import { LocationService } from './core/location/LocationService.js?v=0.1.11';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.11';
-import { createShell } from './ui/Shell.js?v=0.1.11';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.11';
+import { EventBus } from './core/events/EventBus.js?v=0.1.12';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.12';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.12';
+import { LocationService } from './core/location/LocationService.js?v=0.1.12';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.12';
+import { createShell } from './ui/Shell.js?v=0.1.12';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.12';
 
 export async function createApp() {
   const events = new EventBus();
