@@ -1,7 +1,9 @@
 const DEFAULT_MODULES = Object.freeze([
   { id: 'rides', title: 'Ritten' },
-  { id: 'time', title: 'Tijd / Taken' },
+  { id: 'time', title: 'Tijd' },
   { id: 'locations', title: 'Locaties' },
+  { id: 'people', title: 'Personen' },
+  { id: 'objects', title: 'Objecten' },
   { id: 'actions', title: 'Acties' },
   { id: 'cards', title: 'Kaarten' },
   { id: 'themes', title: "Thema's" }
