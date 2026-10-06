@@ -1,0 +1,138 @@
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  background: #0a0c0f;
+  color: #f4f5f7;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #0a0c0f;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+body {
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.shell {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+}
+
+.top-card,
+.status-card,
+.module-card {
+  border: 1px solid rgba(255,255,255,.09);
+  background: #15181d;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18);
+}
+
+.top-card {
+  min-height: 132px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.top-card small {
+  color: #8e959f;
+  letter-spacing: .18em;
+  font-size: 10px;
+}
+
+.top-card h1 {
+  font-size: 27px;
+  margin: 4px 0 8px;
+}
+
+.top-card p {
+  color: #aeb4bd;
+  margin: 0;
+  line-height: 1.45;
+  max-width: 34rem;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #66707d;
+  margin: 6px;
+  flex: 0 0 auto;
+}
+
+.status-dot.ok {
+  background: #4dc276;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.module-card {
+  color: inherit;
+  min-height: 82px;
+  padding: 14px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.module-card:active {
+  transform: scale(.985);
+}
+
+.module-icon {
+  font-size: 22px;
+  width: 28px;
+  text-align: center;
+}
+
+.status-card {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.status-card span {
+  color: #aeb4bd;
+  font-size: 14px;
+}
+
+.status-card button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #f0f2f5;
+  color: #111318;
+  font-weight: 650;
+}
+
+@media (min-width: 640px) {
+  .module-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
