@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.14">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.15">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -74,14 +74,39 @@
     .story-layer{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:#fff;animation:storyIn .28s ease both}
     .story-brand{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:28px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
     .story-brand img{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
-    .story-content{width:min(620px,100%);flex:1;display:flex;flex-direction:column;justify-content:center;padding:6vh 0 8vh}
+    .story-content{width:min(620px,100%);flex:1;display:flex;flex-direction:column;justify-content:center;padding:4vh 0 8vh}
     .story-copy p{margin:0 0 9px;color:#111;font-size:clamp(21px,5.2vw,27px);line-height:1.45;font-weight:300;letter-spacing:-.025em}
     .type-caret{display:block;width:1.5px;height:1.25em;margin-top:2px;background:#111;animation:typeCaret .82s steps(1,end) infinite}
-    .story-choices{margin-top:38px;border-top:1px solid #ececef;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease}
-    .story-choices.is-visible{opacity:1;transform:translateY(0)}
-    .story-choice{width:100%;min-height:56px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;font-size:16px;font-weight:400}
-    .story-choice svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
-    .story-choice:active{opacity:.45}
+    .story-stage{margin-top:30px}
+    .place-detecting{display:flex;align-items:center;gap:10px;color:#77777c;font-size:14px}
+    .place-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb}
+    .place-pulse::after{content:"";position:absolute;inset:-5px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}
+    .detected-place{padding:4px 0 0}
+    .place-coordinates{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#9a9a9f;font-size:12px;letter-spacing:.01em}
+    .place-address{margin-top:12px;color:#111;font-size:22px;line-height:1.35;font-weight:300;letter-spacing:-.025em}
+    .place-source{margin-top:8px;color:#b0b0b5;font-size:10px}
+    .story-note{margin:12px 0 0;color:#8a8a8f;font-size:14px;line-height:1.45}
+    .place-confirm,.place-type{margin-top:30px}
+    .place-confirm p,.place-type p{margin:0 0 14px;color:#66666b;font-size:14px}
+    .story-actions{display:flex;align-items:center;gap:16px}
+    .story-primary-action,.story-continue{min-width:92px;height:44px;padding:0 18px;border:0;background:#111;color:#fff;font-size:14px;font-weight:600}
+    .story-text-action{padding:0;border:0;background:transparent;color:#6f6f74;font-size:14px}
+    .place-type-options{border-top:1px solid #ececef}
+    .place-type-options button{width:100%;min-height:54px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;text-align:left;font-size:16px;font-weight:400}
+    .place-type-options button:active,.place-result:active{opacity:.45}
+    .place-search label{display:block;margin-bottom:10px;color:#66666b;font-size:13px}
+    .place-search-line{display:flex;gap:10px;align-items:flex-end}
+    .place-search input{flex:1;min-width:0;height:46px;padding:0 2px;border:0;border-bottom:1px solid #d9d9dd;border-radius:0;background:transparent;color:#111;font-size:18px;outline:none;-webkit-appearance:none}
+    .place-search input:focus{border-bottom-color:#111}
+    .place-search button{height:42px;padding:0 14px;border:0;background:#111;color:#fff;font-size:13px;font-weight:600}
+    .place-results{margin-top:20px;border-top:1px solid #ececef}
+    .place-result{width:100%;min-height:58px;padding:8px 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left}
+    .place-result span{display:grid;gap:2px}
+    .place-result strong{font-size:15px;font-weight:450}
+    .place-result small{color:#8a8a8f;font-size:12px}
+    .place-result svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+    .place-back{margin-top:18px}
+    .story-continue{margin-top:4px}
     @keyframes storyIn{from{opacity:0}to{opacity:1}}
     @keyframes typeCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
 
@@ -109,7 +134,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.14" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.15" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -118,6 +143,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.14"></script>
+  <script type="module" src="./src/main.js?v=0.1.15"></script>
 </body>
 </html>
