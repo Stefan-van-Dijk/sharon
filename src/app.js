@@ -8,17 +8,28 @@ import { createShell } from './ui/Shell.js';
 export async function createApp() {
   const events = new EventBus();
   const store = new ObjectStore();
-  await store.open();
-
   const settings = new SettingsService(store, events);
+  const location = new LocationService({ events, settings });
+
+  // Start een zuinige locatiecontrole direct tijdens het laden.
+  // De app wacht hier bewust niet op.
+  const startupLocation = location.checkNow({
+    reason: 'startup',
+    maxAgeMs: 60_000,
+    highAccuracy: false,
+    browserMaxAgeMs: 60_000,
+    timeoutMs: 4_000
+  }).catch(() => null);
+
+  await store.open();
   await settings.load();
 
-  const location = new LocationService({ events, settings });
   const modules = new ModuleRegistry({ events, store, settings, location });
   await modules.registerDefaults();
 
   return {
     services: { events, store, settings, location, modules },
+    startupLocation,
 
     async start(root) {
       createShell(root, { modules, location, events });
@@ -30,7 +41,10 @@ export async function createApp() {
           location.resume();
           location.checkNow({
             reason: 'foreground',
-            maxAgeMs: settings.get().location.foregroundMaxAgeMs
+            maxAgeMs: settings.get().location.foregroundMaxAgeMs,
+            highAccuracy: false,
+            browserMaxAgeMs: 30_000,
+            timeoutMs: 4_000
           }).catch(() => {});
         }
       });
