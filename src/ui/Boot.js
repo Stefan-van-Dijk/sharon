@@ -1,8 +1,10 @@
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
 const WELCOME_MS = 850;
-const MERGE_MS = 760;
-const FINAL_HOLD_MS = 420;
+const CLOSE_MS = 320;
+const MORPH_MS = 260;
+const REVEAL_MS = 520;
+const FINAL_HOLD_MS = 460;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -93,10 +95,13 @@ async function mergeToSharon(root) {
   if (!brand) return;
 
   brand.classList.add('is-closing');
-  await sleep(Math.round(MERGE_MS * 0.46));
+  await sleep(CLOSE_MS);
+
+  brand.classList.add('is-morphing');
+  await sleep(MORPH_MS);
 
   brand.classList.add('is-marking');
-  await sleep(Math.round(MERGE_MS * 0.54));
+  await sleep(REVEAL_MS);
 
   brand.classList.add('is-final');
   await sleep(FINAL_HOLD_MS);
