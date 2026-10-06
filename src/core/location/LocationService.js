@@ -47,7 +47,9 @@ export class LocationService {
   async checkNow({
     reason = 'manual',
     maxAgeMs = 0,
-    highAccuracy = null
+    highAccuracy = null,
+    browserMaxAgeMs = null,
+    timeoutMs = null
   } = {}) {
     if (this.#suspended || document.hidden) {
       throw new Error('Locatiecontrole is gepauzeerd zolang Sharon niet zichtbaar is.');
@@ -65,8 +67,16 @@ export class LocationService {
     });
 
     const accurate = highAccuracy ?? policy.highAccuracy;
+    const maximumAge =
+      browserMaxAgeMs ?? (accurate ? 0 : 30_000);
+    const timeout =
+      timeoutMs ?? (accurate ? 12_000 : 8_000);
 
-    this.#pending = this.#readPosition(accurate)
+    this.#pending = this.#readPosition({
+      highAccuracy: accurate,
+      maximumAge,
+      timeout
+    })
       .then(position => {
         this.#latest = {
           lat: position.coords.latitude,
@@ -85,7 +95,7 @@ export class LocationService {
     return this.#pending;
   }
 
-  #readPosition(highAccuracy) {
+  #readPosition({ highAccuracy, maximumAge, timeout }) {
     if (!navigator.geolocation) {
       return Promise.reject(new Error('GPS wordt niet ondersteund.'));
     }
@@ -93,8 +103,8 @@ export class LocationService {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: Boolean(highAccuracy),
-        maximumAge: highAccuracy ? 0 : 30_000,
-        timeout: highAccuracy ? 12_000 : 8_000
+        maximumAge: Math.max(0, Number(maximumAge) || 0),
+        timeout: Math.max(1_000, Number(timeout) || 8_000)
       });
     });
   }
@@ -113,7 +123,9 @@ export class LocationService {
         await this.checkNow({
           reason: 'active-trip',
           maxAgeMs: 0,
-          highAccuracy: true
+          highAccuracy: true,
+          browserMaxAgeMs: 0,
+          timeoutMs: 12_000
         });
       } catch {}
 
