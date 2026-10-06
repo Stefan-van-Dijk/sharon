@@ -35,8 +35,8 @@ export async function runStory(root, {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const intro = name
-    ? [`Ik kan beginnen met waar je nu bent, ${name}.`, 'Even kijken.']
-    : ['Ik kan beginnen met waar je nu bent.', 'Even kijken.'];
+    ? [`Mag ik iets laten zien, ${name}?`, 'Ik begin met waar je nu bent.']
+    : ['Mag ik iets laten zien?', 'Ik begin met waar je nu bent.'];
 
   await typeParagraphs(copy, intro, { reducedMotion });
 
@@ -250,7 +250,6 @@ async function choosePlaceType(stage, place) {
         <button type="button" data-place-type="${type.id}">${type.label}</button>
       `).join('')}
     </div>
-    <button type="button" class="story-text-action" data-other-place>Toch een andere plek kiezen</button>
   `;
 
   stage.append(question);
