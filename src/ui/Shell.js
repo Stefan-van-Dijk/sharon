@@ -5,10 +5,10 @@ export function createShell(root, { modules, location, events }) {
     <main class="shell">
       <header class="brand">
         <div class="brand-wordmark" data-menu-anchor aria-label="Sharon">
-          <span>shar</span>
+          <span>Shar</span>
           <img
             class="brand-wordmark-mark"
-            src="./assets/sharon-mark.png?v=0.1.6"
+            src="./assets/sharon-mark.png?v=0.1.7"
             alt=""
             aria-hidden="true"
           >
