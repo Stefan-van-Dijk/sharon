@@ -1,11 +1,12 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.14';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.14';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.14';
-import { LocationService } from './core/location/LocationService.js?v=0.1.14';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.14';
-import { createShell } from './ui/Shell.js?v=0.1.14';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.14';
-import { runStory } from './ui/Story.js?v=0.1.14';
+import { EventBus } from './core/events/EventBus.js?v=0.1.15';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.15';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.15';
+import { LocationService } from './core/location/LocationService.js?v=0.1.15';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.1.15';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.15';
+import { createShell } from './ui/Shell.js?v=0.1.15';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.15';
+import { runStory } from './ui/Story.js?v=0.1.15';
 
 export async function createApp() {
   const events = new EventBus();
@@ -17,6 +18,10 @@ export async function createApp() {
 
   const location = new LocationService({ events, settings });
   const initialSettings = settings.get();
+  const geocoder = new ReverseGeocodeService({
+    endpoint: initialSettings.services?.reverseGeocode?.endpoint
+  });
+
   const savedName = String(initialSettings.profile?.name || '').trim();
   const params = new URLSearchParams(window.location.search);
   const introMode = params.get('intro');
@@ -41,7 +46,7 @@ export async function createApp() {
   await modules.registerDefaults();
 
   return {
-    services: { events, store, settings, location, modules },
+    services: { events, store, settings, location, geocoder, modules },
 
     async start(root, { bootStartedAt = performance.now() } = {}) {
       if (firstRun) {
@@ -67,15 +72,26 @@ export async function createApp() {
       const showStory = forceStory || !current.onboarding?.storySeen;
 
       if (showStory) {
-        startModule = await runStory(root, {
-          name: current.profile?.name || ''
+        const result = await runStory(root, {
+          name: current.profile?.name || '',
+          location,
+          geocoder
         });
+
+        const firstPlaceId = await saveFirstPlace(store, result);
+        startModule = 'locations';
 
         await settings.update({
           onboarding: {
             storySeen: true,
-            firstModule: startModule
+            firstModule: startModule,
+            firstPlaceId
           }
+        });
+
+        events.emit('location.created', {
+          id: firstPlaceId,
+          source: 'onboarding'
         });
       }
 
@@ -109,4 +125,38 @@ export async function createApp() {
       return startupLocation;
     }
   };
+}
+
+async function saveFirstPlace(store, result) {
+  const now = Date.now();
+  const id = crypto.randomUUID();
+  const place = result.place ?? {};
+
+  await store.put('objects', {
+    id,
+    externalId: null,
+    type: 'location',
+    schemaVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    data: {
+      title: result.kindLabel || 'Plek',
+      kind: result.kind || 'other',
+      coordinates: {
+        lat: Number(place.lat),
+        lng: Number(place.lng),
+        accuracy: Number(place.accuracy || 0)
+      },
+      address: {
+        street: place.street || '',
+        number: place.number || '',
+        postcode: place.postcode || '',
+        city: place.city || ''
+      },
+      source: 'onboarding'
+    }
+  });
+
+  return id;
 }
