@@ -1,14 +1,14 @@
-const BUILD = '0.1.6';
+const BUILD = '0.1.7';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=0.1.6',
-  './assets/sharon-mark.png?v=0.1.6',
-  './src/main.js?v=0.1.6',
-  './src/app.js?v=0.1.6',
-  './src/ui/Boot.js?v=0.1.6',
-  './src/ui/Shell.js?v=0.1.6'
+  './manifest.webmanifest?v=0.1.7',
+  './assets/sharon-mark.png?v=0.1.7',
+  './src/main.js?v=0.1.7',
+  './src/app.js?v=0.1.7',
+  './src/ui/Boot.js?v=0.1.7',
+  './src/ui/Shell.js?v=0.1.7'
 ];
 
 self.addEventListener('install', event => {
