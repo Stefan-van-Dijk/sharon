@@ -3,29 +3,32 @@ export function createShell(root, { modules, location, events }) {
 
   root.innerHTML = `
     <main class="shell">
-      <header class="top-card">
-        <div>
-          <small>SHARE ON</small>
-          <h1>Sharon</h1>
-          <p>Vastleggen voor jezelf. Verbinden wanneer het helpt. Delen wanneer jij dat wilt.</p>
+      <header class="brand">
+        <div class="brand-line">
+          <div>
+            <small>SHARE ON</small>
+            <h1>Sharon</h1>
+          </div>
+          <span class="status-dot" data-location-status title="Locatie nog niet gecontroleerd"></span>
         </div>
-        <span class="status-dot" data-location-status title="Locatie nog niet gecontroleerd"></span>
+        <p>Vastleggen, verbinden en delen.</p>
       </header>
 
-      <section class="module-grid">
+      <nav class="module-list" aria-label="Onderdelen">
         ${list.map(module => `
-          <button class="module-card" data-module="${module.id}">
-            <span class="module-icon">${module.icon}</span>
+          <button class="module-row" data-module="${module.id}">
             <span>${module.title}</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M7.5 4.5 13 10l-5.5 5.5"/>
+            </svg>
           </button>
         `).join('')}
-      </section>
+      </nav>
 
-      <section class="status-card">
-        <strong>Nieuwe kern actief</strong>
-        <span data-message>Geen periodieke GPS-controle buiten een actieve rit.</span>
-        <button type="button" data-location-check>Locatie één keer controleren</button>
-      </section>
+      <footer class="shell-footer">
+        <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
+        <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
+      </footer>
     </main>
   `;
 
@@ -43,7 +46,7 @@ export function createShell(root, { modules, location, events }) {
         highAccuracy: true
       });
       message.textContent =
-        `Locatie ontvangen · nauwkeurigheid ±${Math.round(point.accuracy)} m`;
+        `Locatie beschikbaar · ±${Math.round(point.accuracy)} m`;
     } catch (error) {
       message.textContent = error.message;
     } finally {
@@ -51,16 +54,28 @@ export function createShell(root, { modules, location, events }) {
     }
   });
 
-  events.on('location.changed', () => {
+  events.on('location.changed', event => {
     status.classList.add('ok');
     status.title = 'Locatie beschikbaar';
+
+    const accuracy = Math.round(event.detail?.accuracy ?? 0);
+    message.textContent = accuracy
+      ? `Locatie beschikbaar · ±${accuracy} m`
+      : 'Locatie beschikbaar';
   });
+
+  const existing = location.latest;
+  if (existing) {
+    status.classList.add('ok');
+    status.title = 'Locatie beschikbaar';
+    message.textContent = `Locatie beschikbaar · ±${Math.round(existing.accuracy)} m`;
+  }
 
   root.querySelectorAll('[data-module]').forEach(button => {
     button.addEventListener('click', () => {
       const module = modules.get(button.dataset.module);
       message.textContent =
-        `${module.title}: klaar om als zelfstandige Sharon-module uit te werken.`;
+        `${module.title} wordt als volgende stap uitgewerkt.`;
     });
   });
 }
