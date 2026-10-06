@@ -4,7 +4,13 @@ const DEFAULTS = Object.freeze({
   },
   onboarding: {
     storySeen: false,
-    firstModule: ''
+    firstModule: '',
+    firstPlaceId: ''
+  },
+  services: {
+    reverseGeocode: {
+      endpoint: 'https://nominatim.openstreetmap.org'
+    }
   },
   location: {
     activeTripIntervalMs: 60_000,
