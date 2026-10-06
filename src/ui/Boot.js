@@ -1,7 +1,8 @@
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
 const WELCOME_MS = 850;
-const CLOSE_MS = 320;
+const ANTICIPATE_MS = 150;
+const CLOSE_MS = 360;
 const MORPH_MS = 260;
 const REVEAL_MS = 520;
 const FINAL_HOLD_MS = 460;
@@ -93,6 +94,9 @@ function hideWelcome(root) {
 async function mergeToSharon(root) {
   const brand = root.querySelector('[data-brand-motion]');
   if (!brand) return;
+
+  brand.classList.add('is-anticipating');
+  await sleep(ANTICIPATE_MS);
 
   brand.classList.add('is-closing');
   await sleep(CLOSE_MS);
