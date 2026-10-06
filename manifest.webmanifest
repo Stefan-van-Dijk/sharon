@@ -1,0 +1,12 @@
+{
+  "name": "Sharon",
+  "short_name": "Sharon",
+  "description": "Local-first vastleggen, verbinden en delen.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0c0f",
+  "theme_color": "#0a0c0f",
+  "lang": "nl-NL",
+  "id": "./"
+}
