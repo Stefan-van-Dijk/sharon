@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.6">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.7">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -24,7 +24,7 @@
     .share-word,.on-word{display:inline-flex;transition:transform .34s cubic-bezier(.65,0,.22,1)}
     .merge-e,.merge-o{display:inline-block;transform-origin:center;transition:transform .28s cubic-bezier(.65,0,.22,1),opacity .22s ease}
     .brand-final{gap:0;opacity:0;transform:scale(.97);transition:opacity .22s ease,transform .38s cubic-bezier(.2,.75,.2,1)}
-    .sharon-mark{width:31px;height:31px;margin:0 1px;display:inline-flex;align-items:center;justify-content:center;transform:scale(.7) rotate(-4deg);opacity:0;transition:transform .38s cubic-bezier(.18,.85,.25,1.15),opacity .2s ease}
+    .sharon-mark{width:.72em;height:.72em;margin:0 .02em;display:inline-flex;align-items:center;justify-content:center;transform:scale(.7) rotate(-4deg);opacity:0;transition:transform .38s cubic-bezier(.18,.85,.25,1.15),opacity .2s ease}
     .sharon-mark img{display:block;width:100%;height:100%;object-fit:contain}
 
     .brand-motion.is-closing .share-word{transform:translateX(17px)}
@@ -50,7 +50,7 @@
     .shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column}
     .brand{padding:18px 1px 34px}
     .brand-wordmark{display:inline-flex;align-items:center;gap:0;color:#111;font-size:31px;line-height:1;font-weight:650;letter-spacing:-.045em;white-space:nowrap}
-    .brand-wordmark-mark{display:block;width:27px;height:27px;margin:0 1px;object-fit:contain}
+    .brand-wordmark-mark{display:block;width:.72em;height:.72em;margin:0 .02em;object-fit:contain}
     .module-list{border-top:1px solid #ececef}
     .module-row{width:100%;min-height:58px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;font-size:16px;font-weight:450;cursor:pointer}
     .module-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
@@ -76,9 +76,9 @@
             <span class="on-word"><span class="merge-o">o</span><span>n</span></span>
           </div>
           <div class="brand-final" aria-hidden="true">
-            <span>shar</span>
+            <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.6" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.7" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -87,6 +87,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.6"></script>
+  <script type="module" src="./src/main.js?v=0.1.7"></script>
 </body>
 </html>
