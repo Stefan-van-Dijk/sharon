@@ -12,11 +12,17 @@
     html,body{margin:0;min-height:100%;background:#fff;color:#111}
     body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
     .sharon-boot{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff}
-    .sharon-boot-inner{text-align:center}
+    .sharon-boot-inner{width:min(320px,100%);text-align:center}
     .sharon-boot-kicker{display:block;margin-bottom:8px;color:#8b8b8f;font-size:9px;font-weight:600;letter-spacing:.24em}
     .sharon-boot-title{margin:0;font-size:34px;line-height:1;font-weight:650;letter-spacing:-.035em}
     .sharon-boot-status{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:22px;color:#9a9a9f;font-size:12px}
     .sharon-boot-dot{width:5px;height:5px;border-radius:50%;background:#9a9a9f;animation:sharonBootPulse 1.2s ease-in-out infinite}
+    .sharon-intro-form{margin-top:34px;text-align:left}
+    .sharon-intro-form label{display:block;margin-bottom:10px;color:#66666b;font-size:13px}
+    .sharon-intro-form input{width:100%;height:48px;padding:0 2px;border:0;border-bottom:1px solid #d9d9dd;border-radius:0;background:transparent;color:#111;font-size:20px;outline:none}
+    .sharon-intro-form input:focus{border-bottom-color:#111}
+    .sharon-intro-form button{width:100%;height:46px;margin-top:22px;border:0;border-radius:0;background:#111;color:#fff;font-size:14px;font-weight:600}
+    .sharon-intro-form button:disabled{opacity:.45}
     @keyframes sharonBootPulse{0%,100%{opacity:.25}50%{opacity:1}}
     @media (prefers-reduced-motion:reduce){.sharon-boot-dot{animation:none}}
   </style>
