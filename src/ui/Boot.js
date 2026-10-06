@@ -1,5 +1,5 @@
 const NORMAL_MIN_MS = 500;
-const FIRST_RUN_INTRO_MS = 900;
+const FIRST_RUN_INTRO_MS = 1400;
 
 export async function holdBoot(startedAt, minimumMs = NORMAL_MIN_MS) {
   const elapsed = performance.now() - startedAt;
@@ -7,12 +7,11 @@ export async function holdBoot(startedAt, minimumMs = NORMAL_MIN_MS) {
   await new Promise(resolve => setTimeout(resolve, minimumMs - elapsed));
 }
 
-export async function askForName(root, startedAt) {
+export async function askForName(root, startedAt, { initialName = '' } = {}) {
   await holdBoot(startedAt, FIRST_RUN_INTRO_MS);
 
-  const boot = root.querySelector('.sharon-boot');
   const inner = root.querySelector('.sharon-boot-inner');
-  if (!boot || !inner) return '';
+  if (!inner) return '';
 
   inner.innerHTML = `
     <small class="sharon-boot-kicker">SHARE ON</small>
@@ -27,6 +26,7 @@ export async function askForName(root, startedAt) {
         autocomplete="name"
         autocapitalize="words"
         enterkeyhint="done"
+        value="${escapeAttribute(initialName)}"
         required
       >
       <button type="submit">Verder</button>
@@ -35,8 +35,6 @@ export async function askForName(root, startedAt) {
 
   const form = inner.querySelector('[data-sharon-intro-form]');
   const input = form.querySelector('input[name="name"]');
-
-  setTimeout(() => input.focus({ preventScroll: true }), 120);
 
   return new Promise(resolve => {
     form.addEventListener('submit', event => {
@@ -48,6 +46,16 @@ export async function askForName(root, startedAt) {
       }
       form.querySelector('button').disabled = true;
       resolve(name);
-    }, { once: false });
+    });
   });
+}
+
+function escapeAttribute(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
