@@ -1,10 +1,11 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.13';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.13';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.13';
-import { LocationService } from './core/location/LocationService.js?v=0.1.13';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.13';
-import { createShell } from './ui/Shell.js?v=0.1.13';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.13';
+import { EventBus } from './core/events/EventBus.js?v=0.1.14';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.14';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.14';
+import { LocationService } from './core/location/LocationService.js?v=0.1.14';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.14';
+import { createShell } from './ui/Shell.js?v=0.1.14';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.14';
+import { runStory } from './ui/Story.js?v=0.1.14';
 
 export async function createApp() {
   const events = new EventBus();
@@ -15,10 +16,13 @@ export async function createApp() {
   await settings.load();
 
   const location = new LocationService({ events, settings });
-  const savedName = String(settings.get().profile?.name || '').trim();
-  const introMode = new URLSearchParams(window.location.search).get('intro');
+  const initialSettings = settings.get();
+  const savedName = String(initialSettings.profile?.name || '').trim();
+  const params = new URLSearchParams(window.location.search);
+  const introMode = params.get('intro');
   const forceFirstIntro = introMode === '1';
   const forceKnownIntro = introMode === 'known';
+  const forceStory = params.get('story') === '1';
   const firstRun = forceFirstIntro || (!savedName && !forceKnownIntro);
 
   let startupLocation = null;
@@ -58,7 +62,29 @@ export async function createApp() {
         await runReturningIntro(root, bootStartedAt, savedName || 'daar');
       }
 
-      createShell(root, { modules, location, events });
+      let startModule = '';
+      const current = settings.get();
+      const showStory = forceStory || !current.onboarding?.storySeen;
+
+      if (showStory) {
+        startModule = await runStory(root, {
+          name: current.profile?.name || ''
+        });
+
+        await settings.update({
+          onboarding: {
+            storySeen: true,
+            firstModule: startModule
+          }
+        });
+      }
+
+      createShell(root, {
+        modules,
+        location,
+        events,
+        initialModule: startModule
+      });
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
