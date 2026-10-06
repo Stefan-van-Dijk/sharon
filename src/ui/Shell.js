@@ -9,7 +9,7 @@ export function createShell(root, { modules, location, events, initialModule = '
             <span>Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.14"
+              src="./assets/sharon-mark.png?v=0.1.15"
               alt=""
               aria-hidden="true"
             >
