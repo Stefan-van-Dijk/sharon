@@ -1,10 +1,10 @@
 const DEFAULT_MODULES = Object.freeze([
-  { id: 'rides', title: 'Ritten', icon: '🚗' },
-  { id: 'time', title: 'Tijd / Taken', icon: '📋' },
-  { id: 'locations', title: 'Locaties', icon: '⌖' },
-  { id: 'actions', title: 'Acties', icon: '⚡' },
-  { id: 'cards', title: 'Kaarten', icon: '▣' },
-  { id: 'themes', title: "Thema's", icon: '◈' }
+  { id: 'rides', title: 'Ritten' },
+  { id: 'time', title: 'Tijd / Taken' },
+  { id: 'locations', title: 'Locaties' },
+  { id: 'actions', title: 'Acties' },
+  { id: 'cards', title: 'Kaarten' },
+  { id: 'themes', title: "Thema's" }
 ]);
 
 export class ModuleRegistry {
