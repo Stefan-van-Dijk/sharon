@@ -1,12 +1,13 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.15';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.15';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.15';
-import { LocationService } from './core/location/LocationService.js?v=0.1.15';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.1.15';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.15';
-import { createShell } from './ui/Shell.js?v=0.1.15';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.15';
-import { runStory } from './ui/Story.js?v=0.1.15';
+import { EventBus } from './core/events/EventBus.js?v=0.1.16';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.16';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.16';
+import { LocationService } from './core/location/LocationService.js?v=0.1.16';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.1.16';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.1.16';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.16';
+import { createShell } from './ui/Shell.js?v=0.1.16';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.16';
+import { runStory } from './ui/Story.js?v=0.1.16';
 
 export async function createApp() {
   const events = new EventBus();
@@ -21,6 +22,8 @@ export async function createApp() {
   const geocoder = new ReverseGeocodeService({
     endpoint: initialSettings.services?.reverseGeocode?.endpoint
   });
+  const locationTriggers = new LocationTriggerService({ store, events });
+  locationTriggers.start();
 
   const savedName = String(initialSettings.profile?.name || '').trim();
   const params = new URLSearchParams(window.location.search);
@@ -46,7 +49,7 @@ export async function createApp() {
   await modules.registerDefaults();
 
   return {
-    services: { events, store, settings, location, geocoder, modules },
+    services: { events, store, settings, location, geocoder, locationTriggers, modules },
 
     async start(root, { bootStartedAt = performance.now() } = {}) {
       if (firstRun) {
@@ -99,7 +102,9 @@ export async function createApp() {
         modules,
         location,
         events,
-        initialModule: startModule
+        store,
+        initialModule: startModule,
+        initialLocationId: settings.get().onboarding?.firstPlaceId || ''
       });
 
       document.addEventListener('visibilitychange', () => {
@@ -154,6 +159,7 @@ async function saveFirstPlace(store, result) {
         postcode: place.postcode || '',
         city: place.city || ''
       },
+      radiusM: 100,
       source: 'onboarding'
     }
   });
