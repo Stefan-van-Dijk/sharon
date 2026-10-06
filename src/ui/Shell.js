@@ -1,5 +1,15 @@
-export function createShell(root, { modules, location, events, initialModule = '' }) {
+import { openLocationsView } from './LocationsView.js?v=0.1.16';
+
+export function createShell(root, {
+  modules,
+  location,
+  events,
+  store,
+  initialModule = '',
+  initialLocationId = ''
+}) {
   const list = modules.list();
+  let triggerTimer = null;
 
   root.innerHTML = `
     <main class="shell">
@@ -9,7 +19,7 @@ export function createShell(root, { modules, location, events, initialModule = '
             <span>Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.15"
+              src="./assets/sharon-mark.png?v=0.1.16"
               alt=""
               aria-hidden="true"
             >
@@ -23,6 +33,8 @@ export function createShell(root, { modules, location, events, initialModule = '
           ></span>
         </div>
       </header>
+
+      <div class="trigger-toast" data-trigger-toast hidden></div>
 
       <nav class="module-list" aria-label="Onderdelen">
         ${list.map(module => `
@@ -44,8 +56,10 @@ export function createShell(root, { modules, location, events, initialModule = '
 
   const message = root.querySelector('[data-message]');
   const status = root.querySelector('[data-location-status]');
+  const toast = root.querySelector('[data-trigger-toast]');
 
   const setSearching = () => {
+    if (!status?.isConnected) return;
     status.classList.remove('is-ready');
     status.classList.add('is-searching');
     status.title = 'Locatie wordt bepaald';
@@ -53,10 +67,63 @@ export function createShell(root, { modules, location, events, initialModule = '
   };
 
   const setReady = () => {
+    if (!status?.isConnected) return;
     status.classList.remove('is-searching');
     status.classList.add('is-ready');
     status.title = 'Locatie beschikbaar';
     status.setAttribute('aria-label', 'Locatie beschikbaar');
+  };
+
+  const unsubscribeLocation = events.on('location.changed', event => {
+    if (!message?.isConnected) return;
+    setReady();
+    const accuracy = Math.round(event.detail?.accuracy ?? 0);
+    message.textContent = accuracy
+      ? `Locatie beschikbaar · ±${accuracy} m`
+      : 'Locatie beschikbaar';
+  });
+
+  const unsubscribeTrigger = events.on('trigger.fired', event => {
+    if (!toast?.isConnected) return;
+
+    if (triggerTimer) clearTimeout(triggerTimer);
+    toast.textContent = event.detail?.message || 'Locatietrigger geactiveerd.';
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+    triggerTimer = setTimeout(() => {
+      toast.classList.remove('is-visible');
+      setTimeout(() => {
+        if (toast.isConnected) toast.hidden = true;
+      }, 240);
+    }, 4200);
+  });
+
+  const cleanup = () => {
+    unsubscribeLocation();
+    unsubscribeTrigger();
+    if (triggerTimer) clearTimeout(triggerTimer);
+  };
+
+  const returnToShell = () => {
+    cleanup();
+    createShell(root, {
+      modules,
+      location,
+      events,
+      store
+    });
+  };
+
+  const openLocations = (locationId = '') => {
+    cleanup();
+    openLocationsView(root, {
+      store,
+      location,
+      events,
+      initialLocationId: locationId,
+      onBack: returnToShell
+    });
   };
 
   root.querySelector('[data-location-check]').addEventListener('click', async event => {
@@ -81,14 +148,6 @@ export function createShell(root, { modules, location, events, initialModule = '
     }
   });
 
-  events.on('location.changed', event => {
-    setReady();
-    const accuracy = Math.round(event.detail?.accuracy ?? 0);
-    message.textContent = accuracy
-      ? `Locatie beschikbaar · ±${accuracy} m`
-      : 'Locatie beschikbaar';
-  });
-
   const existing = location.latest;
   if (existing) {
     setReady();
@@ -100,9 +159,20 @@ export function createShell(root, { modules, location, events, initialModule = '
 
   root.querySelectorAll('[data-module]').forEach(button => {
     button.addEventListener('click', () => {
+      if (button.dataset.module === 'locations') {
+        openLocations();
+        return;
+      }
+
       const module = modules.get(button.dataset.module);
       message.textContent =
         `${module.title} wordt als volgende stap uitgewerkt.`;
     });
   });
+
+  if (initialModule === 'locations' && initialLocationId) {
+    queueMicrotask(() => {
+      if (root.querySelector('.shell')) openLocations(initialLocationId);
+    });
+  }
 }
