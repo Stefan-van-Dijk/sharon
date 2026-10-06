@@ -1,10 +1,10 @@
-import { EventBus } from './core/events/EventBus.js';
-import { ObjectStore } from './core/storage/ObjectStore.js';
-import { SettingsService } from './core/settings/SettingsService.js';
-import { LocationService } from './core/location/LocationService.js';
-import { ModuleRegistry } from './modules/ModuleRegistry.js';
-import { createShell } from './ui/Shell.js';
-import { askForName, holdBoot } from './ui/Boot.js';
+import { EventBus } from './core/events/EventBus.js?v=0.1.4';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.4';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.4';
+import { LocationService } from './core/location/LocationService.js?v=0.1.4';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.4';
+import { createShell } from './ui/Shell.js?v=0.1.4';
+import { askForName, holdBoot } from './ui/Boot.js?v=0.1.4';
 
 export async function createApp() {
   const events = new EventBus();
@@ -15,7 +15,9 @@ export async function createApp() {
   await settings.load();
 
   const location = new LocationService({ events, settings });
-  const firstRun = !String(settings.get().profile?.name || '').trim();
+  const savedName = String(settings.get().profile?.name || '').trim();
+  const forceIntro = new URLSearchParams(window.location.search).get('intro') === '1';
+  const firstRun = !savedName || forceIntro;
 
   let startupLocation = null;
 
@@ -37,7 +39,7 @@ export async function createApp() {
 
     async start(root, { bootStartedAt = performance.now() } = {}) {
       if (firstRun) {
-        const name = await askForName(root, bootStartedAt);
+        const name = await askForName(root, bootStartedAt, { initialName: savedName });
         await settings.update({ profile: { name } });
 
         startupLocation = location.checkNow({
