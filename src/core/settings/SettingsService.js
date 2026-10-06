@@ -2,6 +2,10 @@ const DEFAULTS = Object.freeze({
   profile: {
     name: ''
   },
+  onboarding: {
+    storySeen: false,
+    firstModule: ''
+  },
   location: {
     activeTripIntervalMs: 60_000,
     idlePeriodicChecks: false,
