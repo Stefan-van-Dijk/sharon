@@ -17,7 +17,7 @@ export async function runStory(root, {
     <section class="story-layer" aria-label="Start met Sharon">
       <header class="story-brand" aria-label="Sharon">
         <span>Shar</span>
-        <img src="./assets/sharon-mark.png?v=0.1.15" alt="" aria-hidden="true">
+        <img src="./assets/sharon-mark.png?v=0.1.16" alt="" aria-hidden="true">
         <span>n</span>
       </header>
 
