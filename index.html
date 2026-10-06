@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.12">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.13">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -20,17 +20,19 @@
     .sharon-intro-stage{width:min(390px,100%);text-align:center}
     .brand-motion{position:relative;width:100%;height:52px;margin:0 auto;color:#111}
     .brand-phrase,.brand-final{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(50px,14vw,64px);line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
-    .brand-phrase{gap:.62em;opacity:1;transition:opacity .48s cubic-bezier(.22,.61,.36,1)}
-    .share-word,.on-word{display:inline-flex;transition:transform .48s cubic-bezier(.22,.61,.36,1)}
+    .brand-phrase{gap:.30em;opacity:1;transition:opacity .48s cubic-bezier(.22,.61,.36,1)}
+    .share-word,.on-word{display:inline-flex;transition:transform .18s cubic-bezier(.33,1,.68,1)}
     .merge-e,.merge-o{display:inline-block;transform-origin:center;transition:transform .52s cubic-bezier(.22,.61,.36,1),opacity .5s ease}
     .brand-final{gap:0;align-items:baseline;opacity:0;transform:scale(.985);transition:opacity .52s cubic-bezier(.22,.61,.36,1),transform .62s cubic-bezier(.22,.61,.36,1)}
     .sharon-mark{width:.56em;height:.56em;margin:0 .018em;display:inline-flex;align-items:center;justify-content:center;transform:scale(.82) rotate(-2deg);opacity:0;transition:transform .62s cubic-bezier(.22,.61,.36,1),opacity .55s ease}
     .sharon-mark img{display:block;width:100%;height:100%;object-fit:contain}
 
-    .brand-motion.is-closing .share-word{transform:translateX(.46em)}
-    .brand-motion.is-closing .on-word{transform:translateX(-.46em)}
-    .brand-motion.is-closing .merge-e{transform:translateX(.16em);opacity:.72}
-    .brand-motion.is-closing .merge-o{transform:translateX(-.16em);opacity:.72}
+    .brand-motion.is-anticipating .share-word{transform:translateX(-.07em)}
+    .brand-motion.is-anticipating .on-word{transform:translateX(.07em)}
+    .brand-motion.is-closing .share-word{transform:translateX(.25em);transition-duration:.38s;transition-timing-function:cubic-bezier(.2,.75,.2,1)}
+    .brand-motion.is-closing .on-word{transform:translateX(-.25em);transition-duration:.38s;transition-timing-function:cubic-bezier(.2,.75,.2,1)}
+    .brand-motion.is-closing .merge-e{transform:translateX(.09em);opacity:.64}
+    .brand-motion.is-closing .merge-o{transform:translateX(-.09em);opacity:.64}
     .brand-motion.is-morphing .brand-phrase{opacity:.42}
     .brand-motion.is-morphing .merge-e,.brand-motion.is-morphing .merge-o{opacity:.18;transform:scale(.82)}
     .brand-motion.is-morphing .brand-final{opacity:.46;transform:scale(.992)}
@@ -52,8 +54,14 @@
     .sharon-intro-form button:disabled{opacity:.45}
 
     .shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column}
-    .brand{padding:18px 1px 34px}\n    .brand-line{display:flex;align-items:center;gap:9px}\n    .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
-    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}\n    .location-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb;flex:0 0 auto;transition:background .22s ease}\n    .location-pulse.is-searching::after{content:\"\";position:absolute;inset:-4px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}\n    .location-pulse.is-ready{background:#2d9a59}\n    .location-pulse.is-ready::after{display:none}
+    .brand{padding:18px 1px 34px}
+    .brand-line{display:flex;align-items:center;gap:9px}
+    .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
+    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
+    .location-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb;flex:0 0 auto;transition:background .22s ease}
+    .location-pulse.is-searching::after{content:\"\";position:absolute;inset:-4px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}
+    .location-pulse.is-ready{background:#2d9a59}
+    .location-pulse.is-ready::after{display:none}
     .module-list{border-top:1px solid #ececef}
     .module-row{width:100%;min-height:58px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;font-size:16px;font-weight:450;cursor:pointer}
     .module-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
@@ -63,8 +71,11 @@
     .quiet-action{padding:0;border:0;background:transparent;color:#6f6f74;font-size:11px;white-space:nowrap}
     .quiet-action:disabled{opacity:.35}
 
-    @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}\n\n    @media (prefers-reduced-motion:reduce){
-      .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}\n      .location-pulse.is-searching::after{animation:none;opacity:.4}
+    @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}
+
+    @media (prefers-reduced-motion:reduce){
+      .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}
+      .location-pulse.is-searching::after{animation:none;opacity:.4}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -81,7 +92,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.12" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.13" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -90,6 +101,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.12"></script>
+  <script type="module" src="./src/main.js?v=0.1.13"></script>
 </body>
 </html>
