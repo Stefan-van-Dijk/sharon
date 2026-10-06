@@ -1,4 +1,4 @@
-export function createShell(root, { modules, location, events }) {
+export function createShell(root, { modules, location, events, initialModule = '' }) {
   const list = modules.list();
 
   root.innerHTML = `
@@ -9,7 +9,7 @@ export function createShell(root, { modules, location, events }) {
             <span>Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.13"
+              src="./assets/sharon-mark.png?v=0.1.14"
               alt=""
               aria-hidden="true"
             >
@@ -93,6 +93,9 @@ export function createShell(root, { modules, location, events }) {
   if (existing) {
     setReady();
     message.textContent = `Locatie beschikbaar · ±${Math.round(existing.accuracy)} m`;
+  } else if (initialModule) {
+    const selected = modules.get(initialModule);
+    if (selected) message.textContent = `Je start bij ${selected.title}.`;
   }
 
   root.querySelectorAll('[data-module]').forEach(button => {
