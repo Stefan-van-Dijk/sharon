@@ -1,4 +1,7 @@
 const DEFAULTS = Object.freeze({
+  profile: {
+    name: ''
+  },
   location: {
     activeTripIntervalMs: 60_000,
     idlePeriodicChecks: false,
