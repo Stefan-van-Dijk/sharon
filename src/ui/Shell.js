@@ -4,15 +4,23 @@ export function createShell(root, { modules, location, events }) {
   root.innerHTML = `
     <main class="shell">
       <header class="brand">
-        <div class="brand-wordmark" data-menu-anchor aria-label="Sharon">
-          <span>Shar</span>
-          <img
-            class="brand-wordmark-mark"
-            src="./assets/sharon-mark.png?v=0.1.9"
-            alt=""
-            aria-hidden="true"
-          >
-          <span>n</span>
+        <div class="brand-line">
+          <div class="brand-wordmark" data-menu-anchor aria-label="Sharon">
+            <span>Shar</span>
+            <img
+              class="brand-wordmark-mark"
+              src="./assets/sharon-mark.png?v=0.1.12"
+              alt=""
+              aria-hidden="true"
+            >
+            <span>n</span>
+          </div>
+          <span
+            class="location-pulse is-searching"
+            data-location-status
+            title="Locatie wordt bepaald"
+            aria-label="Locatie wordt bepaald"
+          ></span>
         </div>
       </header>
 
@@ -35,9 +43,25 @@ export function createShell(root, { modules, location, events }) {
   `;
 
   const message = root.querySelector('[data-message]');
+  const status = root.querySelector('[data-location-status]');
+
+  const setSearching = () => {
+    status.classList.remove('is-ready');
+    status.classList.add('is-searching');
+    status.title = 'Locatie wordt bepaald';
+    status.setAttribute('aria-label', 'Locatie wordt bepaald');
+  };
+
+  const setReady = () => {
+    status.classList.remove('is-searching');
+    status.classList.add('is-ready');
+    status.title = 'Locatie beschikbaar';
+    status.setAttribute('aria-label', 'Locatie beschikbaar');
+  };
 
   root.querySelector('[data-location-check]').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
+    setSearching();
     message.textContent = 'Locatie controleren…';
 
     try {
@@ -46,9 +70,11 @@ export function createShell(root, { modules, location, events }) {
         maxAgeMs: 0,
         highAccuracy: true
       });
+      setReady();
       message.textContent =
         `Locatie beschikbaar · ±${Math.round(point.accuracy)} m`;
     } catch (error) {
+      status.classList.remove('is-searching');
       message.textContent = error.message;
     } finally {
       event.currentTarget.disabled = false;
@@ -56,6 +82,7 @@ export function createShell(root, { modules, location, events }) {
   });
 
   events.on('location.changed', event => {
+    setReady();
     const accuracy = Math.round(event.detail?.accuracy ?? 0);
     message.textContent = accuracy
       ? `Locatie beschikbaar · ±${accuracy} m`
@@ -64,6 +91,7 @@ export function createShell(root, { modules, location, events }) {
 
   const existing = location.latest;
   if (existing) {
+    setReady();
     message.textContent = `Locatie beschikbaar · ±${Math.round(existing.accuracy)} m`;
   }
 
