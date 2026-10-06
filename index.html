@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.15">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.16">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -71,6 +71,53 @@
     .quiet-action{padding:0;border:0;background:transparent;color:#6f6f74;font-size:11px;white-space:nowrap}
     .quiet-action:disabled{opacity:.35}
 
+    .trigger-toast{margin:-12px 1px 22px;padding:11px 0;border-top:1px solid #ececef;border-bottom:1px solid #ececef;color:#333;font-size:13px;line-height:1.4;opacity:0;transform:translateY(-4px);transition:opacity .22s ease,transform .22s ease}
+    .trigger-toast.is-visible{opacity:1;transform:translateY(0)}
+
+    .detail-shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto}
+    .detail-header{min-height:72px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #ececef}
+    .detail-header h1{margin:0;font-size:22px;line-height:1;font-weight:350;letter-spacing:-.025em}
+    .back-action{width:32px;height:40px;margin-left:-8px;padding:0;border:0;background:transparent;display:grid;place-items:center}
+    .back-action svg{width:19px;height:19px;fill:none;stroke:#77777c;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+
+    .clean-list{border-top:0}
+    .clean-row{width:100%;min-height:64px;padding:8px 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left}
+    .clean-row>span{min-width:0;display:grid;gap:3px}
+    .clean-row strong{font-size:16px;font-weight:420}
+    .clean-row small{color:#8a8a8f;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .clean-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+    .empty-state{margin:28px 1px;color:#9a9a9f;font-size:14px}
+
+    .location-form{padding-bottom:32px}
+    .clean-field,.clean-readonly{display:grid;gap:8px;padding:20px 1px;border-bottom:1px solid #ececef}
+    .clean-field>span,.clean-readonly>span,.section-heading>span{color:#8a8a8f;font-size:12px}
+    .clean-field input{width:100%;height:34px;padding:0;border:0;background:transparent;color:#111;font-size:18px;font-weight:350;outline:none}
+    .clean-field input:focus{box-shadow:inset 0 -1px #111}
+    .clean-readonly strong{font-size:17px;font-weight:350;line-height:1.35}
+    .clean-readonly small{color:#77777c;font-size:13px;line-height:1.35}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px!important;font-weight:400!important;letter-spacing:.01em}
+    .radius-field>div{display:flex;align-items:baseline;gap:7px}
+    .radius-field input{width:74px}
+    .radius-field em{color:#77777c;font-size:14px;font-style:normal}
+    .clean-section{padding:22px 1px;border-bottom:1px solid #ececef}
+    .section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .trigger-message{margin-top:8px;padding-left:0;padding-right:0;border-bottom:0}
+    .clean-help{margin:2px 0 0;color:#9a9a9f;font-size:12px;line-height:1.5;max-width:34rem}
+
+    .mini-switch{position:relative;width:38px;height:22px;display:block}
+    .mini-switch input{position:absolute;opacity:0;pointer-events:none}
+    .mini-switch span{position:absolute;inset:0;border-radius:999px;background:#d8d8dc;transition:background .18s ease}
+    .mini-switch span::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.16);transition:transform .18s ease}
+    .mini-switch input:checked+span{background:#111}
+    .mini-switch input:checked+span::after{transform:translateX(16px)}
+
+    .location-check{min-height:58px;padding:0 1px;border-bottom:1px solid #ececef;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .location-check>span{color:#8a8a8f;font-size:12px;text-align:right}
+    .text-action{padding:0;border:0;background:transparent;color:#444449;font-size:14px}
+    .text-action:disabled{opacity:.4}
+    .primary-line-action{width:100%;height:48px;margin-top:24px;border:0;background:#111;color:#fff;font-size:14px;font-weight:600}
+
+
     .story-layer{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:#fff;animation:storyIn .28s ease both}
     .story-brand{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:28px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
     .story-brand img{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
@@ -118,6 +165,7 @@
       .story-layer{animation:none}
       .type-caret{animation:none;opacity:.45}
       .story-choices{transition:none}
+      .trigger-toast{transition:none}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -134,7 +182,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.15" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.16" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -143,6 +191,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.15"></script>
+  <script type="module" src="./src/main.js?v=0.1.16"></script>
 </body>
 </html>
