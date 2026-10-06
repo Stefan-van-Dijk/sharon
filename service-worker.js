@@ -1,21 +1,26 @@
-const BUILD = '0.1.3';
+const BUILD = '0.1.4';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  './src/main.js',
-  './src/app.js',
-  './src/ui/Boot.js',
-  './src/ui/styles.css'
+  './manifest.webmanifest?v=0.1.4',
+  './src/main.js?v=0.1.4',
+  './src/app.js?v=0.1.4',
+  './src/ui/Boot.js?v=0.1.4',
+  './src/ui/Shell.js?v=0.1.4'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then(cache => cache.addAll(CORE))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(CORE.map(async path => {
+      try {
+        const response = await fetch(new Request(path, { cache: 'reload' }));
+        if (response.ok) await cache.put(path, response);
+      } catch {}
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -32,16 +37,29 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
   event.respondWith((async () => {
     try {
-      const response = await fetch(event.request);
+      const response = await fetch(new Request(event.request, { cache: 'reload' }));
+
       if (response.ok && new URL(event.request.url).origin === self.location.origin) {
         const cache = await caches.open(CACHE);
         cache.put(event.request, response.clone()).catch(() => {});
       }
+
       return response;
-    } catch {
-      return (await caches.match(event.request)) || (await caches.match('./index.html'));
+    } catch (error) {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+
+      if (event.request.mode === 'navigate') {
+        const fallback =
+          await caches.match('./index.html') ||
+          await caches.match('./');
+        if (fallback) return fallback;
+      }
+
+      throw error;
     }
   })());
 });
