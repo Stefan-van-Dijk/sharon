@@ -38,7 +38,6 @@ export class ReverseGeocodeService {
     url.searchParams.set('q', value);
     url.searchParams.set('addressdetails', '1');
     url.searchParams.set('limit', '5');
-    url.searchParams.set('countrycodes', 'nl');
     url.searchParams.set('accept-language', 'nl');
 
     const response = await fetch(url, {
