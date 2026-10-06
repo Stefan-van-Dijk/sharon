@@ -1,4 +1,4 @@
-const BUILD = '0.1.0';
+const BUILD = '0.1.1';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
