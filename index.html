@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.11">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.12">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -52,9 +52,8 @@
     .sharon-intro-form button:disabled{opacity:.45}
 
     .shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column}
-    .brand{padding:18px 1px 34px}
-    .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
-    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
+    .brand{padding:18px 1px 34px}\n    .brand-line{display:flex;align-items:center;gap:9px}\n    .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
+    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}\n    .location-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb;flex:0 0 auto;transition:background .22s ease}\n    .location-pulse.is-searching::after{content:\"\";position:absolute;inset:-4px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}\n    .location-pulse.is-ready{background:#2d9a59}\n    .location-pulse.is-ready::after{display:none}
     .module-list{border-top:1px solid #ececef}
     .module-row{width:100%;min-height:58px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;font-size:16px;font-weight:450;cursor:pointer}
     .module-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
@@ -64,8 +63,8 @@
     .quiet-action{padding:0;border:0;background:transparent;color:#6f6f74;font-size:11px;white-space:nowrap}
     .quiet-action:disabled{opacity:.35}
 
-    @media (prefers-reduced-motion:reduce){
-      .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}
+    @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}\n\n    @media (prefers-reduced-motion:reduce){
+      .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}\n      .location-pulse.is-searching::after{animation:none;opacity:.4}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -82,7 +81,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.11" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.12" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -91,6 +90,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.11"></script>
+  <script type="module" src="./src/main.js?v=0.1.12"></script>
 </body>
 </html>
