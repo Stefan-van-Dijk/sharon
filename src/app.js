@@ -1,10 +1,10 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.4';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.4';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.4';
-import { LocationService } from './core/location/LocationService.js?v=0.1.4';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.4';
-import { createShell } from './ui/Shell.js?v=0.1.4';
-import { askForName, holdBoot } from './ui/Boot.js?v=0.1.4';
+import { EventBus } from './core/events/EventBus.js?v=0.1.5';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.5';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.5';
+import { LocationService } from './core/location/LocationService.js?v=0.1.5';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.5';
+import { createShell } from './ui/Shell.js?v=0.1.5';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.5';
 
 export async function createApp() {
   const events = new EventBus();
@@ -16,8 +16,10 @@ export async function createApp() {
 
   const location = new LocationService({ events, settings });
   const savedName = String(settings.get().profile?.name || '').trim();
-  const forceIntro = new URLSearchParams(window.location.search).get('intro') === '1';
-  const firstRun = !savedName || forceIntro;
+  const introMode = new URLSearchParams(window.location.search).get('intro');
+  const forceFirstIntro = introMode === '1';
+  const forceKnownIntro = introMode === 'known';
+  const firstRun = forceFirstIntro || (!savedName && !forceKnownIntro);
 
   let startupLocation = null;
 
@@ -39,7 +41,10 @@ export async function createApp() {
 
     async start(root, { bootStartedAt = performance.now() } = {}) {
       if (firstRun) {
-        const name = await askForName(root, bootStartedAt, { initialName: savedName });
+        const name = await runFirstIntro(root, bootStartedAt, {
+          initialName: forceFirstIntro ? savedName : ''
+        });
+
         await settings.update({ profile: { name } });
 
         startupLocation = location.checkNow({
@@ -50,7 +55,7 @@ export async function createApp() {
           timeoutMs: 4_000
         }).catch(() => null);
       } else {
-        await holdBoot(bootStartedAt, 500);
+        await runReturningIntro(root, bootStartedAt, savedName || 'daar');
       }
 
       createShell(root, { modules, location, events });
