@@ -4,14 +4,16 @@ export function createShell(root, { modules, location, events }) {
   root.innerHTML = `
     <main class="shell">
       <header class="brand">
-        <div class="brand-line">
-          <div>
-            <small>SHARE ON</small>
-            <h1>Sharon</h1>
-          </div>
-          <span class="status-dot" data-location-status title="Locatie nog niet gecontroleerd"></span>
+        <div class="brand-wordmark" data-menu-anchor aria-label="Sharon">
+          <span>shar</span>
+          <img
+            class="brand-wordmark-mark"
+            src="./assets/sharon-mark.png?v=0.1.6"
+            alt=""
+            aria-hidden="true"
+          >
+          <span>n</span>
         </div>
-        <p>Vastleggen, verbinden en delen.</p>
       </header>
 
       <nav class="module-list" aria-label="Onderdelen">
@@ -32,7 +34,6 @@ export function createShell(root, { modules, location, events }) {
     </main>
   `;
 
-  const status = root.querySelector('[data-location-status]');
   const message = root.querySelector('[data-message]');
 
   root.querySelector('[data-location-check]').addEventListener('click', async event => {
@@ -55,9 +56,6 @@ export function createShell(root, { modules, location, events }) {
   });
 
   events.on('location.changed', event => {
-    status.classList.add('ok');
-    status.title = 'Locatie beschikbaar';
-
     const accuracy = Math.round(event.detail?.accuracy ?? 0);
     message.textContent = accuracy
       ? `Locatie beschikbaar · ±${accuracy} m`
@@ -66,8 +64,6 @@ export function createShell(root, { modules, location, events }) {
 
   const existing = location.latest;
   if (existing) {
-    status.classList.add('ok');
-    status.title = 'Locatie beschikbaar';
     message.textContent = `Locatie beschikbaar · ±${Math.round(existing.accuracy)} m`;
   }
 
