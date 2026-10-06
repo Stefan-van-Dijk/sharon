@@ -1,4 +1,4 @@
-const BUILD = '0.1.2';
+const BUILD = '0.1.3';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
@@ -6,6 +6,7 @@ const CORE = [
   './manifest.webmanifest',
   './src/main.js',
   './src/app.js',
+  './src/ui/Boot.js',
   './src/ui/styles.css'
 ];
 
