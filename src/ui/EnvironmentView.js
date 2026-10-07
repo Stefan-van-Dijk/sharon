@@ -27,6 +27,7 @@ export async function openEnvironmentView(root, {
   let checking = false;
   let lineFeatures = [];
   let lineState = 'idle';
+  let lineContextKey = point ? environmentLineKey(point, scale) : '';
   let lineLoadToken = 0;
   let lineTimer = null;
   let pinch = null;
@@ -116,6 +117,9 @@ export async function openEnvironmentView(root, {
   const loadLines = async () => {
     if (!point) return;
 
+    const requestedKey = environmentLineKey(point, scale);
+    if (requestedKey === lineContextKey && lineFeatures.length) return;
+
     const token = ++lineLoadToken;
     lineState = 'loading';
     render();
@@ -124,6 +128,7 @@ export async function openEnvironmentView(root, {
       const features = await loadEnvironmentLines(store, point, scale);
       if (token !== lineLoadToken) return;
       lineFeatures = features;
+      lineContextKey = requestedKey;
       lineState = features.length ? 'ready' : 'idle';
     } catch {
       if (token !== lineLoadToken) return;
@@ -141,6 +146,7 @@ export async function openEnvironmentView(root, {
     scaleIndex = clamped;
     scale = SCALES[scaleIndex];
     lineFeatures = [];
+    lineContextKey = '';
     lineState = 'idle';
     render();
     scheduleLines();
@@ -266,11 +272,20 @@ export async function openEnvironmentView(root, {
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
   const offLocation = events.on('location.changed', event => {
-    point = event.detail;
-    lineFeatures = [];
-    lineState = 'idle';
+    const nextPoint = event.detail;
+    const nextKey = environmentLineKey(nextPoint, scale);
+    const sameLineArea = nextKey === lineContextKey;
+
+    point = nextPoint;
+
+    if (!sameLineArea) {
+      lineFeatures = [];
+      lineContextKey = '';
+      lineState = 'idle';
+    }
+
     render();
-    scheduleLines();
+    if (!sameLineArea) scheduleLines();
   });
 
   const refreshLocations = async () => {
@@ -468,10 +483,14 @@ function environmentReadout(model, point) {
   `;
 }
 
-async function loadEnvironmentLines(store, point, scale) {
+function environmentLineKey(point, scale) {
   const cacheCellM = Math.max(scale.cellM, Math.round(scale.spanM / 2));
   const cacheCell = cellFor(point, cacheCellM);
-  const cacheKey = `environment-lines:${scale.id}:${cacheCell.id}`;
+  return `environment-lines:${scale.id}:${cacheCell.id}`;
+}
+
+async function loadEnvironmentLines(store, point, scale) {
+  const cacheKey = environmentLineKey(point, scale);
   const cached = await store.get('meta', cacheKey).catch(() => null);
 
   if (
