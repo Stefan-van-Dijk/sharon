@@ -1,9 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.36';
-import { openSettings } from './SettingsView.js?v=0.1.36';
-import { sharonWordmark } from './Brand.js?v=0.1.36';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.36';
+import { openLocationsView } from './LocationsView.js?v=0.1.37';
+import { openEnvironmentView } from './EnvironmentView.js?v=0.1.37';
+import { openSettings } from './SettingsView.js?v=0.1.37';
+import { sharonWordmark } from './Brand.js?v=0.1.37';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.37';
 
-const APP_VERSION = '0.1.36';
+const APP_VERSION = '0.1.37';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -247,6 +248,16 @@ export function createShell(root, {
     }), { animate });
   };
 
+  const openEnvironment = async ({ animate = true } = {}) => {
+    setHeaderMode('detail', 'Omgeving');
+    await swapView(() => openEnvironmentView(outlet, {
+      store,
+      location,
+      events,
+      setTitle: setDetailTitle
+    }), { animate });
+  };
+
   const openSettingsView = async ({ animate = true } = {}) => {
     setHeaderMode('detail', 'Instellingen');
     await swapView(() => openSettings(outlet, {
@@ -262,6 +273,13 @@ export function createShell(root, {
 
     if (module.id === 'locations') {
       await openLocations(options.locationId || '', {
+        animate: options.animate !== false
+      });
+      return;
+    }
+
+    if (module.id === 'environment') {
+      await openEnvironment({
         animate: options.animate !== false
       });
       return;
