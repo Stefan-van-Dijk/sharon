@@ -1,13 +1,14 @@
-import { EventBus } from './core/events/EventBus.js?v=0.1.16';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.16';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.1.16';
-import { LocationService } from './core/location/LocationService.js?v=0.1.16';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.1.16';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.1.16';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.16';
-import { createShell } from './ui/Shell.js?v=0.1.16';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.16';
-import { runStory } from './ui/Story.js?v=0.1.16';
+import { EventBus } from './core/events/EventBus.js?v=0.1.17';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.1.17';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.1.17';
+import { LocationService } from './core/location/LocationService.js?v=0.1.17';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.1.17';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.1.17';
+import { InstallService } from './core/app/InstallService.js?v=0.1.17';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.1.17';
+import { createShell } from './ui/Shell.js?v=0.1.17';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.1.17';
+import { runStory } from './ui/Story.js?v=0.1.17';
 
 export async function createApp() {
   const events = new EventBus();
@@ -24,6 +25,7 @@ export async function createApp() {
   });
   const locationTriggers = new LocationTriggerService({ store, events });
   locationTriggers.start();
+  const install = new InstallService({ events });
 
   const savedName = String(initialSettings.profile?.name || '').trim();
   const params = new URLSearchParams(window.location.search);
@@ -49,7 +51,7 @@ export async function createApp() {
   await modules.registerDefaults();
 
   return {
-    services: { events, store, settings, location, geocoder, locationTriggers, modules },
+    services: { events, store, settings, location, geocoder, locationTriggers, install, modules },
 
     async start(root, { bootStartedAt = performance.now() } = {}) {
       if (firstRun) {
@@ -103,6 +105,8 @@ export async function createApp() {
         location,
         events,
         store,
+        settings,
+        install,
         initialModule: startModule,
         initialLocationId: settings.get().onboarding?.firstPlaceId || ''
       });
