@@ -325,6 +325,75 @@ function write_json_file(string $path, array $data): bool {
     return true;
 }
 
+function update_coverage(string $environmentRoot, array $tile): void {
+    $path = rtrim($environmentRoot, '/') . '/coverage.json';
+    $handle = fopen($path, 'c+');
+    if ($handle === false) return;
+
+    try {
+        if (!flock($handle, LOCK_EX)) return;
+
+        rewind($handle);
+        $raw = stream_get_contents($handle);
+        $coverage = is_string($raw) && $raw !== ''
+            ? json_decode($raw, true)
+            : null;
+
+        if (!is_array($coverage)) {
+            $coverage = [
+                'schema' => 'https://sharon.life/environment/coverage/v1',
+                'updatedAt' => null,
+                'areas' => [],
+            ];
+        }
+
+        if (!isset($coverage['areas']) || !is_array($coverage['areas'])) {
+            $coverage['areas'] = [];
+        }
+
+        $id = (string)$tile['id'];
+        $scale = (string)$tile['scale'];
+        $existing = is_array($coverage['areas'][$id] ?? null)
+            ? $coverage['areas'][$id]
+            : [
+                'parent' => $tile['parent'] ?? null,
+                'level' => $tile['level'] ?? intdiv(strlen($id), 2),
+                'scales' => [],
+            ];
+
+        if (!isset($existing['scales']) || !is_array($existing['scales'])) {
+            $existing['scales'] = [];
+        }
+
+        $existing['scales'][$scale] = [
+            'generatedAt' => $tile['generatedAt'] ?? gmdate('c'),
+            'sourceUpdatedAt' => $tile['sourceUpdatedAt'] ?? null,
+            'featureCount' => is_array($tile['features'] ?? null)
+                ? count($tile['features'])
+                : 0,
+        ];
+
+        $coverage['areas'][$id] = $existing;
+        $coverage['updatedAt'] = gmdate('c');
+
+        $encoded = json_encode(
+            $coverage,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        if (!is_string($encoded)) return;
+
+        ftruncate($handle, 0);
+        rewind($handle);
+        fwrite($handle, $encoded);
+        fflush($handle);
+        @chmod($path, 0644);
+    } finally {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+}
+
 function serve_file(string $path, string $cacheState = 'HIT'): never {
     if (!is_file($path)) {
         json_response(404, ['error' => 'Gebied is nog niet opgebouwd.']);
@@ -398,7 +467,8 @@ if (strlen($id) !== (int)$scale['idLength']) {
     json_response(422, ['error' => 'Gebiedsidentifier heeft niet het juiste detailniveau voor deze schaal.']);
 }
 
-$tileRoot = dirname(__DIR__) . '/tiles';
+$environmentRoot = dirname(__DIR__);
+$tileRoot = $environmentRoot . '/tiles';
 $path = tile_path($tileRoot, $id, $scaleId);
 
 if ($method === 'GET') {
@@ -438,6 +508,7 @@ try {
         json_response(500, ['error' => 'Gebiedsbestand kon niet online worden opgeslagen.']);
     }
 
+    update_coverage($environmentRoot, $tile);
     serve_file($path, 'MISS');
 } catch (Throwable $error) {
     json_response(502, [
