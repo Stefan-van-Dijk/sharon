@@ -120,6 +120,11 @@ export function bindSwipeMenu(surface, drawer, {
       finishState(currentX >= OPEN_TRIGGER_PX, true);
     }
 
+    surface.dataset.menuSwipeSuppressClick = '1';
+    setTimeout(() => {
+      if (surface.isConnected) delete surface.dataset.menuSwipeSuppressClick;
+    }, 120);
+
     locked = '';
     dragging = false;
   };
