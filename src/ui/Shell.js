@@ -1,7 +1,7 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.27';
-import { openSettings } from './SettingsView.js?v=0.1.27';
-import { sharonWordmark } from './Brand.js?v=0.1.27';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.27';
+import { openLocationsView } from './LocationsView.js?v=0.1.28';
+import { openSettings } from './SettingsView.js?v=0.1.28';
+import { sharonWordmark } from './Brand.js?v=0.1.28';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.28';
 
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
