@@ -1,9 +1,9 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.33';
-import { openSettings } from './SettingsView.js?v=0.1.33';
-import { sharonWordmark } from './Brand.js?v=0.1.33';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.33';
+import { openLocationsView } from './LocationsView.js?v=0.1.34';
+import { openSettings } from './SettingsView.js?v=0.1.34';
+import { sharonWordmark } from './Brand.js?v=0.1.34';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.34';
 
-const APP_VERSION = '0.1.33';
+const APP_VERSION = '0.1.34';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -23,7 +23,10 @@ export function createShell(root, {
   let viewChange = 0;
   let viewCleanup = null;
 
+  document.body.classList.add('sharon-shell-active');
+
   root.innerHTML = `
+    <div class="app-stage" data-app-stage>
     <main class="app-frame" data-app-frame>
       <header class="app-header" data-app-header>
         <button type="button" class="persistent-brand-button" data-brand-control aria-label="Sharon">
@@ -49,8 +52,10 @@ export function createShell(root, {
 
       <section class="app-view" data-view-outlet></section>
     </main>
+    </div>
   `;
 
+  const stage = root.querySelector('[data-app-stage]');
   const frame = root.querySelector('[data-app-frame]');
   const header = root.querySelector('[data-app-header]');
   const brandButton = root.querySelector('[data-brand-control]');
@@ -135,6 +140,7 @@ export function createShell(root, {
     const detail = mode === 'detail';
     currentView = detail ? 'detail' : 'home';
 
+    stage.dataset.view = currentView;
     frame.dataset.view = currentView;
     header.classList.toggle('is-detail', detail);
     brand.classList.toggle('is-detail', detail);
@@ -268,7 +274,7 @@ export function createShell(root, {
     if (currentView === 'detail') showHome();
   });
 
-  bindSwipeHome(frame, () => {
+  bindSwipeHome(stage, () => {
     if (currentView === 'detail') return showHome();
   }, {
     isEnabled: () => currentView === 'detail'
