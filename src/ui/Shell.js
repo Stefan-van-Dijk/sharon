@@ -1,10 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.37';
-import { openEnvironmentView } from './EnvironmentView.js?v=0.1.37';
-import { openSettings } from './SettingsView.js?v=0.1.37';
-import { sharonWordmark } from './Brand.js?v=0.1.37';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.37';
+import { openLocationsView } from './LocationsView.js?v=0.1.38';
+import { openEnvironmentView } from './EnvironmentView.js?v=0.1.38';
+import { openSettings } from './SettingsView.js?v=0.1.38';
+import { sharonWordmark } from './Brand.js?v=0.1.38';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.38';
 
-const APP_VERSION = '0.1.37';
+const APP_VERSION = '0.1.38';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -137,12 +137,15 @@ export function createShell(root, {
     }
   };
 
-  const setHeaderMode = (mode, viewTitle = '') => {
+  const setHeaderMode = (mode, viewTitle = '', moduleId = '') => {
     const detail = mode === 'detail';
+    const environment = detail && moduleId === 'environment';
     currentView = detail ? 'detail' : 'home';
 
     stage.dataset.view = currentView;
     frame.dataset.view = currentView;
+    stage.classList.toggle('is-environment', environment);
+    frame.classList.toggle('is-environment', environment);
     header.classList.toggle('is-detail', detail);
     brand.classList.toggle('is-detail', detail);
     brandButton.setAttribute(
@@ -227,7 +230,7 @@ export function createShell(root, {
   };
 
   const openPlaceholder = async module => {
-    setHeaderMode('detail', module.title);
+    setHeaderMode('detail', module.title, module.id);
     await swapView(() => {
       outlet.innerHTML = `
         <section class="module-view placeholder-copy">
@@ -238,7 +241,7 @@ export function createShell(root, {
   };
 
   const openLocations = async (locationId = '', { animate = true } = {}) => {
-    setHeaderMode('detail', locationId ? 'Locatie' : 'Locaties');
+    setHeaderMode('detail', locationId ? 'Locatie' : 'Locaties', 'locations');
     await swapView(() => openLocationsView(outlet, {
       store,
       location,
@@ -249,7 +252,7 @@ export function createShell(root, {
   };
 
   const openEnvironment = async ({ animate = true } = {}) => {
-    setHeaderMode('detail', 'Omgeving');
+    setHeaderMode('detail', 'Omgeving', 'environment');
     await swapView(() => openEnvironmentView(outlet, {
       store,
       location,
@@ -259,7 +262,7 @@ export function createShell(root, {
   };
 
   const openSettingsView = async ({ animate = true } = {}) => {
-    setHeaderMode('detail', 'Instellingen');
+    setHeaderMode('detail', 'Instellingen', 'settings');
     await swapView(() => openSettings(outlet, {
       settings,
       install,
