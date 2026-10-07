@@ -1,6 +1,7 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.22';
-import { openSettings } from './SettingsView.js?v=0.1.22';
-import { sharonLogo, sharonWordmark } from './Brand.js?v=0.1.22';
+import { openLocationsView } from './LocationsView.js?v=0.1.23';
+import { openSettings } from './SettingsView.js?v=0.1.23';
+import { sharonLogo, sharonWordmark } from './Brand.js?v=0.1.23';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.23';
 
 const NAV_MS = 340;
 
@@ -222,6 +223,7 @@ function openPlaceholder(root, title, onBack) {
   `;
 
   root.querySelector('[data-home-logo]').addEventListener('click', onBack);
+  bindSwipeHome(root.querySelector('.detail-shell'), onBack);
 }
 
 function detailHeader(title) {
