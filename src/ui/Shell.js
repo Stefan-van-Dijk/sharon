@@ -1,10 +1,13 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.16';
+import { openLocationsView } from './LocationsView.js?v=0.1.17';
+import { openSettings } from './SettingsView.js?v=0.1.17';
 
 export function createShell(root, {
   modules,
   location,
   events,
   store,
+  settings,
+  install,
   initialModule = '',
   initialLocationId = ''
 }) {
@@ -15,16 +18,16 @@ export function createShell(root, {
     <main class="shell">
       <header class="brand">
         <div class="brand-line">
-          <div class="brand-wordmark" data-menu-anchor aria-label="Sharon">
+          <button type="button" class="brand-wordmark brand-button" data-menu-anchor aria-label="Open Sharon menu">
             <span>Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.16"
+              src="./assets/sharon-mark.png?v=0.1.17"
               alt=""
               aria-hidden="true"
             >
             <span>n</span>
-          </div>
+          </button>
           <span
             class="location-pulse is-searching"
             data-location-status
@@ -111,7 +114,9 @@ export function createShell(root, {
       modules,
       location,
       events,
-      store
+      store,
+      settings,
+      install
     });
   };
 
@@ -125,6 +130,14 @@ export function createShell(root, {
       onBack: returnToShell
     });
   };
+
+  root.querySelector('[data-menu-anchor]').addEventListener('click', () => {
+    openSettings(root, {
+      settings,
+      install,
+      events
+    });
+  });
 
   root.querySelector('[data-location-check]').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
