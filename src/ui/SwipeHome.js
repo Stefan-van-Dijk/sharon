@@ -1,17 +1,19 @@
-const EDGE_PX = 34;
-const TRIGGER_PX = 84;
-const MAX_DRAG_PX = 220;
-const DIRECTION_LOCK = 8;
+const EDGE_PX = 56;
+const TRIGGER_PX = 76;
+const MAX_DRAG_PX = 180;
+const DIRECTION_LOCK = 7;
 
-export function bindSwipeHome(surface, onHome, { isEnabled = () => true } = {}) {
+export function bindSwipeHome(surface, onHome, {
+  isEnabled = () => true
+} = {}) {
   if (!surface) return () => {};
 
   let pointerId = null;
   let startX = 0;
   let startY = 0;
+  let currentX = 0;
   let dragging = false;
   let locked = '';
-  let currentX = 0;
 
   const setX = (value, animate = false) => {
     currentX = Math.max(0, Math.min(MAX_DRAG_PX, value));
@@ -24,36 +26,38 @@ export function bindSwipeHome(surface, onHome, { isEnabled = () => true } = {}) 
     );
   };
 
-  const reset = () => {
-    surface.classList.add('is-home-swipe-animating');
-    setX(0, true);
+  const reset = (animate = true) => {
+    setX(0, animate);
+
     setTimeout(() => {
-      if (!surface.isConnected) return;
-      surface.classList.remove('is-home-swipe-animating');
+      if (!surface.isConnected || currentX !== 0) return;
+      surface.classList.remove('is-home-swipe-animating', 'is-home-swiping');
       surface.style.removeProperty('--home-swipe-x');
       surface.style.removeProperty('--home-swipe-progress');
-    }, 260);
-  };
-
-  const complete = () => {
-    onHome?.();
-    reset();
+    }, animate ? 260 : 0);
   };
 
   const pointerDown = event => {
     if (!isEnabled()) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    const bounds = surface.getBoundingClientRect();
-    if (event.clientX - bounds.left > EDGE_PX) return;
     if (event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+
+    const bounds = surface.getBoundingClientRect();
+    const xInside = event.clientX - bounds.left;
+    if (xInside < 0 || xInside > EDGE_PX) return;
 
     pointerId = event.pointerId;
     startX = event.clientX;
     startY = event.clientY;
+    currentX = 0;
     dragging = false;
     locked = '';
-    currentX = 0;
-    surface.classList.remove('is-home-swipe-animating', 'is-home-swipe-complete');
+
+    surface.classList.remove('is-home-swipe-animating');
+
+    try {
+      surface.setPointerCapture(pointerId);
+    } catch {}
   };
 
   const pointerMove = event => {
@@ -71,35 +75,60 @@ export function bindSwipeHome(surface, onHome, { isEnabled = () => true } = {}) 
 
     dragging = true;
     event.preventDefault();
-    setX(dx);
+    setX(dx, false);
   };
 
-  const pointerUp = event => {
+  const finish = async event => {
     if (pointerId !== event.pointerId) return;
+
+    try {
+      if (surface.hasPointerCapture(pointerId)) {
+        surface.releasePointerCapture(pointerId);
+      }
+    } catch {}
+
     pointerId = null;
 
     if (!dragging || locked !== 'x') {
+      reset(false);
       locked = '';
       dragging = false;
       return;
     }
 
-    if (currentX >= TRIGGER_PX) complete();
-    else reset();
+    if (currentX >= TRIGGER_PX) {
+      await onHome?.();
+    }
 
+    reset(true);
+    locked = '';
+    dragging = false;
+  };
+
+  const cancel = event => {
+    if (pointerId !== event.pointerId) return;
+
+    try {
+      if (surface.hasPointerCapture(pointerId)) {
+        surface.releasePointerCapture(pointerId);
+      }
+    } catch {}
+
+    pointerId = null;
+    reset(true);
     locked = '';
     dragging = false;
   };
 
   surface.addEventListener('pointerdown', pointerDown);
   surface.addEventListener('pointermove', pointerMove, { passive: false });
-  surface.addEventListener('pointerup', pointerUp);
-  surface.addEventListener('pointercancel', pointerUp);
+  surface.addEventListener('pointerup', finish);
+  surface.addEventListener('pointercancel', cancel);
 
   return () => {
     surface.removeEventListener('pointerdown', pointerDown);
     surface.removeEventListener('pointermove', pointerMove);
-    surface.removeEventListener('pointerup', pointerUp);
-    surface.removeEventListener('pointercancel', pointerUp);
+    surface.removeEventListener('pointerup', finish);
+    surface.removeEventListener('pointercancel', cancel);
   };
 }
