@@ -1,4 +1,4 @@
-import { sharonLogo } from './Brand.js?v=0.1.20';
+import { sharonLogo } from './Brand.js?v=0.1.21';
 
 export function openSettings(root, {
   settings,
