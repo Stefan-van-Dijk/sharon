@@ -1,134 +1,231 @@
-const EDGE_PX = 56;
-const TRIGGER_PX = 76;
-const MAX_DRAG_PX = 180;
-const DIRECTION_LOCK = 7;
+const HORIZONTAL_RATIO = 1.25;
+const SNAP_PROGRESS = 0.28;
+const FLING_VELOCITY = 0.45;
+const EDGE_PX = 104;
+const DIRECTION_LOCK = 10;
+
+const clamp = (value, min = 0, max = 1) =>
+  Math.min(max, Math.max(min, value));
 
 export function bindSwipeHome(surface, onHome, {
   isEnabled = () => true
 } = {}) {
   if (!surface) return () => {};
 
-  let pointerId = null;
-  let startX = 0;
-  let startY = 0;
-  let currentX = 0;
-  let dragging = false;
-  let locked = '';
+  let gesture = null;
+  let animating = false;
 
-  const setX = (value, animate = false) => {
-    currentX = Math.max(0, Math.min(MAX_DRAG_PX, value));
-    surface.classList.toggle('is-home-swipe-animating', animate);
-    surface.classList.toggle('is-home-swiping', currentX > 0);
-    surface.style.setProperty('--home-swipe-x', `${currentX}px`);
-    surface.style.setProperty(
-      '--home-swipe-progress',
-      String(Math.min(1, currentX / TRIGGER_PX))
-    );
+  const touchPoint = event =>
+    event.touches?.[0] || event.changedTouches?.[0] || null;
+
+  const isInteractiveTarget = target => {
+    if (!target?.closest) return false;
+
+    // A swipe row owns leftward gestures, but deliberately leaves
+    // rightward gestures available for home navigation.
+    if (target.closest('[data-swipe-surface]')) return false;
+
+    return Boolean(target.closest(
+      'input,textarea,select,a,button,[contenteditable="true"]'
+    ));
   };
 
-  const reset = (animate = true) => {
-    setX(0, animate);
+  const shift = () => Math.min(window.innerWidth * 0.55, 220);
 
-    setTimeout(() => {
-      if (!surface.isConnected || currentX !== 0) return;
-      surface.classList.remove('is-home-swipe-animating', 'is-home-swiping');
-      surface.style.removeProperty('--home-swipe-x');
-      surface.style.removeProperty('--home-swipe-progress');
-    }, animate ? 260 : 0);
+  const setProgress = progress => {
+    if (!gesture) return;
+
+    progress = clamp(progress);
+    gesture.progress = progress;
+
+    const x = shift() * progress;
+    surface.classList.toggle('is-home-swiping', progress > 0);
+    surface.style.setProperty('--home-swipe-x', `${x}px`);
+    surface.style.setProperty('--home-swipe-progress', String(progress));
   };
 
-  const pointerDown = event => {
-    if (!isEnabled()) return;
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
-
-    const bounds = surface.getBoundingClientRect();
-    const xInside = event.clientX - bounds.left;
-    if (xInside < 0 || xInside > EDGE_PX) return;
-
-    pointerId = event.pointerId;
-    startX = event.clientX;
-    startY = event.clientY;
-    currentX = 0;
-    dragging = false;
-    locked = '';
-
-    surface.classList.remove('is-home-swipe-animating');
-
-    try {
-      surface.setPointerCapture(pointerId);
-    } catch {}
+  const cleanup = () => {
+    surface.classList.remove('is-home-swiping', 'is-home-swipe-animating');
+    surface.style.removeProperty('--home-swipe-x');
+    surface.style.removeProperty('--home-swipe-progress');
+    gesture = null;
+    animating = false;
   };
 
-  const pointerMove = event => {
-    if (pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-
-    if (!locked) {
-      if (Math.abs(dx) < DIRECTION_LOCK && Math.abs(dy) < DIRECTION_LOCK) return;
-      locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    }
-
-    if (locked !== 'x' || dx <= 0) return;
-
-    dragging = true;
-    event.preventDefault();
-    setX(dx, false);
-  };
-
-  const finish = async event => {
-    if (pointerId !== event.pointerId) return;
-
-    try {
-      if (surface.hasPointerCapture(pointerId)) {
-        surface.releasePointerCapture(pointerId);
-      }
-    } catch {}
-
-    pointerId = null;
-
-    if (!dragging || locked !== 'x') {
-      reset(false);
-      locked = '';
-      dragging = false;
+  const animateTo = (target, done) => {
+    if (!gesture) {
+      done?.();
       return;
     }
 
-    if (currentX >= TRIGGER_PX) {
-      await onHome?.();
+    const from = gesture.progress;
+    const distance = Math.abs(target - from);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const duration = reduced ? 0 : Math.round(120 + distance * 130);
+
+    if (!duration) {
+      setProgress(target);
+      done?.();
+      return;
     }
 
-    reset(true);
-    locked = '';
-    dragging = false;
-  };
+    animating = true;
+    surface.classList.add('is-home-swipe-animating');
 
-  const cancel = event => {
-    if (pointerId !== event.pointerId) return;
+    const started = performance.now();
 
-    try {
-      if (surface.hasPointerCapture(pointerId)) {
-        surface.releasePointerCapture(pointerId);
+    const step = now => {
+      if (!gesture) {
+        animating = false;
+        return;
       }
-    } catch {}
 
-    pointerId = null;
-    reset(true);
-    locked = '';
-    dragging = false;
+      const t = clamp((now - started) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setProgress(from + (target - from) * eased);
+
+      if (t < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+
+      animating = false;
+      done?.();
+    };
+
+    requestAnimationFrame(step);
   };
 
-  surface.addEventListener('pointerdown', pointerDown);
-  surface.addEventListener('pointermove', pointerMove, { passive: false });
-  surface.addEventListener('pointerup', finish);
-  surface.addEventListener('pointercancel', cancel);
+  const beginGesture = event => {
+    if (!isEnabled() || animating || gesture) return;
+    if (event.touches?.length !== 1) return;
+    if (!surface.contains(event.target)) return;
+    if (isInteractiveTarget(event.target)) return;
+
+    const point = touchPoint(event);
+    if (!point) return;
+
+    const bounds = surface.getBoundingClientRect();
+    const xInside = point.clientX - bounds.left;
+
+    if (xInside < 0 || xInside > EDGE_PX) return;
+
+    gesture = {
+      startX: point.clientX,
+      startY: point.clientY,
+      dx: 0,
+      dy: 0,
+      horizontal: false,
+      progress: 0,
+      velocityX: 0,
+      lastX: point.clientX,
+      lastTime: performance.now()
+    };
+  };
+
+  const moveGesture = event => {
+    if (!gesture || animating) return;
+
+    const point = touchPoint(event);
+    if (!point) return;
+
+    const now = performance.now();
+    gesture.dx = point.clientX - gesture.startX;
+    gesture.dy = point.clientY - gesture.startY;
+
+    const ax = Math.abs(gesture.dx);
+    const ay = Math.abs(gesture.dy);
+
+    if (!gesture.horizontal) {
+      if (ay > DIRECTION_LOCK && ay > ax) {
+        gesture = null;
+        return;
+      }
+
+      if (
+        ax < DIRECTION_LOCK ||
+        ax < ay * HORIZONTAL_RATIO
+      ) {
+        return;
+      }
+
+      if (gesture.dx <= 0) {
+        gesture = null;
+        return;
+      }
+
+      gesture.horizontal = true;
+    }
+
+    if (gesture.dx <= 0) return;
+
+    const dt = Math.max(1, now - gesture.lastTime);
+    const instantVelocity = (point.clientX - gesture.lastX) / dt;
+
+    gesture.velocityX =
+      gesture.velocityX * 0.55 +
+      instantVelocity * 0.45;
+
+    gesture.lastX = point.clientX;
+    gesture.lastTime = now;
+
+    if (event.cancelable) event.preventDefault();
+
+    setProgress(gesture.dx / shift());
+  };
+
+  const endGesture = () => {
+    if (!gesture || animating) return;
+
+    if (!gesture.horizontal) {
+      gesture = null;
+      return;
+    }
+
+    const forward =
+      gesture.progress >= SNAP_PROGRESS ||
+      gesture.velocityX >= FLING_VELOCITY;
+
+    if (!forward) {
+      animateTo(0, cleanup);
+      return;
+    }
+
+    // Keep the same Sharon shell. Swap its content to home while the
+    // frame is displaced, then let the home state glide back into place.
+    const returnHome = async () => {
+      try {
+        await onHome?.();
+      } finally {
+        if (!gesture) {
+          cleanup();
+          return;
+        }
+        animateTo(0, cleanup);
+      }
+    };
+
+    animateTo(Math.max(gesture.progress, 0.42), returnHome);
+  };
+
+  const cancelGesture = () => {
+    if (!gesture || animating) return;
+    if (!gesture.horizontal) {
+      gesture = null;
+      return;
+    }
+    animateTo(0, cleanup);
+  };
+
+  document.addEventListener('touchstart', beginGesture, { passive: true });
+  document.addEventListener('touchmove', moveGesture, { passive: false });
+  document.addEventListener('touchend', endGesture, { passive: true });
+  document.addEventListener('touchcancel', cancelGesture, { passive: true });
 
   return () => {
-    surface.removeEventListener('pointerdown', pointerDown);
-    surface.removeEventListener('pointermove', pointerMove);
-    surface.removeEventListener('pointerup', finish);
-    surface.removeEventListener('pointercancel', cancel);
+    document.removeEventListener('touchstart', beginGesture);
+    document.removeEventListener('touchmove', moveGesture);
+    document.removeEventListener('touchend', endGesture);
+    document.removeEventListener('touchcancel', cancelGesture);
   };
 }
