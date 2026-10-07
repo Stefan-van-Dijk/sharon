@@ -1,6 +1,7 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.22';
-import { sharonLogo } from './Brand.js?v=0.1.22';
-import { bindSwipeRows } from './SwipeRows.js?v=0.1.22';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.23';
+import { sharonLogo } from './Brand.js?v=0.1.23';
+import { bindSwipeRows } from './SwipeRows.js?v=0.1.23';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.23';
 
 export async function openLocationsView(root, {
   store,
@@ -62,6 +63,7 @@ export async function openLocationsView(root, {
   `;
 
   root.querySelector('[data-detail-back]').addEventListener('click', onBack);
+  bindSwipeHome(root.querySelector('.detail-shell'), onBack);
 
   const swipeList = root.querySelector('[data-swipe-list]');
 
@@ -215,6 +217,7 @@ async function openLocationEditor(root, {
     `;
 
     root.querySelector('[data-detail-back]').addEventListener('click', onBack);
+    bindSwipeHome(root.querySelector('.detail-shell'), onBack);
     root.querySelector('[data-location-form]').addEventListener('submit', save);
     root.querySelector('[data-check-distance]').addEventListener('click', checkDistance);
   }
