@@ -3,7 +3,7 @@ const TRIGGER_PX = 84;
 const MAX_DRAG_PX = 220;
 const DIRECTION_LOCK = 8;
 
-export function bindSwipeHome(surface, onHome) {
+export function bindSwipeHome(surface, onHome, { isEnabled = () => true } = {}) {
   if (!surface) return () => {};
 
   let pointerId = null;
@@ -36,13 +36,12 @@ export function bindSwipeHome(surface, onHome) {
   };
 
   const complete = () => {
-    surface.classList.add('is-home-swipe-complete');
-    surface.style.setProperty('--home-swipe-x', '110vw');
-    surface.style.setProperty('--home-swipe-progress', '1');
-    setTimeout(() => onHome?.(), 180);
+    onHome?.();
+    reset();
   };
 
   const pointerDown = event => {
+    if (!isEnabled()) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (event.clientX > EDGE_PX) return;
     if (event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
