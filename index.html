@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.19">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.19">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.20">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.20">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -43,6 +43,74 @@
     .brand-motion.is-marking .brand-final{opacity:1;transform:scale(1)}
     .brand-motion.is-marking .sharon-mark{opacity:1;transform:scale(1) rotate(0)}
     .brand-motion.is-final .brand-final{opacity:1}
+
+    /* Vector wordmark: all parts share one coordinate system. */
+    .sharon-vector{display:block;overflow:visible}
+    .vector-part{
+      transform-box:view-box;
+      transition:
+        transform .34s cubic-bezier(.22,.61,.36,1),
+        opacity .26s ease;
+    }
+    .vector-logo{
+      opacity:0;
+      transform:scale(.82);
+      transform-origin:144px 55px;
+    }
+    .sharon-vector--sharon .vector-e,
+    .sharon-vector--sharon .vector-o{opacity:0}
+    .sharon-vector--sharon .vector-logo{opacity:1;transform:scale(1)}
+    .sharon-vector--sharon .vector-n{transform:translateX(-40px)}
+
+    .brand-motion{
+      position:relative;
+      width:min(360px,92vw);
+      height:auto;
+      margin:0 auto;
+      color:#111;
+    }
+    .brand-motion.is-anticipating .vector-shar,
+    .brand-motion.is-anticipating .vector-e{transform:translateX(-3px)}
+    .brand-motion.is-anticipating .vector-o,
+    .brand-motion.is-anticipating .vector-n{transform:translateX(3px)}
+    .brand-motion.is-closing .vector-shar{transform:translateX(2px)}
+    .brand-motion.is-closing .vector-e{transform:translateX(4px);opacity:.7}
+    .brand-motion.is-closing .vector-o{transform:translateX(-20px);opacity:.7}
+    .brand-motion.is-closing .vector-n{transform:translateX(-14px)}
+    .brand-motion.is-morphing .vector-shar{transform:translateX(0)}
+    .brand-motion.is-morphing .vector-e{transform:translateX(4px);opacity:.18}
+    .brand-motion.is-morphing .vector-o{transform:translateX(-38px);opacity:.18}
+    .brand-motion.is-morphing .vector-n{transform:translateX(-34px)}
+    .brand-motion.is-morphing .vector-logo{opacity:.48;transform:scale(.92)}
+    .brand-motion.is-marking .vector-e,
+    .brand-motion.is-marking .vector-o,
+    .brand-motion.is-final .vector-e,
+    .brand-motion.is-final .vector-o{opacity:0}
+    .brand-motion.is-marking .vector-n,
+    .brand-motion.is-final .vector-n{transform:translateX(-40px)}
+    .brand-motion.is-marking .vector-logo,
+    .brand-motion.is-final .vector-logo{opacity:1;transform:scale(1)}
+
+    .home-brand-vector{width:110px;height:auto;flex:0 0 auto}
+    .home-brand-vector.is-to-logo .vector-shar,
+    .home-brand-vector.is-from-logo .vector-shar{
+      opacity:0;
+      transform:translateX(54px);
+    }
+    .home-brand-vector.is-to-logo .vector-n,
+    .home-brand-vector.is-from-logo .vector-n{
+      opacity:0;
+      transform:translateX(-88px);
+    }
+    .home-brand-vector.is-to-logo .vector-logo,
+    .home-brand-vector.is-from-logo .vector-logo{
+      opacity:1;
+      transform:translateX(-64px) scale(1.45);
+    }
+
+    .sharon-logo-vector{display:block;object-fit:contain}
+    .detail-home-logo{width:27px;height:27px}
+    .story-brand-vector{width:102px;height:auto}
 
     .intro-copy{min-height:142px;margin-top:28px;opacity:0;transform:translateY(5px);transition:opacity .18s ease,transform .24s ease}
     .intro-copy.is-visible{opacity:1;transform:translateY(0)}
@@ -207,6 +275,7 @@
       .trigger-toast{transition:none}
       .side-menu,.side-menu-backdrop{transition:none}
       .brand-wordmark-mark,.brand-home-prefix,.brand-home-suffix{transition:none}
+      .vector-part{transition:none}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -215,23 +284,23 @@
   <div id="app">
     <section class="sharon-boot" data-intro aria-label="Sharon start">
       <div class="sharon-intro-stage">
-        <div class="brand-motion" data-brand-motion aria-label="Share on">
-          <div class="brand-phrase" aria-hidden="true">
-            <span class="share-word"><span>Shar</span><span class="merge-e">e</span></span>
-            <span class="on-word"><span class="merge-o">o</span><span>n</span></span>
-          </div>
-          <div class="brand-final" aria-hidden="true">
-            <span>Shar</span>
-            <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
-            </span>
-            <span>n</span>
-          </div>
-        </div>
+        <svg
+          class="brand-motion sharon-vector sharon-vector--share"
+          data-brand-motion
+          viewBox="0 12 245.1 70"
+          role="img"
+          aria-label="Share on"
+        >
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.20#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.20#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.20#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.20#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.20#n"></use></g>
+        </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.19"></script>
+  <script type="module" src="./src/main.js?v=0.1.20"></script>
 </body>
 </html>
