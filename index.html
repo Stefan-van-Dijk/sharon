@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.37">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.37">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.38">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.38">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -130,6 +130,10 @@
     .app-stage.is-home-swiping,.app-stage.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-10px 0 30px rgba(0,0,0,var(--home-swipe-shadow))}
     .app-stage.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease,border-radius .24s cubic-bezier(.22,.61,.36,1)}
     .app-frame{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
+    .app-stage.is-environment{padding-left:0;padding-right:0;padding-bottom:0}
+    .app-frame.is-environment{width:100%;max-width:none;min-height:calc(100dvh - max(22px,env(safe-area-inset-top)));overflow:hidden}
+    .app-stage.is-environment .app-header{padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
+    .app-stage.is-environment .app-view{flex:1;min-height:0}
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
@@ -234,31 +238,42 @@
     .clean-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
     .empty-state{margin:28px 1px;color:#9a9a9f;font-size:14px}
 
-    .environment-view{padding-bottom:28px}
-    .environment-toolbar{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #ececef}
-    .environment-scales{display:flex;min-width:0;gap:12px;overflow-x:auto;scrollbar-width:none}
-    .environment-scales::-webkit-scrollbar{display:none}
-    .environment-scales button,.environment-refresh{padding:0;border:0;background:transparent;color:#8a8a8f;font-size:12px;white-space:nowrap}
-    .environment-scales button[aria-pressed="true"]{color:#111;font-weight:620}
-    .environment-refresh{color:#55555a;flex:0 0 auto}
-    .environment-refresh:disabled{opacity:.35}
-    .environment-canvas{position:relative;width:100%;aspect-ratio:1/1;margin-top:18px;border:1px solid #ececef;background:#fff;overflow:hidden}
+    .environment-view{flex:1;min-height:0;position:relative;display:flex;background:#fff}
+    .environment-canvas{position:absolute;inset:0;overflow:hidden;background:#fff;touch-action:none;overscroll-behavior:none}
+    .environment-map{position:absolute;inset:0;transform-origin:center;transition:transform .12s ease-out}
+    .environment-canvas.is-pinching .environment-map{transition:none}
     .environment-svg{display:block;width:100%;height:100%;background:#fff}
-    .environment-current-cell{fill:#f5f5f6}
-    .environment-grid line{stroke:#e1e1e4;stroke-width:1.15;vector-effect:non-scaling-stroke}
-    .environment-crosshair line{stroke:#b8b8bd;stroke-width:1;stroke-dasharray:4 6;vector-effect:non-scaling-stroke}
-    .environment-location circle{fill:#fff;stroke:#111;stroke-width:2.1;vector-effect:non-scaling-stroke}
-    .environment-location text{fill:#333338;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;font-size:24px;font-weight:480;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}
-    .environment-you-ring{fill:none;stroke:#111;stroke-width:2.5;vector-effect:non-scaling-stroke}
+    .environment-current-cell{fill:#fbfbfc}
+    .environment-grid line{stroke:#f0f0f2;stroke-width:.7;vector-effect:non-scaling-stroke}
+    .environment-lines{fill:none}
+    .environment-line{fill:none;stroke:#c7c7cb;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+    .environment-line--building{stroke:#dedee1;stroke-width:.8}
+    .environment-line--path{stroke:#d0d0d4;stroke-width:.9;stroke-dasharray:3 4}
+    .environment-line--road{stroke:#bdbdc2;stroke-width:1.05}
+    .environment-line--major{stroke:#737378;stroke-width:1.65}
+    .environment-line--rail{stroke:#a1a1a6;stroke-width:1.15;stroke-dasharray:6 3}
+    .environment-line--water{stroke:#c7c7cc;stroke-width:1.25}
+    .environment-line--boundary{stroke:#d6d6da;stroke-width:.9;stroke-dasharray:7 5}
+    .environment-location circle{fill:#fff;stroke:#111;stroke-width:2;vector-effect:non-scaling-stroke}
+    .environment-location text{fill:#333338;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;font-size:23px;font-weight:480;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}
+    .environment-you-ring{fill:rgba(255,255,255,.82);stroke:#111;stroke-width:2.5;vector-effect:non-scaling-stroke}
     .environment-you-dot{fill:#111}
-    .environment-scale-mark line{stroke:#7d7d82;stroke-width:1.6;vector-effect:non-scaling-stroke}
-    .environment-scale-mark text{fill:#7d7d82;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;font-size:22px}
-    .environment-readout{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;padding:18px 1px 0}
-    .environment-readout>div{display:grid;gap:4px}
+    .environment-scale-mark line{stroke:#8d8d92;stroke-width:1.2;vector-effect:non-scaling-stroke}
+    .environment-scale-mark text{fill:#8d8d92;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;font-size:21px}
+    .environment-scale-chip,.environment-refresh{position:absolute;top:14px;z-index:5;min-height:34px;padding:0 11px;border:1px solid rgba(0,0,0,.055);border-radius:18px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);color:#55555a;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.035)}
+    .environment-scale-chip{left:max(14px,env(safe-area-inset-left))}
+    .environment-refresh{right:max(14px,env(safe-area-inset-right))}
+    .environment-refresh:disabled{opacity:.4}
+    .environment-readout{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;padding:11px 13px;border:1px solid rgba(0,0,0,.05);border-radius:14px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);box-shadow:0 3px 16px rgba(0,0,0,.035)}
+    .environment-readout>div{min-width:0;display:grid;gap:3px}
     .environment-readout>div:last-child{text-align:right}
-    .environment-readout span{color:#9a9a9f;font-size:10px}
-    .environment-readout strong{min-width:0;color:#222226;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .environment-readout small{color:#9a9a9f;font-size:10px}
+    .environment-readout span{color:#a0a0a5;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+    .environment-readout strong{min-width:0;color:#222226;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .environment-readout small{color:#9a9a9f;font-size:9px}
+    .environment-source{position:absolute;right:max(17px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 68px);z-index:5;color:#b1b1b6;font-size:8px}
+    .environment-source a{color:inherit;text-decoration:none}
+    .environment-pinch-hint{position:absolute;left:50%;top:58px;z-index:5;transform:translateX(-50%);padding:5px 8px;border-radius:10px;background:rgba(255,255,255,.74);color:#a3a3a8;font-size:9px;white-space:nowrap;opacity:1;transition:opacity .35s ease}
+    .environment-pinch-hint.is-hidden{opacity:0;pointer-events:none}
     .environment-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:7px;padding:28px;text-align:center}
     .environment-empty strong{font-size:14px;font-weight:520}
     .environment-empty small{max-width:250px;color:#8a8a8f;font-size:11px;line-height:1.45}
@@ -364,16 +379,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.37#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.37#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.37#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.37#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.37#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.38#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.38#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.38#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.38#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.38#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.37"></script>
+  <script type="module" src="./src/main.js?v=0.1.38"></script>
 </body>
 </html>
