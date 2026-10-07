@@ -1,3 +1,9 @@
+import {
+  environmentBoundsForId,
+  environmentPointId,
+  environmentTileId
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.41';
+
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
   { id: 'detail', label: 'Detail', spanM: 220, cellM: 25 },
@@ -10,7 +16,9 @@ const SCALES = Object.freeze([
 const VIEW = 1000;
 const CENTER = VIEW / 2;
 const EARTH_RADIUS_M = 6371000;
-const LINE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const LINE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php';
+let sharedTileEndpointState = 'unknown';
 const OVERPASS_ENDPOINTS = Object.freeze([
   'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter'
@@ -606,6 +614,8 @@ function environmentModel(
       currentCell
     }),
     currentCell,
+    areaId: environmentTileId(viewCenter, scale.id),
+    pointId: environmentPointId(point),
     nearest,
     visibleCount: visibleLocations.length,
     scale
@@ -687,23 +697,22 @@ function environmentReadout(model, point) {
     <div>
       <span>Nu</span>
       <strong>${nearest}</strong>
-      <small>GPS ±${Math.round(Number(point.accuracy) || 0)} m</small>
+      <small>GPS ±${Math.round(Number(point.accuracy) || 0)} m · punt ${escapeHtml(model.pointId)}</small>
     </div>
     <div>
-      <span>Vak</span>
-      <strong>${formatDistance(model.scale.cellM)}</strong>
-      <small>${escapeHtml(model.currentCell.shortId)}</small>
+      <span>Gebied</span>
+      <strong class="mono">${escapeHtml(model.areaId)}</strong>
+      <small>${formatDistance(model.scale.spanM)}</small>
     </div>
   `;
 }
 
 function environmentLineKey(point, scale) {
-  const cacheCellM = Math.max(scale.cellM, Math.round(scale.spanM / 2));
-  const cacheCell = cellFor(point, cacheCellM);
-  return `environment-lines:${scale.id}:${cacheCell.id}`;
+  return `environment-lines:v2:${scale.id}:${environmentTileId(point, scale.id)}`;
 }
 
 async function loadEnvironmentLines(store, point, scale) {
+  const areaId = environmentTileId(point, scale.id);
   const cacheKey = environmentLineKey(point, scale);
   const cached = await store.get('meta', cacheKey).catch(() => null);
 
@@ -714,11 +723,38 @@ async function loadEnvironmentLines(store, point, scale) {
     return cached.value.features;
   }
 
-  const bbox = boundsFor(point, scale.spanM * 0.82);
+  const shared = await loadSharedEnvironmentTile(areaId, scale.id)
+    .catch(() => null);
+
+  if (shared?.features?.length) {
+    await storeEnvironmentTile(store, cacheKey, shared.features, 'shared');
+    return shared.features;
+  }
+
+  const canonicalCenter = environmentBoundsForId(areaId).center;
+  const bbox = boundsFor(canonicalCenter, scale.spanM * 0.82);
   const query = overpassQuery(scale, bbox);
 
   const data = await fetchOverpass(query);
-  const features = (data.elements || [])
+  const features = overpassFeatures(data);
+
+  await storeEnvironmentTile(store, cacheKey, features, 'overpass');
+  return features;
+}
+
+async function storeEnvironmentTile(store, cacheKey, features, source) {
+  await store.put('meta', {
+    key: cacheKey,
+    value: {
+      at: Date.now(),
+      source,
+      features
+    }
+  }).catch(() => {});
+}
+
+function overpassFeatures(data) {
+  return (data.elements || [])
     .filter(item => item.type === 'way' && Array.isArray(item.geometry))
     .slice(0, 4500)
     .map(item => ({
@@ -734,16 +770,98 @@ async function loadEnvironmentLines(store, point, scale) {
         )
     }))
     .filter(item => item.points.length > 1);
+}
 
-  await store.put('meta', {
-    key: cacheKey,
-    value: {
-      at: Date.now(),
-      features
+async function loadSharedEnvironmentTile(areaId, scaleId) {
+  if (sharedTileEndpointState === 'unavailable') return null;
+
+  const url =
+    `${ENVIRONMENT_TILE_ENDPOINT}?id=${encodeURIComponent(areaId)}&scale=${encodeURIComponent(scaleId)}`;
+
+  let response;
+
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: { Accept: 'application/json' }
+    });
+  } catch {
+    sharedTileEndpointState = 'unavailable';
+    return null;
+  }
+
+  if (response.ok) {
+    sharedTileEndpointState = 'available';
+    return normalizeSharedTile(await response.json());
+  }
+
+  if (response.status !== 404) {
+    if (response.status >= 500) sharedTileEndpointState = 'unavailable';
+    return null;
+  }
+
+  let generated;
+
+  try {
+    generated = await fetch(ENVIRONMENT_TILE_ENDPOINT, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        id: areaId,
+        scale: scaleId
+      })
+    });
+  } catch {
+    sharedTileEndpointState = 'unavailable';
+    return null;
+  }
+
+  if (!generated.ok) {
+    if (generated.status === 404) {
+      sharedTileEndpointState = 'unavailable';
     }
-  }).catch(() => {});
+    return null;
+  }
 
-  return features;
+  sharedTileEndpointState = 'available';
+  return normalizeSharedTile(await generated.json());
+}
+
+function normalizeSharedTile(tile) {
+  if (!tile || !Array.isArray(tile.features)) return null;
+
+  const features = tile.features
+    .map(feature => {
+      const type = String(feature.t || feature.type || 'road');
+      const rawPoints = Array.isArray(feature.p)
+        ? feature.p
+        : feature.points;
+
+      if (!Array.isArray(rawPoints)) return null;
+
+      const points = rawPoints
+        .map(point => Array.isArray(point)
+          ? { lat: Number(point[0]), lng: Number(point[1]) }
+          : { lat: Number(point?.lat), lng: Number(point?.lng) })
+        .filter(point =>
+          Number.isFinite(point.lat) &&
+          Number.isFinite(point.lng)
+        );
+
+      return points.length > 1 ? { type, points } : null;
+    })
+    .filter(Boolean);
+
+  return {
+    id: String(tile.id || ''),
+    scale: String(tile.scale || ''),
+    features
+  };
 }
 
 async function fetchOverpass(query) {
