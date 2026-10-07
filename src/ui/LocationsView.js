@@ -1,4 +1,4 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.16';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.19';
 
 export async function openLocationsView(root, {
   store,
@@ -244,9 +244,9 @@ async function findAction(store, locationId) {
 
 function detailHeader(title) {
   return `
-    <header class="detail-header">
-      <button type="button" class="back-action" data-detail-back aria-label="Terug">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5"/></svg>
+    <header class="detail-header logo-detail-header">
+      <button type="button" class="home-logo-button" data-detail-back aria-label="Terug naar beginscherm">
+        <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
       </button>
       <h1>${escapeHtml(title)}</h1>
     </header>
