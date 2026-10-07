@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.21">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.21">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.22">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.22">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -192,14 +192,11 @@
     .swipe-row{position:relative;overflow:hidden;border-bottom:1px solid #ececef;background:#fff}
     .swipe-row .clean-row{position:relative;z-index:2;border-bottom:0;background:#fff;touch-action:pan-y;will-change:transform}
     .swipe-surface.is-animating{transition:transform .26s cubic-bezier(.22,.61,.36,1)}
-    .swipe-action{position:absolute;top:0;bottom:0;z-index:1;width:92px;display:flex;align-items:stretch}
-    .swipe-action button{width:100%;padding:0 10px;border:0;font-size:13px;font-weight:500}
-    .swipe-action-edit{left:0}
-    .swipe-action-edit button{background:#f1f1f3;color:#333338;text-align:left}
-    .swipe-action-delete{right:0}
-    .swipe-action-delete button{background:#b42318;color:#fff;text-align:right}
-    .swipe-row.is-edit-open .swipe-action-edit button,
-    .swipe-row.is-delete-open .swipe-action-delete button{font-weight:600}
+    .swipe-actions{position:absolute;top:0;right:0;bottom:0;z-index:1;width:176px;display:grid;grid-template-columns:84px 92px}
+    .swipe-actions button{height:100%;padding:0 8px;border:0;font-size:13px;font-weight:500;text-align:center}
+    .swipe-action-edit{background:#f1f1f3;color:#333338}
+    .swipe-action-delete{background:#b42318;color:#fff}
+    .swipe-row.is-actions-open .swipe-actions button{font-weight:600}
     .clean-row{width:100%;min-height:64px;padding:8px 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left}
     .clean-row>span{min-width:0;display:grid;gap:3px}
     .clean-row strong{font-size:16px;font-weight:420}
@@ -304,16 +301,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.21#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.21#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.21#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.21#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.21#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.22#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.22#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.22#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.22#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.22#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.21"></script>
+  <script type="module" src="./src/main.js?v=0.1.22"></script>
 </body>
 </html>
