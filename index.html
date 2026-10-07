@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.39">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.39">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.40">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.40">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -126,14 +126,16 @@
 
     #app{position:relative;min-height:inherit}
     .app-stage{--home-swipe-x:0px;--home-swipe-progress:0;--home-swipe-radius:0px;--home-swipe-shadow:0;box-sizing:border-box;width:100%;min-height:100dvh;padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));position:relative;z-index:10;background:#fff;overflow:clip;border-radius:var(--home-swipe-radius) 0 0 var(--home-swipe-radius)}
-    .app-stage[data-view="detail"]{touch-action:pan-y;overscroll-behavior-x:none}
+    .app-stage[data-view="detail"]{height:100dvh;min-height:100dvh;padding-bottom:0;touch-action:pan-y;overscroll-behavior-x:none}
+    .app-stage[data-view="detail"]:not(.is-environment) .app-frame{height:calc(100dvh - max(22px,env(safe-area-inset-top)));min-height:0}
+    .app-stage[data-view="detail"]:not(.is-environment) .app-view{overflow-y:auto;padding-bottom:max(24px,env(safe-area-inset-bottom))}
     .app-stage.is-home-swiping,.app-stage.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-10px 0 30px rgba(0,0,0,var(--home-swipe-shadow))}
     .app-stage.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease,border-radius .24s cubic-bezier(.22,.61,.36,1)}
     .app-frame{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
-    .app-stage.is-environment{padding-left:0;padding-right:0;padding-bottom:0}
-    .app-frame.is-environment{width:100%;max-width:none;min-height:calc(100dvh - max(22px,env(safe-area-inset-top)));overflow:hidden}
-    .app-stage.is-environment .app-header{padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
-    .app-stage.is-environment .app-view{flex:1;min-height:0}
+    .app-stage.is-environment{height:100dvh;min-height:100dvh;padding:0;background:#fff}
+    .app-frame.is-environment{width:100%;max-width:none;height:100dvh;min-height:100dvh;margin:0;overflow:hidden;background:#fff}
+    .app-stage.is-environment .app-header{position:absolute;top:0;left:0;right:0;z-index:30;min-height:calc(54px + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left));background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.68) 62%,rgba(255,255,255,0) 100%);border-bottom-color:transparent;backdrop-filter:none}
+    .app-stage.is-environment .app-view{position:absolute;inset:0;z-index:1;min-height:0;overflow:hidden}
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
@@ -238,10 +240,11 @@
     .clean-row svg{width:17px;height:17px;fill:none;stroke:#b0b0b5;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
     .empty-state{margin:28px 1px;color:#9a9a9f;font-size:14px}
 
-    .environment-view{flex:1;min-height:0;position:relative;display:flex;background:#fff}
-    .environment-canvas{position:absolute;inset:0;overflow:hidden;background:#fff;touch-action:none;overscroll-behavior:none}
-    .environment-map{position:absolute;inset:0;transform-origin:center;transition:transform .12s ease-out}
-    .environment-canvas.is-pinching .environment-map{transition:none}
+    .environment-view{width:100%;height:100%;flex:1;min-height:0;position:relative;display:flex;background:#fff}
+    .environment-canvas{position:absolute;inset:0;overflow:hidden;background:#fff;touch-action:none;overscroll-behavior:none;cursor:grab}
+    .environment-canvas.is-panning{cursor:grabbing}
+    .environment-map{position:absolute;inset:0;transform-origin:center;transition:transform .12s ease-out;will-change:transform}
+    .environment-canvas.is-pinching .environment-map,.environment-canvas.is-panning .environment-map{transition:none}
     .environment-svg{display:block;width:100%;height:100%;background:#fff}
     .environment-current-cell{fill:#fbfbfc}
     .environment-grid line{stroke:#f0f0f2;stroke-width:.7;vector-effect:non-scaling-stroke}
@@ -260,7 +263,7 @@
     .environment-you-dot{fill:#111}
     .environment-scale-mark line{stroke:#8d8d92;stroke-width:1.2;vector-effect:non-scaling-stroke}
     .environment-scale-mark text{fill:#8d8d92;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;font-size:21px}
-    .environment-scale-chip,.environment-refresh{position:absolute;top:14px;z-index:5;min-height:34px;padding:0 11px;border:1px solid rgba(0,0,0,.055);border-radius:18px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);color:#55555a;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.035)}
+    .environment-scale-chip,.environment-refresh{position:absolute;top:max(70px,calc(env(safe-area-inset-top) + 56px));z-index:5;min-height:34px;padding:0 11px;border:1px solid rgba(0,0,0,.055);border-radius:18px;background:rgba(255,255,255,.84);backdrop-filter:blur(12px);color:#55555a;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.035)}
     .environment-scale-chip{left:max(14px,env(safe-area-inset-left))}
     .environment-refresh{right:max(14px,env(safe-area-inset-right))}
     .environment-refresh:disabled{opacity:.4}
@@ -272,7 +275,7 @@
     .environment-readout small{color:#9a9a9f;font-size:9px}
     .environment-source{position:absolute;right:max(17px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 68px);z-index:5;color:#b1b1b6;font-size:8px}
     .environment-source a{color:inherit;text-decoration:none}
-    .environment-pinch-hint{position:absolute;left:50%;top:58px;z-index:5;transform:translateX(-50%);padding:5px 8px;border-radius:10px;background:rgba(255,255,255,.74);color:#a3a3a8;font-size:9px;white-space:nowrap;opacity:1;transition:opacity .35s ease}
+    .environment-pinch-hint{position:absolute;left:50%;top:max(112px,calc(env(safe-area-inset-top) + 98px));z-index:5;transform:translateX(-50%);padding:5px 8px;border-radius:10px;background:rgba(255,255,255,.68);color:#a3a3a8;font-size:9px;white-space:nowrap;opacity:1;transition:opacity .35s ease}
     .environment-pinch-hint.is-hidden{opacity:0;pointer-events:none}
     .environment-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:7px;padding:28px;text-align:center}
     .environment-empty strong{font-size:14px;font-weight:520}
@@ -365,7 +368,7 @@
       .detail-shell.is-home-swipe-animating,.detail-shell.is-home-swipe-complete{transition:none}
       .app-stage.is-home-swipe-animating,.app-header,.persistent-brand-button,.app-view-title,.app-view{transition:none}
     }
-    @media (min-width:640px){body:not(.sharon-shell-active){padding-top:42px}.sharon-shell-active .app-stage{padding-top:42px}.brand{padding-top:22px}}
+    @media (min-width:640px){body:not(.sharon-shell-active){padding-top:42px}.sharon-shell-active .app-stage:not(.is-environment){padding-top:42px}.sharon-shell-active .app-stage.is-environment{padding-top:0}.brand{padding-top:22px}}
   </style>
 </head>
 <body>
@@ -379,16 +382,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.39#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.39#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.39#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.39#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.39#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.40#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.40#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.40#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.40#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.40#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.39"></script>
+  <script type="module" src="./src/main.js?v=0.1.40"></script>
 </body>
 </html>
