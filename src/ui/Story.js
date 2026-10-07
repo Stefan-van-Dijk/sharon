@@ -1,3 +1,5 @@
+import { sharonWordmark } from './Brand.js?v=0.1.20';
+
 const PLACE_TYPES = [
   { id: 'home', label: 'Thuis' },
   { id: 'work', label: 'Werk' },
@@ -16,9 +18,7 @@ export async function runStory(root, {
   root.innerHTML = `
     <section class="story-layer" aria-label="Start met Sharon">
       <header class="story-brand" aria-label="Sharon">
-        <span>Shar</span>
-        <img src="./assets/sharon-mark.png?v=0.1.16" alt="" aria-hidden="true">
-        <span>n</span>
+        ${sharonWordmark({ mode: 'sharon', className: 'story-brand-vector', label: 'Sharon' })}
       </header>
 
       <div class="story-content">
