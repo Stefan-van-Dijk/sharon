@@ -1,14 +1,12 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.23';
-import { sharonLogo } from './Brand.js?v=0.1.23';
-import { bindSwipeRows } from './SwipeRows.js?v=0.1.23';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.23';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.24';
+import { bindSwipeRows } from './SwipeRows.js?v=0.1.24';
 
 export async function openLocationsView(root, {
   store,
   location,
   events,
   initialLocationId = '',
-  onBack
+  setTitle = () => {}
 }) {
   const objects = await store.getAll('objects');
   const locations = objects
@@ -18,19 +16,21 @@ export async function openLocationsView(root, {
   if (initialLocationId) {
     const selected = locations.find(item => item.id === initialLocationId);
     if (selected) {
+      setTitle('Locatie');
       return openLocationEditor(root, {
         store,
         location,
         events,
         locationObject: selected,
-        onBack
+        setTitle
       });
     }
   }
 
+  setTitle('Locaties');
+
   root.innerHTML = `
-    <main class="detail-shell">
-      ${detailHeader('Locaties')}
+    <section class="module-view locations-view">
       <section class="clean-list swipe-list" aria-label="Locaties" data-swipe-list>
         ${locations.length ? locations.map(item => `
           <div class="swipe-row" data-swipe-row="${item.id}">
@@ -59,11 +59,8 @@ export async function openLocationsView(root, {
           </div>
         `).join('') : '<p class="empty-state">Nog geen locaties.</p>'}
       </section>
-    </main>
+    </section>
   `;
-
-  root.querySelector('[data-detail-back]').addEventListener('click', onBack);
-  bindSwipeHome(root.querySelector('.detail-shell'), onBack);
 
   const swipeList = root.querySelector('[data-swipe-list]');
 
@@ -71,12 +68,13 @@ export async function openLocationsView(root, {
     const item = locations.find(locationItem => locationItem.id === id);
     if (!item) return;
 
+    setTitle('Locatie');
     await openLocationEditor(root, {
       store,
       location,
       events,
       locationObject: item,
-      onBack
+      setTitle
     });
   };
 
@@ -92,7 +90,7 @@ export async function openLocationsView(root, {
           store,
           location,
           events,
-          onBack
+          setTitle
         });
       }
     });
@@ -140,11 +138,12 @@ async function openLocationEditor(root, {
   location,
   events,
   locationObject,
-  onBack
+  setTitle
 }) {
   let current = locationObject;
   let action = await findAction(store, current.id);
 
+  setTitle('Locatie');
   render();
 
   function render(statusText = '') {
@@ -153,9 +152,7 @@ async function openLocationEditor(root, {
     const trigger = action?.data ?? {};
 
     root.innerHTML = `
-      <main class="detail-shell">
-        ${detailHeader('Locatie')}
-
+      <section class="module-view location-editor-view">
         <form class="location-form" data-location-form>
           <label class="clean-field">
             <span>Naam</span>
@@ -213,11 +210,9 @@ async function openLocationEditor(root, {
 
           <button type="submit" class="primary-line-action">Bewaar</button>
         </form>
-      </main>
+      </section>
     `;
 
-    root.querySelector('[data-detail-back]').addEventListener('click', onBack);
-    bindSwipeHome(root.querySelector('.detail-shell'), onBack);
     root.querySelector('[data-location-form]').addEventListener('submit', save);
     root.querySelector('[data-check-distance]').addEventListener('click', checkDistance);
   }
@@ -316,17 +311,6 @@ async function findAction(store, locationId) {
     !item.deletedAt &&
     item.data?.locationId === locationId
   ) || null;
-}
-
-function detailHeader(title) {
-  return `
-    <header class="detail-header logo-detail-header">
-      <button type="button" class="home-logo-button" data-detail-back aria-label="Terug naar beginscherm">
-        ${sharonLogo({ className: 'detail-home-logo' })}
-      </button>
-      <h1>${escapeHtml(title)}</h1>
-    </header>
-  `;
 }
 
 function compactAddress(address = {}) {
