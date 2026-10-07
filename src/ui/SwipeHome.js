@@ -42,12 +42,16 @@ export function bindSwipeHome(surface, onHome, {
     surface.classList.toggle('is-home-swiping', progress > 0);
     surface.style.setProperty('--home-swipe-x', `${x}px`);
     surface.style.setProperty('--home-swipe-progress', String(progress));
+    surface.style.setProperty('--home-swipe-radius', `${Math.round(20 * progress)}px`);
+    surface.style.setProperty('--home-swipe-shadow', String((0.18 * progress).toFixed(3)));
   };
 
   const cleanup = () => {
     surface.classList.remove('is-home-swiping', 'is-home-swipe-animating');
     surface.style.removeProperty('--home-swipe-x');
     surface.style.removeProperty('--home-swipe-progress');
+    surface.style.removeProperty('--home-swipe-radius');
+    surface.style.removeProperty('--home-swipe-shadow');
     gesture = null;
     animating = false;
   };
