@@ -1,6 +1,6 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.21';
-import { openSettings } from './SettingsView.js?v=0.1.21';
-import { sharonLogo, sharonWordmark } from './Brand.js?v=0.1.21';
+import { openLocationsView } from './LocationsView.js?v=0.1.22';
+import { openSettings } from './SettingsView.js?v=0.1.22';
+import { sharonLogo, sharonWordmark } from './Brand.js?v=0.1.22';
 
 const NAV_MS = 340;
 
