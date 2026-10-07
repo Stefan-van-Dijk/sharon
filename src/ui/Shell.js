@@ -1,8 +1,9 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.32';
-import { openSettings } from './SettingsView.js?v=0.1.32';
-import { sharonWordmark } from './Brand.js?v=0.1.32';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.32';
+import { openLocationsView } from './LocationsView.js?v=0.1.33';
+import { openSettings } from './SettingsView.js?v=0.1.33';
+import { sharonWordmark } from './Brand.js?v=0.1.33';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.33';
 
+const APP_VERSION = '0.1.33';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -163,7 +164,10 @@ export function createShell(root, {
 
         <footer class="shell-footer">
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
-          <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
+          <span class="shell-footer-meta">
+            <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
+            <small class="app-version">v${APP_VERSION}</small>
+          </span>
         </footer>
       </div>
     `;
