@@ -518,10 +518,16 @@ export async function openEnvironmentView(root, {
   };
 }
 
-function environmentModel(point, locations, lineFeatures, scale) {
-  const projection = localProjection(point.lat);
-  const centerX = projection.x(point.lng);
-  const centerY = projection.y(point.lat);
+function environmentModel(
+  point,
+  viewCenter,
+  locations,
+  lineFeatures,
+  scale
+) {
+  const projection = localProjection(viewCenter.lat);
+  const centerX = projection.x(viewCenter.lng);
+  const centerY = projection.y(viewCenter.lat);
   const metersPerUnit = scale.spanM / VIEW;
   const halfSpan = scale.spanM / 2;
 
@@ -573,7 +579,15 @@ function environmentModel(point, locations, lineFeatures, scale) {
     .filter(Boolean)
     .sort((a, b) => a.distanceM - b.distanceM)[0] || null;
 
-  const currentCell = cellFor(point, scale.cellM);
+  const currentCell = cellFor(viewCenter, scale.cellM);
+  const userPosition = projectPoint({
+    point,
+    projection,
+    centerX,
+    centerY,
+    metersPerUnit
+  });
+
   const linePaths = projectLineFeatures({
     features: lineFeatures,
     projection,
@@ -587,6 +601,7 @@ function environmentModel(point, locations, lineFeatures, scale) {
       grid,
       linePaths,
       locations: visibleLocations,
+      userPosition,
       scale,
       currentCell
     }),
@@ -597,7 +612,14 @@ function environmentModel(point, locations, lineFeatures, scale) {
   };
 }
 
-function environmentSvg({ grid, linePaths, locations, scale, currentCell }) {
+function environmentSvg({
+  grid,
+  linePaths,
+  locations,
+  userPosition,
+  scale,
+  currentCell
+}) {
   const lineMarkup = linePaths.map(item =>
     `<path class="environment-line environment-line--${item.type}" d="${item.d}"></path>`
   ).join('');
@@ -639,10 +661,12 @@ function environmentSvg({ grid, linePaths, locations, scale, currentCell }) {
 
       ${locationMarkup}
 
-      <g class="environment-you">
-        <circle class="environment-you-ring" cx="${CENTER}" cy="${CENTER}" r="18"></circle>
-        <circle class="environment-you-dot" cx="${CENTER}" cy="${CENTER}" r="6"></circle>
-      </g>
+      ${userPosition.visible ? `
+        <g class="environment-you">
+          <circle class="environment-you-ring" cx="${round(userPosition.x)}" cy="${round(userPosition.y)}" r="18"></circle>
+          <circle class="environment-you-dot" cx="${round(userPosition.x)}" cy="${round(userPosition.y)}" r="6"></circle>
+        </g>
+      ` : ''}
 
       <g class="environment-scale-mark">
         <line x1="34" y1="946" x2="194" y2="946"></line>
@@ -768,7 +792,7 @@ function overpassQuery(scale, bbox) {
     .map(value => value.toFixed(6))
     .join(',');
 
-  const selectors = scale.id === 'street'
+  const selectors = ['near', 'detail', 'street'].includes(scale.id)
     ? [
         'way["highway"]',
         'way["railway"]',
@@ -817,6 +841,58 @@ function lineType(tags) {
   return 'road';
 }
 
+function projectPoint({
+  point,
+  projection,
+  centerX,
+  centerY,
+  metersPerUnit
+}) {
+  const x =
+    CENTER + (projection.x(point.lng) - centerX) / metersPerUnit;
+  const y =
+    CENTER - (projection.y(point.lat) - centerY) / metersPerUnit;
+
+  return {
+    x,
+    y,
+    visible:
+      x >= -30 &&
+      x <= VIEW + 30 &&
+      y >= -30 &&
+      y <= VIEW + 30
+  };
+}
+
+function panCenterFromPixels(center, dxPx, dyPx, canvas, scale) {
+  const bounds = canvas.getBoundingClientRect();
+  const renderedSquare = Math.max(bounds.width, bounds.height, 1);
+  const metersPerPixel = scale.spanM / renderedSquare;
+
+  return offsetPoint(
+    center,
+    -dxPx * metersPerPixel,
+    dyPx * metersPerPixel
+  );
+}
+
+function offsetPoint(center, eastM, northM) {
+  const latitude = Number(center.lat);
+  const longitude = Number(center.lng);
+  const nextLat = Math.max(
+    -89.9999,
+    Math.min(89.9999, latitude + northM / 111320)
+  );
+  const lngScale = Math.max(
+    0.0001,
+    111320 * Math.cos(latitude * Math.PI / 180)
+  );
+
+  return {
+    lat: nextLat,
+    lng: wrapLongitude(longitude + eastM / lngScale)
+  };
+}
 function projectLineFeatures({
   features,
   projection,
