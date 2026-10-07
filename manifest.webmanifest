@@ -8,5 +8,14 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "lang": "nl-NL",
-  "id": "./"
+  "id": "./",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./assets/sharon-mark.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
