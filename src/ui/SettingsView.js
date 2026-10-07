@@ -2,22 +2,14 @@ export function openSettings(root, {
   settings,
   install,
   events,
-  onClose
+  onBack
 }) {
   const state = settings.get();
   const installState = install.getState();
 
-  root.insertAdjacentHTML('beforeend', `
-    <div class="side-menu-backdrop" data-side-backdrop></div>
-    <aside class="side-menu" data-side-menu aria-label="Sharon menu">
-      <header class="side-menu-header">
-        <div class="side-menu-brand" aria-label="Sharon">
-          <span>Shar</span>
-          <img src="./assets/sharon-mark.png?v=0.1.18" alt="" aria-hidden="true">
-          <span>n</span>
-        </div>
-        <button type="button" class="side-close" data-side-close aria-label="Sluiten">×</button>
-      </header>
+  root.innerHTML = `
+    <main class="detail-shell settings-page">
+      ${detailHeader('Instellingen')}
 
       <section class="settings-section">
         <span class="settings-kicker">Gegevens</span>
@@ -49,18 +41,18 @@ export function openSettings(root, {
 
           <div class="privacy-principle">
             <strong>Eerst zien, dan delen</strong>
-            <small>Sharon laat vóór verzending zien welke gegevens je apparaat verlaten.</small>
+            <small>Sharon laat vóór verzending zien welke gegevens je gaat delen.</small>
           </div>
 
           <div class="privacy-principle">
             <strong>Niet-herleidbare sleutel</strong>
-            <small>Deelcodes en identifiers bevatten geen naam, adres of andere betekenisvolle persoonsgegevens.</small>
+            <small>Deelcodes en identifiers bevatten zelf geen naam, adres of andere betekenisvolle persoonsgegevens.</small>
           </div>
         </div>
 
         <p class="privacy-note">
-          Let op: de inhoud die je zelf kiest om te delen kan natuurlijk wél persoonlijke informatie bevatten,
-          bijvoorbeeld een naam of adres. Daarom vraagt Sharon altijd eerst om bevestiging.
+          Inhoud die je bewust deelt kan wel persoonlijke informatie bevatten.
+          Sharon vraagt daarom altijd eerst om bevestiging.
         </p>
       </section>
 
@@ -77,31 +69,24 @@ export function openSettings(root, {
 
         <div class="install-help" data-install-help hidden></div>
       </section>
-    </aside>
-  `);
+    </main>
+  `;
 
-  const backdrop = root.querySelector('[data-side-backdrop]');
-  const menu = root.querySelector('[data-side-menu]');
-  const closeButton = root.querySelector('[data-side-close]');
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
+  const homeButton = root.querySelector('[data-home-logo]');
 
-  requestAnimationFrame(() => {
-    backdrop.classList.add('is-visible');
-    menu.classList.add('is-visible');
-  });
+  let unsubscribeAvailable = () => {};
+  let unsubscribeCompleted = () => {};
 
-  const close = () => {
-    backdrop.classList.remove('is-visible');
-    menu.classList.remove('is-visible');
-
-    setTimeout(() => {
-      backdrop.remove();
-      menu.remove();
-      onClose?.();
-    }, 220);
+  const goHome = () => {
+    unsubscribeAvailable();
+    unsubscribeCompleted();
+    onBack?.();
   };
+
+  homeButton.addEventListener('click', goHome);
 
   profileForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -132,29 +117,30 @@ export function openSettings(root, {
     renderManualInstallHelp(installHelp, result);
   });
 
-  const unsubscribeAvailable = events.on('install.available', () => {
+  unsubscribeAvailable = events.on('install.available', () => {
     const current = install.getState();
     if (current.installed || !installButton?.isConnected) return;
     installButton.querySelector('small').textContent = installDescription(current);
   });
 
-  const unsubscribeCompleted = events.on('install.completed', () => {
+  unsubscribeCompleted = events.on('install.completed', () => {
     if (!installButton?.isConnected) return;
     installButton.disabled = true;
     installButton.querySelector('strong').textContent = 'Sharon is geïnstalleerd';
     installButton.querySelector('small').textContent = 'Op dit apparaat';
     installHelp.hidden = true;
   });
+}
 
-  const previousClose = close;
-  const cleanupAndClose = () => {
-    unsubscribeAvailable();
-    unsubscribeCompleted();
-    previousClose();
-  };
-
-  backdrop.onclick = cleanupAndClose;
-  closeButton.onclick = cleanupAndClose;
+function detailHeader(title) {
+  return `
+    <header class="detail-header logo-detail-header">
+      <button type="button" class="home-logo-button" data-home-logo aria-label="Terug naar beginscherm">
+        <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
+      </button>
+      <h1>${escapeHtml(title)}</h1>
+    </header>
+  `;
 }
 
 function installDescription(state) {
@@ -191,6 +177,14 @@ function renderManualInstallHelp(container, state) {
   container.innerHTML = `
     <p>Gebruik de installatieoptie van je browser om Sharon als zelfstandige webapp toe te voegen.</p>
   `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>]/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;'
+  })[character]);
 }
 
 function escapeAttribute(value) {
