@@ -1,19 +1,13 @@
-import { sharonLogo } from './Brand.js?v=0.1.23';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.23';
-
 export function openSettings(root, {
   settings,
   install,
-  events,
-  onBack
+  events
 }) {
   const state = settings.get();
   const installState = install.getState();
 
   root.innerHTML = `
-    <main class="detail-shell settings-page">
-      ${detailHeader('Instellingen')}
-
+    <section class="module-view settings-page">
       <section class="settings-section">
         <span class="settings-kicker">Gegevens</span>
 
@@ -72,25 +66,12 @@ export function openSettings(root, {
 
         <div class="install-help" data-install-help hidden></div>
       </section>
-    </main>
+    </section>
   `;
 
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
-  const homeButton = root.querySelector('[data-home-logo]');
-
-  let unsubscribeAvailable = () => {};
-  let unsubscribeCompleted = () => {};
-
-  const goHome = () => {
-    unsubscribeAvailable();
-    unsubscribeCompleted();
-    onBack?.();
-  };
-
-  homeButton.addEventListener('click', goHome);
-  bindSwipeHome(root.querySelector('.detail-shell'), goHome);
 
   profileForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -103,6 +84,20 @@ export function openSettings(root, {
     setTimeout(() => {
       if (button.isConnected) button.textContent = 'Bewaar';
     }, 1200);
+  });
+
+  const unsubscribeAvailable = events.on('install.available', () => {
+    const current = install.getState();
+    if (current.installed || !installButton?.isConnected) return;
+    installButton.querySelector('small').textContent = installDescription(current);
+  });
+
+  const unsubscribeCompleted = events.on('install.completed', () => {
+    if (!installButton?.isConnected) return;
+    installButton.disabled = true;
+    installButton.querySelector('strong').textContent = 'Sharon is geïnstalleerd';
+    installButton.querySelector('small').textContent = 'Op dit apparaat';
+    installHelp.hidden = true;
   });
 
   installButton?.addEventListener('click', async () => {
@@ -121,30 +116,10 @@ export function openSettings(root, {
     renderManualInstallHelp(installHelp, result);
   });
 
-  unsubscribeAvailable = events.on('install.available', () => {
-    const current = install.getState();
-    if (current.installed || !installButton?.isConnected) return;
-    installButton.querySelector('small').textContent = installDescription(current);
-  });
-
-  unsubscribeCompleted = events.on('install.completed', () => {
-    if (!installButton?.isConnected) return;
-    installButton.disabled = true;
-    installButton.querySelector('strong').textContent = 'Sharon is geïnstalleerd';
-    installButton.querySelector('small').textContent = 'Op dit apparaat';
-    installHelp.hidden = true;
-  });
-}
-
-function detailHeader(title) {
-  return `
-    <header class="detail-header logo-detail-header">
-      <button type="button" class="home-logo-button" data-home-logo aria-label="Terug naar beginscherm">
-        ${sharonLogo({ className: 'detail-home-logo' })}
-      </button>
-      <h1>${escapeHtml(title)}</h1>
-    </header>
-  `;
+  return () => {
+    unsubscribeAvailable();
+    unsubscribeCompleted();
+  };
 }
 
 function installDescription(state) {
@@ -181,14 +156,6 @@ function renderManualInstallHelp(container, state) {
   container.innerHTML = `
     <p>Gebruik de installatieoptie van je browser om Sharon als zelfstandige webapp toe te voegen.</p>
   `;
-}
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>]/g, character => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;'
-  })[character]);
 }
 
 function escapeAttribute(value) {
