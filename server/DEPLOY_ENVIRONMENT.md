@@ -18,6 +18,12 @@ De PHP-endpoint maakt daarna zelf deze structuur aan:
 
 `/environment/tiles/<2 tekens>/<4 tekens>/<6 tekens>/<schaal>.json`
 
+Daarnaast wordt automatisch:
+
+`/environment/coverage.json`
+
+bijgehouden. Daarin staat per gebiedsidentifier welke schaal al is opgebouwd, wanneer dat gebeurde, hoe actueel de OSM-bron was en hoeveel lijnobjecten de tegel bevat.
+
 Voor een 4-tekengebied stopt het pad eerder. Voorbeeld:
 
 `/environment/tiles/Aa/AaAd/place.json`
@@ -80,3 +86,9 @@ hoort JSON terug te geven. Als dit gebied nog niet is opgebouwd, is een 404 met:
 correct.
 
 Daarna bouwt Sharon zo'n ontbrekend gebied automatisch op zodra Omgeving het nodig heeft.
+
+Na de eerste opgebouwde tegel hoort ook:
+
+`https://sharon.life/environment/coverage.json`
+
+beschikbaar te zijn. Dit bestand vormt later de basis om op wereldniveau te laten zien welke gebieden Sharon al heeft uitgetekend.
