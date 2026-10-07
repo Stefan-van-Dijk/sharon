@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.33">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.33">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.34">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.34">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -17,6 +17,7 @@
     button,input,select,textarea{font:inherit}
     button{-webkit-tap-highlight-color:transparent}
     body{padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
+    body.sharon-shell-active{padding:0;background:#f7f7f8}
 
     .sharon-boot{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff;z-index:10}
     .sharon-intro-stage{width:min(390px,100%);text-align:center}
@@ -124,10 +125,11 @@
     .sharon-intro-form button:disabled{opacity:.45}
 
     #app{position:relative;min-height:inherit}
-    .app-frame{--home-swipe-x:0px;--home-swipe-progress:0;width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;z-index:10;background:#fff}
-    .app-frame[data-view="detail"]{touch-action:pan-y;overscroll-behavior-x:none}
-    .app-frame.is-home-swiping,.app-frame.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-12px 0 28px rgba(0,0,0,calc(.08 * var(--home-swipe-progress)))}
-    .app-frame.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease}
+    .app-stage{--home-swipe-x:0px;--home-swipe-progress:0;box-sizing:border-box;width:100%;min-height:100dvh;padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));position:relative;z-index:10;background:#fff}
+    .app-stage[data-view="detail"]{touch-action:pan-y;overscroll-behavior-x:none}
+    .app-stage.is-home-swiping,.app-stage.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-12px 0 28px rgba(0,0,0,calc(.08 * var(--home-swipe-progress)))}
+    .app-stage.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease}
+    .app-frame{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
@@ -315,9 +317,9 @@
       .vector-part{transition:none}
       .swipe-surface.is-animating{transition:none}
       .detail-shell.is-home-swipe-animating,.detail-shell.is-home-swipe-complete{transition:none}
-      .app-frame.is-home-swipe-animating,.app-header,.persistent-brand-button,.app-view-title,.app-view{transition:none}
+      .app-stage.is-home-swipe-animating,.app-header,.persistent-brand-button,.app-view-title,.app-view{transition:none}
     }
-    @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
+    @media (min-width:640px){body:not(.sharon-shell-active){padding-top:42px}.sharon-shell-active .app-stage{padding-top:42px}.brand{padding-top:22px}}
   </style>
 </head>
 <body>
@@ -331,16 +333,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.33#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.33#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.33#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.33#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.33#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.34#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.34#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.34#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.34#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.34#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.33"></script>
+  <script type="module" src="./src/main.js?v=0.1.34"></script>
 </body>
 </html>
