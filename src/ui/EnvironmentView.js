@@ -1,8 +1,10 @@
 const SCALES = Object.freeze([
-  { id: 'street', label: 'Straat', spanM: 650, cellM: 100 },
-  { id: 'district', label: 'Wijk', spanM: 2800, cellM: 500 },
-  { id: 'place', label: 'Plaats', spanM: 14000, cellM: 2500 },
-  { id: 'region', label: 'Regio', spanM: 65000, cellM: 10000 }
+  { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
+  { id: 'detail', label: 'Detail', spanM: 220, cellM: 25 },
+  { id: 'street', label: 'Straat', spanM: 700, cellM: 100 },
+  { id: 'district', label: 'Wijk', spanM: 3000, cellM: 500 },
+  { id: 'place', label: 'Plaats', spanM: 15000, cellM: 2500 },
+  { id: 'region', label: 'Regio', spanM: 70000, cellM: 10000 }
 ]);
 
 const VIEW = 1000;
@@ -22,18 +24,25 @@ export async function openEnvironmentView(root, {
 }) {
   setTitle('Omgeving');
 
-  let scaleIndex = 0;
+  let scaleIndex = SCALES.findIndex(item => item.id === 'street');
   let scale = SCALES[scaleIndex];
   let point = location.latest;
+  let viewCenter = point ? {
+    lat: Number(point.lat),
+    lng: Number(point.lng)
+  } : null;
+  let followingPosition = Boolean(viewCenter);
   let objects = await store.getAll('objects');
   let locations = activeLocations(objects);
   let checking = false;
   let lineFeatures = [];
   let lineState = 'idle';
-  let lineContextKey = point ? environmentLineKey(point, scale) : '';
+  let lineContextKey = viewCenter ? environmentLineKey(viewCenter, scale) : '';
   let lineLoadToken = 0;
   let lineTimer = null;
   let pinch = null;
+  let pan = null;
+  let mousePan = false;
   let wheelTotal = 0;
   let wheelTimer = null;
 
@@ -63,7 +72,7 @@ export async function openEnvironmentView(root, {
         <div class="environment-source" data-environment-source></div>
 
         <div class="environment-pinch-hint" data-environment-pinch-hint>
-          Knijp om te zoomen
+          Sleep om te bewegen · knijp om te zoomen
         </div>
       </div>
     </section>
@@ -93,7 +102,20 @@ export async function openEnvironmentView(root, {
       return;
     }
 
-    const model = environmentModel(point, locations, lineFeatures, scale);
+    if (!viewCenter) {
+      viewCenter = {
+        lat: Number(point.lat),
+        lng: Number(point.lng)
+      };
+    }
+
+    const model = environmentModel(
+      point,
+      viewCenter,
+      locations,
+      lineFeatures,
+      scale
+    );
     map.innerHTML = model.svg;
     readout.innerHTML = environmentReadout(model, point);
 
@@ -118,9 +140,9 @@ export async function openEnvironmentView(root, {
   };
 
   const loadLines = async () => {
-    if (!point) return;
+    if (!viewCenter) return;
 
-    const requestedKey = environmentLineKey(point, scale);
+    const requestedKey = environmentLineKey(viewCenter, scale);
     if (requestedKey === lineContextKey && lineFeatures.length) return;
 
     const token = ++lineLoadToken;
@@ -128,7 +150,7 @@ export async function openEnvironmentView(root, {
     render();
 
     try {
-      const features = await loadEnvironmentLines(store, point, scale);
+      const features = await loadEnvironmentLines(store, viewCenter, scale);
       if (token !== lineLoadToken) return;
       lineFeatures = features;
       lineContextKey = requestedKey;
@@ -172,9 +194,16 @@ export async function openEnvironmentView(root, {
         timeoutMs: 10_000
       });
 
+      viewCenter = {
+        lat: Number(point.lat),
+        lng: Number(point.lng)
+      };
+      followingPosition = true;
+
       objects = await store.getAll('objects');
       locations = activeLocations(objects);
       lineFeatures = [];
+      lineContextKey = '';
       lineState = 'idle';
       render();
       scheduleLines();
