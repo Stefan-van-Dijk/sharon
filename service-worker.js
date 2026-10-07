@@ -1,25 +1,25 @@
-const BUILD = '0.1.30';
+const BUILD = '0.1.31';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=0.1.30',
-  './assets/sharon-mark.png?v=0.1.30',
-  './assets/sharon-wordmark.svg?v=0.1.30',
-  './assets/sharon-logo.svg?v=0.1.30',
-  './src/main.js?v=0.1.30',
-  './src/app.js?v=0.1.30',
-  './src/core/app/InstallService.js?v=0.1.30',
-  './src/core/location/ReverseGeocodeService.js?v=0.1.30',
-  './src/core/location/LocationTriggerService.js?v=0.1.30',
-  './src/ui/Brand.js?v=0.1.30',
-  './src/ui/Boot.js?v=0.1.30',
-  './src/ui/Story.js?v=0.1.30',
-  './src/ui/LocationsView.js?v=0.1.30',
-  './src/ui/SettingsView.js?v=0.1.30',
-  './src/ui/SwipeRows.js?v=0.1.30',
-  './src/ui/SwipeMenu.js?v=0.1.30',
-  './src/ui/Shell.js?v=0.1.30'
+  './manifest.webmanifest?v=0.1.31',
+  './assets/sharon-mark.png?v=0.1.31',
+  './assets/sharon-wordmark.svg?v=0.1.31',
+  './assets/sharon-logo.svg?v=0.1.31',
+  './src/main.js?v=0.1.31',
+  './src/app.js?v=0.1.31',
+  './src/core/app/InstallService.js?v=0.1.31',
+  './src/core/location/ReverseGeocodeService.js?v=0.1.31',
+  './src/core/location/LocationTriggerService.js?v=0.1.31',
+  './src/ui/Brand.js?v=0.1.31',
+  './src/ui/Boot.js?v=0.1.31',
+  './src/ui/Story.js?v=0.1.31',
+  './src/ui/LocationsView.js?v=0.1.31',
+  './src/ui/SettingsView.js?v=0.1.31',
+  './src/ui/SwipeRows.js?v=0.1.31',
+  './src/ui/SwipeMenu.js?v=0.1.31',
+  './src/ui/Shell.js?v=0.1.31'
 ];
 
 self.addEventListener('install', event => {
