@@ -1,5 +1,5 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.17';
-import { openSettings } from './SettingsView.js?v=0.1.17';
+import { openLocationsView } from './LocationsView.js?v=0.1.18';
+import { openSettings } from './SettingsView.js?v=0.1.18';
 
 export function createShell(root, {
   modules,
@@ -22,7 +22,7 @@ export function createShell(root, {
             <span>Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.17"
+              src="./assets/sharon-mark.png?v=0.1.18"
               alt=""
               aria-hidden="true"
             >
