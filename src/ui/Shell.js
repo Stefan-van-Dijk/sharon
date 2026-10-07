@@ -20,6 +20,7 @@ export function createShell(root, {
   let triggerTimer = null;
   let currentView = 'home';
   let viewChange = 0;
+  let viewCleanup = null;
 
   root.innerHTML = `
     <main class="app-frame" data-app-frame>
@@ -113,7 +114,13 @@ export function createShell(root, {
       if (change !== viewChange) return;
     }
 
-    await renderer();
+    if (viewCleanup) {
+      viewCleanup();
+      viewCleanup = null;
+    }
+
+    const cleanup = await renderer();
+    if (typeof cleanup === 'function') viewCleanup = cleanup;
     if (change !== viewChange) return;
 
     if (animate) {
