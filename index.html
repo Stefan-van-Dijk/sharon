@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.18">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.18">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.19">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.19">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -57,10 +57,15 @@
     .shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column}
     .brand{padding:18px 1px 34px}
     .brand-line{display:flex;align-items:center;gap:9px}
-    .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
-    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
-    .brand-button{padding:0;border:0;background:transparent;text-align:left}
-    .brand-button:active{opacity:.5}
+    .brand-wordmark{display:inline-flex;align-items:center;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
+    .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain;transition:width .3s cubic-bezier(.22,.61,.36,1),height .3s cubic-bezier(.22,.61,.36,1),transform .3s cubic-bezier(.22,.61,.36,1)}
+    .brand-home-prefix,.brand-home-suffix{display:inline-block;overflow:hidden;opacity:1;transform:translateX(0);transition:max-width .3s cubic-bezier(.22,.61,.36,1),opacity .2s ease,transform .3s cubic-bezier(.22,.61,.36,1)}
+    .brand-home-prefix{max-width:3.2em}
+    .brand-home-suffix{max-width:.7em}
+    .home-brand.is-to-logo .brand-home-prefix,.home-brand.is-from-logo .brand-home-prefix{max-width:0;opacity:0;transform:translateX(.32em)}
+    .home-brand.is-to-logo .brand-home-suffix,.home-brand.is-from-logo .brand-home-suffix{max-width:0;opacity:0;transform:translateX(-.18em)}
+    .home-brand.is-to-logo .brand-wordmark-mark,.home-brand.is-from-logo .brand-wordmark-mark{width:.88em;height:.88em;transform:scale(1)}
+
 
     .side-menu-backdrop{position:fixed;inset:0;z-index:30;background:rgba(255,255,255,.72);backdrop-filter:blur(5px);opacity:0;transition:opacity .22s ease}
     .side-menu-backdrop.is-visible{opacity:1}
@@ -106,10 +111,13 @@
     .trigger-toast.is-visible{opacity:1;transform:translateY(0)}
 
     .detail-shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto}
-    .detail-header{min-height:72px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #ececef}
+    .detail-header{min-height:72px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #ececef}
     .detail-header h1{margin:0;font-size:22px;line-height:1;font-weight:350;letter-spacing:-.025em}
-    .back-action{width:32px;height:40px;margin-left:-8px;padding:0;border:0;background:transparent;display:grid;place-items:center}
-    .back-action svg{width:19px;height:19px;fill:none;stroke:#77777c;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+    .home-logo-button{width:34px;height:42px;margin-left:-5px;padding:0;border:0;background:transparent;display:grid;place-items:center}
+    .home-logo-button img{display:block;width:27px;height:27px;object-fit:contain}
+    .home-logo-button:active{opacity:.42}
+    .placeholder-copy{padding:28px 1px;color:#8a8a8f;font-size:14px;line-height:1.5}
+    .placeholder-copy p{margin:0}
 
     .clean-list{border-top:0}
     .clean-row{width:100%;min-height:64px;padding:8px 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left}
@@ -198,6 +206,7 @@
       .story-choices{transition:none}
       .trigger-toast{transition:none}
       .side-menu,.side-menu-backdrop{transition:none}
+      .brand-wordmark-mark,.brand-home-prefix,.brand-home-suffix{transition:none}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -214,7 +223,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.18" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -223,6 +232,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.18"></script>
+  <script type="module" src="./src/main.js?v=0.1.19"></script>
 </body>
 </html>
