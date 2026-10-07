@@ -13,7 +13,7 @@ export function openSettings(root, {
       <header class="side-menu-header">
         <div class="side-menu-brand" aria-label="Sharon">
           <span>Shar</span>
-          <img src="./assets/sharon-mark.png?v=0.1.17" alt="" aria-hidden="true">
+          <img src="./assets/sharon-mark.png?v=0.1.18" alt="" aria-hidden="true">
           <span>n</span>
         </div>
         <button type="button" class="side-close" data-side-close aria-label="Sluiten">×</button>
@@ -36,6 +36,32 @@ export function openSettings(root, {
           </label>
           <button type="submit" class="settings-save">Bewaar</button>
         </form>
+      </section>
+
+      <section class="settings-section privacy-section">
+        <span class="settings-kicker">Privacy & delen</span>
+
+        <div class="privacy-principles">
+          <div class="privacy-principle">
+            <strong>Lokaal als standaard</strong>
+            <small>Gegevens blijven op dit apparaat totdat jij bewust iets deelt of overdraagt.</small>
+          </div>
+
+          <div class="privacy-principle">
+            <strong>Eerst zien, dan delen</strong>
+            <small>Sharon laat vóór verzending zien welke gegevens je apparaat verlaten.</small>
+          </div>
+
+          <div class="privacy-principle">
+            <strong>Niet-herleidbare sleutel</strong>
+            <small>Deelcodes en identifiers bevatten geen naam, adres of andere betekenisvolle persoonsgegevens.</small>
+          </div>
+        </div>
+
+        <p class="privacy-note">
+          Let op: de inhoud die je zelf kiest om te delen kan natuurlijk wél persoonlijke informatie bevatten,
+          bijvoorbeeld een naam of adres. Daarom vraagt Sharon altijd eerst om bevestiging.
+        </p>
       </section>
 
       <section class="settings-section">
