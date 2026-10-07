@@ -1,4 +1,4 @@
-import { sharonWordmark } from './Brand.js?v=0.1.29';
+import { sharonWordmark } from './Brand.js?v=0.1.30';
 
 const PLACE_TYPES = [
   { id: 'home', label: 'Thuis' },
