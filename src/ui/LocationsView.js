@@ -1,6 +1,6 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.21';
-import { sharonLogo } from './Brand.js?v=0.1.21';
-import { bindSwipeRows } from './SwipeRows.js?v=0.1.21';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.22';
+import { sharonLogo } from './Brand.js?v=0.1.22';
+import { bindSwipeRows } from './SwipeRows.js?v=0.1.22';
 
 export async function openLocationsView(root, {
   store,
@@ -33,12 +33,19 @@ export async function openLocationsView(root, {
       <section class="clean-list swipe-list" aria-label="Locaties" data-swipe-list>
         ${locations.length ? locations.map(item => `
           <div class="swipe-row" data-swipe-row="${item.id}">
-            <div class="swipe-action swipe-action-edit">
-              <button type="button" data-swipe-edit aria-label="Bewerk ${escapeAttribute(item.data?.title || 'locatie')}">Bewerk</button>
-            </div>
-
-            <div class="swipe-action swipe-action-delete">
-              <button type="button" data-swipe-delete aria-label="Verwijder ${escapeAttribute(item.data?.title || 'locatie')}">Verwijder</button>
+            <div class="swipe-actions" aria-hidden="false">
+              <button
+                type="button"
+                class="swipe-action-edit"
+                data-swipe-edit
+                aria-label="Bewerk ${escapeAttribute(item.data?.title || 'locatie')}"
+              >Bewerk</button>
+              <button
+                type="button"
+                class="swipe-action-delete"
+                data-swipe-delete
+                aria-label="Verwijder ${escapeAttribute(item.data?.title || 'locatie')}"
+              >Verwijder</button>
             </div>
 
             <button type="button" class="clean-row swipe-surface" data-swipe-surface>
