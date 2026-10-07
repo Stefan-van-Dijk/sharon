@@ -7,7 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.16">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.17">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.17">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -58,6 +59,31 @@
     .brand-line{display:flex;align-items:center;gap:9px}
     .brand-wordmark{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:31px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
     .brand-wordmark-mark{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
+    .brand-button{padding:0;border:0;background:transparent;text-align:left}
+    .brand-button:active{opacity:.5}
+
+    .side-menu-backdrop{position:fixed;inset:0;z-index:30;background:rgba(255,255,255,.72);backdrop-filter:blur(5px);opacity:0;transition:opacity .22s ease}
+    .side-menu-backdrop.is-visible{opacity:1}
+    .side-menu{position:fixed;top:0;left:0;bottom:0;z-index:31;width:min(88vw,390px);padding:max(24px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));background:#fff;border-right:1px solid #ececef;transform:translateX(-102%);transition:transform .25s cubic-bezier(.22,.61,.36,1);overflow:auto}
+    .side-menu.is-visible{transform:translateX(0)}
+    .side-menu-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:28px}
+    .side-menu-brand{display:inline-flex;align-items:baseline;gap:0;color:#111;font-size:28px;line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
+    .side-menu-brand img{display:block;width:.56em;height:.56em;margin:0 .018em;object-fit:contain}
+    .side-close{width:34px;height:34px;padding:0;border:0;background:transparent;color:#8a8a8f;font-size:28px;font-weight:200;line-height:1}
+    .settings-section{padding:22px 0;border-top:1px solid #ececef}
+    .settings-kicker{display:block;margin-bottom:10px;color:#9a9a9f;font-size:11px}
+    .settings-form{display:grid;gap:0}
+    .settings-field{padding:12px 0}
+    .settings-save{justify-self:start;margin-top:12px;padding:0;border:0;background:transparent;color:#444449;font-size:13px}
+    .settings-row{width:100%;min-height:64px;padding:8px 0;border:0;background:transparent;color:#111;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left}
+    .settings-row>span:first-child{display:grid;gap:4px}
+    .settings-row strong{font-size:15px;font-weight:420}
+    .settings-row small{color:#8a8a8f;font-size:12px;line-height:1.35}
+    .settings-row:disabled{opacity:.55}
+    .settings-arrow{color:#b0b0b5;font-size:22px;font-weight:200}
+    .install-help{padding:14px 0 2px;color:#66666b;font-size:13px;line-height:1.55}
+    .install-help p{margin:0 0 8px}
+    .install-help ol{margin:0;padding-left:20px}
     .location-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb;flex:0 0 auto;transition:background .22s ease}
     .location-pulse.is-searching::after{content:"";position:absolute;inset:-4px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}
     .location-pulse.is-ready{background:#2d9a59}
@@ -166,6 +192,7 @@
       .type-caret{animation:none;opacity:.45}
       .story-choices{transition:none}
       .trigger-toast{transition:none}
+      .side-menu,.side-menu-backdrop{transition:none}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -182,7 +209,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.16" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.17" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -191,6 +218,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.16"></script>
+  <script type="module" src="./src/main.js?v=0.1.17"></script>
 </body>
 </html>
