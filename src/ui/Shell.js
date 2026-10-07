@@ -1,10 +1,9 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.31';
-import { openSettings } from './SettingsView.js?v=0.1.31';
-import { sharonWordmark } from './Brand.js?v=0.1.31';
-import { bindSwipeMenu } from './SwipeMenu.js?v=0.1.31';
+import { openLocationsView } from './LocationsView.js?v=0.1.32';
+import { openSettings } from './SettingsView.js?v=0.1.32';
+import { sharonWordmark } from './Brand.js?v=0.1.32';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.32';
 
 const VIEW_FADE_MS = 110;
-const MENU_CLOSE_MS = 260;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export function createShell(root, {
@@ -20,38 +19,10 @@ export function createShell(root, {
   const list = modules.list();
   let triggerTimer = null;
   let currentView = 'home';
-  let currentModuleId = 'home';
   let viewChange = 0;
   let viewCleanup = null;
-  let swipeMenu = null;
 
   root.innerHTML = `
-    <aside class="module-drawer" data-module-drawer hidden aria-hidden="true">
-      <div class="module-drawer-inner">
-        <span class="module-drawer-kicker">Menu</span>
-
-        <nav class="module-drawer-list" aria-label="Navigatie">
-          <button type="button" class="module-drawer-row" data-drawer-home>
-            <span>Beginscherm</span>
-          </button>
-
-          ${list.map(module => `
-            <button
-              type="button"
-              class="module-drawer-row"
-              data-drawer-module="${module.id}"
-            >
-              <span>${module.title}</span>
-            </button>
-          `).join('')}
-
-          <button type="button" class="module-drawer-row" data-drawer-settings>
-            <span>Instellingen</span>
-          </button>
-        </nav>
-      </div>
-    </aside>
-
     <main class="app-frame" data-app-frame>
       <header class="app-header" data-app-header>
         <button type="button" class="persistent-brand-button" data-brand-control aria-label="Sharon">
@@ -80,7 +51,6 @@ export function createShell(root, {
   `;
 
   const frame = root.querySelector('[data-app-frame]');
-  const drawer = root.querySelector('[data-module-drawer]');
   const header = root.querySelector('[data-app-header]');
   const brandButton = root.querySelector('[data-brand-control]');
   const brand = root.querySelector('[data-app-brand]');
@@ -135,26 +105,6 @@ export function createShell(root, {
     title.textContent = value || '';
   };
 
-  const updateDrawerCurrent = () => {
-    drawer.querySelectorAll('[aria-current="page"]').forEach(item => {
-      item.removeAttribute('aria-current');
-    });
-
-    if (currentModuleId === 'home') {
-      drawer.querySelector('[data-drawer-home]')?.setAttribute('aria-current', 'page');
-      return;
-    }
-
-    if (currentModuleId === 'settings') {
-      drawer.querySelector('[data-drawer-settings]')?.setAttribute('aria-current', 'page');
-      return;
-    }
-
-    drawer
-      .querySelector(`[data-drawer-module="${CSS.escape(currentModuleId)}"]`)
-      ?.setAttribute('aria-current', 'page');
-  };
-
   const swapView = async (renderer, { animate = true } = {}) => {
     const change = ++viewChange;
 
@@ -180,10 +130,9 @@ export function createShell(root, {
     }
   };
 
-  const setHeaderMode = (mode, viewTitle = '', moduleId = '') => {
+  const setHeaderMode = (mode, viewTitle = '') => {
     const detail = mode === 'detail';
     currentView = detail ? 'detail' : 'home';
-    currentModuleId = detail ? moduleId : 'home';
 
     frame.dataset.view = currentView;
     header.classList.toggle('is-detail', detail);
@@ -193,7 +142,6 @@ export function createShell(root, {
       detail ? 'Terug naar beginscherm' : 'Sharon'
     );
     setDetailTitle(detail ? viewTitle : '');
-    updateDrawerCurrent();
   };
 
   const renderHome = () => {
@@ -268,7 +216,7 @@ export function createShell(root, {
   };
 
   const openPlaceholder = async module => {
-    setHeaderMode('detail', module.title, module.id);
+    setHeaderMode('detail', module.title);
     await swapView(() => {
       outlet.innerHTML = `
         <section class="module-view placeholder-copy">
@@ -279,7 +227,7 @@ export function createShell(root, {
   };
 
   const openLocations = async (locationId = '', { animate = true } = {}) => {
-    setHeaderMode('detail', locationId ? 'Locatie' : 'Locaties', 'locations');
+    setHeaderMode('detail', locationId ? 'Locatie' : 'Locaties');
     await swapView(() => openLocationsView(outlet, {
       store,
       location,
@@ -290,7 +238,7 @@ export function createShell(root, {
   };
 
   const openSettingsView = async ({ animate = true } = {}) => {
-    setHeaderMode('detail', 'Instellingen', 'settings');
+    setHeaderMode('detail', 'Instellingen');
     await swapView(() => openSettings(outlet, {
       settings,
       install,
@@ -312,48 +260,13 @@ export function createShell(root, {
     await openPlaceholder(module);
   };
 
-  const runDrawerAction = async action => {
-    swipeMenu?.close();
-    await sleep(MENU_CLOSE_MS);
-    action();
-  };
-
-  drawer.querySelector('[data-drawer-home]').addEventListener('click', () => {
-    runDrawerAction(() => showHome());
-  });
-
-  drawer.querySelector('[data-drawer-settings]').addEventListener('click', () => {
-    runDrawerAction(() => openSettingsView());
-  });
-
-  drawer.querySelectorAll('[data-drawer-module]').forEach(button => {
-    button.addEventListener('click', () => {
-      const moduleId = button.dataset.drawerModule;
-      if (moduleId === currentModuleId) {
-        swipeMenu?.close();
-        return;
-      }
-      runDrawerAction(() => openModule(moduleId));
-    });
-  });
-
   brandButton.addEventListener('click', () => {
-    if (currentView !== 'detail') return;
-    swipeMenu?.close({ animate: false });
-    showHome();
+    if (currentView === 'detail') showHome();
   });
 
-  frame.addEventListener('click', event => {
-    if (!swipeMenu?.isOpen()) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (frame.dataset.menuSwipeSuppressClick === '1') return;
-    swipeMenu.close();
-  }, true);
-
-  swipeMenu = bindSwipeMenu(frame, drawer, {
+  bindSwipeHome(frame, () => {
+    if (currentView === 'detail') return showHome();
+  }, {
     isEnabled: () => currentView === 'detail'
   });
 
