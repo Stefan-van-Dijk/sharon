@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.23">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.23">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.24">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.24">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -123,6 +123,26 @@
     .sharon-intro-form button{width:100%;height:46px;margin-top:24px;border:0;background:#111;color:#fff;font-size:14px;font-weight:600}
     .sharon-intro-form button:disabled{opacity:.45}
 
+    .app-frame{--home-swipe-x:0px;--home-swipe-progress:0;width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
+    .app-frame.is-home-swiping,.app-frame.is-home-swipe-animating,.app-frame.is-home-swipe-complete{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-14px 0 30px rgba(0,0,0,calc(.07 * var(--home-swipe-progress)))}
+    .app-frame.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease}
+    .app-frame.is-home-swipe-complete{transition:transform .18s ease-out}
+    .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
+    .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
+    .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
+    .app-header.is-detail .persistent-brand-button{width:30px}
+    .persistent-brand-vector{position:absolute;left:0;top:50%;width:110px;height:auto;transform:translateY(-50%);overflow:visible}
+    .persistent-brand-vector.is-detail .vector-shar{opacity:0;transform:translateX(54px)}
+    .persistent-brand-vector.is-detail .vector-n{opacity:0;transform:translateX(-88px)}
+    .persistent-brand-vector.is-detail .vector-logo{opacity:1;transform:translateX(-64px) scale(1.45)}
+    .app-view-title{margin:0;max-width:0;overflow:hidden;opacity:0;transform:translateX(-5px);white-space:nowrap;color:#111;font-size:17px;line-height:1;font-weight:430;letter-spacing:-.015em;transition:max-width .32s cubic-bezier(.22,.61,.36,1),opacity .2s ease,transform .3s cubic-bezier(.22,.61,.36,1)}
+    .app-header.is-detail .app-view-title{max-width:260px;opacity:1;transform:translateX(0)}
+    .app-header .location-pulse{transition:opacity .2s ease}
+    .app-header.is-detail .location-pulse{opacity:0;pointer-events:none}
+    .app-view{flex:1;display:flex;flex-direction:column;min-height:0;opacity:1;transform:translateY(0);transition:opacity .16s ease,transform .16s ease}
+    .app-view.is-changing{opacity:0;transform:translateY(2px)}
+    .home-view{flex:1;display:flex;flex-direction:column;min-height:0}
+    .module-view{width:100%}
     .shell{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column}
     .brand{padding:18px 1px 34px}
     .brand-line{display:flex;align-items:center;gap:9px}
@@ -178,6 +198,7 @@
 
     .trigger-toast{margin:-12px 1px 22px;padding:11px 0;border-top:1px solid #ececef;border-bottom:1px solid #ececef;color:#333;font-size:13px;line-height:1.4;opacity:0;transform:translateY(-4px);transition:opacity .22s ease,transform .22s ease}
     .trigger-toast.is-visible{opacity:1;transform:translateY(0)}
+    .persistent-toast{flex:0 0 auto}
 
     .detail-shell{--home-swipe-x:0px;--home-swipe-progress:0;width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;position:relative;background:#fff}
     .detail-shell.is-home-swiping,.detail-shell.is-home-swipe-animating,.detail-shell.is-home-swipe-complete{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-14px 0 30px rgba(0,0,0,calc(.07 * var(--home-swipe-progress)))}
@@ -291,6 +312,7 @@
       .vector-part{transition:none}
       .swipe-surface.is-animating{transition:none}
       .detail-shell.is-home-swipe-animating,.detail-shell.is-home-swipe-complete{transition:none}
+      .app-frame.is-home-swipe-animating,.app-frame.is-home-swipe-complete,.app-header,.persistent-brand-button,.app-view-title,.app-view{transition:none}
     }
     @media (min-width:640px){body{padding-top:42px}.brand{padding-top:22px}}
   </style>
@@ -306,16 +328,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.23#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.23#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.23#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.23#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.23#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.24#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.24#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.24#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.24#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.24#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.23"></script>
+  <script type="module" src="./src/main.js?v=0.1.24"></script>
 </body>
 </html>
