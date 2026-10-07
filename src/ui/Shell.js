@@ -4,7 +4,7 @@ import { sharonWordmark } from './Brand.js?v=0.1.29';
 import { bindSwipeMenu } from './SwipeMenu.js?v=0.1.29';
 
 const VIEW_FADE_MS = 110;
-const MENU_CLOSE_MS = 180;
+const MENU_CLOSE_MS = 260;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export function createShell(root, {
@@ -345,8 +345,11 @@ export function createShell(root, {
 
   frame.addEventListener('click', event => {
     if (!swipeMenu?.isOpen()) return;
+
     event.preventDefault();
     event.stopPropagation();
+
+    if (frame.dataset.menuSwipeSuppressClick === '1') return;
     swipeMenu.close();
   }, true);
 
