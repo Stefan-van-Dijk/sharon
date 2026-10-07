@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.17">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.17">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.18">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.18">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -84,6 +84,11 @@
     .install-help{padding:14px 0 2px;color:#66666b;font-size:13px;line-height:1.55}
     .install-help p{margin:0 0 8px}
     .install-help ol{margin:0;padding-left:20px}
+    .privacy-principles{display:grid;border-top:1px solid #ececef}
+    .privacy-principle{display:grid;gap:4px;padding:13px 0;border-bottom:1px solid #ececef}
+    .privacy-principle strong{font-size:14px;font-weight:420}
+    .privacy-principle small{color:#7f7f84;font-size:12px;line-height:1.45}
+    .privacy-note{margin:14px 0 0;color:#9a9a9f;font-size:11px;line-height:1.5}
     .location-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb;flex:0 0 auto;transition:background .22s ease}
     .location-pulse.is-searching::after{content:"";position:absolute;inset:-4px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}
     .location-pulse.is-ready{background:#2d9a59}
@@ -209,7 +214,7 @@
           <div class="brand-final" aria-hidden="true">
             <span>Shar</span>
             <span class="sharon-mark">
-              <img src="./assets/sharon-mark.png?v=0.1.17" alt="" aria-hidden="true">
+              <img src="./assets/sharon-mark.png?v=0.1.18" alt="" aria-hidden="true">
             </span>
             <span>n</span>
           </div>
@@ -218,6 +223,6 @@
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.17"></script>
+  <script type="module" src="./src/main.js?v=0.1.18"></script>
 </body>
 </html>
