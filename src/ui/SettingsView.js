@@ -1,4 +1,5 @@
-import { sharonLogo } from './Brand.js?v=0.1.22';
+import { sharonLogo } from './Brand.js?v=0.1.23';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.23';
 
 export function openSettings(root, {
   settings,
@@ -89,6 +90,7 @@ export function openSettings(root, {
   };
 
   homeButton.addEventListener('click', goHome);
+  bindSwipeHome(root.querySelector('.detail-shell'), goHome);
 
   profileForm.addEventListener('submit', async event => {
     event.preventDefault();
