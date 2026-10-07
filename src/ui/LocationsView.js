@@ -1,5 +1,6 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.20';
-import { sharonLogo } from './Brand.js?v=0.1.20';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.21';
+import { sharonLogo } from './Brand.js?v=0.1.21';
+import { bindSwipeRows } from './SwipeRows.js?v=0.1.21';
 
 export async function openLocationsView(root, {
   store,
@@ -29,15 +30,25 @@ export async function openLocationsView(root, {
   root.innerHTML = `
     <main class="detail-shell">
       ${detailHeader('Locaties')}
-      <section class="clean-list" aria-label="Locaties">
+      <section class="clean-list swipe-list" aria-label="Locaties" data-swipe-list>
         ${locations.length ? locations.map(item => `
-          <button type="button" class="clean-row" data-location-id="${item.id}">
-            <span>
-              <strong>${escapeHtml(item.data?.title || 'Locatie')}</strong>
-              <small>${escapeHtml(compactAddress(item.data?.address))}</small>
-            </span>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>
-          </button>
+          <div class="swipe-row" data-swipe-row="${item.id}">
+            <div class="swipe-action swipe-action-edit">
+              <button type="button" data-swipe-edit aria-label="Bewerk ${escapeAttribute(item.data?.title || 'locatie')}">Bewerk</button>
+            </div>
+
+            <div class="swipe-action swipe-action-delete">
+              <button type="button" data-swipe-delete aria-label="Verwijder ${escapeAttribute(item.data?.title || 'locatie')}">Verwijder</button>
+            </div>
+
+            <button type="button" class="clean-row swipe-surface" data-swipe-surface>
+              <span>
+                <strong>${escapeHtml(item.data?.title || 'Locatie')}</strong>
+                <small>${escapeHtml(compactAddress(item.data?.address))}</small>
+              </span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>
+            </button>
+          </div>
         `).join('') : '<p class="empty-state">Nog geen locaties.</p>'}
       </section>
     </main>
@@ -45,20 +56,74 @@ export async function openLocationsView(root, {
 
   root.querySelector('[data-detail-back]').addEventListener('click', onBack);
 
-  root.querySelectorAll('[data-location-id]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const item = locations.find(locationItem => locationItem.id === button.dataset.locationId);
-      if (!item) return;
+  const swipeList = root.querySelector('[data-swipe-list]');
 
-      await openLocationEditor(root, {
-        store,
-        location,
-        events,
-        locationObject: item,
-        onBack
-      });
+  const openItem = async id => {
+    const item = locations.find(locationItem => locationItem.id === id);
+    if (!item) return;
+
+    await openLocationEditor(root, {
+      store,
+      location,
+      events,
+      locationObject: item,
+      onBack
     });
-  });
+  };
+
+  if (swipeList) {
+    bindSwipeRows(swipeList, {
+      onOpen: openItem,
+      onEdit: openItem,
+      onDelete: async id => {
+        await softDeleteLocation(store, id);
+        events.emit('location.deleted', { id });
+
+        await openLocationsView(root, {
+          store,
+          location,
+          events,
+          onBack
+        });
+      }
+    });
+  }
+}
+
+async function softDeleteLocation(store, locationId) {
+  const now = Date.now();
+  const objects = await store.getAll('objects');
+  const locationObject = objects.find(item =>
+    item.id === locationId &&
+    item.type === 'location' &&
+    !item.deletedAt
+  );
+
+  if (locationObject) {
+    await store.put('objects', {
+      ...locationObject,
+      updatedAt: now,
+      deletedAt: now
+    });
+  }
+
+  const linkedActions = objects.filter(item =>
+    item.type === 'location-action' &&
+    !item.deletedAt &&
+    item.data?.locationId === locationId
+  );
+
+  for (const action of linkedActions) {
+    await store.put('objects', {
+      ...action,
+      updatedAt: now,
+      deletedAt: now,
+      data: {
+        ...action.data,
+        enabled: false
+      }
+    });
+  }
 }
 
 async function openLocationEditor(root, {
