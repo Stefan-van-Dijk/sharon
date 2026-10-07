@@ -2,10 +2,12 @@ const DEFAULT_MODULES = Object.freeze([
   { id: 'rides', title: 'Ritten' },
   { id: 'time', title: 'Tijd' },
   { id: 'locations', title: 'Locaties' },
+  { id: 'environment', title: 'Omgeving' },
   { id: 'people', title: 'Personen' },
   { id: 'objects', title: 'Objecten' },
   { id: 'actions', title: 'Acties' },
   { id: 'cards', title: 'Kaarten' },
+  { id: 'codes', title: 'Codes' },
   { id: 'themes', title: "Thema's" }
 ]);
 
