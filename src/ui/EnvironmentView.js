@@ -225,53 +225,193 @@ export async function openEnvironmentView(root, {
     pinchHint.classList.add('is-hidden');
   };
 
-  const onTouchStart = event => {
-    if (event.touches.length !== 2) return;
+  const startPan = (clientX, clientY) => {
+    if (!viewCenter) return false;
 
-    const distance = touchDistance(event.touches[0], event.touches[1]);
-    if (!distance) return;
-
-    pinch = {
-      startDistance: distance,
-      startScaleIndex: scaleIndex,
-      ratio: 1
+    pan = {
+      startX: clientX,
+      startY: clientY,
+      dx: 0,
+      dy: 0,
+      startCenter: { ...viewCenter }
     };
 
-    canvas.classList.add('is-pinching');
+    canvas.classList.add('is-panning');
     hideHint();
+    return true;
+  };
 
-    if (event.cancelable) event.preventDefault();
+  const previewPan = (clientX, clientY) => {
+    if (!pan) return;
+
+    pan.dx = clientX - pan.startX;
+    pan.dy = clientY - pan.startY;
+    map.style.transform =
+      `translate3d(${pan.dx}px,${pan.dy}px,0)`;
+  };
+
+  const finishPan = () => {
+    if (!pan) return;
+
+    const moved = Math.hypot(pan.dx, pan.dy);
+
+    if (moved >= 2) {
+      viewCenter = panCenterFromPixels(
+        pan.startCenter,
+        pan.dx,
+        pan.dy,
+        canvas,
+        scale
+      );
+      followingPosition = false;
+
+      const nextKey = environmentLineKey(viewCenter, scale);
+      const sameLineArea = nextKey === lineContextKey;
+
+      if (!sameLineArea) {
+        lineFeatures = [];
+        lineContextKey = '';
+        lineState = 'idle';
+      }
+
+      render();
+      if (!sameLineArea) scheduleLines();
+    }
+
+    map.style.transform = '';
+    canvas.classList.remove('is-panning');
+    pan = null;
+  };
+
+  const cancelPan = () => {
+    map.style.transform = '';
+    canvas.classList.remove('is-panning');
+    pan = null;
+  };
+
+  const onTouchStart = event => {
+    if (event.touches.length === 2) {
+      cancelPan();
+
+      const distance = touchDistance(
+        event.touches[0],
+        event.touches[1]
+      );
+      if (!distance) return;
+
+      pinch = {
+        startDistance: distance,
+        startScaleIndex: scaleIndex,
+        ratio: 1
+      };
+
+      canvas.classList.add('is-pinching');
+      hideHint();
+
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
+
+    if (event.touches.length !== 1 || pinch) return;
+    if (event.target.closest('button,a')) return;
+
+    const touch = event.touches[0];
+    const bounds = canvas.getBoundingClientRect();
+    const xInside = touch.clientX - bounds.left;
+
+    // Reserve the left edge for Sharon's swipe-back gesture.
+    if (xInside <= 104) return;
+
+    startPan(touch.clientX, touch.clientY);
   };
 
   const onTouchMove = event => {
-    if (!pinch || event.touches.length !== 2) return;
+    if (pinch && event.touches.length === 2) {
+      const distance = touchDistance(
+        event.touches[0],
+        event.touches[1]
+      );
+      if (!distance) return;
 
-    const distance = touchDistance(event.touches[0], event.touches[1]);
-    if (!distance) return;
+      pinch.ratio = distance / pinch.startDistance;
 
-    pinch.ratio = distance / pinch.startDistance;
+      const preview = Math.max(
+        0.84,
+        Math.min(1.18, 1 + (pinch.ratio - 1) * 0.18)
+      );
+      map.style.transform = `scale(${preview})`;
 
-    const preview = Math.max(0.9, Math.min(1.1, 1 + (pinch.ratio - 1) * 0.14));
-    map.style.transform = `scale(${preview})`;
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
 
-    if (event.cancelable) event.preventDefault();
+    if (pan && event.touches.length === 1) {
+      const touch = event.touches[0];
+      previewPan(touch.clientX, touch.clientY);
+
+      if (event.cancelable) event.preventDefault();
+    }
   };
 
   const finishPinch = () => {
     if (!pinch) return;
 
     const ratio = pinch.ratio;
-    const rawSteps = Math.round(Math.log(Math.max(0.35, Math.min(2.8, ratio))) / Math.log(1.45));
+    const rawSteps = Math.round(
+      Math.log(Math.max(0.25, Math.min(4, ratio))) /
+      Math.log(1.4)
+    );
     const nextIndex = pinch.startScaleIndex - rawSteps;
 
     map.style.transform = '';
     canvas.classList.remove('is-pinching');
 
-    if (Math.abs(ratio - 1) >= 0.12) {
+    if (Math.abs(ratio - 1) >= 0.1) {
       setScaleIndex(nextIndex);
     }
 
     pinch = null;
+  };
+
+  const onTouchEnd = event => {
+    if (pinch && event.touches.length < 2) {
+      finishPinch();
+      return;
+    }
+
+    if (pan && event.touches.length === 0) {
+      finishPan();
+    }
+  };
+
+  const onTouchCancel = () => {
+    if (pinch) {
+      map.style.transform = '';
+      canvas.classList.remove('is-pinching');
+      pinch = null;
+    }
+    cancelPan();
+  };
+
+  const onMouseDown = event => {
+    if (event.button !== 0) return;
+    if (event.target.closest('button,a')) return;
+
+    if (startPan(event.clientX, event.clientY)) {
+      mousePan = true;
+      event.preventDefault();
+    }
+  };
+
+  const onMouseMove = event => {
+    if (!mousePan || !pan) return;
+    previewPan(event.clientX, event.clientY);
+  };
+
+  const onMouseUp = () => {
+    if (!mousePan) return;
+    mousePan = false;
+    finishPan();
   };
 
   const onWheel = event => {
@@ -284,7 +424,9 @@ export async function openEnvironmentView(root, {
     if (wheelTimer) clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => {
       const direction = wheelTotal > 0 ? 1 : -1;
-      if (Math.abs(wheelTotal) > 12) setScaleIndex(scaleIndex + direction);
+      if (Math.abs(wheelTotal) > 12) {
+        setScaleIndex(scaleIndex + direction);
+      }
       wheelTotal = 0;
       wheelTimer = null;
     }, 70);
@@ -299,8 +441,11 @@ export async function openEnvironmentView(root, {
 
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  canvas.addEventListener('touchend', finishPinch, { passive: true });
-  canvas.addEventListener('touchcancel', finishPinch, { passive: true });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+  canvas.addEventListener('touchcancel', onTouchCancel, { passive: true });
+  canvas.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
   const offLocation = events.on('location.changed', event => {
