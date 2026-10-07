@@ -1,5 +1,7 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.18';
-import { openSettings } from './SettingsView.js?v=0.1.18';
+import { openLocationsView } from './LocationsView.js?v=0.1.19';
+import { openSettings } from './SettingsView.js?v=0.1.19';
+
+const NAV_MS = 320;
 
 export function createShell(root, {
   modules,
@@ -9,7 +11,8 @@ export function createShell(root, {
   settings,
   install,
   initialModule = '',
-  initialLocationId = ''
+  initialLocationId = '',
+  revealFromLogo = false
 }) {
   const list = modules.list();
   let triggerTimer = null;
@@ -18,16 +21,16 @@ export function createShell(root, {
     <main class="shell">
       <header class="brand">
         <div class="brand-line">
-          <button type="button" class="brand-wordmark brand-button" data-menu-anchor aria-label="Open Sharon menu">
-            <span>Shar</span>
+          <div class="brand-wordmark home-brand ${revealFromLogo ? 'is-from-logo' : ''}" data-home-brand aria-label="Sharon">
+            <span class="brand-home-prefix">Shar</span>
             <img
               class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.18"
+              src="./assets/sharon-mark.png?v=0.1.19"
               alt=""
               aria-hidden="true"
             >
-            <span>n</span>
-          </button>
+            <span class="brand-home-suffix">n</span>
+          </div>
           <span
             class="location-pulse is-searching"
             data-location-status
@@ -43,11 +46,14 @@ export function createShell(root, {
         ${list.map(module => `
           <button class="module-row" data-module="${module.id}">
             <span>${module.title}</span>
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M7.5 4.5 13 10l-5.5 5.5"/>
-            </svg>
+            ${chevron()}
           </button>
         `).join('')}
+
+        <button class="module-row settings-home-row" data-settings>
+          <span>Instellingen</span>
+          ${chevron()}
+        </button>
       </nav>
 
       <footer class="shell-footer">
@@ -60,6 +66,13 @@ export function createShell(root, {
   const message = root.querySelector('[data-message]');
   const status = root.querySelector('[data-location-status]');
   const toast = root.querySelector('[data-trigger-toast]');
+  const homeBrand = root.querySelector('[data-home-brand]');
+
+  if (revealFromLogo) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => homeBrand?.classList.remove('is-from-logo'));
+    });
+  }
 
   const setSearching = () => {
     if (!status?.isConnected) return;
@@ -109,19 +122,25 @@ export function createShell(root, {
   };
 
   const returnToShell = () => {
-    cleanup();
     createShell(root, {
       modules,
       location,
       events,
       store,
       settings,
-      install
+      install,
+      revealFromLogo: true
     });
   };
 
-  const openLocations = (locationId = '') => {
+  const navigate = async callback => {
+    homeBrand?.classList.add('is-to-logo');
+    await sleep(NAV_MS);
     cleanup();
+    callback();
+  };
+
+  const openLocations = (locationId = '') => {
     openLocationsView(root, {
       store,
       location,
@@ -131,11 +150,14 @@ export function createShell(root, {
     });
   };
 
-  root.querySelector('[data-menu-anchor]').addEventListener('click', () => {
-    openSettings(root, {
-      settings,
-      install,
-      events
+  root.querySelector('[data-settings]').addEventListener('click', () => {
+    navigate(() => {
+      openSettings(root, {
+        settings,
+        install,
+        events,
+        onBack: returnToShell
+      });
     });
   });
 
@@ -172,20 +194,64 @@ export function createShell(root, {
 
   root.querySelectorAll('[data-module]').forEach(button => {
     button.addEventListener('click', () => {
-      if (button.dataset.module === 'locations') {
-        openLocations();
+      const module = modules.get(button.dataset.module);
+      if (!module) return;
+
+      if (module.id === 'locations') {
+        navigate(() => openLocations());
         return;
       }
 
-      const module = modules.get(button.dataset.module);
-      message.textContent =
-        `${module.title} wordt als volgende stap uitgewerkt.`;
+      navigate(() => openPlaceholder(root, module.title, returnToShell));
     });
   });
 
   if (initialModule === 'locations' && initialLocationId) {
     queueMicrotask(() => {
-      if (root.querySelector('.shell')) openLocations(initialLocationId);
+      cleanup();
+      openLocations(initialLocationId);
     });
   }
+}
+
+function openPlaceholder(root, title, onBack) {
+  root.innerHTML = `
+    <main class="detail-shell">
+      ${detailHeader(title)}
+      <section class="placeholder-copy">
+        <p>${escapeHtml(title)} wordt hier verder opgebouwd.</p>
+      </section>
+    </main>
+  `;
+
+  root.querySelector('[data-home-logo]').addEventListener('click', onBack);
+}
+
+function detailHeader(title) {
+  return `
+    <header class="detail-header logo-detail-header">
+      <button type="button" class="home-logo-button" data-home-logo aria-label="Terug naar beginscherm">
+        <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
+      </button>
+      <h1>${escapeHtml(title)}</h1>
+    </header>
+  `;
+}
+
+function chevron() {
+  return `
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M7.5 4.5 13 10l-5.5 5.5"/>
+    </svg>
+  `;
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>]/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;'
+  })[character]);
 }
