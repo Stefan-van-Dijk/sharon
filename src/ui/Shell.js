@@ -1,7 +1,8 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.19';
-import { openSettings } from './SettingsView.js?v=0.1.19';
+import { openLocationsView } from './LocationsView.js?v=0.1.20';
+import { openSettings } from './SettingsView.js?v=0.1.20';
+import { sharonLogo, sharonWordmark } from './Brand.js?v=0.1.20';
 
-const NAV_MS = 320;
+const NAV_MS = 340;
 
 export function createShell(root, {
   modules,
@@ -21,16 +22,12 @@ export function createShell(root, {
     <main class="shell">
       <header class="brand">
         <div class="brand-line">
-          <div class="brand-wordmark home-brand ${revealFromLogo ? 'is-from-logo' : ''}" data-home-brand aria-label="Sharon">
-            <span class="brand-home-prefix">Shar</span>
-            <img
-              class="brand-wordmark-mark"
-              src="./assets/sharon-mark.png?v=0.1.19"
-              alt=""
-              aria-hidden="true"
-            >
-            <span class="brand-home-suffix">n</span>
-          </div>
+          ${sharonWordmark({
+            mode: 'sharon',
+            className: `home-brand-vector ${revealFromLogo ? 'is-from-logo' : ''}`,
+            dataHook: 'data-home-brand',
+            label: 'Sharon'
+          })}
           <span
             class="location-pulse is-searching"
             data-location-status
@@ -231,7 +228,7 @@ function detailHeader(title) {
   return `
     <header class="detail-header logo-detail-header">
       <button type="button" class="home-logo-button" data-home-logo aria-label="Terug naar beginscherm">
-        <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
+        ${sharonLogo({ className: 'detail-home-logo' })}
       </button>
       <h1>${escapeHtml(title)}</h1>
     </header>
