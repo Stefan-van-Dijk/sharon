@@ -77,9 +77,6 @@ export function openSettings(root, {
     }, 220);
   };
 
-  backdrop.addEventListener('click', close);
-  closeButton.addEventListener('click', close);
-
   profileForm.addEventListener('submit', async event => {
     event.preventDefault();
     const name = String(new FormData(profileForm).get('name') || '').trim();
