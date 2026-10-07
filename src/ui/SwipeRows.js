@@ -66,6 +66,10 @@ export function bindSwipeRows(container, {
 
       if (locked !== 'x') return;
 
+      // A closed row only owns leftward swipes. Rightward movement stays
+      // available for the module-to-home gesture, matching Log's policy.
+      if (startOffsetX === 0 && dx > 0) return;
+
       dragging = true;
       event.preventDefault();
       setX(startOffsetX + dx);
