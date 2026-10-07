@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.30">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.30">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.31">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.31">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -132,6 +132,7 @@
     .module-drawer-row[aria-current="page"]{font-weight:620;color:#111}
     .module-drawer-row:active{opacity:.45}
     .app-frame{--menu-x:0px;--menu-progress:0;width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;z-index:10;background:#fff;transform:translate3d(var(--menu-x),0,0);box-shadow:-12px 0 28px rgba(0,0,0,calc(.08 * var(--menu-progress)))}
+    .app-frame[data-view="detail"]{touch-action:pan-y;overscroll-behavior-x:none}
     .app-frame.is-menu-animating{transition:transform .26s cubic-bezier(.22,.61,.36,1),box-shadow .26s ease}
     .app-frame.is-menu-open{touch-action:pan-y}
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
@@ -335,16 +336,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.30#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.30#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.30#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.30#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.30#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.31#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.31#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.31#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.31#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.31#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.30"></script>
+  <script type="module" src="./src/main.js?v=0.1.31"></script>
 </body>
 </html>
