@@ -1,5 +1,5 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.35';
-import { bindSwipeRows } from './SwipeRows.js?v=0.1.35';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.36';
+import { bindSwipeRows } from './SwipeRows.js?v=0.1.36';
 
 export async function openLocationsView(root, {
   store,
