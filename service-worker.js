@@ -1,20 +1,20 @@
-const BUILD = '0.1.18';
+const BUILD = '0.1.19';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=0.1.18',
-  './assets/sharon-mark.png?v=0.1.18',
-  './src/main.js?v=0.1.18',
-  './src/app.js?v=0.1.18',
-  './src/core/app/InstallService.js?v=0.1.18',
-  './src/core/location/ReverseGeocodeService.js?v=0.1.18',
-  './src/core/location/LocationTriggerService.js?v=0.1.18',
-  './src/ui/Boot.js?v=0.1.18',
-  './src/ui/Story.js?v=0.1.18',
-  './src/ui/LocationsView.js?v=0.1.18',
-  './src/ui/SettingsView.js?v=0.1.18',
-  './src/ui/Shell.js?v=0.1.18'
+  './manifest.webmanifest?v=0.1.19',
+  './assets/sharon-mark.png?v=0.1.19',
+  './src/main.js?v=0.1.19',
+  './src/app.js?v=0.1.19',
+  './src/core/app/InstallService.js?v=0.1.19',
+  './src/core/location/ReverseGeocodeService.js?v=0.1.19',
+  './src/core/location/LocationTriggerService.js?v=0.1.19',
+  './src/ui/Boot.js?v=0.1.19',
+  './src/ui/Story.js?v=0.1.19',
+  './src/ui/LocationsView.js?v=0.1.19',
+  './src/ui/SettingsView.js?v=0.1.19',
+  './src/ui/Shell.js?v=0.1.19'
 ];
 
 self.addEventListener('install', event => {
