@@ -1,7 +1,7 @@
-const EDGE_PX = 34;
-const OPEN_TRIGGER_PX = 72;
+const EDGE_PX = 56;
+const OPEN_TRIGGER_PX = 68;
 const CLOSE_TRIGGER_PX = 56;
-const DIRECTION_LOCK = 8;
+const DIRECTION_LOCK = 7;
 
 export function bindSwipeMenu(surface, drawer, {
   isEnabled = () => true,
@@ -45,6 +45,12 @@ export function bindSwipeMenu(surface, drawer, {
   const finishState = (open, animate = true) => {
     openState = open;
     const target = open ? drawerWidth() : 0;
+
+    if (open) {
+      drawer.hidden = false;
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+
     setX(target, animate);
     surface.classList.toggle('is-menu-open', open);
     drawer.classList.toggle('is-open', open);
@@ -68,8 +74,10 @@ export function bindSwipeMenu(surface, drawer, {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
 
-    if (!openState && event.clientX > EDGE_PX) return;
-    if (openState && !event.target.closest('[data-app-frame]')) return;
+    const bounds = surface.getBoundingClientRect();
+    const xInside = event.clientX - bounds.left;
+
+    if (!openState && (xInside < 0 || xInside > EDGE_PX)) return;
 
     pointerId = event.pointerId;
     startX = event.clientX;
@@ -81,6 +89,10 @@ export function bindSwipeMenu(surface, drawer, {
     surface.classList.remove('is-menu-animating');
     drawer.hidden = false;
     drawer.setAttribute('aria-hidden', 'false');
+
+    try {
+      surface.setPointerCapture(pointerId);
+    } catch {}
   };
 
   const pointerMove = event => {
@@ -104,9 +116,20 @@ export function bindSwipeMenu(surface, drawer, {
 
   const pointerUp = event => {
     if (pointerId !== event.pointerId) return;
+
+    try {
+      if (surface.hasPointerCapture(pointerId)) {
+        surface.releasePointerCapture(pointerId);
+      }
+    } catch {}
+
     pointerId = null;
 
     if (!dragging || locked !== 'x') {
+      if (!openState) {
+        drawer.hidden = true;
+        drawer.setAttribute('aria-hidden', 'true');
+      }
       locked = '';
       dragging = false;
       return;
@@ -123,7 +146,7 @@ export function bindSwipeMenu(surface, drawer, {
     surface.dataset.menuSwipeSuppressClick = '1';
     setTimeout(() => {
       if (surface.isConnected) delete surface.dataset.menuSwipeSuppressClick;
-    }, 120);
+    }, 140);
 
     locked = '';
     dragging = false;
@@ -131,26 +154,33 @@ export function bindSwipeMenu(surface, drawer, {
 
   const pointerCancel = event => {
     if (pointerId !== event.pointerId) return;
+
+    try {
+      if (surface.hasPointerCapture(pointerId)) {
+        surface.releasePointerCapture(pointerId);
+      }
+    } catch {}
+
     pointerId = null;
     finishState(openState, true);
     locked = '';
     dragging = false;
   };
 
-  document.addEventListener('pointerdown', pointerDown);
-  document.addEventListener('pointermove', pointerMove, { passive: false });
-  document.addEventListener('pointerup', pointerUp);
-  document.addEventListener('pointercancel', pointerCancel);
+  surface.addEventListener('pointerdown', pointerDown);
+  surface.addEventListener('pointermove', pointerMove, { passive: false });
+  surface.addEventListener('pointerup', pointerUp);
+  surface.addEventListener('pointercancel', pointerCancel);
 
   return {
     open,
     close,
     isOpen: () => openState,
     destroy() {
-      document.removeEventListener('pointerdown', pointerDown);
-      document.removeEventListener('pointermove', pointerMove);
-      document.removeEventListener('pointerup', pointerUp);
-      document.removeEventListener('pointercancel', pointerCancel);
+      surface.removeEventListener('pointerdown', pointerDown);
+      surface.removeEventListener('pointermove', pointerMove);
+      surface.removeEventListener('pointerup', pointerUp);
+      surface.removeEventListener('pointercancel', pointerCancel);
     }
   };
 }
