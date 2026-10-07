@@ -450,19 +450,29 @@ export async function openEnvironmentView(root, {
 
   const offLocation = events.on('location.changed', event => {
     const nextPoint = event.detail;
-    const nextKey = environmentLineKey(nextPoint, scale);
-    const sameLineArea = nextKey === lineContextKey;
-
     point = nextPoint;
 
-    if (!sameLineArea) {
-      lineFeatures = [];
-      lineContextKey = '';
-      lineState = 'idle';
+    if (followingPosition || !viewCenter) {
+      viewCenter = {
+        lat: Number(nextPoint.lat),
+        lng: Number(nextPoint.lng)
+      };
+
+      const nextKey = environmentLineKey(viewCenter, scale);
+      const sameLineArea = nextKey === lineContextKey;
+
+      if (!sameLineArea) {
+        lineFeatures = [];
+        lineContextKey = '';
+        lineState = 'idle';
+      }
+
+      render();
+      if (!sameLineArea) scheduleLines();
+      return;
     }
 
     render();
-    if (!sameLineArea) scheduleLines();
   });
 
   const refreshLocations = async () => {
@@ -479,7 +489,7 @@ export async function openEnvironmentView(root, {
 
   if (!point) {
     refresh().catch(() => {});
-  } else {
+  } else if (viewCenter) {
     scheduleLines();
   }
 
@@ -494,8 +504,11 @@ export async function openEnvironmentView(root, {
 
     canvas.removeEventListener('touchstart', onTouchStart);
     canvas.removeEventListener('touchmove', onTouchMove);
-    canvas.removeEventListener('touchend', finishPinch);
-    canvas.removeEventListener('touchcancel', finishPinch);
+    canvas.removeEventListener('touchend', onTouchEnd);
+    canvas.removeEventListener('touchcancel', onTouchCancel);
+    canvas.removeEventListener('mousedown', onMouseDown);
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
     canvas.removeEventListener('wheel', onWheel);
 
     offLocation();
