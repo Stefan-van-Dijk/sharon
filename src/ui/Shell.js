@@ -1,7 +1,7 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.30';
-import { openSettings } from './SettingsView.js?v=0.1.30';
-import { sharonWordmark } from './Brand.js?v=0.1.30';
-import { bindSwipeMenu } from './SwipeMenu.js?v=0.1.30';
+import { openLocationsView } from './LocationsView.js?v=0.1.31';
+import { openSettings } from './SettingsView.js?v=0.1.31';
+import { sharonWordmark } from './Brand.js?v=0.1.31';
+import { bindSwipeMenu } from './SwipeMenu.js?v=0.1.31';
 
 const VIEW_FADE_MS = 110;
 const MENU_CLOSE_MS = 260;
