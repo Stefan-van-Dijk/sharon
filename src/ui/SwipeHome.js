@@ -43,7 +43,8 @@ export function bindSwipeHome(surface, onHome, { isEnabled = () => true } = {}) 
   const pointerDown = event => {
     if (!isEnabled()) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (event.clientX > EDGE_PX) return;
+    const bounds = surface.getBoundingClientRect();
+    if (event.clientX - bounds.left > EDGE_PX) return;
     if (event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
 
     pointerId = event.pointerId;
