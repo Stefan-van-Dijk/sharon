@@ -9,7 +9,10 @@ const VIEW = 1000;
 const CENTER = VIEW / 2;
 const EARTH_RADIUS_M = 6371000;
 const LINE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
-const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_ENDPOINTS = Object.freeze([
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass-api.de/api/interpreter'
+]);
 
 export async function openEnvironmentView(root, {
   store,
@@ -503,19 +506,7 @@ async function loadEnvironmentLines(store, point, scale) {
   const bbox = boundsFor(point, scale.spanM * 0.82);
   const query = overpassQuery(scale, bbox);
 
-  const response = await fetch(OVERPASS_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-    },
-    body: new URLSearchParams({ data: query })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Kaartlijnen konden niet worden geladen (${response.status}).`);
-  }
-
-  const data = await response.json();
+  const data = await fetchOverpass(query);
   const features = (data.elements || [])
     .filter(item => item.type === 'way' && Array.isArray(item.geometry))
     .slice(0, 4500)
@@ -542,6 +533,47 @@ async function loadEnvironmentLines(store, point, scale) {
   }).catch(() => {});
 
   return features;
+}
+
+async function fetchOverpass(query) {
+  let lastError = null;
+
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
+
+    try {
+      // Keep this a CORS-simple POST. This mirrors the Overpass browser
+      // examples and avoids an unnecessary preflight on mobile Safari.
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(query),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const type = response.headers.get('content-type') || '';
+      if (!type.includes('json')) {
+        const body = await response.text();
+        throw new Error(body.slice(0, 120) || 'Geen JSON ontvangen');
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  if (lastError?.name === 'AbortError') {
+    throw new Error('Kaartbron reageert te langzaam.');
+  }
+
+  throw new Error(lastError?.message || 'Kaartbron niet bereikbaar.');
 }
 
 function overpassQuery(scale, bbox) {
