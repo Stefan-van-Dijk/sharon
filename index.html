@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.24">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.24">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.25">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.25">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -130,13 +130,13 @@
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
-    .app-header.is-detail .persistent-brand-button{width:30px}
+    .app-header.is-detail .persistent-brand-button{width:42px}
     .persistent-brand-vector{position:absolute;left:0;top:50%;width:110px;height:auto;transform:translateY(-50%);overflow:visible}
     .persistent-brand-vector.is-detail .vector-shar{opacity:0;transform:translateX(54px)}
     .persistent-brand-vector.is-detail .vector-n{opacity:0;transform:translateX(-88px)}
-    .persistent-brand-vector.is-detail .vector-logo{opacity:1;transform:translateX(-64px) scale(1.45)}
+    .persistent-brand-vector.is-detail .vector-logo{opacity:1;transform:translateX(-62px) scale(1.16)}
     .app-view-title{margin:0;max-width:0;overflow:hidden;opacity:0;transform:translateX(-5px);white-space:nowrap;color:#111;font-size:17px;line-height:1;font-weight:430;letter-spacing:-.015em;transition:max-width .32s cubic-bezier(.22,.61,.36,1),opacity .2s ease,transform .3s cubic-bezier(.22,.61,.36,1)}
-    .app-header.is-detail .app-view-title{max-width:260px;opacity:1;transform:translateX(0)}
+    .app-header.is-detail .app-view-title{max-width:260px;opacity:1;transform:translateX(0);margin-left:2px}
     .app-header .location-pulse{transition:opacity .2s ease}
     .app-header.is-detail .location-pulse{opacity:0;pointer-events:none}
     .app-view{flex:1;display:flex;flex-direction:column;min-height:0;opacity:1;transform:translateY(0);transition:opacity .16s ease,transform .16s ease}
@@ -328,16 +328,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.24#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.24#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.24#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.24#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.24#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.25#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.25#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.25#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.25#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.25#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.24"></script>
+  <script type="module" src="./src/main.js?v=0.1.25"></script>
 </body>
 </html>
