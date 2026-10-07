@@ -1,5 +1,5 @@
-const OPEN_X = 92;
-const THRESHOLD_X = 34;
+const OPEN_X = 176;
+const OPEN_THRESHOLD_X = 48;
 const DIRECTION_LOCK = 7;
 
 export function bindSwipeRows(container, {
@@ -19,23 +19,23 @@ export function bindSwipeRows(container, {
     let pointerId = null;
     let startX = 0;
     let startY = 0;
+    let startOffsetX = 0;
     let currentX = 0;
     let dragging = false;
     let locked = '';
 
     const setX = (value, animate = false) => {
-      currentX = Math.max(-OPEN_X, Math.min(OPEN_X, value));
+      currentX = Math.max(-OPEN_X, Math.min(0, value));
       surface.classList.toggle('is-animating', animate);
       surface.style.transform = `translate3d(${currentX}px,0,0)`;
-
-      row.classList.toggle('is-edit-open', currentX > 1);
-      row.classList.toggle('is-delete-open', currentX < -1);
+      row.classList.toggle('is-actions-open', currentX < -1);
 
       if (currentX === 0 && openRow === row) openRow = null;
-      if (Math.abs(currentX) === OPEN_X) openRow = row;
+      if (currentX === -OPEN_X) openRow = row;
     };
 
     const close = (animate = true) => setX(0, animate);
+    const open = (animate = true) => setX(-OPEN_X, animate);
 
     const pointerDown = event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -47,6 +47,7 @@ export function bindSwipeRows(container, {
       pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
+      startOffsetX = currentX;
       dragging = false;
       locked = '';
       surface.classList.remove('is-animating');
@@ -67,13 +68,7 @@ export function bindSwipeRows(container, {
 
       dragging = true;
       event.preventDefault();
-
-      const resistance =
-        Math.abs(dx) > OPEN_X
-          ? Math.sign(dx) * (OPEN_X + (Math.abs(dx) - OPEN_X) * 0.16)
-          : dx;
-
-      setX(resistance);
+      setX(startOffsetX + dx);
     };
 
     const pointerUp = event => {
@@ -86,12 +81,8 @@ export function bindSwipeRows(container, {
         return;
       }
 
-      const dx = event.clientX - startX;
-
-      if (dx >= THRESHOLD_X) {
-        setX(OPEN_X, true);
-      } else if (dx <= -THRESHOLD_X) {
-        setX(-OPEN_X, true);
+      if (currentX <= -OPEN_THRESHOLD_X) {
+        open(true);
       } else {
         close(true);
       }
