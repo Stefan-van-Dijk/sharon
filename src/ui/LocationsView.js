@@ -1,4 +1,5 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.19';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.20';
+import { sharonLogo } from './Brand.js?v=0.1.20';
 
 export async function openLocationsView(root, {
   store,
@@ -246,7 +247,7 @@ function detailHeader(title) {
   return `
     <header class="detail-header logo-detail-header">
       <button type="button" class="home-logo-button" data-detail-back aria-label="Terug naar beginscherm">
-        <img src="./assets/sharon-mark.png?v=0.1.19" alt="" aria-hidden="true">
+        ${sharonLogo({ className: 'detail-home-logo' })}
       </button>
       <h1>${escapeHtml(title)}</h1>
     </header>
