@@ -22,6 +22,15 @@ const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php
 const ENVIRONMENT_OBJECT_ENDPOINT = 'https://sharon.life/environment/api/objects.php';
 let sharedTileEndpointState = 'unknown';
 const publishedTileRequests = new Set();
+const decodedTileCache = new Map();
+const inFlightTiles = new Map();
+const MAX_MEMORY_TILES = 12;
+function rememberTile(key, features) {
+  decodedTileCache.delete(key);
+  decodedTileCache.set(key, features);
+  if (decodedTileCache.size > MAX_MEMORY_TILES) decodedTileCache.delete(decodedTileCache.keys().next().value);
+  return features;
+}
 const OVERPASS_ENDPOINTS = Object.freeze([
   'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter'
@@ -66,6 +75,8 @@ export async function openEnvironmentView(root, {
   let mousePan = false;
   let wheelTotal = 0;
   let wheelTimer = null;
+  let zoomFrame = 0;
+  let zoomPending = null;
 
   root.innerHTML = `
     <section class="module-view environment-view">
@@ -509,7 +520,12 @@ export async function openEnvironmentView(root, {
 
       pinch.ratio = distance / pinch.startDistance;
 
-      setZoomSpan(pinch.startSpan / Math.max(0.1, pinch.ratio));
+      zoomPending = pinch.startSpan / Math.max(0.1, pinch.ratio);
+      if (!zoomFrame) zoomFrame = requestAnimationFrame(() => {
+        zoomFrame = 0;
+        if (zoomPending !== null) setZoomSpan(zoomPending);
+        zoomPending = null;
+      });
 
       if (event.cancelable) event.preventDefault();
       return;
@@ -528,6 +544,9 @@ export async function openEnvironmentView(root, {
 
     const ratio = pinch.ratio;
     const nextSpan = pinch.startSpan / Math.max(0.1, ratio);
+    if (zoomFrame) cancelAnimationFrame(zoomFrame);
+    zoomFrame = 0;
+    zoomPending = null;
 
     map.style.transform = '';
     canvas.classList.remove('is-pinching');
@@ -666,6 +685,7 @@ export async function openEnvironmentView(root, {
     if (wikiTimer) clearTimeout(wikiTimer);
     wikiToken += 1;
     if (wheelTimer) clearTimeout(wheelTimer);
+    if (zoomFrame) cancelAnimationFrame(zoomFrame);
     clearTimeout(hintTimer);
 
     lineLoadToken += 1;
@@ -890,6 +910,14 @@ async function loadEnvironmentLines(store, point, scale) {
   // Country overview is intentionally grid-only until a simplified server dataset exists.
   // Never issue a continent-sized Overpass query from a phone.
   if (scale.id === 'country') return [];
+  if (decodedTileCache.has(cacheKey)) return rememberTile(cacheKey, decodedTileCache.get(cacheKey));
+  if (inFlightTiles.has(cacheKey)) return inFlightTiles.get(cacheKey);
+  const pending = loadEnvironmentLinesUncached(store, point, scale, areaId, cacheKey);
+  inFlightTiles.set(cacheKey, pending);
+  try { return await pending; } finally { inFlightTiles.delete(cacheKey); }
+}
+
+async function loadEnvironmentLinesUncached(store, point, scale, areaId, cacheKey) {
   const cached = await store.get('meta', cacheKey).catch(() => null);
 
   if (
@@ -899,7 +927,7 @@ async function loadEnvironmentLines(store, point, scale) {
     if (!cached.value.compact) {
       storeEnvironmentTile(store, cacheKey, cached.value.features, cached.value.source || 'legacy').catch(() => {});
     }
-    return cached.value.compact ? decodeCompactTile(cached.value.compact) : cached.value.features;
+    return rememberTile(cacheKey, cached.value.compact ? decodeCompactTile(cached.value.compact) : cached.value.features);
   }
 
   const shared = await loadSharedEnvironmentTile(areaId, scale.id)
@@ -907,7 +935,7 @@ async function loadEnvironmentLines(store, point, scale) {
 
   if (shared?.features?.length) {
     await storeEnvironmentTile(store, cacheKey, shared.features, 'shared');
-    return shared.features;
+    return rememberTile(cacheKey, shared.features);
   }
 
   const canonicalCenter = environmentBoundsForId(areaId).center;
@@ -918,7 +946,7 @@ async function loadEnvironmentLines(store, point, scale) {
   const features = overpassFeatures(data);
 
   await storeEnvironmentTile(store, cacheKey, features, 'overpass');
-  return features;
+  return rememberTile(cacheKey, features);
 }
 
 async function storeEnvironmentTile(store, cacheKey, features, source) {
@@ -1266,21 +1294,26 @@ function projectLineFeatures({
   centerY,
   metersPerUnit
 }) {
-  return features.map(feature => {
+  // Skip paths entirely outside the viewport; limit SVG size on mobile.
+  const visible = [];
+  for (const feature of features) {
+    if (visible.length >= 900) break;
+    if (!feature.points?.length) continue;
+    const projected = feature.points.map(point => ({
+      x: CENTER + (projection.x(point.lng) - centerX) / metersPerUnit,
+      y: CENTER - (projection.y(point.lat) - centerY) / metersPerUnit
+    }));
+    if (!projected.some(point => point.x >= -80 && point.x <= VIEW + 80 && point.y >= -80 && point.y <= VIEW + 80)) continue;
     const commands = [];
 
-    feature.points.forEach((point, index) => {
-      const x = CENTER + (projection.x(point.lng) - centerX) / metersPerUnit;
-      const y = CENTER - (projection.y(point.lat) - centerY) / metersPerUnit;
-
-      commands.push(`${index ? 'L' : 'M'}${round(x)} ${round(y)}`);
+    const stride = Math.max(1, Math.floor(projected.length / 450));
+    projected.forEach((point, index) => {
+      if (index % stride !== 0 && index !== projected.length - 1) return;
+      commands.push(`${commands.length ? 'L' : 'M'}${round(point.x)} ${round(point.y)}`);
     });
-
-    return {
-      type: feature.type,
-      d: commands.join(' ')
-    };
-  });
+    visible.push({ type: feature.type, d: commands.join(' ') });
+  }
+  return visible;
 }
 
 function boundsFor(point, halfSpanM) {
