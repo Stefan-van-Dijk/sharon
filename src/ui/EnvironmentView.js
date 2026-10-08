@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.41';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.42';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -19,6 +19,7 @@ const EARTH_RADIUS_M = 6371000;
 const LINE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php';
 let sharedTileEndpointState = 'unknown';
+const publishedTileRequests = new Set();
 const OVERPASS_ENDPOINTS = Object.freeze([
   'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter'
@@ -150,19 +151,52 @@ export async function openEnvironmentView(root, {
   const loadLines = async () => {
     if (!viewCenter) return;
 
-    const requestedKey = environmentLineKey(viewCenter, scale);
-    if (requestedKey === lineContextKey && lineFeatures.length) return;
+    const requestedCenter = { ...viewCenter };
+    const requestedScaleId = scale.id;
+    const requestedAreaId = environmentTileId(
+      requestedCenter,
+      requestedScaleId
+    );
+    const requestedKey = environmentLineKey(
+      requestedCenter,
+      scale
+    );
+
+    if (requestedKey === lineContextKey && lineFeatures.length) {
+      publishRenderedEnvironmentTile(
+        requestedAreaId,
+        requestedScaleId
+      ).catch(() => {});
+      return;
+    }
 
     const token = ++lineLoadToken;
     lineState = 'loading';
     render();
 
     try {
-      const features = await loadEnvironmentLines(store, viewCenter, scale);
+      const features = await loadEnvironmentLines(
+        store,
+        requestedCenter,
+        scale
+      );
+
       if (token !== lineLoadToken) return;
+
       lineFeatures = features;
       lineContextKey = requestedKey;
       lineState = features.length ? 'ready' : 'idle';
+
+      render();
+
+      if (features.length) {
+        publishRenderedEnvironmentTile(
+          requestedAreaId,
+          requestedScaleId
+        ).catch(() => {});
+      }
+
+      return;
     } catch {
       if (token !== lineLoadToken) return;
       lineFeatures = [];
@@ -830,6 +864,40 @@ async function loadSharedEnvironmentTile(areaId, scaleId) {
 
   sharedTileEndpointState = 'available';
   return normalizeSharedTile(await generated.json());
+}
+
+async function publishRenderedEnvironmentTile(areaId, scaleId) {
+  const requestKey = `${scaleId}:${areaId}`;
+
+  if (publishedTileRequests.has(requestKey)) return false;
+  publishedTileRequests.add(requestKey);
+
+  try {
+    const response = await fetch(ENVIRONMENT_TILE_ENDPOINT, {
+      method: 'POST',
+      cache: 'no-store',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        id: areaId,
+        scale: scaleId,
+        reason: 'rendered'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Publicatie mislukt (${response.status}).`);
+    }
+
+    sharedTileEndpointState = 'available';
+    return true;
+  } catch {
+    publishedTileRequests.delete(requestKey);
+    return false;
+  }
 }
 
 function normalizeSharedTile(tile) {
