@@ -161,7 +161,7 @@ export async function openEnvironmentView(root, {
       scale,
       wikiObjects,
       selectedWiki,
-      overlayEnabled ? [...overlayLevels].flatMap(id => (overlayFeatures.get(id) || []).map(feature => ({ ...feature, type: feature.type, overlayLevel: id }))) : []
+      overlayEnabled ? [...overlayLevels].flatMap(id => (overlayFeatures.get(id) || []).slice(0, 700).map(feature => ({ ...feature, overlayLevel: id }))) : []
     );
     map.innerHTML = model.svg;
     readout.innerHTML = environmentReadout(model, point);
@@ -882,10 +882,13 @@ async function loadEnvironmentLines(store, point, scale) {
   const cached = await store.get('meta', cacheKey).catch(() => null);
 
   if (
-    cached?.value?.features &&
+    (cached?.value?.features || cached?.value?.compact) &&
     Date.now() - Number(cached.value.at || 0) < LINE_CACHE_MAX_AGE
   ) {
-    return cached.value.features;
+    if (!cached.value.compact) {
+      storeEnvironmentTile(store, cacheKey, cached.value.features, cached.value.source || 'legacy').catch(() => {});
+    }
+    return cached.value.compact ? decodeCompactTile(cached.value.compact) : cached.value.features;
   }
 
   const shared = await loadSharedEnvironmentTile(areaId, scale.id)
@@ -913,9 +916,42 @@ async function storeEnvironmentTile(store, cacheKey, features, source) {
     value: {
       at: Date.now(),
       source,
-      features
+      compact: encodeCompactTile(features)
     }
   }).catch(() => {});
+}
+
+// Versioned, local integer/delta encoding. Existing cached JSON remains readable.
+function encodeCompactTile(features) {
+  const types = [...new Set(features.map(feature => feature.type))];
+  return { v: 3, q: 1e6, types, f: features.map(feature => {
+    let previousLat = 0;
+    let previousLng = 0;
+    const points = [];
+    for (const point of feature.points) {
+      const lat = Math.round(point.lat * 1e6);
+      const lng = Math.round(point.lng * 1e6);
+      points.push(lat - previousLat, lng - previousLng);
+      previousLat = lat;
+      previousLng = lng;
+    }
+    return [types.indexOf(feature.type), points];
+  }) };
+}
+
+function decodeCompactTile(tile) {
+  if (tile?.v !== 3 || !Array.isArray(tile.f)) return [];
+  return tile.f.map(([typeIndex, values]) => {
+    let lat = 0;
+    let lng = 0;
+    const points = [];
+    for (let i = 0; i + 1 < values.length; i += 2) {
+      lat += values[i];
+      lng += values[i + 1];
+      points.push({ lat: lat / tile.q, lng: lng / tile.q });
+    }
+    return { type: tile.types[typeIndex] || 'road', points };
+  });
 }
 
 function overpassFeatures(data) {
