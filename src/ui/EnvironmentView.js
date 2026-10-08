@@ -10,7 +10,8 @@ const SCALES = Object.freeze([
   { id: 'street', label: 'Straat', spanM: 700, cellM: 100 },
   { id: 'district', label: 'Wijk', spanM: 3000, cellM: 500 },
   { id: 'place', label: 'Plaats', spanM: 15000, cellM: 2500 },
-  { id: 'region', label: 'Regio', spanM: 70000, cellM: 10000 }
+  { id: 'region', label: 'Regio', spanM: 70000, cellM: 10000 },
+  { id: 'country', label: 'Land', spanM: 700000, cellM: 100000 }
 ]);
 
 const VIEW = 1000;
@@ -36,6 +37,7 @@ export async function openEnvironmentView(root, {
 
   let scaleIndex = SCALES.findIndex(item => item.id === 'street');
   let scale = SCALES[scaleIndex];
+  let displaySpanM = scale.spanM;
   let point = location.latest;
   let viewCenter = point ? {
     lat: Number(point.lat),
@@ -129,7 +131,7 @@ export async function openEnvironmentView(root, {
   const pinchHint = root.querySelector('[data-environment-pinch-hint]');
 
   const render = () => {
-    scaleButton.textContent = `${scale.label} · ${formatDistance(scale.spanM)}`;
+    scaleButton.textContent = `${scale.label} · ${formatDistance(displaySpanM)}`;
     layersProgress.textContent = overlayProgress;
 
     if (!point) {
@@ -158,7 +160,7 @@ export async function openEnvironmentView(root, {
       viewCenter,
       locations,
       lineFeatures,
-      scale,
+      { ...scale, spanM: displaySpanM },
       wikiObjects,
       selectedWiki,
       overlayEnabled ? [...overlayLevels].flatMap(id => (overlayFeatures.get(id) || []).slice(0, 700).map(feature => ({ ...feature, overlayLevel: id }))) : []
@@ -325,6 +327,7 @@ export async function openEnvironmentView(root, {
 
     scaleIndex = clamped;
     scale = SCALES[scaleIndex];
+    displaySpanM = scale.spanM;
     lineFeatures = [];
     lineContextKey = '';
     lineState = 'idle';
@@ -332,6 +335,21 @@ export async function openEnvironmentView(root, {
     scheduleLines();
     if (overlayEnabled) loadOverlayLevels().catch(() => {});
     return true;
+  };
+
+  const setZoomSpan = span => {
+    const next = Math.max(SCALES[0].spanM, Math.min(SCALES[SCALES.length - 1].spanM, span));
+    displaySpanM = next;
+    const nextIndex = SCALES.reduce((best, item, index) =>
+      Math.abs(Math.log(item.spanM / next)) < Math.abs(Math.log(SCALES[best].spanM / next)) ? index : best, 0);
+    if (nextIndex !== scaleIndex) {
+      scaleIndex = nextIndex;
+      scale = SCALES[nextIndex];
+      lineContextKey = '';
+      lineState = 'idle';
+      scheduleLines();
+    }
+    render();
   };
 
   const refresh = async () => {
@@ -358,7 +376,6 @@ export async function openEnvironmentView(root, {
 
       objects = await store.getAll('objects');
       locations = activeLocations(objects);
-      lineFeatures = [];
       lineContextKey = '';
       lineState = 'idle';
       render();
@@ -458,7 +475,7 @@ export async function openEnvironmentView(root, {
 
       pinch = {
         startDistance: distance,
-        startScaleIndex: scaleIndex,
+        startSpan: displaySpanM,
         ratio: 1
       };
 
@@ -492,11 +509,7 @@ export async function openEnvironmentView(root, {
 
       pinch.ratio = distance / pinch.startDistance;
 
-      const preview = Math.max(
-        0.84,
-        Math.min(1.18, 1 + (pinch.ratio - 1) * 0.18)
-      );
-      map.style.transform = `scale(${preview})`;
+      setZoomSpan(pinch.startSpan / Math.max(0.1, pinch.ratio));
 
       if (event.cancelable) event.preventDefault();
       return;
@@ -514,17 +527,13 @@ export async function openEnvironmentView(root, {
     if (!pinch) return;
 
     const ratio = pinch.ratio;
-    const rawSteps = Math.round(
-      Math.log(Math.max(0.25, Math.min(4, ratio))) /
-      Math.log(1.4)
-    );
-    const nextIndex = pinch.startScaleIndex - rawSteps;
+    const nextSpan = pinch.startSpan / Math.max(0.1, ratio);
 
     map.style.transform = '';
     canvas.classList.remove('is-pinching');
 
     if (Math.abs(ratio - 1) >= 0.1) {
-      setScaleIndex(nextIndex);
+      setZoomSpan(nextSpan);
     }
 
     pinch = null;
@@ -580,9 +589,8 @@ export async function openEnvironmentView(root, {
 
     if (wheelTimer) clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => {
-      const direction = wheelTotal > 0 ? 1 : -1;
-      if (Math.abs(wheelTotal) > 12) {
-        setScaleIndex(scaleIndex + direction);
+      if (Math.abs(wheelTotal) > 2) {
+        setZoomSpan(displaySpanM * Math.exp(Math.max(-1, Math.min(1, wheelTotal / 350))));
       }
       wheelTotal = 0;
       wheelTimer = null;
@@ -879,6 +887,9 @@ function environmentLineKey(point, scale) {
 async function loadEnvironmentLines(store, point, scale) {
   const areaId = environmentTileId(point, scale.id);
   const cacheKey = environmentLineKey(point, scale);
+  // Country overview is intentionally grid-only until a simplified server dataset exists.
+  // Never issue a continent-sized Overpass query from a phone.
+  if (scale.id === 'country') return [];
   const cached = await store.get('meta', cacheKey).catch(() => null);
 
   if (
