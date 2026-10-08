@@ -50,6 +50,11 @@ export async function openEnvironmentView(root, {
   let wikiToken = 0;
   let wikiTimer = null;
   let lineFeatures = [];
+  let overlayEnabled = false;
+  let overlayLevels = new Set(['street']);
+  let overlayFeatures = new Map();
+  let overlayProgress = '';
+  let buildToken = 0;
   let lineState = 'idle';
   let lineContextKey = viewCenter ? environmentLineKey(viewCenter, scale) : '';
   let lineLoadToken = 0;
@@ -81,6 +86,7 @@ export async function openEnvironmentView(root, {
           Positie
         </button>
 
+        <div class="environment-layer-controls" data-environment-layers><button type="button" data-layers-toggle>Lagen</button><div data-layers-panel hidden><label><input type="checkbox" data-layers-overlay> Niveaus over elkaar</label><div data-layers-list></div><button type="button" data-layers-build>Alle niveaus opbouwen</button><small data-layers-progress></small></div></div>
         <div class="environment-readout" data-environment-readout></div>
         <div class="environment-wiki" data-environment-wiki></div>
 
@@ -94,12 +100,29 @@ export async function openEnvironmentView(root, {
   `;
 
   const canvas = root.querySelector('[data-environment-canvas]');
+  const layers = root.querySelector('[data-environment-layers]');
+  const layersPanel = root.querySelector('[data-layers-panel]');
+  const layersList = root.querySelector('[data-layers-list]');
+  const layersProgress = root.querySelector('[data-layers-progress]');
+  layersList.innerHTML = SCALES.map(item => `<label><input type="checkbox" data-layer-id="${item.id}" ${item.id === 'street' ? 'checked' : ''}> ${item.label}</label>`).join('');
+  root.querySelector('[data-layers-toggle]').addEventListener('click', () => { layersPanel.hidden = !layersPanel.hidden; });
+  root.querySelector('[data-layers-overlay]').addEventListener('change', event => { overlayEnabled = event.target.checked; render(); });
+  layersList.addEventListener('change', event => {
+    const id = event.target.dataset.layerId;
+    if (!id) return;
+    if (event.target.checked) overlayLevels.add(id); else overlayLevels.delete(id);
+    render();
+    if (overlayEnabled) loadOverlayLevels().catch(() => {});
+  });
   const map = root.querySelector('[data-environment-map]');
   const readout = root.querySelector('[data-environment-readout]');
   const wikiBar = root.querySelector('[data-environment-wiki]');
   const wikiStyle = document.createElement('style');
   wikiStyle.textContent = `.environment-wiki{position:absolute;bottom:110px;left:12px;right:12px;z-index:5;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;pointer-events:auto}.environment-wiki:empty{display:none}.environment-wiki button{flex:0 0 auto;max-width:210px;border:1px solid #9998;border-radius:12px;padding:9px 12px;background:var(--surface,#fff);color:var(--text,#222);box-shadow:0 2px 12px #0002;text-align:left;font:inherit}.environment-wiki button[aria-pressed=true]{border-color:#39805a;background:#e9f4ed;color:#193f2b}.environment-wiki small{display:block;font-size:11px;opacity:.7}.environment-wiki a{align-self:center;background:var(--surface,#fff);padding:10px;border-radius:10px;white-space:nowrap}.environment-wiki-marker{fill:#8061a6;stroke:white;stroke-width:2}.environment-wiki-marker.is-selected{fill:#348653;stroke-width:3}`;
   root.appendChild(wikiStyle);
+  const layerStyle = document.createElement('style');
+  layerStyle.textContent = `.environment-layer-controls{position:absolute;top:64px;right:12px;z-index:12;max-width:min(235px,70vw);font-size:12px}.environment-layer-controls button{background:var(--surface,#fff);color:var(--text,#222);border:1px solid #9998;border-radius:10px;padding:7px 10px;font:inherit}.environment-layer-controls [data-layers-panel]{background:var(--surface,#fff);color:var(--text,#222);border:1px solid #9998;border-radius:12px;padding:10px;box-shadow:0 4px 20px #0002;margin-top:5px}.environment-layer-controls [data-layers-panel][hidden]{display:none}.environment-layer-controls label{display:block;padding:4px 0}.environment-layer-controls small{display:block;margin-top:5px}`;
+  root.appendChild(layerStyle);
   const refreshButton = root.querySelector('[data-environment-refresh]');
   const scaleButton = root.querySelector('[data-environment-scale]');
   const source = root.querySelector('[data-environment-source]');
@@ -107,6 +130,7 @@ export async function openEnvironmentView(root, {
 
   const render = () => {
     scaleButton.textContent = `${scale.label} · ${formatDistance(scale.spanM)}`;
+    layersProgress.textContent = overlayProgress;
 
     if (!point) {
       map.innerHTML = `
@@ -136,7 +160,8 @@ export async function openEnvironmentView(root, {
       lineFeatures,
       scale,
       wikiObjects,
-      selectedWiki
+      selectedWiki,
+      overlayEnabled ? [...overlayLevels].flatMap(id => (overlayFeatures.get(id) || []).map(feature => ({ ...feature, type: feature.type, overlayLevel: id }))) : []
     );
     map.innerHTML = model.svg;
     readout.innerHTML = environmentReadout(model, point);
@@ -195,6 +220,37 @@ export async function openEnvironmentView(root, {
       scheduleLines();
     }
     render();
+  });
+
+  const loadOverlayLevels = async () => {
+    if (!viewCenter || !overlayEnabled) return;
+    const center = { ...viewCenter };
+    const token = ++buildToken;
+    for (const level of SCALES.filter(item => overlayLevels.has(item.id))) {
+      if (token !== buildToken) return;
+      const features = await loadEnvironmentLines(store, center, level).catch(() => []);
+      if (token !== buildToken) return;
+      overlayFeatures.set(level.id, features);
+      render();
+    }
+  };
+  root.querySelector('[data-layers-build]').addEventListener('click', async event => {
+    if (!viewCenter) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    const center = { ...viewCenter };
+    const token = ++buildToken;
+    try {
+      for (let i = 0; i < SCALES.length; i += 1) {
+        const level = SCALES[i];
+        overlayProgress = `${i + 1}/${SCALES.length}: ${level.label} opbouwen…`;
+        render();
+        const features = await loadEnvironmentLines(store, center, level).catch(() => []);
+        if (token !== buildToken) break;
+        overlayFeatures.set(level.id, features);
+      }
+      if (token === buildToken) overlayProgress = 'Opbouw voltooid; beschikbare niveaus zijn lokaal opgeslagen.';
+    } finally { button.disabled = false; render(); }
   });
 
   const scheduleLines = () => {
@@ -274,6 +330,7 @@ export async function openEnvironmentView(root, {
     lineState = 'idle';
     render();
     scheduleLines();
+    if (overlayEnabled) loadOverlayLevels().catch(() => {});
     return true;
   };
 
@@ -375,7 +432,7 @@ export async function openEnvironmentView(root, {
       }
 
       render();
-      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
+      if (!sameLineArea) { scheduleLines(); scheduleWiki(); if (overlayEnabled) loadOverlayLevels().catch(() => {}); }
     }
 
     map.style.transform = '';
@@ -604,6 +661,7 @@ export async function openEnvironmentView(root, {
     clearTimeout(hintTimer);
 
     lineLoadToken += 1;
+    buildToken += 1;
 
     canvas.removeEventListener('touchstart', onTouchStart);
     canvas.removeEventListener('touchmove', onTouchMove);
@@ -628,7 +686,8 @@ function environmentModel(
   lineFeatures,
   scale,
   wikiObjects = [],
-  selectedWiki = null
+  selectedWiki = null,
+  overlayLines = []
 ) {
   const projection = localProjection(viewCenter.lat);
   const centerX = projection.x(viewCenter.lng);
@@ -693,6 +752,7 @@ function environmentModel(
     metersPerUnit
   });
 
+  const overlayPaths = projectLineFeatures({ features: overlayLines, projection, centerX, centerY, metersPerUnit });
   const linePaths = projectLineFeatures({
     features: lineFeatures,
     projection,
@@ -705,6 +765,7 @@ function environmentModel(
     svg: environmentSvg({
       grid,
       linePaths,
+      overlayPaths,
       locations: visibleLocations,
       userPosition,
       scale,
@@ -724,6 +785,7 @@ function environmentModel(
 function environmentSvg({
   grid,
   linePaths,
+  overlayPaths = [],
   locations,
   userPosition,
   scale,
@@ -768,6 +830,7 @@ function environmentSvg({
 
       <g class="environment-lines">
         ${lineMarkup}
+        ${overlayPaths.map(item => `<path class="environment-line environment-line--${item.type}" d="${item.d}" opacity="0.4" stroke-dasharray="5 2"></path>`).join('')}
       </g>
 
       ${locationMarkup}
