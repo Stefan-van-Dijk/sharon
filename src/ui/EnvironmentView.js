@@ -61,11 +61,6 @@ export async function openEnvironmentView(root, {
   let wikiToken = 0;
   let wikiTimer = null;
   let lineFeatures = [];
-  let overlayEnabled = false;
-  let overlayLevels = new Set(['street']);
-  let overlayFeatures = new Map();
-  let overlayProgress = '';
-  let buildToken = 0;
   let lineState = 'idle';
   let lineContextKey = viewCenter ? environmentLineKey(viewCenter, scale) : '';
   let lineLoadToken = 0;
@@ -99,7 +94,7 @@ export async function openEnvironmentView(root, {
           Positie
         </button>
 
-        <div class="environment-layer-controls" data-environment-layers><button type="button" data-layers-toggle>Lagen</button><div data-layers-panel hidden><label><input type="checkbox" data-layers-overlay> Niveaus over elkaar</label><div data-layers-list></div><button type="button" data-layers-build>Alle niveaus opbouwen</button><small data-layers-progress></small></div></div>
+        
         <div class="environment-readout" data-environment-readout></div>
         <div class="environment-wiki" data-environment-wiki></div>
 
@@ -113,20 +108,6 @@ export async function openEnvironmentView(root, {
   `;
 
   const canvas = root.querySelector('[data-environment-canvas]');
-  const layers = root.querySelector('[data-environment-layers]');
-  const layersPanel = root.querySelector('[data-layers-panel]');
-  const layersList = root.querySelector('[data-layers-list]');
-  const layersProgress = root.querySelector('[data-layers-progress]');
-  layersList.innerHTML = SCALES.map(item => `<label><input type="checkbox" data-layer-id="${item.id}" ${item.id === 'street' ? 'checked' : ''}> ${item.label}</label>`).join('');
-  root.querySelector('[data-layers-toggle]').addEventListener('click', () => { layersPanel.hidden = !layersPanel.hidden; });
-  root.querySelector('[data-layers-overlay]').addEventListener('change', event => { overlayEnabled = event.target.checked; render(); });
-  layersList.addEventListener('change', event => {
-    const id = event.target.dataset.layerId;
-    if (!id) return;
-    if (event.target.checked) overlayLevels.add(id); else overlayLevels.delete(id);
-    render();
-    if (overlayEnabled) loadOverlayLevels().catch(() => {});
-  });
   const map = root.querySelector('[data-environment-map]');
   const readout = root.querySelector('[data-environment-readout]');
   const wikiBar = root.querySelector('[data-environment-wiki]');
@@ -143,7 +124,6 @@ export async function openEnvironmentView(root, {
 
   const render = () => {
     scaleButton.textContent = `${scale.label} · ${formatDistance(displaySpanM)}`;
-    layersProgress.textContent = overlayProgress;
 
     if (!point) {
       map.innerHTML = `
@@ -174,7 +154,7 @@ export async function openEnvironmentView(root, {
       { ...scale, spanM: displaySpanM },
       wikiObjects,
       selectedWiki,
-      overlayEnabled ? [...overlayLevels].flatMap(id => (overlayFeatures.get(id) || []).slice(0, 700).map(feature => ({ ...feature, overlayLevel: id }))) : []
+      []
     );
     map.innerHTML = model.svg;
     readout.innerHTML = environmentReadout(model, point);
@@ -233,37 +213,6 @@ export async function openEnvironmentView(root, {
       scheduleLines();
     }
     render();
-  });
-
-  const loadOverlayLevels = async () => {
-    if (!viewCenter || !overlayEnabled) return;
-    const center = { ...viewCenter };
-    const token = ++buildToken;
-    for (const level of SCALES.filter(item => overlayLevels.has(item.id))) {
-      if (token !== buildToken) return;
-      const features = await loadEnvironmentLines(store, center, level).catch(() => []);
-      if (token !== buildToken) return;
-      overlayFeatures.set(level.id, features);
-      render();
-    }
-  };
-  root.querySelector('[data-layers-build]').addEventListener('click', async event => {
-    if (!viewCenter) return;
-    const button = event.currentTarget;
-    button.disabled = true;
-    const center = { ...viewCenter };
-    const token = ++buildToken;
-    try {
-      for (let i = 0; i < SCALES.length; i += 1) {
-        const level = SCALES[i];
-        overlayProgress = `${i + 1}/${SCALES.length}: ${level.label} opbouwen…`;
-        render();
-        const features = await loadEnvironmentLines(store, center, level).catch(() => []);
-        if (token !== buildToken) break;
-        overlayFeatures.set(level.id, features);
-      }
-      if (token === buildToken) overlayProgress = 'Opbouw voltooid; beschikbare niveaus zijn lokaal opgeslagen.';
-    } finally { button.disabled = false; render(); }
   });
 
   const scheduleLines = () => {
@@ -344,7 +293,6 @@ export async function openEnvironmentView(root, {
     lineState = 'idle';
     render();
     scheduleLines();
-    if (overlayEnabled) loadOverlayLevels().catch(() => {});
     return true;
   };
 
@@ -460,7 +408,7 @@ export async function openEnvironmentView(root, {
       }
 
       render();
-      if (!sameLineArea) { scheduleLines(); scheduleWiki(); if (overlayEnabled) loadOverlayLevels().catch(() => {}); }
+      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
     }
 
     map.style.transform = '';
@@ -689,7 +637,6 @@ export async function openEnvironmentView(root, {
     clearTimeout(hintTimer);
 
     lineLoadToken += 1;
-    buildToken += 1;
 
     canvas.removeEventListener('touchstart', onTouchStart);
     canvas.removeEventListener('touchmove', onTouchMove);
