@@ -827,6 +827,7 @@ async function loadSharedEnvironmentTile(areaId, scaleId) {
 
   if (response.ok) {
     sharedTileEndpointState = 'available';
+    publishedTileRequests.add(`${scaleId}:${areaId}`);
     return normalizeSharedTile(await response.json());
   }
 
@@ -863,6 +864,7 @@ async function loadSharedEnvironmentTile(areaId, scaleId) {
   }
 
   sharedTileEndpointState = 'available';
+  publishedTileRequests.add(`${scaleId}:${areaId}`);
   return normalizeSharedTile(await generated.json());
 }
 
