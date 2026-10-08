@@ -18,6 +18,7 @@ const CENTER = VIEW / 2;
 const EARTH_RADIUS_M = 6371000;
 const LINE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php';
+const ENVIRONMENT_OBJECT_ENDPOINT = 'https://sharon.life/environment/api/objects.php';
 let sharedTileEndpointState = 'unknown';
 const publishedTileRequests = new Set();
 const OVERPASS_ENDPOINTS = Object.freeze([
@@ -44,6 +45,10 @@ export async function openEnvironmentView(root, {
   let objects = await store.getAll('objects');
   let locations = activeLocations(objects);
   let checking = false;
+  let wikiObjects = [];
+  let selectedWiki = null;
+  let wikiToken = 0;
+  let wikiTimer = null;
   let lineFeatures = [];
   let lineState = 'idle';
   let lineContextKey = viewCenter ? environmentLineKey(viewCenter, scale) : '';
@@ -77,6 +82,7 @@ export async function openEnvironmentView(root, {
         </button>
 
         <div class="environment-readout" data-environment-readout></div>
+        <div class="environment-wiki" data-environment-wiki></div>
 
         <div class="environment-source" data-environment-source></div>
 
@@ -90,6 +96,10 @@ export async function openEnvironmentView(root, {
   const canvas = root.querySelector('[data-environment-canvas]');
   const map = root.querySelector('[data-environment-map]');
   const readout = root.querySelector('[data-environment-readout]');
+  const wikiBar = root.querySelector('[data-environment-wiki]');
+  const wikiStyle = document.createElement('style');
+  wikiStyle.textContent = `.environment-wiki{position:absolute;bottom:110px;left:12px;right:12px;z-index:5;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;pointer-events:auto}.environment-wiki:empty{display:none}.environment-wiki button{flex:0 0 auto;max-width:210px;border:1px solid #9998;border-radius:12px;padding:9px 12px;background:var(--surface,#fff);color:var(--text,#222);box-shadow:0 2px 12px #0002;text-align:left;font:inherit}.environment-wiki button[aria-pressed=true]{border-color:#39805a;background:#e9f4ed;color:#193f2b}.environment-wiki small{display:block;font-size:11px;opacity:.7}.environment-wiki a{align-self:center;background:var(--surface,#fff);padding:10px;border-radius:10px;white-space:nowrap}.environment-wiki-marker{fill:#8061a6;stroke:white;stroke-width:2}.environment-wiki-marker.is-selected{fill:#348653;stroke-width:3}`;
+  root.appendChild(wikiStyle);
   const refreshButton = root.querySelector('[data-environment-refresh]');
   const scaleButton = root.querySelector('[data-environment-scale]');
   const source = root.querySelector('[data-environment-source]');
@@ -107,6 +117,7 @@ export async function openEnvironmentView(root, {
         </div>
       `;
       readout.innerHTML = '';
+      wikiBar.innerHTML = '';
       source.innerHTML = '';
       return;
     }
@@ -123,10 +134,13 @@ export async function openEnvironmentView(root, {
       viewCenter,
       locations,
       lineFeatures,
-      scale
+      scale,
+      wikiObjects,
+      selectedWiki
     );
     map.innerHTML = model.svg;
     readout.innerHTML = environmentReadout(model, point);
+    wikiBar.innerHTML = wikiObjects.slice(0, 15).map(item => `<button type="button" data-wiki-id="${escapeAttribute(item.wikidataId || item.sourceId)}" aria-pressed="${selectedWiki === (item.wikidataId || item.sourceId)}"><strong>${escapeHtml(item.title)}</strong><small>${formatDistance(distanceBetween(point, item))}</small></button>`).join('') + (selectedWiki && wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki)?.url ? `<a target="_blank" rel="noopener noreferrer" href="${escapeAttribute(wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki).url)}">Wikipedia ↗</a>` : '');
 
     if (lineState === 'loading') {
       source.textContent = 'Lijnen laden…';
@@ -139,6 +153,49 @@ export async function openEnvironmentView(root, {
       source.textContent = '';
     }
   };
+
+  const loadWiki = async () => {
+    if (!viewCenter) return;
+    const token = ++wikiToken;
+    const id = environmentTileId(viewCenter, 'place');
+    try {
+      const response = await fetch(`${ENVIRONMENT_OBJECT_ENDPOINT}?id=${encodeURIComponent(id)}`, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`Wikipedia HTTP ${response.status}`);
+      const data = await response.json();
+      if (token !== wikiToken || data.id !== id) return;
+      wikiObjects = (Array.isArray(data.items) ? data.items : []).filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map(item => ({ ...item, lat: Number(item.lat), lng: Number(item.lng) }));
+      selectedWiki = null;
+      render();
+    } catch {
+      if (token === wikiToken) { wikiObjects = []; selectedWiki = null; render(); }
+    }
+  };
+  const scheduleWiki = () => {
+    if (wikiTimer) clearTimeout(wikiTimer);
+    wikiTimer = setTimeout(() => { wikiTimer = null; loadWiki().catch(() => {}); }, 250);
+  };
+  wikiBar.addEventListener('click', event => {
+    const button = event.target.closest('[data-wiki-id]');
+    if (!button) return;
+    const id = button.dataset.wikiId;
+    const item = wikiObjects.find(candidate => String(candidate.wikidataId || candidate.sourceId) === id);
+    if (!item) return;
+    if (selectedWiki === id) {
+      viewCenter = { lat: item.lat, lng: item.lng };
+      followingPosition = false;
+      setScaleIndex(SCALES.findIndex(candidate => candidate.id === 'detail'));
+      scheduleLines(); scheduleWiki();
+    } else {
+      selectedWiki = id;
+      viewCenter = { lat: (Number(point.lat) + item.lat) / 2, lng: (Number(point.lng) + item.lng) / 2 };
+      followingPosition = false;
+      const distance = distanceBetween(point, item);
+      const next = SCALES.findIndex(candidate => candidate.spanM >= distance * 1.7);
+      setScaleIndex(next < 0 ? SCALES.length - 1 : next);
+      scheduleLines();
+    }
+    render();
+  });
 
   const scheduleLines = () => {
     if (lineTimer) clearTimeout(lineTimer);
@@ -249,6 +306,7 @@ export async function openEnvironmentView(root, {
       lineState = 'idle';
       render();
       scheduleLines();
+      scheduleWiki();
     } catch (error) {
       map.innerHTML = `
         <div class="environment-empty">
@@ -317,7 +375,7 @@ export async function openEnvironmentView(root, {
       }
 
       render();
-      if (!sameLineArea) scheduleLines();
+      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
     }
 
     map.style.transform = '';
@@ -510,7 +568,7 @@ export async function openEnvironmentView(root, {
       }
 
       render();
-      if (!sameLineArea) scheduleLines();
+      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
       return;
     }
 
@@ -533,12 +591,15 @@ export async function openEnvironmentView(root, {
     refresh().catch(() => {});
   } else if (viewCenter) {
     scheduleLines();
+    scheduleWiki();
   }
 
   const hintTimer = setTimeout(hideHint, 4200);
 
   return () => {
     if (lineTimer) clearTimeout(lineTimer);
+    if (wikiTimer) clearTimeout(wikiTimer);
+    wikiToken += 1;
     if (wheelTimer) clearTimeout(wheelTimer);
     clearTimeout(hintTimer);
 
@@ -565,7 +626,9 @@ function environmentModel(
   viewCenter,
   locations,
   lineFeatures,
-  scale
+  scale,
+  wikiObjects = [],
+  selectedWiki = null
 ) {
   const projection = localProjection(viewCenter.lat);
   const centerX = projection.x(viewCenter.lng);
@@ -645,7 +708,9 @@ function environmentModel(
       locations: visibleLocations,
       userPosition,
       scale,
-      currentCell
+      currentCell,
+      wikiObjects: wikiObjects.map(item => ({ ...item, ...projectPoint({ point: item, projection, centerX, centerY, metersPerUnit }) })).filter(item => item.visible),
+      selectedWiki
     }),
     currentCell,
     areaId: environmentTileId(viewCenter, scale.id),
@@ -662,7 +727,9 @@ function environmentSvg({
   locations,
   userPosition,
   scale,
-  currentCell
+  currentCell,
+  wikiObjects = [],
+  selectedWiki = null
 }) {
   const lineMarkup = linePaths.map(item =>
     `<path class="environment-line environment-line--${item.type}" d="${item.d}"></path>`
@@ -704,6 +771,7 @@ function environmentSvg({
       </g>
 
       ${locationMarkup}
+      ${wikiObjects.map(item => `<g><circle class="environment-wiki-marker ${selectedWiki === (item.wikidataId || item.sourceId) ? 'is-selected' : ''}" cx="${round(item.x)}" cy="${round(item.y)}" r="${selectedWiki === (item.wikidataId || item.sourceId) ? 11 : 6}"><title>${escapeHtml(item.title)}</title></circle></g>`).join('')}
 
       ${userPosition.visible ? `
         <g class="environment-you">
