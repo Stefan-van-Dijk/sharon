@@ -1,5 +1,5 @@
 import { openLocationsView } from './LocationsView.js?v=0.1.50';
-import { openEnvironmentView } from './EnvironmentView.js?v=0.1.50';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.51';
 import { openSettings } from './SettingsView.js?v=0.1.50';
 import { sharonWordmark } from './Brand.js?v=0.1.50';
 import { bindSwipeHome } from './SwipeHome.js?v=0.1.50';
