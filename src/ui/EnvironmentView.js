@@ -848,7 +848,7 @@ function environmentReadout(model, point) {
 }
 
 function environmentLineKey(point, scale) {
-  return `environment-lines:v2:${scale.id}:${environmentTileId(point, scale.id)}`;
+  return `environment-lines:v3:${scale.id}:${environmentTileId(point, scale.id)}`;
 }
 
 async function loadEnvironmentLines(store, point, scale) {
@@ -959,131 +959,82 @@ function overpassFeatures(data) {
     .filter(item => item.points.length > 1);
 }
 
+// Tile v2: resolve geometry from the tile and its ancestors, with one integer
+// point table per owner tile. The server derives each tile origin from its ID.
 async function loadSharedEnvironmentTile(areaId, scaleId) {
-  if (sharedTileEndpointState === 'unavailable') return null;
-
-  const url =
-    `${ENVIRONMENT_TILE_ENDPOINT}?id=${encodeURIComponent(areaId)}&scale=${encodeURIComponent(scaleId)}`;
-
+  const url = `${ENVIRONMENT_TILE_ENDPOINT}?id=${encodeURIComponent(areaId)}&resolve=1`;
   let response;
-
   try {
-    response = await fetch(url, {
-      method: 'GET',
-      cache: 'no-cache',
-      headers: { Accept: 'application/json' }
-    });
-  } catch {
-    sharedTileEndpointState = 'unavailable';
-    return null;
-  }
-
-  if (response.ok) {
-    sharedTileEndpointState = 'available';
-    publishedTileRequests.add(`${scaleId}:${areaId}`);
-    return normalizeSharedTile(await response.json());
-  }
-
-  if (response.status !== 404) {
-    if (response.status >= 500) sharedTileEndpointState = 'unavailable';
-    return null;
-  }
-
-  let generated;
-
-  try {
-    generated = await fetch(ENVIRONMENT_TILE_ENDPOINT, {
-      method: 'POST',
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify({
-        id: areaId,
-        scale: scaleId
-      })
-    });
-  } catch {
-    sharedTileEndpointState = 'unavailable';
-    return null;
-  }
-
-  if (!generated.ok) {
-    if (generated.status === 404) {
-      sharedTileEndpointState = 'unavailable';
+    response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (response.status === 404) {
+      // The PHP service publishes tiles once, then subsequent viewers read them.
+      const created = await fetch(ENVIRONMENT_TILE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ id: areaId, scale: scaleId })
+      });
+      if (!created.ok) return null;
+      response = await fetch(url, { headers: { Accept: 'application/json' } });
     }
+    if (!response.ok) return null;
+    const tile = await response.json();
+    if (tile.schema === 'https://sharon.life/environment/tile/v2') {
+      sharedTileEndpointState = 'available';
+      publishedTileRequests.add(`${scaleId}:${areaId}`);
+      return decodeEnvironmentV2(tile, scaleId);
+    }
+    // Old PHP format: keep it readable until the server is upgraded.
+    return normalizeLegacySharedTile(tile);
+  } catch {
     return null;
   }
+}
 
-  sharedTileEndpointState = 'available';
-  publishedTileRequests.add(`${scaleId}:${areaId}`);
-  return normalizeSharedTile(await generated.json());
+function decodeEnvironmentV2(payload, scaleId) {
+  const tiles = Array.isArray(payload.tiles) ? payload.tiles : [payload];
+  const features = [];
+  const seen = new Set();
+  const level = scaleId === 'region' || scaleId === 'country' ? 1
+    : scaleId === 'place' || scaleId === 'district' ? 2 : 3;
+  for (const tile of tiles) {
+    if (!Array.isArray(tile.points) || !tile.objects) continue;
+    const bounds = tile.id ? environmentBoundsForId(tile.id) : {
+      west: -180, east: 180, south: -90, north: 90
+    };
+    const denominator = tile.id ? Number(tile.q || 65535) : 4294967295;
+    const points = tile.points.map(p => ({
+      lng: bounds.west + Number(p[0]) / denominator * (bounds.east - bounds.west),
+      lat: bounds.south + Number(p[1]) / denominator * (bounds.north - bounds.south)
+    }));
+    for (const [id, object] of Object.entries(tile.objects)) {
+      if (seen.has(id) || Number(object.minLevel || 1) > level) continue;
+      seen.add(id);
+      const path = (object.p || []).map(index => points[index])
+        .filter(p => p && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      if (path.length > 1) features.push({ id, type: object.t || 'road', points: path });
+    }
+  }
+  return { id: payload.id, features };
 }
 
 async function publishRenderedEnvironmentTile(areaId, scaleId) {
-  const requestKey = `${scaleId}:${areaId}`;
-
-  if (publishedTileRequests.has(requestKey)) return false;
-  publishedTileRequests.add(requestKey);
-
-  try {
-    const response = await fetch(ENVIRONMENT_TILE_ENDPOINT, {
-      method: 'POST',
-      cache: 'no-store',
-      keepalive: true,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify({
-        id: areaId,
-        scale: scaleId,
-        reason: 'rendered'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Publicatie mislukt (${response.status}).`);
-    }
-
-    sharedTileEndpointState = 'available';
-    return true;
-  } catch {
-    publishedTileRequests.delete(requestKey);
-    return false;
-  }
+  // Loading a missing tile already requests its publication; never duplicate POSTs.
+  return publishedTileRequests.has(`${scaleId}:${areaId}`);
 }
 
-function normalizeSharedTile(tile) {
+function normalizeLegacySharedTile(tile) {
   if (!tile || !Array.isArray(tile.features)) return null;
-
-  const features = tile.features
-    .map(feature => {
-      const type = String(feature.t || feature.type || 'road');
-      const rawPoints = Array.isArray(feature.p)
-        ? feature.p
-        : feature.points;
-
-      if (!Array.isArray(rawPoints)) return null;
-
-      const points = rawPoints
-        .map(point => Array.isArray(point)
-          ? { lat: Number(point[0]), lng: Number(point[1]) }
-          : { lat: Number(point?.lat), lng: Number(point?.lng) })
-        .filter(point =>
-          Number.isFinite(point.lat) &&
-          Number.isFinite(point.lng)
-        );
-
-      return points.length > 1 ? { type, points } : null;
-    })
-    .filter(Boolean);
-
   return {
     id: String(tile.id || ''),
-    scale: String(tile.scale || ''),
-    features
+    features: tile.features.map(feature => {
+      const raw = Array.isArray(feature.p) ? feature.p : feature.points;
+      if (!Array.isArray(raw)) return null;
+      const points = raw.map(p => Array.isArray(p)
+        ? { lat: Number(p[0]), lng: Number(p[1]) }
+        : { lat: Number(p?.lat), lng: Number(p?.lng) })
+        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      return points.length > 1 ? { type: String(feature.t || feature.type || 'road'), points } : null;
+    }).filter(Boolean)
   };
 }
 
