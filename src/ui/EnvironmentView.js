@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.46';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.47';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -77,7 +77,7 @@ export async function openEnvironmentView(root, {
   root.innerHTML = `
     <section class="module-view environment-view">
       <div class="environment-canvas" data-environment-canvas>
-        <div class="environment-map" data-environment-map></div>
+        <div class="environment-map" data-environment-map><canvas class="environment-vector-canvas" data-vector-canvas aria-hidden="true"></canvas></div>
 
         <button
           type="button"
@@ -110,6 +110,7 @@ export async function openEnvironmentView(root, {
 
   const canvas = root.querySelector('[data-environment-canvas]');
   const map = root.querySelector('[data-environment-map]');
+  const vectorCanvas = root.querySelector('[data-vector-canvas]');
   const readout = root.querySelector('[data-environment-readout]');
   const wikiBar = root.querySelector('[data-environment-wiki]');
   const wikiStyle = document.createElement('style');
@@ -157,7 +158,10 @@ export async function openEnvironmentView(root, {
       selectedWiki,
       []
     );
-    map.innerHTML = model.svg;
+    if (!vectorCanvas.isConnected) map.prepend(vectorCanvas);
+    map.querySelector('.environment-svg')?.remove();
+    map.insertAdjacentHTML('beforeend', model.svg);
+    drawVectorCanvas(vectorCanvas, model.linePaths);
     readout.innerHTML = environmentReadout(model, point);
     wikiBar.innerHTML = wikiObjects.slice(0, 15).map(item => `<button type="button" data-wiki-id="${escapeAttribute(item.wikidataId || item.sourceId)}" aria-pressed="${selectedWiki === (item.wikidataId || item.sourceId)}"><strong>${escapeHtml(item.title)}</strong><small>${formatDistance(distanceBetween(point, item))}</small></button>`).join('') + (selectedWiki && wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki)?.url ? `<a target="_blank" rel="noopener noreferrer" href="${escapeAttribute(wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki).url)}">Wikipedia ↗</a>` : '');
 
@@ -747,6 +751,7 @@ function environmentModel(
   });
 
   return {
+    linePaths,
     svg: environmentSvg({
       grid,
       linePaths,
@@ -767,6 +772,43 @@ function environmentModel(
   };
 }
 
+const CANVAS_LINE_STYLES = {
+  building: ['#dedee1', .8], path: ['#d0d0d4', .9, [3, 4]],
+  road: ['#bdbdc2', 1.05], major: ['#737378', 1.65],
+  rail: ['#a1a1a6', 1.15, [6, 3]], water: ['#c7c7cc', 1.25],
+  boundary: ['#d6d6da', .9, [7, 5]]
+};
+
+function drawVectorCanvas(canvas, paths) {
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width, height = rect.height;
+  if (!width || !height) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.round(width * ratio);
+  const pixelHeight = Math.round(height * ratio);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  const scale = Math.max(width, height) / VIEW;
+  ctx.translate((width - VIEW * scale) / 2, (height - VIEW * scale) / 2);
+  ctx.scale(scale, scale);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const item of paths) {
+    const [color, lineWidth, dash = []] = CANVAS_LINE_STYLES[item.type] || CANVAS_LINE_STYLES.road;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth / scale;
+    ctx.setLineDash(dash.map(value => value / scale));
+    ctx.stroke(new Path2D(item.d));
+  }
+  ctx.setLineDash([]);
+}
+
 function environmentSvg({
   grid,
   linePaths,
@@ -778,9 +820,7 @@ function environmentSvg({
   wikiObjects = [],
   selectedWiki = null
 }) {
-  const lineMarkup = linePaths.map(item =>
-    `<path class="environment-line environment-line--${item.type}" d="${item.d}"></path>`
-  ).join('');
+  const lineMarkup = ''; // Base vector geometry is rendered on Canvas 2D.
 
   const locationMarkup = locations.map((item, index) => {
     const anchor = index < 4;
