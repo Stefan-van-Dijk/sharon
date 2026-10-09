@@ -93,7 +93,6 @@ export async function openEnvironmentView(root, {
           Positie
         </button>
 
-        
         <div class="environment-readout" data-environment-readout></div>
 
         <div class="environment-source" data-environment-source></div>
@@ -242,7 +241,6 @@ export async function openEnvironmentView(root, {
     scaleIndex = clamped;
     scale = SCALES[scaleIndex];
     displaySpanM = scale.spanM;
-    lineContextKey = '';
     lineState = 'idle';
     render();
     scheduleLines();
@@ -257,11 +255,7 @@ export async function openEnvironmentView(root, {
     if (nextIndex !== scaleIndex) {
       scaleIndex = nextIndex;
       scale = SCALES[nextIndex];
-      lineContextKey = '';
-      lineState = 'idle';
-      scheduleLines();
     }
-    lineContextKey = '';
     scheduleLines();
     render();
   };
@@ -290,7 +284,6 @@ export async function openEnvironmentView(root, {
 
       objects = await store.getAll('objects');
       locations = activeLocations(objects);
-      lineContextKey = '';
       lineState = 'idle';
       render();
       scheduleLines();
@@ -356,14 +349,10 @@ export async function openEnvironmentView(root, {
       const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
       const sameLineArea = nextKey === lineContextKey;
 
-      if (!sameLineArea) {
-        lineFeatures = [];
-        lineContextKey = '';
-        lineState = 'idle';
-      }
+      if (!sameLineArea) lineState = 'loading';
 
       render();
-      if (!sameLineArea) { scheduleLines();}
+      if (!sameLineArea) scheduleLines();
     }
 
     map.style.transform = '';
@@ -548,14 +537,10 @@ export async function openEnvironmentView(root, {
       const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
       const sameLineArea = nextKey === lineContextKey;
 
-      if (!sameLineArea) {
-        lineFeatures = [];
-        lineContextKey = '';
-        lineState = 'idle';
-      }
+      if (!sameLineArea) lineState = 'loading';
 
       render();
-      if (!sameLineArea) { scheduleLines();}
+      if (!sameLineArea) scheduleLines();
       return;
     }
 
@@ -1041,6 +1026,18 @@ function overpassFeatures(data) {
 // Tile v2: resolve geometry from the tile and its ancestors, with one integer
 // point table per owner tile. The server derives each tile origin from its ID.
 async function loadSharedEnvironmentTile(areaId, scaleId) {
+  const key = `${areaId}:${scaleId}`;
+  if (inFlightTiles.has(key)) return inFlightTiles.get(key);
+  const pending = fetchSharedEnvironmentTile(areaId, scaleId);
+  inFlightTiles.set(key, pending);
+  try {
+    return await pending;
+  } finally {
+    if (inFlightTiles.get(key) === pending) inFlightTiles.delete(key);
+  }
+}
+
+async function fetchSharedEnvironmentTile(areaId, scaleId) {
   const url = `${ENVIRONMENT_TILE_ENDPOINT}?id=${encodeURIComponent(areaId)}&resolve=1`;
   let response;
   try {
