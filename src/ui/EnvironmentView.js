@@ -42,6 +42,16 @@ export async function openEnvironmentView(root, {
   events,
   setTitle = () => {}
 }) {
+  // Compare the MapLibre vector prototype without changing the default map.
+  // A failed CDN/WebGL load falls back to Sharon's cached canvas renderer.
+  if (new URLSearchParams(window.location.search).get('kaart') === 'vector') {
+    try {
+      const { openEnvironmentMapLibre } = await import('./EnvironmentMapLibre.js?v=0.1.49');
+      return await openEnvironmentMapLibre(root, { store, location, events, setTitle });
+    } catch (error) {
+      console.warn('Sharon MapLibre voorbeeld niet beschikbaar; gebruik de bestaande kaart.', error);
+    }
+  }
   setTitle('Omgeving');
 
   let scaleIndex = SCALES.findIndex(item => item.id === 'street');
