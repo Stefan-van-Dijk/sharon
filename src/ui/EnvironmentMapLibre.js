@@ -1,137 +1,337 @@
-// Experimental fast renderer: external vector basemap + Sharon's own identifiers.
-import { environmentIdForPoint, environmentPointId } from '../core/location/EnvironmentIdentifier.js?v=0.1.50';
+import {
+  environmentIdForPoint,
+  environmentPointId
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.51';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.51';
 
-const LIBRE = 'https://unpkg.com/maplibre-gl@6.13.0/dist/maplibre-gl.mjs';
-const STYLE = 'https://tiles.openfreemap.org/styles/positron';
+// World geography stays with a vector tile provider; Sharon saves only its own objects.
+// Pin the renderer version instead of relying on a moving CDN "latest".
+const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
+const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
+const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const EARTH_CIRCUMFERENCE_M = 40075016.686;
+const LOCAL_LAYERS = Object.freeze(['sharon-points', 'sharon-lines', 'sharon-polygons']);
 
-function geojson(objects) {
-  return { type: 'FeatureCollection', features: objects.filter(o => o.type === 'location' && !o.deletedAt).flatMap(o => {
-    const lng = Number(o.data?.coordinates?.lng), lat = Number(o.data?.coordinates?.lat);
-    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return [];
-    return [{ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] },
-      properties: { title: String(o.data?.title || 'Locatie') } }];
-  }) };
+const isCoordinate = point => point &&
+  point.lat !== null && point.lng !== null &&
+  point.lat !== undefined && point.lng !== undefined &&
+  Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)) &&
+  Math.abs(Number(point.lat)) <= 90 && Math.abs(Number(point.lng)) <= 180;
+
+function coordinateArray(point) {
+  return [Number(point.lng), Number(point.lat)];
 }
 
-export async function openEnvironmentMapLibre(root, { store, location, events, setTitle = () => {} }) {
-  const lib = await import(LIBRE);
-  if (!lib.supported()) throw new Error('WebGL niet beschikbaar');
-  if (!document.querySelector('[data-sharon-maplibre-css]')) {
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'https://unpkg.com/maplibre-gl@6.13.0/dist/maplibre-gl.css';
-    css.dataset.sharonMaplibreCss = 'true';
-    document.head.append(css);
+function formatDistance(meters) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  if (meters < 10000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters / 1000)} km`;
+}
+
+function visibleWidthMeters(map) {
+  const { lat } = map.getCenter();
+  const metersPerPixel = EARTH_CIRCUMFERENCE_M *
+    Math.max(0.00001, Math.cos(lat * Math.PI / 180)) /
+    (512 * 2 ** map.getZoom());
+  return Math.max(1, map.getContainer().clientWidth * metersPerPixel);
+}
+
+function areaLengthForWidth(meters) {
+  return meters < 3000 ? 6 : meters < 100000 ? 4 : 2;
+}
+
+function ensureRendererStyle() {
+  if (document.querySelector('[data-sharon-maplibre-css]')) return;
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = MAPLIBRE_CSS;
+  css.dataset.sharonMaplibreCss = 'true';
+  document.head.append(css);
+}
+
+function statusMessage(container, title, detail) {
+  container.replaceChildren();
+  const message = document.createElement('div');
+  message.className = 'environment-empty';
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  const description = document.createElement('small');
+  description.textContent = detail;
+  message.append(heading, description);
+  container.append(message);
+}
+
+function suppressProviderPoiLabels(map) {
+  // Keep streets and place names. Suppress decorative POI labels, not geography.
+  const style = map.getStyle();
+  if (!style?.layers) return;
+  for (const layer of style.layers) {
+    if (layer.type !== 'symbol') continue;
+    if (/poi|housenumber|house_number|transit/.test(layer.id.toLowerCase())) {
+      map.setLayoutProperty(layer.id, 'visibility', 'none');
+    }
   }
+}
+
+function installSharonLayers(map) {
+  if (map.getSource('sharon-objects')) return;
+  map.addSource('sharon-objects', {
+    type: 'geojson',
+    data: environmentGeoJSON([]),
+    promoteId: 'id'
+  });
+  map.addLayer({
+    id: 'sharon-polygons',
+    type: 'fill',
+    source: 'sharon-objects',
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'fill-color': '#262629',
+      'fill-opacity': 0.12,
+      'fill-outline-color': '#252528'
+    }
+  });
+  map.addLayer({
+    id: 'sharon-lines',
+    type: 'line',
+    source: 'sharon-objects',
+    filter: ['==', ['geometry-type'], 'LineString'],
+    paint: {
+      'line-color': '#252528',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1.1, 17, 2.5],
+      'line-opacity': 0.86
+    }
+  });
+  map.addLayer({
+    id: 'sharon-points',
+    type: 'circle',
+    source: 'sharon-objects',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-color': '#fff',
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 15, 6],
+      'circle-stroke-color': '#17171a',
+      'circle-stroke-width': 2
+    }
+  });
+}
+
+function updateReadout(map, userPoint, scaleButton, readout) {
+  const span = visibleWidthMeters(map);
+  const center = map.getCenter();
+  const areaId = environmentIdForPoint(center, areaLengthForWidth(span));
+  scaleButton.textContent = formatDistance(span);
+  readout.replaceChildren();
+  for (const [label, value, info] of [
+    ['Positie', userPoint ? environmentPointId(userPoint) : 'Nog niet bepaald',
+      userPoint ? `GPS ±${Math.round(Number(userPoint.accuracy) || 0)} m` : 'Gebruik Positie'],
+    ['Gebied', areaId, `Kaartbreedte ${formatDistance(span)}`]
+  ]) {
+    const column = document.createElement('div');
+    const labelNode = document.createElement('span');
+    labelNode.textContent = label;
+    const valueNode = document.createElement('strong');
+    valueNode.textContent = value;
+    const detailNode = document.createElement('small');
+    detailNode.textContent = info;
+    column.append(labelNode, valueNode, detailNode);
+    readout.append(column);
+  }
+}
+
+/**
+ * Display a ready-made vector basemap. Only objects deliberately marked for
+ * the map (and local locations) are rendered on top. Nothing is published.
+ */
+export async function openEnvironmentView(root, {
+  store, location, events, setTitle = () => {}
+}) {
   setTitle('Omgeving');
-  const valid = p => p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng));
-  let userPoint = valid(location.latest) ? location.latest : null;
-  let follow = Boolean(userPoint);
-  let disposed = false;
   root.innerHTML = `
-    <section class="module-view environment-view environment-maplibre-preview">
-      <div class="environment-canvas">
-        <div class="environment-map" data-libre-map></div>
-        <button class="environment-scale-chip" type="button" data-libre-scale>Vector</button>
-        <button class="environment-refresh" type="button" data-libre-position>Positie</button>
-        <div class="environment-readout" data-libre-readout></div>
+    <section class="module-view environment-view environment-maplibre">
+      <div class="environment-canvas" data-map-canvas>
+        <div class="environment-map" data-maplibre-map role="application" aria-label="Interactieve wereldkaart"></div>
+        <button type="button" class="environment-scale-chip" data-map-scale
+                aria-label="Inzoomen op de kaart"></button>
+        <button type="button" class="environment-refresh" data-map-position
+                aria-label="Huidige positie bepalen">Positie</button>
+        <div class="environment-readout" data-map-readout></div>
+        <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
-    <style>
-      .environment-maplibre-preview .environment-map{inset:0;transform:none;transition:none;will-change:auto}
-      .environment-maplibre-preview .maplibregl-ctrl-bottom-right{bottom:94px}
-      .environment-maplibre-preview .sharon-gps-dot{width:12px;height:12px;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #111;background:#111}
-    </style>`;
-  const scaleButton = root.querySelector('[data-libre-scale]');
-  const positionButton = root.querySelector('[data-libre-position]');
-  const readout = root.querySelector('[data-libre-readout]');
-  const map = new lib.Map({
-    container: root.querySelector('[data-libre-map]'),
-    style: STYLE,
-    center: userPoint ? [Number(userPoint.lng), Number(userPoint.lat)] : [0, 0],
-    zoom: userPoint ? 15.5 : 2,
-    maxZoom: 20,
-    minZoom: 1,
-    dragRotate: false,
-    touchPitch: false,
-    maxPitch: 0,
-    attributionControl: true
-  });
+  `;
+  const mapElement = root.querySelector('[data-maplibre-map]');
+  const readout = root.querySelector('[data-map-readout]');
+  const scaleButton = root.querySelector('[data-map-scale]');
+  const positionButton = root.querySelector('[data-map-position]');
+  const errorBanner = root.querySelector('[data-map-error]');
+  let disposed = false;
+  let userPoint = isCoordinate(location.latest) ? location.latest : null;
+  let followingPosition = Boolean(userPoint);
+  let map = null;
   let gpsMarker = null;
-  const placeGPS = point => {
-    if (!valid(point)) return;
-    userPoint = point;
-    if (!gpsMarker) {
-      const dot = document.createElement('div');
-      dot.className = 'sharon-gps-dot';
-      gpsMarker = new lib.Marker({ element: dot, anchor: 'center' }).addTo(map);
-    }
-    gpsMarker.setLngLat([Number(point.lng), Number(point.lat)]);
-    if (follow) map.easeTo({ center: [Number(point.lng), Number(point.lat)], duration: 300 });
-  };
-  const renderInfo = () => {
-    const center = map.getCenter();
-    const meters = 40075016.686 * Math.cos(center.lat * Math.PI / 180)
-      * map.getContainer().clientWidth / (512 * 2 ** map.getZoom());
-    const length = meters < 3000 ? 6 : meters < 100000 ? 4 : 2;
-    const area = environmentIdForPoint(center, length);
-    scaleButton.textContent = `Vector · ${meters < 1000 ? Math.round(meters) + ' m' : (meters / 1000).toFixed(1) + ' km'}`;
-    // Text-only values: no user-supplied HTML is inserted.
-    readout.replaceChildren();
-    for (const [label, value, hint] of [
-      ['Positie', userPoint ? environmentPointId(userPoint) : 'Niet bepaald', userPoint ? 'GPS' : 'Tik op Positie'],
-      ['Gebied', area, 'Sharon identifier']
-    ]) {
-      const block = document.createElement('div');
-      const heading = document.createElement('span');
-      heading.textContent = label;
-      const strong = document.createElement('strong');
-      strong.textContent = value;
-      const small = document.createElement('small');
-      small.textContent = hint;
-      block.append(heading, strong, small);
-      readout.append(block);
-    }
-  };
-  const updateLocations = async () => {
-    const objects = await store.getAll('objects');
-    if (!disposed) map.getSource('sharon-locations')?.setData(geojson(objects));
-  };
-  map.on('load', async () => {
+  let objectsRevision = 0;
+  let mapReady = false;
+  let resizeObserver = null;
+  const unsubscribers = [];
+  let popup = null;
+
+  const displayFailure = description => {
     if (disposed) return;
-    for (const layer of map.getStyle().layers || []) {
-      // Keep Sharon's quiet black/white silhouette; no map-provider POI labels.
-      if (layer.type === 'symbol') map.setLayoutProperty(layer.id, 'visibility', 'none');
-    }
-    map.addSource('sharon-locations', { type: 'geojson', data: geojson([]) });
-    map.addLayer({ id: 'sharon-places', type: 'circle', source: 'sharon-locations',
-      paint: { 'circle-color': '#fff', 'circle-radius': 5, 'circle-stroke-color': '#111', 'circle-stroke-width': 2 } });
-    await updateLocations();
-  });
-  map.on('moveend', renderInfo);
-  map.on('dragstart', () => { follow = false; });
-  map.on('click', 'sharon-places', event => {
-    const feature = event.features?.[0];
-    if (feature) new lib.Popup().setLngLat(feature.geometry.coordinates)
-      .setText(String(feature.properties?.title || 'Locatie')).addTo(map);
-  });
-  const locate = async () => {
-    positionButton.disabled = true;
-    try {
-      const result = await location.checkNow({ reason: 'environment', maxAgeMs: 0,
-        highAccuracy: true, browserMaxAgeMs: 0, timeoutMs: 10000 });
-      if (!disposed) { follow = true; placeGPS(result); renderInfo(); }
-    } finally {
-      if (!disposed) positionButton.disabled = false;
+    if (!map) {
+      statusMessage(mapElement, 'Kaart tijdelijk niet beschikbaar', description);
+    } else {
+      errorBanner.textContent = description;
+      errorBanner.hidden = false;
     }
   };
-  positionButton.addEventListener('click', () => { locate().catch(() => {}); });
-  scaleButton.addEventListener('click', () => map.easeTo({ zoom: Math.min(20, map.getZoom() + 1), duration: 250 }));
-  const offGPS = events.on('location.changed', event => { if (!disposed) { placeGPS(event.detail); renderInfo(); } });
-  const offCreate = events.on('location.created', updateLocations);
-  const offUpdate = events.on('location.updated', updateLocations);
-  const offDelete = events.on('location.deleted', updateLocations);
-  if (userPoint) placeGPS(userPoint);
-  renderInfo();
-  return () => { disposed = true; offGPS(); offCreate(); offUpdate(); offDelete(); map.remove(); };
+
+  try {
+    ensureRendererStyle();
+    const lib = await import(MAPLIBRE_JS);
+    if (disposed) return () => {};
+    if (!lib.supported()) throw new Error('Deze browser ondersteunt geen WebGL-kaartweergave.');
+    map = new lib.Map({
+      container: mapElement,
+      style: BASEMAP_STYLE,
+      center: userPoint ? coordinateArray(userPoint) : [0, 20],
+      zoom: userPoint ? 15 : 1.65,
+      minZoom: 1,
+      maxZoom: 20,
+      dragRotate: false,
+      touchPitch: false,
+      maxPitch: 0,
+      attributionControl: true,
+      renderWorldCopies: true
+    });
+
+    const render = () => {
+      if (!disposed && map) updateReadout(map, userPoint, scaleButton, readout);
+    };
+
+    const placePosition = point => {
+      if (!isCoordinate(point) || disposed || !map) return;
+      userPoint = point;
+      if (!gpsMarker) {
+        const dot = document.createElement('div');
+        dot.className = 'sharon-gps-dot';
+        gpsMarker = new lib.Marker({ element: dot, anchor: 'center' }).addTo(map);
+      }
+      gpsMarker.setLngLat(coordinateArray(point));
+      if (followingPosition) {
+        map.easeTo({ center: coordinateArray(point), duration: 260 });
+      }
+      render();
+    };
+
+    const updateObjects = async () => {
+      const revision = ++objectsRevision;
+      const objects = await store.getAll('objects');
+      if (disposed || revision !== objectsRevision || !mapReady) return;
+      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects));
+    };
+
+    map.on('load', () => {
+      if (disposed) return;
+      mapReady = true;
+      suppressProviderPoiLabels(map);
+      installSharonLayers(map);
+      updateObjects().catch(() => {});
+      render();
+    });
+    map.on('moveend', render);
+    map.on('dragstart', () => { followingPosition = false; });
+    map.on('zoomstart', () => { followingPosition = false; });
+
+    map.on('click', event => {
+      if (!mapReady) return;
+      const features = map.queryRenderedFeatures(event.point, { layers: LOCAL_LAYERS });
+      const selected = features[0];
+      if (!selected) return;
+      popup?.remove();
+      const element = document.createElement('div');
+      const heading = document.createElement('strong');
+      heading.textContent = String(selected.properties?.title || 'Object');
+      element.append(heading);
+      if (selected.properties?.sourceId) {
+        const detail = document.createElement('small');
+        detail.style.display = 'block';
+        detail.textContent = `Bron: ${selected.properties.sourceId}`;
+        element.append(detail);
+      }
+      popup = new lib.Popup({ closeButton: true, maxWidth: '240px' })
+        .setLngLat(event.lngLat)
+        .setDOMContent(element)
+        .addTo(map);
+    });
+
+    // Loading failures do not trigger old Overpass requests.
+    map.on('error', event => {
+      if (!mapReady) displayFailure('De vectorkaart kan momenteel niet worden geladen.');
+      console.warn('Sharon Omgeving: vectorkaart', event.error);
+    });
+    positionButton.addEventListener('click', async () => {
+      positionButton.disabled = true;
+      positionButton.textContent = 'Bepalen…';
+      try {
+        const point = await location.checkNow({
+          reason: 'environment', maxAgeMs: 0,
+          highAccuracy: true, browserMaxAgeMs: 0, timeoutMs: 10000
+        });
+        if (!disposed) {
+          followingPosition = true;
+          placePosition(point);
+        }
+      } catch {
+        if (!disposed) displayFailure('Positie niet beschikbaar. De kaart blijft bruikbaar.');
+      } finally {
+        if (!disposed) {
+          positionButton.disabled = false;
+          positionButton.textContent = 'Positie';
+        }
+      }
+    });
+    scaleButton.addEventListener('click', () => {
+      followingPosition = false;
+      map.easeTo({ zoom: Math.min(20, map.getZoom() + 1), duration: 200 });
+    });
+    unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
+    for (const name of ['location.created', 'location.updated', 'location.deleted']) {
+      unsubscribers.push(events.on(name, () => {
+        updateObjects().catch(() => {});
+      }));
+    }
+    if (userPoint) placePosition(userPoint);
+    render();
+    if (!userPoint) {
+      location.checkNow({
+        reason: 'environment', maxAgeMs: 30000, highAccuracy: false,
+        browserMaxAgeMs: 30000, timeoutMs: 9000
+      }).then(point => {
+        if (!disposed) {
+          followingPosition = true;
+          placePosition(point);
+        }
+      }).catch(() => {});
+    }
+    if ('ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => {
+        if (!disposed && map) map.resize();
+      });
+      resizeObserver.observe(mapElement);
+    }
+  } catch (error) {
+    console.warn('Sharon Omgeving: MapLibre kan niet starten', error);
+    displayFailure(error.message || 'Open de kaart opnieuw wanneer er verbinding is.');
+  }
+
+  return () => {
+    disposed = true;
+    objectsRevision++;
+    for (const unsubscribe of unsubscribers) unsubscribe();
+    resizeObserver?.disconnect();
+    popup?.remove();
+    gpsMarker?.remove();
+    map?.remove();
+  };
 }
