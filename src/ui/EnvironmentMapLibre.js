@@ -1,5 +1,5 @@
 // Experimental fast renderer: external vector basemap + Sharon's own identifiers.
-import { environmentIdForPoint, environmentPointId } from '../core/location/EnvironmentIdentifier.js?v=0.1.49';
+import { environmentIdForPoint, environmentPointId } from '../core/location/EnvironmentIdentifier.js?v=0.1.50';
 
 const LIBRE = 'https://unpkg.com/maplibre-gl@6.13.0/dist/maplibre-gl.mjs';
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
