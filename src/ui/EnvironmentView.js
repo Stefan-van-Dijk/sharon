@@ -24,7 +24,8 @@ let sharedTileEndpointState = 'unknown';
 const publishedTileRequests = new Set();
 const decodedTileCache = new Map();
 const inFlightTiles = new Map();
-const MAX_MEMORY_TILES = 12;
+const MAX_MEMORY_TILES = 512;
+const DETAIL_LIMIT_M = 3000;
 function rememberTile(key, features) {
   decodedTileCache.delete(key);
   decodedTileCache.set(key, features);
@@ -62,7 +63,7 @@ export async function openEnvironmentView(root, {
   let wikiTimer = null;
   let lineFeatures = [];
   let lineState = 'idle';
-  let lineContextKey = viewCenter ? environmentLineKey(viewCenter, scale) : '';
+  let lineContextKey = viewCenter ? environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM }) : '';
   let lineLoadToken = 0;
   let lineTimer = null;
   let pinch = null;
@@ -308,6 +309,8 @@ export async function openEnvironmentView(root, {
       lineState = 'idle';
       scheduleLines();
     }
+    lineContextKey = '';
+    scheduleLines();
     render();
   };
 
@@ -398,7 +401,7 @@ export async function openEnvironmentView(root, {
       );
       followingPosition = false;
 
-      const nextKey = environmentLineKey(viewCenter, scale);
+      const nextKey = environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM });
       const sameLineArea = nextKey === lineContextKey;
 
       if (!sameLineArea) {
@@ -590,7 +593,7 @@ export async function openEnvironmentView(root, {
         lng: Number(nextPoint.lng)
       };
 
-      const nextKey = environmentLineKey(viewCenter, scale);
+      const nextKey = environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM });
       const sameLineArea = nextKey === lineContextKey;
 
       if (!sameLineArea) {
@@ -848,52 +851,89 @@ function environmentReadout(model, point) {
 }
 
 function environmentLineKey(point, scale) {
-  return `environment-lines:v3:${scale.id}:${environmentTileId(point, scale.id)}`;
+  // Cache keys follow the viewport, not just the center tile.
+  const lat = Math.round(point.lat * 10000);
+  const lng = Math.round(point.lng * 10000);
+  return `environment-lines:v4:${lat}:${lng}:${Math.round(scale.spanM)}`;
 }
 
-async function loadEnvironmentLines(store, point, scale) {
-  const areaId = environmentTileId(point, scale.id);
-  const cacheKey = environmentLineKey(point, scale);
-  // Country overview is intentionally grid-only until a simplified server dataset exists.
-  // Never issue a continent-sized Overpass query from a phone.
-  if (scale.id === 'country') return [];
-  if (decodedTileCache.has(cacheKey)) return rememberTile(cacheKey, decodedTileCache.get(cacheKey));
-  if (inFlightTiles.has(cacheKey)) return inFlightTiles.get(cacheKey);
-  const pending = loadEnvironmentLinesUncached(store, point, scale, areaId, cacheKey);
-  inFlightTiles.set(cacheKey, pending);
-  try { return await pending; } finally { inFlightTiles.delete(cacheKey); }
-}
-
-async function loadEnvironmentLinesUncached(store, point, scale, areaId, cacheKey) {
-  const cached = await store.get('meta', cacheKey).catch(() => null);
-
-  if (
-    (cached?.value?.features || cached?.value?.compact) &&
-    Date.now() - Number(cached.value.at || 0) < LINE_CACHE_MAX_AGE
-  ) {
-    if (!cached.value.compact) {
-      storeEnvironmentTile(store, cacheKey, cached.value.features, cached.value.source || 'legacy').catch(() => {});
+function viewportTileIds(center, spanM, canvas, level) {
+  const rect = canvas?.getBoundingClientRect();
+  const aspect = rect?.width && rect?.height ? rect.width / rect.height : 1;
+  const halfLatM = spanM * Math.min(1, 1 / aspect) / 2;
+  const halfLonM = spanM * Math.min(1, aspect) / 2;
+  const south = Math.max(-89.999, center.lat - halfLatM / 111320);
+  const north = Math.min(89.999, center.lat + halfLatM / 111320);
+  const lonMeters = Math.max(1, 111320 * Math.cos(center.lat * Math.PI / 180));
+  const west = center.lng - halfLonM / lonMeters;
+  const east = center.lng + halfLonM / lonMeters;
+  const columns = Math.pow(64, level);
+  const rows = columns;
+  const x0 = Math.floor((west + 180) / 360 * columns);
+  const x1 = Math.floor((east + 180) / 360 * columns);
+  const y0 = Math.max(0, Math.floor((south + 90) / 180 * rows));
+  const y1 = Math.min(rows - 1, Math.floor((north + 90) / 180 * rows));
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const idFor = (x, y) => {
+    let id = '';
+    for (let power = level - 1; power >= 0; power--) {
+      const divisor = Math.pow(64, power);
+      id += alphabet[Math.floor(x / divisor) % 64] + alphabet[Math.floor(y / divisor) % 64];
     }
-    return rememberTile(cacheKey, cached.value.compact ? decodeCompactTile(cached.value.compact) : cached.value.features);
+    return id;
+  };
+  const ids = [];
+  // Guard against pathological zoom / polar requests.
+  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 1024) return null;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    ids.push(idFor(((x % columns) + columns) % columns, y));
   }
+  return [...new Set(ids)].sort((a,b) => {
+    const mid = environmentTileId(center, level === 3 ? 'detail' : level === 2 ? 'place' : 'country');
+    const score = id => [...id].reduce((n,c,i) => n + (c === mid[i] ? 0 : 1),0);
+    return score(a) - score(b);
+  });
+}
 
-  const shared = await loadSharedEnvironmentTile(areaId, scale.id)
-    .catch(() => null);
-
-  if (shared?.features?.length) {
-    await storeEnvironmentTile(store, cacheKey, shared.features, 'shared');
-    return rememberTile(cacheKey, shared.features);
-  }
-
-  const canonicalCenter = environmentBoundsForId(areaId).center;
-  const bbox = boundsFor(canonicalCenter, scale.spanM * 0.82);
-  const query = overpassQuery(scale, bbox);
-
-  const data = await fetchOverpass(query);
-  const features = overpassFeatures(data);
-
-  await storeEnvironmentTile(store, cacheKey, features, 'overpass');
-  return rememberTile(cacheKey, features);
+async function loadEnvironmentLines(store, center, scale, canvas) {
+  if (scale.id === 'country') return [];
+  // Use all 6-character tiles at <=3km; less detailed levels beyond that.
+  const level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
+  const ids = viewportTileIds(center, scale.spanM, canvas, level);
+  if (!ids) return [];
+  const results = new Array(ids.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < ids.length) {
+      const index = next++;
+      const id = ids[index];
+      const cacheKey = `environment-tile:v4:${id}`;
+      let features = decodedTileCache.get(cacheKey);
+      if (!features) {
+        const local = await store.get('meta', cacheKey).catch(() => null);
+        if (local?.value?.at && Date.now() - local.value.at < LINE_CACHE_MAX_AGE) {
+          features = local.value.features;
+        } else {
+          const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
+          const response = await loadSharedEnvironmentTile(id, scaleId).catch(() => null);
+          features = response?.features || [];
+          // Cache empty results briefly as well to prevent constant regeneration.
+          await store.put('meta', { key: cacheKey, value: { at: Date.now(), features } }).catch(() => {});
+        }
+        rememberTile(cacheKey, features);
+      }
+      results[index] = features;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, ids.length) }, worker));
+  const seen = new Set();
+  return results.flat().filter(feature => {
+    if (scale.spanM > DETAIL_LIMIT_M && !['major','boundary','rail','water'].includes(feature.type)) return false;
+    const key = feature.id || `${feature.type}:${feature.points?.map(p=>p.lat+','+p.lng).join(';')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function storeEnvironmentTile(store, cacheKey, features, source) {
