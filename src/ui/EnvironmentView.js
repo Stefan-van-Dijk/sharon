@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.47';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.48';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -945,8 +945,14 @@ function viewportTileIds(center, spanM, canvas, level) {
 const tileLoadFailures = new Map();
 async function loadEnvironmentLines(store, center, scale, canvas, onProgress = () => {}) {
   if (scale.id === 'country') return [];
-  const level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
-  const ids = viewportTileIds(center, scale.spanM, canvas, level);
+  // Request a bounded set of visible areas. Eight-character identifiers remain
+  // valid for positions, but never trigger their own map download.
+  let level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
+  let ids = viewportTileIds(center, scale.spanM, canvas, level);
+  while (level > 1 && (!ids || ids.length > 9)) {
+    level--;
+    ids = viewportTileIds(center, scale.spanM, canvas, level);
+  }
   if (!ids) return [];
   const results = new Array(ids.length);
   const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
