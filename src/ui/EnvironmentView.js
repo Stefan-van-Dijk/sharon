@@ -815,7 +815,7 @@ function environmentReadout(model, point) {
 }
 
 // Cache by visible tile set instead of tiny camera position changes.
-function environmentTilePlan(center, scale, canvas) {
+export function environmentTilePlan(center, scale, canvas) {
   if (scale.id === 'country') return { ids: [], level: 0, scaleId: 'country', key: 'country' };
   let level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
   let ids = viewportTileIds(center, scale.spanM, canvas, level);
