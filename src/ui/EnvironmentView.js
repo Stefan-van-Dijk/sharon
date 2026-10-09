@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.44';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.45';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -24,7 +24,7 @@ let sharedTileEndpointState = 'unknown';
 const publishedTileRequests = new Set();
 const decodedTileCache = new Map();
 const inFlightTiles = new Map();
-const MAX_MEMORY_TILES = 512;
+const MAX_MEMORY_TILES = 128;
 const DETAIL_LIMIT_M = 3000;
 function rememberTile(key, features) {
   decodedTileCache.delete(key);
@@ -895,45 +895,59 @@ function viewportTileIds(center, spanM, canvas, level) {
   });
 }
 
-async function loadEnvironmentLines(store, center, scale, canvas) {
+const tileLoadFailures = new Map();
+async function loadEnvironmentLines(store, center, scale, canvas, onProgress = () => {}) {
   if (scale.id === 'country') return [];
-  // Use all 6-character tiles at <=3km; less detailed levels beyond that.
   const level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
   const ids = viewportTileIds(center, scale.spanM, canvas, level);
   if (!ids) return [];
   const results = new Array(ids.length);
-  let next = 0;
+  const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
+  const emit = () => {
+    const seen = new Set();
+    const features = results.flatMap(item => item || []).filter(feature => {
+      if (scale.spanM > DETAIL_LIMIT_M && !['major', 'boundary', 'rail', 'water'].includes(feature.type)) return false;
+      const key = feature.id || `${feature.type}:${feature.points?.map(p => p.lat + ',' + p.lng).join(';')}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    onProgress(features);
+    return features;
+  };
+  // First pass: display all already cached tiles without waiting for the network.
+  await Promise.all(ids.map(async (id, index) => {
+    const key = `environment-tile:v5:${id}`;
+    const memory = decodedTileCache.get(key);
+    if (memory) { results[index] = memory; return; }
+    const local = await store.get('meta', key).catch(() => null);
+    if (Array.isArray(local?.value?.features) && Date.now() - Number(local.value.at || 0) < LINE_CACHE_MAX_AGE) {
+      results[index] = rememberTile(key, local.value.features);
+    }
+  }));
+  emit();
+  const missing = ids.map((id, index) => ({ id, index })).filter(({ index }) => !results[index]);
+  let cursor = 0;
   const worker = async () => {
-    while (next < ids.length) {
-      const index = next++;
-      const id = ids[index];
-      const cacheKey = `environment-tile:v4:${id}`;
-      let features = decodedTileCache.get(cacheKey);
-      if (!features) {
-        const local = await store.get('meta', cacheKey).catch(() => null);
-        if (local?.value?.at && Date.now() - local.value.at < LINE_CACHE_MAX_AGE) {
-          features = local.value.features;
-        } else {
-          const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
-          const response = await loadSharedEnvironmentTile(id, scaleId).catch(() => null);
-          features = response?.features || [];
-          // Cache empty results briefly as well to prevent constant regeneration.
-          await store.put('meta', { key: cacheKey, value: { at: Date.now(), features } }).catch(() => {});
-        }
-        rememberTile(cacheKey, features);
+    while (cursor < missing.length) {
+      const { id, index } = missing[cursor++];
+      const key = `environment-tile:v5:${id}`;
+      if (Date.now() < (tileLoadFailures.get(id) || 0)) continue;
+      try {
+        const response = await loadSharedEnvironmentTile(id, scaleId);
+        if (!response || !Array.isArray(response.features)) throw new Error('Tegel niet beschikbaar');
+        results[index] = rememberTile(key, response.features);
+        await store.put('meta', { key, value: { at: Date.now(), features: response.features } }).catch(() => {});
+        tileLoadFailures.delete(id);
+        emit();
+      } catch {
+        // Do not persist failed requests as empty tiles.
+        tileLoadFailures.set(id, Date.now() + 60000);
       }
-      results[index] = features;
     }
   };
-  await Promise.all(Array.from({ length: Math.min(6, ids.length) }, worker));
-  const seen = new Set();
-  return results.flat().filter(feature => {
-    if (scale.spanM > DETAIL_LIMIT_M && !['major','boundary','rail','water'].includes(feature.type)) return false;
-    const key = feature.id || `${feature.type}:${feature.points?.map(p=>p.lat+','+p.lng).join(';')}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  await Promise.all(Array.from({ length: Math.min(2, missing.length) }, worker));
+  return emit();
 }
 
 async function storeEnvironmentTile(store, cacheKey, features, source) {
@@ -1013,10 +1027,10 @@ async function loadSharedEnvironmentTile(areaId, scaleId) {
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ id: areaId, scale: scaleId })
       });
-      if (!created.ok) return null;
+      if (!created.ok) throw new Error('Tegel aanmaken mislukt');
       response = await fetch(url, { headers: { Accept: 'application/json' } });
     }
-    if (!response.ok) return null;
+    if (!response.ok) throw new Error('Tegel ophalen mislukt');
     const tile = await response.json();
     if (tile.schema === 'https://sharon.life/environment/tile/v2') {
       sharedTileEndpointState = 'available';
