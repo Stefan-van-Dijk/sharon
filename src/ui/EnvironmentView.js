@@ -360,7 +360,7 @@ export async function openEnvironmentView(root, {
       followingPosition = false;
 
       const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
-      const sameLineArea = nextKey === lineContextKey;
+      const sameLineArea = nextKey === lineContextKey && paintedLineKey === nextKey;
 
       if (!sameLineArea) lineState = 'loading';
 
@@ -548,7 +548,7 @@ export async function openEnvironmentView(root, {
       };
 
       const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
-      const sameLineArea = nextKey === lineContextKey;
+      const sameLineArea = nextKey === lineContextKey && paintedLineKey === nextKey;
 
       if (!sameLineArea) lineState = 'loading';
 
