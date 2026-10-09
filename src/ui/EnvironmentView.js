@@ -1284,7 +1284,16 @@ function projectLineFeatures({
       x: CENTER + (projection.x(point.lng) - centerX) / metersPerUnit,
       y: CENTER - (projection.y(point.lat) - centerY) / metersPerUnit
     }));
-    if (!projected.some(point => point.x >= -80 && point.x <= VIEW + 80 && point.y >= -80 && point.y <= VIEW + 80)) continue;
+    // A road may cross the viewport even when every supplied vertex lies outside.
+    // Bounding-box rejection keeps those crossing segments without extra network data.
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const point of projected) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+    if (maxX < -80 || minX > VIEW + 80 || maxY < -80 || minY > VIEW + 80) continue;
     const commands = [];
 
     const stride = Math.max(1, Math.floor(projected.length / 450));
