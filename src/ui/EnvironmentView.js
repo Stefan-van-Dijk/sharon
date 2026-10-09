@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.48';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.49';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -19,6 +19,7 @@ const CENTER = VIEW / 2;
 const EARTH_RADIUS_M = 6371000;
 const LINE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php';
+const ENVIRONMENT_BUNDLE_ENDPOINT = 'https://sharon.life/environment/api/bundle.php';
 const ENVIRONMENT_OBJECT_ENDPOINT = 'https://sharon.life/environment/api/objects.php';
 let sharedTileEndpointState = 'unknown';
 const publishedTileRequests = new Set();
@@ -983,10 +984,47 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
   }));
   emit(true);
   const missing = ids.map((id, index) => ({ id, index })).filter(({ index }) => !results[index]);
+  // Batch read existing tiles in one request. If bundle.php is not installed
+  // yet, or reports missing areas, the original per-tile endpoint remains usable.
+  if (missing.length > 1) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      let response;
+      try {
+        response = await fetch(`${ENVIRONMENT_BUNDLE_ENDPOINT}?ids=${encodeURIComponent(missing.map(item => item.id).join(','))}`, {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (response.ok) {
+        const bundle = await response.json();
+        if (bundle.schema === 'https://sharon.life/environment/bundle/v1' && Array.isArray(bundle.tiles)) {
+          const wanted = new Map(missing.map(item => [item.id, item.index]));
+          for (const tile of bundle.tiles) {
+            if (!wanted.has(tile.id) || tile.schema !== 'https://sharon.life/environment/tile/v2') continue;
+            const index = wanted.get(tile.id);
+            const decoded = decodeEnvironmentV2(tile, scaleId);
+            results[index] = rememberTile(`environment-tile:v5:${tile.id}`, decoded.features);
+            await store.put('meta', {
+              key: `environment-tile:v5:${tile.id}`,
+              value: { at: Date.now(), features: decoded.features }
+            }).catch(() => {});
+          }
+          emit(true);
+        }
+      }
+    } catch {
+      // Gracefully use the existing endpoint when the optional bundle is unavailable.
+    }
+  }
+  const remaining = missing.filter(({ index }) => !results[index]);
   let cursor = 0;
   const worker = async () => {
-    while (cursor < missing.length) {
-      const { id, index } = missing[cursor++];
+    while (cursor < remaining.length) {
+      const { id, index } = remaining[cursor++];
       const key = `environment-tile:v5:${id}`;
       if (Date.now() < (tileLoadFailures.get(id) || 0)) continue;
       try {
@@ -1002,7 +1040,7 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(2, missing.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(2, remaining.length) }, worker));
   return emit(true);
 }
 
