@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.42';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.44';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
