@@ -158,6 +158,7 @@ export async function openEnvironmentView(root, {
       selectedWiki,
       []
     );
+    if (!vectorCanvas.isConnected) map.prepend(vectorCanvas);
     map.querySelector('.environment-svg')?.remove();
     map.insertAdjacentHTML('beforeend', model.svg);
     drawVectorCanvas(vectorCanvas, model.linePaths);
