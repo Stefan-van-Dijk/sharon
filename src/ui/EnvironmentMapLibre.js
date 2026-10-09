@@ -1,8 +1,8 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.51';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.51';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.52';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.52';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -143,6 +143,15 @@ function updateReadout(map, userPoint, scaleButton, readout) {
  * Display a ready-made vector basemap. Only objects deliberately marked for
  * the map (and local locations) are rendered on top. Nothing is published.
  */
+// MapLibre 6's ESM namespace exposes Map, but no supported() helper.
+export function createMapLibreInstance(library, options) {
+  if (typeof library?.Map !== 'function') {
+    throw new Error('De kaartbibliotheek kon niet worden geladen.');
+  }
+  // A genuine GPU/WebGL failure will be raised by the constructor itself.
+  return new library.Map(options);
+}
+
 export async function openEnvironmentView(root, {
   store, location, events, setTitle = () => {}
 }) {
@@ -190,8 +199,7 @@ export async function openEnvironmentView(root, {
     ensureRendererStyle();
     const lib = await import(MAPLIBRE_JS);
     if (disposed) return () => {};
-    if (!lib.supported()) throw new Error('Deze browser ondersteunt geen WebGL-kaartweergave.');
-    map = new lib.Map({
+    map = createMapLibreInstance(lib, {
       container: mapElement,
       style: BASEMAP_STYLE,
       center: userPoint ? coordinateArray(userPoint) : [0, 20],
