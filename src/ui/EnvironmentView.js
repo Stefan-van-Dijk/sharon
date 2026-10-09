@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.45';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.46';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -235,7 +235,7 @@ export async function openEnvironmentView(root, {
     );
     const requestedKey = environmentLineKey(
       requestedCenter,
-      scale
+      { ...scale, spanM: displaySpanM }
     );
 
     if (requestedKey === lineContextKey && lineFeatures.length) {
@@ -254,7 +254,14 @@ export async function openEnvironmentView(root, {
       const features = await loadEnvironmentLines(
         store,
         requestedCenter,
-        scale
+        { ...scale, spanM: displaySpanM },
+        canvas,
+        partial => {
+          if (token !== lineLoadToken) return;
+          lineFeatures = partial;
+          lineState = partial.length ? 'ready' : 'loading';
+          render();
+        }
       );
 
       if (token !== lineLoadToken) return;
@@ -903,7 +910,10 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
   if (!ids) return [];
   const results = new Array(ids.length);
   const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
-  const emit = () => {
+  let lastEmit = 0;
+  const emit = (force = false) => {
+    if (!force && Date.now() - lastEmit < 250) return null;
+    lastEmit = Date.now();
     const seen = new Set();
     const features = results.flatMap(item => item || []).filter(feature => {
       if (scale.spanM > DETAIL_LIMIT_M && !['major', 'boundary', 'rail', 'water'].includes(feature.type)) return false;
@@ -925,7 +935,7 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
       results[index] = rememberTile(key, local.value.features);
     }
   }));
-  emit();
+  emit(true);
   const missing = ids.map((id, index) => ({ id, index })).filter(({ index }) => !results[index]);
   let cursor = 0;
   const worker = async () => {
@@ -947,7 +957,7 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
     }
   };
   await Promise.all(Array.from({ length: Math.min(2, missing.length) }, worker));
-  return emit();
+  return emit(true);
 }
 
 async function storeEnvironmentTile(store, cacheKey, features, source) {
