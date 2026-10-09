@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.49';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.50';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -20,9 +20,7 @@ const EARTH_RADIUS_M = 6371000;
 const LINE_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const ENVIRONMENT_TILE_ENDPOINT = 'https://sharon.life/environment/api/tiles.php';
 const ENVIRONMENT_BUNDLE_ENDPOINT = 'https://sharon.life/environment/api/bundle.php';
-const ENVIRONMENT_OBJECT_ENDPOINT = 'https://sharon.life/environment/api/objects.php';
 let sharedTileEndpointState = 'unknown';
-const publishedTileRequests = new Set();
 const decodedTileCache = new Map();
 const inFlightTiles = new Map();
 const MAX_MEMORY_TILES = 128;
@@ -44,6 +42,16 @@ export async function openEnvironmentView(root, {
   events,
   setTitle = () => {}
 }) {
+  // Compare the MapLibre vector prototype without changing the default map.
+  // A failed CDN/WebGL load falls back to Sharon's cached canvas renderer.
+  if (new URLSearchParams(window.location.search).get('kaart') === 'vector') {
+    try {
+      const { openEnvironmentMapLibre } = await import('./EnvironmentMapLibre.js?v=0.1.50');
+      return await openEnvironmentMapLibre(root, { store, location, events, setTitle });
+    } catch (error) {
+      console.warn('Sharon MapLibre voorbeeld niet beschikbaar; gebruik de bestaande kaart.', error);
+    }
+  }
   setTitle('Omgeving');
 
   let scaleIndex = SCALES.findIndex(item => item.id === 'street');
@@ -58,13 +66,13 @@ export async function openEnvironmentView(root, {
   let objects = await store.getAll('objects');
   let locations = activeLocations(objects);
   let checking = false;
-  let wikiObjects = [];
-  let selectedWiki = null;
-  let wikiToken = 0;
-  let wikiTimer = null;
   let lineFeatures = [];
   let lineState = 'idle';
-  let lineContextKey = viewCenter ? environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM }) : '';
+  let lineContextKey = '';
+  let paintedLineKey = '';
+  let pendingLineKey = '';
+  let geometryRevision = 0;
+  let lastVectorPaintKey = '';
   let lineLoadToken = 0;
   let lineTimer = null;
   let pinch = null;
@@ -96,9 +104,7 @@ export async function openEnvironmentView(root, {
           Positie
         </button>
 
-        
         <div class="environment-readout" data-environment-readout></div>
-        <div class="environment-wiki" data-environment-wiki></div>
 
         <div class="environment-source" data-environment-source></div>
 
@@ -113,13 +119,6 @@ export async function openEnvironmentView(root, {
   const map = root.querySelector('[data-environment-map]');
   const vectorCanvas = root.querySelector('[data-vector-canvas]');
   const readout = root.querySelector('[data-environment-readout]');
-  const wikiBar = root.querySelector('[data-environment-wiki]');
-  const wikiStyle = document.createElement('style');
-  wikiStyle.textContent = `.environment-wiki{position:absolute;bottom:110px;left:12px;right:12px;z-index:5;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;pointer-events:auto}.environment-wiki:empty{display:none}.environment-wiki button{flex:0 0 auto;max-width:210px;border:1px solid #9998;border-radius:12px;padding:9px 12px;background:var(--surface,#fff);color:var(--text,#222);box-shadow:0 2px 12px #0002;text-align:left;font:inherit}.environment-wiki button[aria-pressed=true]{border-color:#39805a;background:#e9f4ed;color:#193f2b}.environment-wiki small{display:block;font-size:11px;opacity:.7}.environment-wiki a{align-self:center;background:var(--surface,#fff);padding:10px;border-radius:10px;white-space:nowrap}.environment-wiki-marker{fill:#8061a6;stroke:white;stroke-width:2}.environment-wiki-marker.is-selected{fill:#348653;stroke-width:3}`;
-  root.appendChild(wikiStyle);
-  const layerStyle = document.createElement('style');
-  layerStyle.textContent = `.environment-layer-controls{position:absolute;top:64px;right:12px;z-index:12;max-width:min(235px,70vw);font-size:12px}.environment-layer-controls button{background:var(--surface,#fff);color:var(--text,#222);border:1px solid #9998;border-radius:10px;padding:7px 10px;font:inherit}.environment-layer-controls [data-layers-panel]{background:var(--surface,#fff);color:var(--text,#222);border:1px solid #9998;border-radius:12px;padding:10px;box-shadow:0 4px 20px #0002;margin-top:5px}.environment-layer-controls [data-layers-panel][hidden]{display:none}.environment-layer-controls label{display:block;padding:4px 0}.environment-layer-controls small{display:block;margin-top:5px}`;
-  root.appendChild(layerStyle);
   const refreshButton = root.querySelector('[data-environment-refresh]');
   const scaleButton = root.querySelector('[data-environment-scale]');
   const source = root.querySelector('[data-environment-source]');
@@ -137,7 +136,6 @@ export async function openEnvironmentView(root, {
         </div>
       `;
       readout.innerHTML = '';
-      wikiBar.innerHTML = '';
       source.innerHTML = '';
       return;
     }
@@ -155,16 +153,17 @@ export async function openEnvironmentView(root, {
       locations,
       lineFeatures,
       { ...scale, spanM: displaySpanM },
-      wikiObjects,
-      selectedWiki,
       []
     );
     if (!vectorCanvas.isConnected) map.prepend(vectorCanvas);
     map.querySelector('.environment-svg')?.remove();
     map.insertAdjacentHTML('beforeend', model.svg);
-    drawVectorCanvas(vectorCanvas, model.linePaths);
+    const paintKey = `${viewCenter.lat.toFixed(6)}:${viewCenter.lng.toFixed(6)}:${displaySpanM}:${geometryRevision}`;
+    if (paintKey !== lastVectorPaintKey) {
+      drawVectorCanvas(vectorCanvas, model.linePaths);
+      lastVectorPaintKey = paintKey;
+    }
     readout.innerHTML = environmentReadout(model, point);
-    wikiBar.innerHTML = wikiObjects.slice(0, 15).map(item => `<button type="button" data-wiki-id="${escapeAttribute(item.wikidataId || item.sourceId)}" aria-pressed="${selectedWiki === (item.wikidataId || item.sourceId)}"><strong>${escapeHtml(item.title)}</strong><small>${formatDistance(distanceBetween(point, item))}</small></button>`).join('') + (selectedWiki && wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki)?.url ? `<a target="_blank" rel="noopener noreferrer" href="${escapeAttribute(wikiObjects.find(item => (item.wikidataId || item.sourceId) === selectedWiki).url)}">Wikipedia ↗</a>` : '');
 
     if (lineState === 'loading') {
       source.textContent = 'Lijnen laden…';
@@ -178,50 +177,9 @@ export async function openEnvironmentView(root, {
     }
   };
 
-  const loadWiki = async () => {
-    if (!viewCenter) return;
-    const token = ++wikiToken;
-    const id = environmentTileId(viewCenter, 'place');
-    try {
-      const response = await fetch(`${ENVIRONMENT_OBJECT_ENDPOINT}?id=${encodeURIComponent(id)}`, { headers: { Accept: 'application/json' } });
-      if (!response.ok) throw new Error(`Wikipedia HTTP ${response.status}`);
-      const data = await response.json();
-      if (token !== wikiToken || data.id !== id) return;
-      wikiObjects = (Array.isArray(data.items) ? data.items : []).filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))).map(item => ({ ...item, lat: Number(item.lat), lng: Number(item.lng) }));
-      selectedWiki = null;
-      render();
-    } catch {
-      if (token === wikiToken) { wikiObjects = []; selectedWiki = null; render(); }
-    }
-  };
-  const scheduleWiki = () => {
-    if (wikiTimer) clearTimeout(wikiTimer);
-    wikiTimer = setTimeout(() => { wikiTimer = null; loadWiki().catch(() => {}); }, 250);
-  };
-  wikiBar.addEventListener('click', event => {
-    const button = event.target.closest('[data-wiki-id]');
-    if (!button) return;
-    const id = button.dataset.wikiId;
-    const item = wikiObjects.find(candidate => String(candidate.wikidataId || candidate.sourceId) === id);
-    if (!item) return;
-    if (selectedWiki === id) {
-      viewCenter = { lat: item.lat, lng: item.lng };
-      followingPosition = false;
-      setScaleIndex(SCALES.findIndex(candidate => candidate.id === 'detail'));
-      scheduleLines(); scheduleWiki();
-    } else {
-      selectedWiki = id;
-      viewCenter = { lat: (Number(point.lat) + item.lat) / 2, lng: (Number(point.lng) + item.lng) / 2 };
-      followingPosition = false;
-      const distance = distanceBetween(point, item);
-      const next = SCALES.findIndex(candidate => candidate.spanM >= distance * 1.7);
-      setScaleIndex(next < 0 ? SCALES.length - 1 : next);
-      scheduleLines();
-    }
-    render();
-  });
-
   const scheduleLines = () => {
+    lineLoadToken += 1;
+    pendingLineKey = '';
     if (lineTimer) clearTimeout(lineTimer);
     lineTimer = setTimeout(() => {
       lineTimer = null;
@@ -233,25 +191,19 @@ export async function openEnvironmentView(root, {
     if (!viewCenter) return;
 
     const requestedCenter = { ...viewCenter };
-    const requestedScaleId = scale.id;
-    const requestedAreaId = environmentTileId(
-      requestedCenter,
-      requestedScaleId
-    );
-    const requestedKey = environmentLineKey(
-      requestedCenter,
-      { ...scale, spanM: displaySpanM }
-    );
+    const requestedScale = { ...scale, spanM: displaySpanM };
+    const plan = environmentTilePlan(requestedCenter, requestedScale, canvas);
+    const requestedKey = plan.key;
 
-    if (requestedKey === lineContextKey && lineFeatures.length) {
-      publishRenderedEnvironmentTile(
-        requestedAreaId,
-        requestedScaleId
-      ).catch(() => {});
+    if (requestedKey === lineContextKey && paintedLineKey === requestedKey) {
+      lineState = lineFeatures.length ? 'ready' : 'idle';
+      render();
       return;
     }
+    if (requestedKey === pendingLineKey) return;
 
     const token = ++lineLoadToken;
+    pendingLineKey = requestedKey;
     lineState = 'loading';
     render();
 
@@ -259,35 +211,36 @@ export async function openEnvironmentView(root, {
       const features = await loadEnvironmentLines(
         store,
         requestedCenter,
-        { ...scale, spanM: displaySpanM },
+        requestedScale,
         canvas,
         partial => {
           if (token !== lineLoadToken) return;
-          lineFeatures = partial;
+          if (partial.length) {
+            lineFeatures = partial;
+            paintedLineKey = requestedKey;
+            geometryRevision += 1;
+          }
           lineState = partial.length ? 'ready' : 'loading';
           render();
-        }
+        },
+        plan
       );
 
       if (token !== lineLoadToken) return;
 
       lineFeatures = features;
+      paintedLineKey = requestedKey;
+      geometryRevision += 1;
       lineContextKey = requestedKey;
+      pendingLineKey = '';
       lineState = features.length ? 'ready' : 'idle';
 
       render();
 
-      if (features.length) {
-        publishRenderedEnvironmentTile(
-          requestedAreaId,
-          requestedScaleId
-        ).catch(() => {});
-      }
-
       return;
     } catch {
       if (token !== lineLoadToken) return;
-      lineFeatures = [];
+      pendingLineKey = '';
       lineState = 'error';
     }
 
@@ -301,8 +254,6 @@ export async function openEnvironmentView(root, {
     scaleIndex = clamped;
     scale = SCALES[scaleIndex];
     displaySpanM = scale.spanM;
-    lineFeatures = [];
-    lineContextKey = '';
     lineState = 'idle';
     render();
     scheduleLines();
@@ -317,11 +268,7 @@ export async function openEnvironmentView(root, {
     if (nextIndex !== scaleIndex) {
       scaleIndex = nextIndex;
       scale = SCALES[nextIndex];
-      lineContextKey = '';
-      lineState = 'idle';
-      scheduleLines();
     }
-    lineContextKey = '';
     scheduleLines();
     render();
   };
@@ -350,11 +297,10 @@ export async function openEnvironmentView(root, {
 
       objects = await store.getAll('objects');
       locations = activeLocations(objects);
-      lineContextKey = '';
       lineState = 'idle';
       render();
       scheduleLines();
-      scheduleWiki();
+
     } catch (error) {
       map.innerHTML = `
         <div class="environment-empty">
@@ -413,17 +359,13 @@ export async function openEnvironmentView(root, {
       );
       followingPosition = false;
 
-      const nextKey = environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM });
-      const sameLineArea = nextKey === lineContextKey;
+      const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
+      const sameLineArea = nextKey === lineContextKey && paintedLineKey === nextKey;
 
-      if (!sameLineArea) {
-        lineFeatures = [];
-        lineContextKey = '';
-        lineState = 'idle';
-      }
+      if (!sameLineArea) lineState = 'loading';
 
       render();
-      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
+      if (!sameLineArea) scheduleLines();
     }
 
     map.style.transform = '';
@@ -605,17 +547,13 @@ export async function openEnvironmentView(root, {
         lng: Number(nextPoint.lng)
       };
 
-      const nextKey = environmentLineKey(viewCenter, { ...scale, spanM: displaySpanM });
-      const sameLineArea = nextKey === lineContextKey;
+      const nextKey = environmentTilePlan(viewCenter, { ...scale, spanM: displaySpanM }, canvas).key;
+      const sameLineArea = nextKey === lineContextKey && paintedLineKey === nextKey;
 
-      if (!sameLineArea) {
-        lineFeatures = [];
-        lineContextKey = '';
-        lineState = 'idle';
-      }
+      if (!sameLineArea) lineState = 'loading';
 
       render();
-      if (!sameLineArea) { scheduleLines(); scheduleWiki(); }
+      if (!sameLineArea) scheduleLines();
       return;
     }
 
@@ -638,15 +576,13 @@ export async function openEnvironmentView(root, {
     refresh().catch(() => {});
   } else if (viewCenter) {
     scheduleLines();
-    scheduleWiki();
+
   }
 
   const hintTimer = setTimeout(hideHint, 4200);
 
   return () => {
     if (lineTimer) clearTimeout(lineTimer);
-    if (wikiTimer) clearTimeout(wikiTimer);
-    wikiToken += 1;
     if (wheelTimer) clearTimeout(wheelTimer);
     if (zoomFrame) cancelAnimationFrame(zoomFrame);
     clearTimeout(hintTimer);
@@ -675,8 +611,6 @@ function environmentModel(
   locations,
   lineFeatures,
   scale,
-  wikiObjects = [],
-  selectedWiki = null,
   overlayLines = []
 ) {
   const projection = localProjection(viewCenter.lat);
@@ -760,9 +694,7 @@ function environmentModel(
       locations: visibleLocations,
       userPosition,
       scale,
-      currentCell,
-      wikiObjects: wikiObjects.map(item => ({ ...item, ...projectPoint({ point: item, projection, centerX, centerY, metersPerUnit }) })).filter(item => item.visible),
-      selectedWiki
+      currentCell
     }),
     currentCell,
     areaId: environmentTileId(viewCenter, scale.id),
@@ -817,9 +749,7 @@ function environmentSvg({
   locations,
   userPosition,
   scale,
-  currentCell,
-  wikiObjects = [],
-  selectedWiki = null
+  currentCell
 }) {
   const lineMarkup = ''; // Base vector geometry is rendered on Canvas 2D.
 
@@ -860,7 +790,6 @@ function environmentSvg({
       </g>
 
       ${locationMarkup}
-      ${wikiObjects.map(item => `<g><circle class="environment-wiki-marker ${selectedWiki === (item.wikidataId || item.sourceId) ? 'is-selected' : ''}" cx="${round(item.x)}" cy="${round(item.y)}" r="${selectedWiki === (item.wikidataId || item.sourceId) ? 11 : 6}"><title>${escapeHtml(item.title)}</title></circle></g>`).join('')}
 
       ${userPosition.visible ? `
         <g class="environment-you">
@@ -898,11 +827,19 @@ function environmentReadout(model, point) {
   `;
 }
 
-function environmentLineKey(point, scale) {
-  // Cache keys follow the viewport, not just the center tile.
-  const lat = Math.round(point.lat * 10000);
-  const lng = Math.round(point.lng * 10000);
-  return `environment-lines:v4:${lat}:${lng}:${Math.round(scale.spanM)}`;
+// Cache by visible tile set instead of tiny camera position changes.
+export function environmentTilePlan(center, scale, canvas) {
+  if (scale.id === 'country') return { ids: [], level: 0, scaleId: 'country', key: 'country' };
+  let level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
+  let ids = viewportTileIds(center, scale.spanM, canvas, level);
+  while (level > 1 && (!ids || ids.length > 9)) {
+    level -= 1;
+    ids = viewportTileIds(center, scale.spanM, canvas, level);
+  }
+  ids = ids || [];
+  const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
+  const filter = scale.spanM > DETAIL_LIMIT_M ? 'overview' : 'all';
+  return { ids, level, scaleId, key: `${filter}:${level}:${ids.join(',')}` };
 }
 
 function viewportTileIds(center, spanM, canvas, level) {
@@ -944,19 +881,11 @@ function viewportTileIds(center, spanM, canvas, level) {
 }
 
 const tileLoadFailures = new Map();
-async function loadEnvironmentLines(store, center, scale, canvas, onProgress = () => {}) {
-  if (scale.id === 'country') return [];
-  // Request a bounded set of visible areas. Eight-character identifiers remain
-  // valid for positions, but never trigger their own map download.
-  let level = scale.spanM <= DETAIL_LIMIT_M ? 3 : scale.spanM <= 70000 ? 2 : 1;
-  let ids = viewportTileIds(center, scale.spanM, canvas, level);
-  while (level > 1 && (!ids || ids.length > 9)) {
-    level--;
-    ids = viewportTileIds(center, scale.spanM, canvas, level);
-  }
-  if (!ids) return [];
+async function loadEnvironmentLines(store, center, scale, canvas, onProgress = () => {}, plan = environmentTilePlan(center, scale, canvas)) {
+  // Precise identifiers remain independent from bounded map-tile levels.
+  const { ids, scaleId } = plan;
+  if (!ids.length) return [];
   const results = new Array(ids.length);
-  const scaleId = level === 3 ? 'detail' : level === 2 ? 'place' : 'country';
   let lastEmit = 0;
   const emit = (force = false) => {
     if (!force && Date.now() - lastEmit < 250) return null;
@@ -1008,7 +937,7 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
             const index = wanted.get(tile.id);
             const decoded = decodeEnvironmentV2(tile, scaleId);
             results[index] = rememberTile(`environment-tile:v5:${tile.id}`, decoded.features);
-            await store.put('meta', {
+            store.put('meta', {
               key: `environment-tile:v5:${tile.id}`,
               value: { at: Date.now(), features: decoded.features }
             }).catch(() => {});
@@ -1031,7 +960,7 @@ async function loadEnvironmentLines(store, center, scale, canvas, onProgress = (
         const response = await loadSharedEnvironmentTile(id, scaleId);
         if (!response || !Array.isArray(response.features)) throw new Error('Tegel niet beschikbaar');
         results[index] = rememberTile(key, response.features);
-        await store.put('meta', { key, value: { at: Date.now(), features: response.features } }).catch(() => {});
+        store.put('meta', { key, value: { at: Date.now(), features: response.features } }).catch(() => {});
         tileLoadFailures.delete(id);
         emit();
       } catch {
@@ -1110,6 +1039,18 @@ function overpassFeatures(data) {
 // Tile v2: resolve geometry from the tile and its ancestors, with one integer
 // point table per owner tile. The server derives each tile origin from its ID.
 async function loadSharedEnvironmentTile(areaId, scaleId) {
+  const key = `${areaId}:${scaleId}`;
+  if (inFlightTiles.has(key)) return inFlightTiles.get(key);
+  const pending = fetchSharedEnvironmentTile(areaId, scaleId);
+  inFlightTiles.set(key, pending);
+  try {
+    return await pending;
+  } finally {
+    if (inFlightTiles.get(key) === pending) inFlightTiles.delete(key);
+  }
+}
+
+async function fetchSharedEnvironmentTile(areaId, scaleId) {
   const url = `${ENVIRONMENT_TILE_ENDPOINT}?id=${encodeURIComponent(areaId)}&resolve=1`;
   let response;
   try {
@@ -1128,7 +1069,6 @@ async function loadSharedEnvironmentTile(areaId, scaleId) {
     const tile = await response.json();
     if (tile.schema === 'https://sharon.life/environment/tile/v2') {
       sharedTileEndpointState = 'available';
-      publishedTileRequests.add(`${scaleId}:${areaId}`);
       return decodeEnvironmentV2(tile, scaleId);
     }
     // Old PHP format: keep it readable until the server is upgraded.
@@ -1163,11 +1103,6 @@ function decodeEnvironmentV2(payload, scaleId) {
     }
   }
   return { id: payload.id, features };
-}
-
-async function publishRenderedEnvironmentTile(areaId, scaleId) {
-  // Loading a missing tile already requests its publication; never duplicate POSTs.
-  return publishedTileRequests.has(`${scaleId}:${areaId}`);
 }
 
 function normalizeLegacySharedTile(tile) {
@@ -1349,7 +1284,16 @@ function projectLineFeatures({
       x: CENTER + (projection.x(point.lng) - centerX) / metersPerUnit,
       y: CENTER - (projection.y(point.lat) - centerY) / metersPerUnit
     }));
-    if (!projected.some(point => point.x >= -80 && point.x <= VIEW + 80 && point.y >= -80 && point.y <= VIEW + 80)) continue;
+    // A road may cross the viewport even when every supplied vertex lies outside.
+    // Bounding-box rejection keeps those crossing segments without extra network data.
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const point of projected) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+    if (maxX < -80 || minX > VIEW + 80 || maxY < -80 || minY > VIEW + 80) continue;
     const commands = [];
 
     const stride = Math.max(1, Math.floor(projected.length / 450));
