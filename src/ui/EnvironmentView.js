@@ -69,6 +69,7 @@ export async function openEnvironmentView(root, {
   let lineFeatures = [];
   let lineState = 'idle';
   let lineContextKey = '';
+  let paintedLineKey = '';
   let pendingLineKey = '';
   let geometryRevision = 0;
   let lastVectorPaintKey = '';
@@ -194,7 +195,7 @@ export async function openEnvironmentView(root, {
     const plan = environmentTilePlan(requestedCenter, requestedScale, canvas);
     const requestedKey = plan.key;
 
-    if (requestedKey === lineContextKey) {
+    if (requestedKey === lineContextKey && paintedLineKey === requestedKey) {
       lineState = lineFeatures.length ? 'ready' : 'idle';
       render();
       return;
@@ -216,6 +217,7 @@ export async function openEnvironmentView(root, {
           if (token !== lineLoadToken) return;
           if (partial.length) {
             lineFeatures = partial;
+            paintedLineKey = requestedKey;
             geometryRevision += 1;
           }
           lineState = partial.length ? 'ready' : 'loading';
@@ -227,6 +229,7 @@ export async function openEnvironmentView(root, {
       if (token !== lineLoadToken) return;
 
       lineFeatures = features;
+      paintedLineKey = requestedKey;
       geometryRevision += 1;
       lineContextKey = requestedKey;
       pendingLineKey = '';
