@@ -2,7 +2,7 @@ import {
   environmentBoundsForId,
   environmentPointId,
   environmentTileId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.49';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.50';
 
 const SCALES = Object.freeze([
   { id: 'near', label: 'Dichtbij', spanM: 70, cellM: 10 },
@@ -46,7 +46,7 @@ export async function openEnvironmentView(root, {
   // A failed CDN/WebGL load falls back to Sharon's cached canvas renderer.
   if (new URLSearchParams(window.location.search).get('kaart') === 'vector') {
     try {
-      const { openEnvironmentMapLibre } = await import('./EnvironmentMapLibre.js?v=0.1.49');
+      const { openEnvironmentMapLibre } = await import('./EnvironmentMapLibre.js?v=0.1.50');
       return await openEnvironmentMapLibre(root, { store, location, events, setTitle });
     } catch (error) {
       console.warn('Sharon MapLibre voorbeeld niet beschikbaar; gebruik de bestaande kaart.', error);
