@@ -422,7 +422,8 @@ export function openEnvironmentView(root, {
       doubleClickZoom: false,
       touchPitch: false,
       maxPitch: 0,
-      attributionControl: { compact: true },
+      // Keep source credits expanded and linked on small screens, without the info toggle.
+       attributionControl: { compact: false },
       renderWorldCopies: true
     });
     registerCameraDiagnostics(map);
