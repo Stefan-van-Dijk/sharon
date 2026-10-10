@@ -244,13 +244,14 @@ test('map, fade and header controls use distinct layers on the title baseline', 
   assert.match(css, /\.app-stage\.is-environment \.environment-map-top-actions\{\s*position:absolute;top:calc\(env\(safe-area-inset-top\) \+ 5px\)/);
 });
 
-test('provider credits sit centered beneath readout inside safe area, still linked', async () => {
+test('linked map credits sit 4px above readout with compact safe-area spacing', async () => {
   const { readFile } = await import('node:fs/promises');
   const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const map = await readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8');
-  assert.match(css, /\.app-stage\.is-environment \.environment-readout\{\s*bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 32px\)/);
-  assert.match(css, /\.environment-maplibre \.maplibregl-ctrl-bottom-right\{[\s\S]*?bottom:max\(12px,env\(safe-area-inset-bottom\)\);/);
-  assert.match(css, /\.app-stage\.is-environment \.environment-style-flyout\{\s*bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 111px\)/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-readout\{\s*bottom:max\(12px,env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /\.environment-maplibre \.maplibregl-ctrl-bottom-right\{[\s\S]*?bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 72px\)/);
+  assert.match(css, /\.environment-maplibre \.maplibregl-ctrl-bottom-right \.maplibregl-ctrl-attrib\{[\s\S]*?min-height:18px;/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-style-flyout\{\s*bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 103px\)/);
   assert.ok(css.includes('.environment-maplibre .maplibregl-ctrl-attrib-inner a:focus-visible'));
   assert.match(map, /attributionControl:\s*\{ compact: false \}/);
 });

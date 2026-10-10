@@ -9,8 +9,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.69">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.69">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.70">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.70">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -580,7 +580,7 @@
     }
 
 
-    /* Map header and footer layering (0.1.69). The map, fade and actions
+    /* Map header and footer layering (0.1.70). The map, fade and actions
        must be separate layers: the translucent fade may never dim controls. */
     .app-stage.is-environment .app-header{
       z-index:30;background:transparent;isolation:auto;
@@ -618,26 +618,27 @@
     .app-stage.is-environment .environment-map-top-actions button:disabled{
       opacity:.55;
     }
-    /* MapLibre's live linked attribution moves below the readout. Both
-       elements share the bottom safe-area reference to avoid overlap. */
+    /* Compact bottom stack: 68px readout, 4px gap, 18px linked attribution.
+       Keep iOS's safe-area clearance; do not sacrifice the home indicator. */
     .app-stage.is-environment .environment-readout{
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 32px);
+      bottom:max(12px,env(safe-area-inset-bottom));
     }
     .environment-maplibre .maplibregl-ctrl-bottom-right{
       left:max(14px,env(safe-area-inset-left));
       right:max(14px,env(safe-area-inset-right));
-      bottom:max(12px,env(safe-area-inset-bottom));
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 72px);
       display:flex;justify-content:center;pointer-events:none;
     }
     .environment-maplibre .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{
-      width:auto;max-width:100%;min-height:22px;pointer-events:auto;
-      background:rgba(255,255,255,.79);
+      width:auto;max-width:100%;min-height:18px;
+      padding:1px 4px;pointer-events:auto;
+      background:rgba(255,255,255,.74);
     }
     .environment-maplibre .maplibregl-ctrl-attrib-inner{
-      text-align:center;line-height:1.35;white-space:normal;
+      text-align:center;font-size:9px;line-height:1.2;white-space:normal;
     }
     .app-stage.is-environment .environment-style-flyout{
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 111px);
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 103px);
     }
 
     @media (prefers-reduced-motion:reduce){
@@ -668,16 +669,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.69#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.69#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.69#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.69#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.69#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.70#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.70#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.70#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.70#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.70#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.69"></script>
+  <script type="module" src="./src/main.js?v=0.1.70"></script>
 </body>
 </html>
