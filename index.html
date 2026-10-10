@@ -7,8 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Sharon</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.52">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.52">
+  <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.53">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.53">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -243,6 +245,11 @@
     /* MapLibre draws the basemap itself; do not apply the legacy canvas transforms. */
     .environment-maplibre .environment-map{position:absolute;inset:0;transform:none;transform-origin:initial;transition:none;will-change:auto;background:#fff}
     .environment-maplibre .maplibregl-map{width:100%;height:100%;font-family:inherit}
+    .environment-zoom{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(112px,calc(env(safe-area-inset-top) + 98px));z-index:5;display:grid;border:1px solid rgba(0,0,0,.06);border-radius:15px;overflow:hidden;background:rgba(255,255,255,.92)}
+    .environment-zoom button{width:40px;height:40px;padding:0;border:0;background:transparent;color:#55555a;font-size:23px;line-height:1}
+    .environment-zoom button+button{border-top:1px solid #ececef}
+    .environment-zoom button:active{background:#f0f0f2}
+    .environment-zoom button:focus-visible{outline:2px solid #777;outline-offset:-3px}
     .environment-maplibre .sharon-gps-dot{width:13px;height:13px;background:#111;border:3px solid #fff;box-shadow:0 0 0 2px #111;border-radius:50%}
     .environment-maplibre .maplibregl-ctrl-bottom-right{right:max(10px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 88px)}
     .environment-maplibre .maplibregl-ctrl-attrib{font-size:9px;color:#777}
@@ -390,16 +397,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.52#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.52#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.52#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.52#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.52#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.53#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.53#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.53#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.53#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.53#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.52"></script>
+  <script type="module" src="./src/main.js?v=0.1.53"></script>
 </body>
 </html>

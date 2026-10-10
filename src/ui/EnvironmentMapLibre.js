@@ -1,16 +1,19 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.52';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.52';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.53';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.53';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.53';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
 const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
 const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
-const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const MAPLIBRE_WORKER = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl-worker.mjs';
+const CAMERA_KEY = 'environment-camera:v1';
+let lastCamera = null;
 const EARTH_CIRCUMFERENCE_M = 40075016.686;
-const LOCAL_LAYERS = Object.freeze(['sharon-points', 'sharon-lines', 'sharon-polygons']);
+const LOCAL_LAYERS = Object.freeze(['sharon-points', 'sharon-lines', 'sharon-polygons', 'sharon-polygon-outlines']);
 
 const isCoordinate = point => point &&
   point.lat !== null && point.lng !== null &&
@@ -61,19 +64,7 @@ function statusMessage(container, title, detail) {
   container.append(message);
 }
 
-function suppressProviderPoiLabels(map) {
-  // Keep streets and place names. Suppress decorative POI labels, not geography.
-  const style = map.getStyle();
-  if (!style?.layers) return;
-  for (const layer of style.layers) {
-    if (layer.type !== 'symbol') continue;
-    if (/poi|housenumber|house_number|transit/.test(layer.id.toLowerCase())) {
-      map.setLayoutProperty(layer.id, 'visibility', 'none');
-    }
-  }
-}
-
-function installSharonLayers(map) {
+export function installSharonLayers(map) {
   if (map.getSource('sharon-objects')) return;
   map.addSource('sharon-objects', {
     type: 'geojson',
@@ -86,9 +77,16 @@ function installSharonLayers(map) {
     source: 'sharon-objects',
     filter: ['==', ['geometry-type'], 'Polygon'],
     paint: {
-      'fill-color': '#262629',
-      'fill-opacity': 0.12,
-      'fill-outline-color': '#252528'
+      'fill-color': ['get', 'color'],
+      'fill-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.035, 0.16]]
+    }
+  });
+  map.addLayer({
+    id: 'sharon-polygon-outlines', type: 'line', source: 'sharon-objects',
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'line-color': ['get', 'color'], 'line-width': 1.4,
+      'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.85]]
     }
   });
   map.addLayer({
@@ -97,9 +95,9 @@ function installSharonLayers(map) {
     source: 'sharon-objects',
     filter: ['==', ['geometry-type'], 'LineString'],
     paint: {
-      'line-color': '#252528',
+      'line-color': ['get', 'color'],
       'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1.1, 17, 2.5],
-      'line-opacity': 0.86
+      'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.9]]
     }
   });
   map.addLayer({
@@ -109,8 +107,10 @@ function installSharonLayers(map) {
     filter: ['==', ['geometry-type'], 'Point'],
     paint: {
       'circle-color': '#fff',
+      'circle-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
+      'circle-stroke-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 15, 6],
-      'circle-stroke-color': '#17171a',
+      'circle-stroke-color': ['get', 'color'],
       'circle-stroke-width': 2
     }
   });
@@ -120,23 +120,27 @@ function updateReadout(map, userPoint, scaleButton, readout) {
   const span = visibleWidthMeters(map);
   const center = map.getCenter();
   const areaId = environmentIdForPoint(center, areaLengthForWidth(span));
-  scaleButton.textContent = formatDistance(span);
-  readout.replaceChildren();
-  for (const [label, value, info] of [
+  scaleButton.textContent = `${span < 150 ? 'Detail' : span < 1500 ? 'Straat' : span < 6000 ? 'Wijk' : span < 60000 ? 'Plaats' : 'Regio'} · ${formatDistance(span)}`;
+  const values = [
     ['Positie', userPoint ? environmentPointId(userPoint) : 'Nog niet bepaald',
       userPoint ? `GPS ±${Math.round(Number(userPoint.accuracy) || 0)} m` : 'Gebruik Positie'],
     ['Gebied', areaId, `Kaartbreedte ${formatDistance(span)}`]
-  ]) {
-    const column = document.createElement('div');
-    const labelNode = document.createElement('span');
-    labelNode.textContent = label;
-    const valueNode = document.createElement('strong');
-    valueNode.textContent = value;
-    const detailNode = document.createElement('small');
-    detailNode.textContent = info;
-    column.append(labelNode, valueNode, detailNode);
-    readout.append(column);
+  ];
+  if (readout.children.length !== values.length) {
+    readout.replaceChildren();
+    for (const _ of values) {
+      const column = document.createElement('div');
+      column.append(document.createElement('span'), document.createElement('strong'), document.createElement('small'));
+      readout.append(column);
+    }
   }
+  values.forEach(([label, value, info], index) => {
+    const column = readout.children[index];
+    const [labelNode, valueNode, detailNode] = column.children;
+    if (labelNode.textContent !== label) labelNode.textContent = label;
+    if (valueNode.textContent !== value) valueNode.textContent = value;
+    if (detailNode.textContent !== info) detailNode.textContent = info;
+  });
 }
 
 /**
@@ -164,6 +168,10 @@ export async function openEnvironmentView(root, {
                 aria-label="Inzoomen op de kaart"></button>
         <button type="button" class="environment-refresh" data-map-position
                 aria-label="Huidige positie bepalen">Positie</button>
+        <div class="environment-zoom" aria-label="Kaartzoom">
+          <button type="button" data-map-zoom-in aria-label="Inzoomen">+</button>
+          <button type="button" data-map-zoom-out aria-label="Uitzoomen">−</button>
+        </div>
         <div class="environment-readout" data-map-readout></div>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
@@ -176,7 +184,7 @@ export async function openEnvironmentView(root, {
   const errorBanner = root.querySelector('[data-map-error]');
   let disposed = false;
   let userPoint = isCoordinate(location.latest) ? location.latest : null;
-  let followingPosition = Boolean(userPoint);
+  let followingPosition = true;
   let map = null;
   let gpsMarker = null;
   let objectsRevision = 0;
@@ -184,6 +192,9 @@ export async function openEnvironmentView(root, {
   let resizeObserver = null;
   const unsubscribers = [];
   let popup = null;
+  let awaitingFirstPosition = !userPoint;
+  let readoutFrame = 0;
+  let saveTimer = null;
 
   const displayFailure = description => {
     if (disposed) return;
@@ -197,19 +208,30 @@ export async function openEnvironmentView(root, {
 
   try {
     ensureRendererStyle();
-    const lib = await import(MAPLIBRE_JS);
+    const [lib, saved] = await Promise.all([
+      import(MAPLIBRE_JS),
+      lastCamera ? Promise.resolve({ value: lastCamera }) : store.get('meta', CAMERA_KEY).catch(() => null)
+    ]);
+    // MapLibre 6 ESM requires an explicit module-worker URL.
+    lib.setWorkerUrl?.(MAPLIBRE_WORKER);
+    lib.setWorkerCount?.(2);
+    const camera = saved?.value;
+    const hasCamera = isCoordinate(camera) && Number.isFinite(camera.zoom);
+    if (hasCamera) { followingPosition = false; awaitingFirstPosition = false; }
     if (disposed) return () => {};
     map = createMapLibreInstance(lib, {
       container: mapElement,
-      style: BASEMAP_STYLE,
-      center: userPoint ? coordinateArray(userPoint) : [0, 20],
-      zoom: userPoint ? 15 : 1.65,
+      style: environmentStyle,
+      center: hasCamera ? coordinateArray(camera) : userPoint ? coordinateArray(userPoint) : [5.3, 52.2],
+      zoom: hasCamera ? Math.max(1, Math.min(22, camera.zoom)) : userPoint ? 15 : 6,
       minZoom: 1,
-      maxZoom: 20,
+      maxZoom: 22,
+      refreshExpiredTiles: true,
+      fadeDuration: 100,
       dragRotate: false,
       touchPitch: false,
       maxPitch: 0,
-      attributionControl: true,
+      attributionControl: { compact: true },
       renderWorldCopies: true
     });
 
@@ -217,6 +239,12 @@ export async function openEnvironmentView(root, {
       if (!disposed && map) updateReadout(map, userPoint, scaleButton, readout);
     };
 
+    const stopFollowing = () => {
+      followingPosition = false;
+      awaitingFirstPosition = false;
+    };
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
     const placePosition = point => {
       if (!isCoordinate(point) || disposed || !map) return;
       userPoint = point;
@@ -227,7 +255,9 @@ export async function openEnvironmentView(root, {
       }
       gpsMarker.setLngLat(coordinateArray(point));
       if (followingPosition) {
-        map.easeTo({ center: coordinateArray(point), duration: 260 });
+        map.easeTo({ center: coordinateArray(point),
+          ...(awaitingFirstPosition ? { zoom: 15 } : {}), duration: 260 });
+        awaitingFirstPosition = false;
       }
       render();
     };
@@ -242,14 +272,33 @@ export async function openEnvironmentView(root, {
     map.on('load', () => {
       if (disposed) return;
       mapReady = true;
-      suppressProviderPoiLabels(map);
+      errorBanner.hidden = true;
       installSharonLayers(map);
       updateObjects().catch(() => {});
       render();
     });
-    map.on('moveend', render);
-    map.on('dragstart', () => { followingPosition = false; });
-    map.on('zoomstart', () => { followingPosition = false; });
+    // Update small readouts once per frame; never rebuild geometry while zooming.
+    map.on('move', () => {
+      if (!readoutFrame) readoutFrame = requestAnimationFrame(() => {
+        readoutFrame = 0; render();
+      });
+    });
+    map.on('moveend', () => {
+      render();
+      const center = map.getCenter().wrap();
+      lastCamera = { lat: center.lat, lng: center.lng, zoom: map.getZoom() };
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        store.put('meta', { key: CAMERA_KEY, value: lastCamera }).catch(() => {});
+      }, 300);
+    });
+    // Programmatic GPS/camera movements must not cancel following.
+    for (const type of ['dragstart', 'zoomstart']) {
+      map.on(type, event => { if (event.originalEvent) stopFollowing(); });
+    }
+    map.on('sourcedata', event => {
+      if (event.isSourceLoaded) errorBanner.hidden = true;
+    });
 
     map.on('click', event => {
       if (!mapReady) return;
@@ -275,7 +324,7 @@ export async function openEnvironmentView(root, {
 
     // Loading failures do not trigger old Overpass requests.
     map.on('error', event => {
-      if (!mapReady) displayFailure('De vectorkaart kan momenteel niet worden geladen.');
+      displayFailure('Kaartgegevens tijdelijk niet beschikbaar. Probeer opnieuw met verbinding.');
       console.warn('Sharon Omgeving: vectorkaart', event.error);
     });
     positionButton.addEventListener('click', async () => {
@@ -300,11 +349,18 @@ export async function openEnvironmentView(root, {
       }
     });
     scaleButton.addEventListener('click', () => {
-      followingPosition = false;
-      map.easeTo({ zoom: Math.min(20, map.getZoom() + 1), duration: 200 });
+      stopFollowing();
+      map.zoomIn({ duration: 200 });
+    });
+    root.querySelector('[data-map-zoom-in]').addEventListener('click', () => {
+      stopFollowing(); map.zoomIn({ duration: 200 });
+    });
+    root.querySelector('[data-map-zoom-out]').addEventListener('click', () => {
+      stopFollowing(); map.zoomOut({ duration: 200 });
     });
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
-    for (const name of ['location.created', 'location.updated', 'location.deleted']) {
+    for (const name of ['location.created', 'location.updated', 'location.deleted',
+      'environment.objects.changed']) {
       unsubscribers.push(events.on(name, () => {
         updateObjects().catch(() => {});
       }));
@@ -317,7 +373,6 @@ export async function openEnvironmentView(root, {
         browserMaxAgeMs: 30000, timeoutMs: 9000
       }).then(point => {
         if (!disposed) {
-          followingPosition = true;
           placePosition(point);
         }
       }).catch(() => {});
@@ -336,6 +391,9 @@ export async function openEnvironmentView(root, {
   return () => {
     disposed = true;
     objectsRevision++;
+    cancelAnimationFrame(readoutFrame);
+    clearTimeout(saveTimer);
+    if (lastCamera) store.put('meta', { key: CAMERA_KEY, value: lastCamera }).catch(() => {});
     for (const unsubscribe of unsubscribers) unsubscribe();
     resizeObserver?.disconnect();
     popup?.remove();

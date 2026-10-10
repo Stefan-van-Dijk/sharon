@@ -65,3 +65,21 @@ test('points and multilines may be visualized without generating world tiles', (
   assert.equal(data.features.length, 1);
   assert.equal(data.features[0].geometry.type, 'MultiLineString');
 });
+
+test('projection colors and seen state are explicit and bounded', () => {
+  const item = { id: 'map-object', type: 'location', data: {
+    coordinates: { lng: 6, lat: 52 }, environment: {
+      color: '#316A86', opacity: 4, seen: true, sourceId: 'source:123', privateNotes: 'secret'
+    }
+  } };
+  const properties = environmentFeatureForObject(item).properties;
+  assert.equal(properties.color, '#316A86');
+  assert.equal(properties.opacity, 1);
+  assert.equal(properties.seen, true);
+  assert.ok(!JSON.stringify(properties).includes('secret'));
+  item.data.environment = { color: 'url(example)', opacity: NaN, seen: 'true' };
+  const defaults = environmentFeatureForObject(item).properties;
+  assert.equal(defaults.color, '#262629');
+  assert.equal(defaults.opacity, 1);
+  assert.equal(defaults.seen, false);
+});

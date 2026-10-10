@@ -1,4 +1,4 @@
-# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.51)
+# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.53)
 
 ## Nieuwe werkwijze
 
@@ -64,8 +64,13 @@ kaartprovider ontvangt geen lokale objectgegevens via deze toepassing.
 ## Versie en caching
 
 - MapLibre 6.11.2 via UNPKG (vastgepinde versie).
-- OpenFreeMap Positron (basiskaart).
-- Sharon applicatie/shell-cache: 0.1.51.
+- Eigen monochrome stijl, afgeleid van OpenFreeMap Positron; meegeleverd in `EnvironmentStyle.js`.
+- Geen sprite-, raster- of externe stijlverzoeken; plaats- en straatnamen blijven behouden.
+- Gebouwen vanaf zoom 14, zoom tot 22 (extra zoom vergroot beschikbare geometrie).
+- Expliciete MapLibre 6 module-worker en maximaal twee workers.
+- Laatste kaartpositie/zoom lokaal opgeslagen; +/- knoppen en knijpzoom.
+- Appbestanden met het huidige versienummer komen direct uit de shell-cache.
+- Sharon applicatie/shell-cache: 0.1.53.
 - Standaard HTTP-/browsercache van de kaartdienst; geen eigen tegelgenerator.
 - De serviceworker precachet de lokale kaartmodule en GeoJSON-adapter.
 - Kaartlabels voor straten en plaatsen blijven zichtbaar; Wikipedia wordt
@@ -99,7 +104,7 @@ telefoons voor brede uitrol.
 
 ## Acceptatietests
 
-- Open Sharon > Omgeving: Positron vectorkaart met straten en gebouwen.
+- Open Sharon > Omgeving: witte vectorkaart met grijze straten en gebouwen.
 - Navigeren, in-/uitzoomen en GPS-positie bepalen.
 - Opgeslagen lokale locaties worden als punten getoond.
 - Eigen lijn of polygoon met `data.environment.visible` verschijnt.
@@ -115,3 +120,21 @@ GitHub `main` en webhosting `sharon.life` zijn mogelijk gescheiden.
 Merge wijzigt de repository; bij FTP/Strato publicatie is aparte upload van
 gewijzigde statische bestanden nodig. `/environment/tiles` en `/private`
 blijven onaangeroerd.
+
+## Projecties (0.1.53)
+
+`data.environment.color` ondersteunt een kleur als `#316a86`. `opacity` is
+een getal van 0 tot 1; `seen: true` vervaagt punt, lijn én vlakcontour.
+Standaard blijven objecten donkergrijs. Een import of bronadapter bepaalt
+welke objecten al gezien zijn; de kaart leidt dat niet zelfstandig af.
+Na aanpassen van opgeslagen objecten kan die adapter
+`events.emit('environment.objects.changed')` aanroepen. De kaart leest
+dan de lokale objecten opnieuw, zonder de basiskaart te reconstrueren.
+
+De bronidentifier blijft aan het hele object gekoppeld. Alleen de
+weergavevelden gaan naar de lokale GeoJSON-laag. Automatisch vergelijken
+met externe bronnen en een projectie-editor vallen buiten deze versie.
+
+Validatie: volledige Node-tests en MapLibre Style Specification-validatie
+van basiskaart plus objectlagen. Visuele mobiele QA en tijdmetingen zijn
+nog op een echt apparaat nodig.

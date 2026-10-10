@@ -54,6 +54,10 @@ export function environmentFeatureForObject(item) {
     location ? pointForObject(item) : null;
   if (!geometry || !validMapGeometry(geometry)) return null;
 
+  const presentation = item.data?.environment || {};
+  const color = /^#[0-9a-f]{6}$/i.test(presentation.color) ? presentation.color : '#262629';
+  const opacity = typeof presentation.opacity === 'number' && Number.isFinite(presentation.opacity)
+    ? Math.max(0, Math.min(1, presentation.opacity)) : 1;
   const title = String(item.data?.title || item.data?.name || (location ? 'Locatie' : 'Object'));
   return {
     type: 'Feature',
@@ -63,6 +67,7 @@ export function environmentFeatureForObject(item) {
       externalId: String(item.externalId || ''),
       title: title.slice(0, 180),
       kind: String(item.type || 'object').slice(0, 50),
+      color, opacity, seen: presentation.seen === true,
       sourceId: String(item.data?.environment?.sourceId || '').slice(0, 160)
     }
   };

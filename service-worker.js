@@ -1,29 +1,30 @@
-const BUILD = '0.1.52';
+const BUILD = '0.1.53';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=0.1.52',
-  './assets/sharon-mark.png?v=0.1.52',
-  './assets/sharon-wordmark.svg?v=0.1.52',
-  './assets/sharon-logo.svg?v=0.1.52',
-  './src/main.js?v=0.1.52',
-  './src/app.js?v=0.1.52',
-  './src/core/app/InstallService.js?v=0.1.52',
-  './src/core/location/ReverseGeocodeService.js?v=0.1.52',
-  './src/core/location/LocationTriggerService.js?v=0.1.52',
-  './src/core/location/EnvironmentIdentifier.js?v=0.1.52',
-  './src/core/ids/IdentifierService.js?v=0.1.52',
-  './src/ui/Brand.js?v=0.1.52',
-  './src/ui/Boot.js?v=0.1.52',
-  './src/ui/Story.js?v=0.1.52',
-  './src/ui/LocationsView.js?v=0.1.52',
-  './src/ui/EnvironmentMapLibre.js?v=0.1.52',
-  './src/ui/EnvironmentData.js?v=0.1.52',
-  './src/ui/SettingsView.js?v=0.1.52',
-  './src/ui/SwipeRows.js?v=0.1.52',
-  './src/ui/SwipeHome.js?v=0.1.52',
-  './src/ui/Shell.js?v=0.1.52'
+  './manifest.webmanifest?v=0.1.53',
+  './assets/sharon-mark.png?v=0.1.53',
+  './assets/sharon-wordmark.svg?v=0.1.53',
+  './assets/sharon-logo.svg?v=0.1.53',
+  './src/main.js?v=0.1.53',
+  './src/app.js?v=0.1.53',
+  './src/core/app/InstallService.js?v=0.1.53',
+  './src/core/location/ReverseGeocodeService.js?v=0.1.53',
+  './src/core/location/LocationTriggerService.js?v=0.1.53',
+  './src/core/location/EnvironmentIdentifier.js?v=0.1.53',
+  './src/core/ids/IdentifierService.js?v=0.1.53',
+  './src/ui/Brand.js?v=0.1.53',
+  './src/ui/Boot.js?v=0.1.53',
+  './src/ui/Story.js?v=0.1.53',
+  './src/ui/LocationsView.js?v=0.1.53',
+  './src/ui/EnvironmentMapLibre.js?v=0.1.53',
+  './src/ui/EnvironmentData.js?v=0.1.53',
+  './src/ui/EnvironmentStyle.js?v=0.1.53',
+  './src/ui/SettingsView.js?v=0.1.53',
+  './src/ui/SwipeRows.js?v=0.1.53',
+  './src/ui/SwipeHome.js?v=0.1.53',
+  './src/ui/Shell.js?v=0.1.53'
 ];
 
 self.addEventListener('install', event => {
@@ -59,8 +60,14 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/environment/api/')) return;
 
   event.respondWith((async () => {
+    // Versioned app assets are immutable within a build: render them immediately.
+    // Navigations still check the network for the next app version.
+    if (url.searchParams.get('v') === BUILD) {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+    }
     try {
-      const response = await fetch(new Request(event.request, { cache: 'reload' }));
+      const response = await fetch(event.request);
 
       if (response.ok && new URL(event.request.url).origin === self.location.origin) {
         const cache = await caches.open(CACHE);
