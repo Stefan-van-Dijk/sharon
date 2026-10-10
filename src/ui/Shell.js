@@ -269,7 +269,8 @@ export function createShell(root, {
     await swapView(() => openSettings(outlet, {
       settings,
       install,
-      events
+      events,
+      store
     }), { animate });
   };
 
