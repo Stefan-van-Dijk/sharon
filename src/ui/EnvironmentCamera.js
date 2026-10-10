@@ -1,14 +1,16 @@
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
-  environmentZoomForSpan, environmentZoomTransition } from './EnvironmentScale.js?v=0.1.59';
+  environmentZoomForSpan, environmentZoomTransition } from './EnvironmentScale.js?v=0.1.60';
 
 // Keep a requested destination while an animation runs. Repeated taps advance
 // from that destination, rather than the camera's intermediate position.
-export function createEnvironmentCameraControls(map, onManual = () => {}) {
+export function createEnvironmentCameraControls(map, onManual = () => {}, onRequest = () => {}) {
   let targetZoom = null, targetScale = null;
   const clamp = zoom => Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), zoom));
   const apply = (zoom, scale, duration) => {
     onManual();
+    const from = map.getZoom();
     targetZoom = clamp(zoom); targetScale = scale;
+    onRequest({ from, to: targetZoom, scale: targetScale });
     environmentZoomTransition(map, targetZoom, { duration });
   };
   return {
