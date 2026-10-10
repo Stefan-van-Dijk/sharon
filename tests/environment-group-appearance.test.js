@@ -8,11 +8,12 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 
-test('six logical groups contain fifteen distinct editable parts', () => {
+test('ten logical groups contain thirty-seven distinct editable parts', () => {
   assert.deepEqual(APPEARANCE_SECTIONS.map(group => group.label),
-    ['Basis', 'Water', 'Wegen', 'Transport', 'Gebouwen', 'Groen']);
-  assert.equal(APPEARANCE_GROUPS.length, 15);
-  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 15);
+    ['Basis', 'Water', 'Wegen', 'Transport', 'Gebouwen', 'Groen',
+      'Zand & kust', 'Natte natuur', 'Landbouw', 'Rots & ijs']);
+  assert.equal(APPEARANCE_GROUPS.length, 37);
+  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 37);
   assert.equal(appearanceSectionFor('forest').id, 'green');
   assert.equal(appearanceSectionFor('motorway').id, 'roads');
   assert.deepEqual(APPEARANCE_SECTIONS.find(group => group.id === 'transport').items,
@@ -57,7 +58,7 @@ test('land updates canvas background; forest and green are subdued genuine vecto
   const byId = new Map(environmentStyle.layers.map(layer => [layer.id, layer]));
   assert.equal(byId.get('background').paint['background-color'], '#ffffff');
   assert.equal(byId.get('forest')['source-layer'], 'landcover');
-  assert.equal(byId.get('green')['source-layer'], 'landuse');
+  assert.equal(byId.get('green')['source-layer'], 'landcover');
   assert.ok(environmentStyle.layers.findIndex(l => l.id === 'forest') <
     environmentStyle.layers.findIndex(l => l.id === 'water'));
   const calls = [];
@@ -112,6 +113,6 @@ test('editor includes per-property reversion and edits group separately from chi
   assert.ok(editor.includes('data-style-fill-hex'));
   assert.ok(editor.includes('dx >= 58'));
   assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
-  assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;'));
+  assert.ok(css.includes('grid-auto-columns:calc((100% - 3px)/4)'));
   assert.ok(css.includes('backdrop-filter:blur(18px) saturate(145%)'));
 });
