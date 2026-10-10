@@ -215,6 +215,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
         fragment.append(wrapper);
       }
       groups.replaceChildren(fragment);
+      // Every group starts at its first four tiles. Horizontal dragging stays
+      // local to this raster; no extra rows or jump in the surrounding map.
+      groups.scrollLeft = 0;
       shownSectionId = sectionId;
     }
     for (const id of section().items) {
