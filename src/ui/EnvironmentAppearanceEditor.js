@@ -118,7 +118,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const currentGroup = () =>
     APPEARANCE_GROUPS.find(group => group.id === groupInput.value) || APPEARANCE_GROUPS[0];
   const setStatus = text => { if (!disposed) status.textContent = text; };
-  const notify = () => { if (floating && !disposed) onChange(overrides); };
+  const notify = (category = null) => { if (floating && !disposed) onChange(overrides, category); };
   const setOpen = visible => {
     if (!floatingElement) return;
     host.hidden = !visible;
@@ -173,7 +173,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (Object.keys(entry).length) overrides[group.id] = entry;
     else delete overrides[group.id];
     overrides = sanitizeEnvironmentAppearance(overrides);
-    notify();
+    notify(group.id);
     render();
     persist();
   };
@@ -185,8 +185,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const onFrom = () => update('from', fromInput.value);
   const onTo = () => update('to', toInput.value);
   const onResetOne = () => {
-    delete overrides[currentGroup().id];
-    notify();
+    const groupId = currentGroup().id;
+    delete overrides[groupId];
+    notify(groupId);
     render();
     setStatus('Standaard voor dit onderdeel hersteld.');
     persist();
