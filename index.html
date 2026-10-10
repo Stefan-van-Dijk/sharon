@@ -400,6 +400,7 @@
     .app-stage[data-view="detail"] .app-header .persistent-brand-button{pointer-events:auto}
     .app-stage[data-view="detail"] .app-view{position:absolute;inset:0;z-index:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:max(24px,env(safe-area-inset-bottom))}
     .app-stage[data-view="detail"]:not(.is-environment) .app-view>.module-view{padding-top:calc(env(safe-area-inset-top) + 70px)}
+    .app-stage.is-environment .app-header{background:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.18) 70%,rgba(255,255,255,0) 100%)}
     .app-stage.is-environment .app-view{padding:0;overflow:hidden}
     .app-stage.is-environment .app-frame{width:100%}
     /* Compact right-aligned camera controls. */
@@ -410,12 +411,12 @@
     .environment-maplibre .environment-map-top-actions .environment-scale-chip{min-width:0;padding:0 14px;white-space:nowrap}
     /* One bottom rail, two equally sized faces; swipe from the left edge of
        the position face brings the style face in from the left. */
-    .environment-readout{height:84px;padding:0;overflow:hidden;display:block;touch-action:pan-y;pointer-events:auto}
+    .environment-readout{height:68px;padding:0;overflow:hidden;display:block;touch-action:pan-y;pointer-events:auto}
     .environment-readout>.environment-readout-track{display:flex;gap:0;text-align:left}
     .environment-readout-track{height:100%;width:200%;display:flex;flex-direction:row-reverse;transform:translate3d(-50%,0,0);transition:transform .25s cubic-bezier(.22,.61,.36,1);will-change:transform}
     .environment-readout-track.is-dragging{transition:none}
     .environment-readout.is-style-active .environment-readout-track{transform:translate3d(0,0,0)}
-    .environment-readout-position,.environment-readout-style{flex:0 0 50%;width:50%;height:100%;min-width:0;padding:11px 13px}
+    .environment-readout-position,.environment-readout-style{flex:0 0 50%;width:50%;height:100%;min-width:0;padding:7px 13px}
     .environment-readout-position{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px}
     .environment-readout-position>div{min-width:0;display:grid;gap:3px}
     .environment-readout-position>div:last-child{text-align:right}
@@ -426,13 +427,13 @@
     .environment-style-return{width:46px;min-width:46px;height:46px!important;min-height:46px!important;padding:0;border:1px solid #eeeef0;border-radius:15px;background:#fafafa;color:#66666d;display:grid;place-items:center}
     .environment-style-bar-content{min-width:0;flex:1;display:grid;gap:4px}
     .environment-style-bar-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-    .environment-style-bar-actions button{min-width:0;min-height:35px!important;height:35px!important;padding:3px 4px;border:1px solid #e5e5e9;border-radius:10px;background:#f8f8f9;color:#4c4c52;font-size:10px;white-space:nowrap}
+    .environment-style-bar-actions button{min-width:0;min-height:32px!important;height:32px!important;padding:3px 4px;border:1px solid #e5e5e9;border-radius:10px;background:#f8f8f9;color:#4c4c52;font-size:10px;white-space:nowrap}
     .environment-style-bar-actions button:disabled{opacity:.45}
     .environment-style-bar-content>small{display:block;color:#99999e;font-size:9px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .environment-maplibre .maplibregl-ctrl-bottom-right{right:max(10px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 91px)}
+    .environment-maplibre .maplibregl-ctrl-bottom-right{right:max(10px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 75px)}
     .environment-maplibre .maplibregl-ctrl-attrib{font-size:9px;line-height:1.15}
     /* Editor opens immediately above the readout, leaving the map visible. */
-    .environment-style-flyout{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 95px);width:auto;max-height:min(58dvh,590px);padding:16px;border:1px solid #e6e6e9;border-radius:20px;background:rgba(255,255,255,.96);box-shadow:0 8px 32px rgba(0,0,0,.09);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;pointer-events:auto}
+    .environment-style-flyout{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 79px);width:auto;max-height:min(58dvh,590px);padding:16px;border:1px solid #e6e6e9;border-radius:20px;background:rgba(255,255,255,.96);box-shadow:0 8px 32px rgba(0,0,0,.09);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;pointer-events:auto}
     .environment-style-flyout[hidden]{display:none!important}
     .environment-style-flyout .environment-style-panel{max-width:none;gap:15px}
     .environment-style-flyout .environment-style-heading{display:flex;justify-content:space-between;align-items:center}
