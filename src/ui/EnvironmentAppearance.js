@@ -23,7 +23,29 @@ export const APPEARANCE_GROUPS = Object.freeze([
   { id: 'piers', label: 'Pieren', lines: ['road_pier'] },
   { id: 'buildings', label: 'Gebouwen', fill: 'building', lines: ['building-outline'] },
   { id: 'green', label: 'Groen', fill: 'green' },
-  { id: 'forest', label: 'Bos', fill: 'forest' }
+  { id: 'forest', label: 'Bos', fill: 'forest' },
+  { id: 'grassland', label: 'Grasland', fill: 'grassland' },
+  { id: 'heath', label: 'Heide', fill: 'heath' },
+  { id: 'scrub', label: 'Struikgewas', fill: 'scrub' },
+  { id: 'meadow', label: 'Weiland', fill: 'meadow' },
+  { id: 'tundra', label: 'Toendra', fill: 'tundra' },
+  { id: 'beach', label: 'Strand', fill: 'beach' },
+  { id: 'dunes', label: 'Duinen', fill: 'dunes' },
+  { id: 'sand', label: 'Zandvlaktes', fill: 'sand' },
+  { id: 'wetland', label: 'Nat grasland', fill: 'wetland' },
+  { id: 'bog', label: 'Veen', fill: 'bog' },
+  { id: 'marsh', label: 'Moeras', fill: 'marsh' },
+  { id: 'reedbed', label: 'Rietland', fill: 'reedbed' },
+  { id: 'tidalflat', label: 'Slikken', fill: 'tidalflat' },
+  { id: 'mangrove', label: 'Mangrove', fill: 'mangrove' },
+  { id: 'farmland', label: 'Akkerland', fill: 'farmland' },
+  { id: 'orchard', label: 'Boomgaarden', fill: 'orchard' },
+  { id: 'vineyard', label: 'Wijngaarden', fill: 'vineyard' },
+  { id: 'allotments', label: 'Volkstuinen', fill: 'allotments' },
+  { id: 'nursery', label: 'Kwekerijen', fill: 'nursery' },
+  { id: 'rock', label: 'Rotsen', fill: 'rock' },
+  { id: 'scree', label: 'Puinhellingen', fill: 'scree' },
+  { id: 'glacier', label: 'Gletsjers', fill: 'glacier' }
 ]);
 
 export const APPEARANCE_SECTIONS = Object.freeze([
@@ -32,7 +54,11 @@ export const APPEARANCE_SECTIONS = Object.freeze([
   { id: 'roads', label: 'Wegen', items: ['minor', 'major', 'motorway', 'paths'] },
   { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways', 'piers'] },
   { id: 'buildings', label: 'Gebouwen', items: ['buildings'] },
-  { id: 'green', label: 'Groen', items: ['green', 'forest'] }
+  { id: 'green', label: 'Groen', items: ['green', 'forest', 'grassland', 'heath', 'scrub', 'meadow', 'tundra'] },
+  { id: 'coast', label: 'Zand & kust', items: ['beach', 'dunes', 'sand'] },
+  { id: 'wetlands', label: 'Natte natuur', items: ['wetland', 'bog', 'marsh', 'reedbed', 'tidalflat', 'mangrove'] },
+  { id: 'farming', label: 'Landbouw', items: ['farmland', 'orchard', 'vineyard', 'allotments', 'nursery'] },
+  { id: 'stone', label: 'Rots & ijs', items: ['rock', 'scree', 'glacier'] }
 ]);
 
 export const APPEARANCE_SCALE_OPTIONS = Object.freeze(ENVIRONMENT_SCALES
