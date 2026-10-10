@@ -3,11 +3,39 @@ import {
   appearanceDefaults, sanitizeEnvironmentAppearance
 } from './EnvironmentAppearance.js?v=0.1.65';
 
-export function createEnvironmentAppearanceEditor(root, store) {
+export function createEnvironmentAppearanceEditor(root, store, {
+  floating = false, onChange = () => {}
+} = {}) {
+  let floatingElement = null;
+  if (floating) {
+    const controls = root.querySelector('[data-map-controls]');
+    if (!controls) return () => {};
+    controls.insertAdjacentHTML('beforeend', `
+      <div class="environment-style-floating" data-environment-style-floating>
+        <button type="button" class="environment-style-icon" data-style-toggle
+          aria-label="Kaartstijl aanpassen" title="Kaartstijl"
+          aria-expanded="false" aria-controls="environment-style-flyout">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none"
+            stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a9 9 0 1 0 0 18h1.5a2.1 2.1 0 0 0 1.4-3.7 1.9 1.9 0 0 1 .8-3.3h2.3A4.3 4.3 0 0 0 22 9.7 9 9 0 0 0 12 3Z"/>
+            <circle cx="7.5" cy="12" r="1"/><circle cx="10" cy="7.5" r="1"/>
+            <circle cx="15" cy="7.5" r="1"/>
+          </svg>
+        </button>
+        <div class="environment-style-flyout" id="environment-style-flyout"
+          data-map-style-settings hidden></div>
+      </div>
+    `);
+    floatingElement = controls.querySelector('[data-environment-style-floating]');
+  }
   const host = root.querySelector('[data-map-style-settings]');
   if (!host) return () => {};
   host.innerHTML = `
     <div class="environment-style-panel" aria-label="Kaartstijl">
+      ${floating ? `<div class="environment-style-heading">
+        <strong>Kaartstijl</strong>
+        <button type="button" data-style-close aria-label="Sluit kaartstijl">×</button>
+      </div>` : ''}
       <label>Onderdeel
         <select data-style-group aria-label="Kaartonderdeel"></select>
       </label>
@@ -50,6 +78,8 @@ export function createEnvironmentAppearanceEditor(root, store) {
     </div>
   `;
   const get = selector => host.querySelector(selector);
+  const toggle = floatingElement?.querySelector('[data-style-toggle]');
+  const closeButton = get('[data-style-close]');
   const groupInput = get('[data-style-group]');
   const fillRow = get('[data-style-fill-row]');
   const fillInput = get('[data-style-fill]');
@@ -88,6 +118,14 @@ export function createEnvironmentAppearanceEditor(root, store) {
   const currentGroup = () =>
     APPEARANCE_GROUPS.find(group => group.id === groupInput.value) || APPEARANCE_GROUPS[0];
   const setStatus = text => { if (!disposed) status.textContent = text; };
+  const notify = () => { if (floating && !disposed) onChange(overrides); };
+  const setOpen = visible => {
+    if (!floatingElement) return;
+    host.hidden = !visible;
+    toggle.setAttribute('aria-expanded', String(visible));
+    if (visible) groupInput.focus();
+    else toggle.focus();
+  };
   const render = () => {
     const group = currentGroup();
     const values = { ...appearanceDefaults(group), ...(overrides[group.id] || {}) };
@@ -129,11 +167,13 @@ export function createEnvironmentAppearanceEditor(root, store) {
       delete entry[key === 'from' ? 'to' : 'from'];
       setStatus('Bereik aangepast: de andere grens is weer standaard.');
     } else {
-      setStatus('Aangepast · lokaal opgeslagen. Bekijk het resultaat in Omgeving.');
+      setStatus(floating ? 'Direct zichtbaar op de kaart · lokaal opgeslagen.' :
+        'Aangepast · lokaal opgeslagen. Bekijk het resultaat in Omgeving.');
     }
     if (Object.keys(entry).length) overrides[group.id] = entry;
     else delete overrides[group.id];
     overrides = sanitizeEnvironmentAppearance(overrides);
+    notify();
     render();
     persist();
   };
@@ -146,17 +186,21 @@ export function createEnvironmentAppearanceEditor(root, store) {
   const onTo = () => update('to', toInput.value);
   const onResetOne = () => {
     delete overrides[currentGroup().id];
+    notify();
     render();
     setStatus('Standaard voor dit onderdeel hersteld.');
     persist();
   };
   const onResetAll = () => {
     overrides = {};
+    notify();
     render();
     setStatus('Alle standaardinstellingen hersteld.');
     persist();
   };
   const listeners = [
+    ...(toggle ? [[toggle, 'click', () => setOpen(host.hidden)]] : []),
+    ...(closeButton ? [[closeButton, 'click', () => setOpen(false)]] : []),
     [groupInput, 'change', onGroup], [fillInput, 'input', onFill],
     [strokeInput, 'input', onStroke], [widthInput, 'input', onWidth],
     [dashInput, 'change', onDash], [fromInput, 'change', onFrom],
@@ -171,15 +215,17 @@ export function createEnvironmentAppearanceEditor(root, store) {
     loaded = true;
     for (const control of controls) control.disabled = false;
     render();
+    notify();
   }).catch(() => {
     if (disposed) return;
     loaded = true;
     for (const control of controls) control.disabled = false;
     render();
+    notify();
     setStatus('Lokale instellingen konden niet worden geladen.');
   });
 
-  return () => {
+  const dispose = () => {
     if (disposed) return;
     if (saveTimer) {
       clearTimeout(saveTimer);
@@ -187,5 +233,10 @@ export function createEnvironmentAppearanceEditor(root, store) {
     }
     disposed = true;
     for (const [element, name, callback] of listeners) element.removeEventListener(name, callback);
+    floatingElement?.remove();
   };
+  dispose.apply = () => {
+    if (loaded && !disposed) notify();
+  };
+  return dispose;
 }
