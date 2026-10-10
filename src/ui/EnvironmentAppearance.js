@@ -103,9 +103,10 @@ function sanitizeEntry(entry, caps) {
     if (name === 'width' && caps.width && validWidth(value)) clean.width = value;
     if (name === 'dash' && caps.dash && validDash(value)) clean.dash = value;
     if ((name === 'from' || name === 'to') && caps.scale &&
-        typeof value === 'string' && scaleIndex(value) >= 0) clean[name] = value;
+        typeof value === 'string' && (scaleIndex(value) >= 0 || value === 'all')) clean[name] = value;
   }
-  if (clean.from && clean.to && scaleIndex(clean.from) < scaleIndex(clean.to)) delete clean.to;
+  if (clean.from && clean.to && clean.from !== 'all' && clean.to !== 'all' &&
+      scaleIndex(clean.from) < scaleIndex(clean.to)) delete clean.to;
   return clean;
 }
 // Legacy airfields customization applies to both new separate child categories.
@@ -191,8 +192,8 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
         if (!map.getLayer(id)) continue;
         const base = layers.get(id);
         map.setLayerZoomRange(id,
-          override.from || override.to ? 0 : (base.minzoom ?? 0),
-          override.from || override.to ? 24 : (base.maxzoom ?? 24));
+          (override.from && override.from !== 'all') || (override.to && override.to !== 'all') ? 0 : (base.minzoom ?? 0),
+          (override.from && override.from !== 'all') || (override.to && override.to !== 'all') ? 24 : (base.maxzoom ?? 24));
       }
     }
   }
@@ -209,8 +210,8 @@ export function applyEnvironmentVisibility(map, appearance) {
     if (group.background) continue; // The land background always fills the canvas.
     const section = appearanceSectionFor(group.id);
     const override = { ...(clean.groupStyles?.[section.id] || {}), ...(clean[group.id] || {}) };
-    const visible = (!override.from || current <= scaleIndex(override.from)) &&
-      (!override.to || current >= scaleIndex(override.to));
+    const visible = (!override.from || override.from === 'all' || current <= scaleIndex(override.from)) &&
+      (!override.to || override.to === 'all' || current >= scaleIndex(override.to));
     const value = visible ? 'visible' : 'none';
     for (const id of groupLayerIds(group)) {
       if (!map.getLayer(id)) continue;
