@@ -1,4 +1,4 @@
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.66';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.67';
 
 export function openSettings(root, {
   settings,
