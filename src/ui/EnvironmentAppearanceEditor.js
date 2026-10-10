@@ -9,7 +9,6 @@ const dashOptions = [
   { id: 'dotted', label: 'Gestippeld', pattern: '1 6' },
   { id: 'dashed', label: 'Gestreept', pattern: '9 5' }
 ];
-const paletteSvg = '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.5a2.1 2.1 0 0 0 1.4-3.7 1.9 1.9 0 0 1 .8-3.3h2.3A4.3 4.3 0 0 0 22 9.7 9 9 0 0 0 12 3Z"/><circle cx="7.5" cy="12" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>';
 
 export function createEnvironmentAppearanceEditor(root, store, {
   floating = false, onChange = () => {}
@@ -20,9 +19,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
     '<section class="environment-style-flyout" data-map-style-settings aria-label="Kaartstijl aanpassen" hidden></section>');
   const host = root.querySelector('[data-map-style-settings]');
   if (!host) return () => {};
-  host.innerHTML = \`
+  host.innerHTML = `
     <div class="environment-style-panel" aria-label="Kaartstijl">
-      \${floating ? '<header class="environment-style-heading"><strong>Kaartstijl</strong><button type="button" data-style-close aria-label="Sluit kaartstijl">×</button></header>' : ''}
+      ${floating ? '<header class="environment-style-heading"><strong>Kaartstijl</strong><button type="button" data-style-close aria-label="Sluit kaartstijl">×</button></header>' : ''}
       <div class="environment-style-groups" data-style-groups role="group" aria-label="Kaartonderdelen"></div>
       <div class="environment-style-width">
         <div class="environment-style-width-head">
@@ -38,17 +37,17 @@ export function createEnvironmentAppearanceEditor(root, store, {
           aria-label="Lijndikte ten opzichte van standaard"/>
       </div>
       <div class="environment-style-dash-choices" role="group" aria-label="Lijnstijl">
-        \${dashOptions.map(item => \`
-          <button type="button" data-style-dash="\${item.id}" aria-pressed="false"
-            aria-label="\${item.label}">
+        ${dashOptions.map(item => `
+          <button type="button" data-style-dash="${item.id}" aria-pressed="false"
+            aria-label="${item.label}">
             <svg viewBox="0 0 78 18" width="100%" height="18" aria-hidden="true">
               <line x1="6" y1="9" x2="72" y2="9" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" \${item.pattern ? \`stroke-dasharray="\${item.pattern}"\` : ''}/>
+                stroke-linecap="round" ${item.pattern ? `stroke-dasharray="${item.pattern}"` : ''}/>
             </svg>
-            <span>\${item.label}</span>
+            <span>${item.label}</span>
             <small data-dash-default>Standaard</small>
           </button>
-        \`).join('')}
+        `).join('')}
       </div>
       <div class="environment-style-range">
         <strong>Zichtbaar op schaalniveaus</strong>
@@ -62,12 +61,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
             aria-label="Grootste zichtbare schaalniveau"/>
         </div>
         <div class="environment-scale-labels">
-          \${APPEARANCE_SCALE_OPTIONS.map(scale => \`<small>\${scale.label}</small>\`).join('')}
+          ${APPEARANCE_SCALE_OPTIONS.map(scale => `<small>${scale.label}</small>`).join('')}
         </div>
       </div>
-      \${floating ? '' : '<div class="environment-style-actions"><button type="button" data-style-reset-one>Herstel onderdeel</button><button type="button" data-style-reset-all>Alles standaard</button></div><small class="environment-style-status" data-style-status role="status">Lokaal opgeslagen</small>'}
+      ${floating ? '' : '<div class="environment-style-actions"><button type="button" data-style-reset-one>Herstel onderdeel</button><button type="button" data-style-reset-all>Alles standaard</button></div><small class="environment-style-status" data-style-status role="status">Lokaal opgeslagen</small>'}
     </div>
-  \`;
+  `;
   const get = selector => host.querySelector(selector);
   const groups = get('[data-style-groups]');
   const strokeInput = get('[data-style-stroke]');
@@ -103,13 +102,13 @@ export function createEnvironmentAppearanceEditor(root, store, {
     const values = valuesFor(group);
     const pattern = values.dash === 'dotted' ? '1 6' : values.dash === 'dashed' ? '9 5' :
       (values.dash === 'solid' ? '' : ({ solid: '', dotted: '1 6', dashed: '9 5' }[appearanceDefaultLineStyle(group)]));
-    if (group.fill) return \`<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
+    if (group.fill) return `<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
       <path d="M7 28 L16 8 L39 14 L53 5 L80 13 L79 30 Z"
-        fill="\${values.fill}" stroke="\${values.stroke}" stroke-width="1.8"/></svg>\`;
-    return \`<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
+        fill="${values.fill}" stroke="${values.stroke}" stroke-width="1.8"/></svg>`;
+    return `<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
       <path d="M6 26 L27 12 L47 23 L65 9 L82 17" fill="none"
-        stroke="\${values.stroke}" stroke-width="\${Math.min(5, 2.25 * values.width)}"
-        stroke-linecap="round" \${pattern ? \`stroke-dasharray="\${pattern}"\` : ''}/></svg>\`;
+        stroke="${values.stroke}" stroke-width="${Math.min(5, 2.25 * values.width)}"
+        stroke-linecap="round" ${pattern ? `stroke-dasharray="${pattern}"` : ''}/></svg>`;
   };
 
   const renderGroups = () => {
@@ -224,7 +223,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (!touchStart.locked) return;
     if (event.cancelable) event.preventDefault();
     track.classList.add('is-dragging');
-    track.style.transform = \`translate3d(\${Math.min(readout.clientWidth, dx) - readout.clientWidth}px,0,0)\`;
+    track.style.transform = `translate3d(${Math.min(readout.clientWidth, dx) - readout.clientWidth}px,0,0)`;
   };
   const finishSwipe = event => {
     if (!touchStart) return;
