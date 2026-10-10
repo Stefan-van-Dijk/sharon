@@ -1,6 +1,6 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.73';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.74';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.73';
+  from './EnvironmentScale.js?v=0.1.74';
 
 // Keep v1: all individual customizations made in previous Sharon versions survive.
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';

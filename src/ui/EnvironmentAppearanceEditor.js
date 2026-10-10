@@ -2,7 +2,7 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.73';
+} from './EnvironmentAppearance.js?v=0.1.74';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -28,7 +28,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       '<div class="environment-style-scope">',
         '<button type="button" data-style-parent aria-pressed="true">Groep</button>',
         '<span data-style-selection aria-live="polite"></span>',
-        '<button type="button" data-style-inherit hidden>Groep overnemen ↶</button>',
+        '<button type="button" data-style-inherit disabled>Groep overnemen ↶</button>',
       '</div>',
       '<div class="environment-style-groups" data-style-groups role="group" aria-label="Subgroepen"></div>',
       '<div class="environment-style-colors">',
@@ -40,7 +40,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
             '</span>',
             '<output data-style-fill-hex></output>',
           '</label>',
-          '<button type="button" data-inherit-field="fill" aria-label="Vulkleur van groep overnemen" hidden>↶</button>',
+          '<button type="button" data-inherit-field="fill" aria-label="Vulkleur van groep overnemen" disabled>↶</button>',
         '</div>',
         '<div class="environment-style-color-row" data-style-stroke-row>',
           '<span>Lijn</span>',
@@ -50,19 +50,19 @@ export function createEnvironmentAppearanceEditor(root, store, {
             '</span>',
             '<output data-style-stroke-hex></output>',
           '</label>',
-          '<button type="button" data-inherit-field="stroke" aria-label="Lijnkleur van groep overnemen" hidden>↶</button>',
+          '<button type="button" data-inherit-field="stroke" aria-label="Lijnkleur van groep overnemen" disabled>↶</button>',
         '</div>',
       '</div>',
       '<div class="environment-style-width">',
         '<span>Dikte</span>',
         '<input data-style-width type="range" min="0.25" max="4" step="0.25" value="1" aria-label="Lijndikte"/>',
         '<output data-style-width-value>1×</output>',
-        '<button type="button" data-inherit-field="width" aria-label="Lijndikte van groep overnemen" hidden>↶</button>',
+        '<button type="button" data-inherit-field="width" aria-label="Lijndikte van groep overnemen" disabled>↶</button>',
       '</div>',
       '<div class="environment-style-dash-choices" role="group" aria-label="Lijnstijl"></div>',
       '<div class="environment-style-range">',
         '<div class="environment-style-range-head"><span>Schaal</span>',
-          '<button type="button" data-inherit-field="scale" aria-label="Schaalbereik van groep overnemen" hidden>↶</button>',
+          '<button type="button" data-inherit-field="scale" aria-label="Schaalbereik van groep overnemen" disabled>↶</button>',
         '</div>',
         '<div class="environment-scale-range">',
           '<div class="environment-scale-rail"><div data-scale-fill></div></div>',
@@ -200,10 +200,23 @@ export function createEnvironmentAppearanceEditor(root, store, {
         wrapper.append(button);
         fragment.append(wrapper);
       }
+      // Always reserve four positions. Empty positions stay disabled instead
+      // of collapsing the raster when a section has one or two children.
+      for (let index = section().items.length; index < 4; index++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'environment-style-group is-unavailable';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'environment-style-group-main';
+        button.disabled = true;
+        button.textContent = '—';
+        button.setAttribute('aria-label', 'Geen onderdeel beschikbaar');
+        wrapper.append(button);
+        fragment.append(wrapper);
+      }
       groups.replaceChildren(fragment);
       shownSectionId = sectionId;
     }
-    groups.hidden = section().items.length === 1;
     for (const id of section().items) {
       const wrapper = [...groups.children].find(node => node.dataset.groupCard === id);
       wrapper.classList.toggle('is-selected', id === selectedId);
@@ -219,15 +232,34 @@ export function createEnvironmentAppearanceEditor(root, store, {
     for (const tab of tabs.querySelectorAll('[data-style-section]'))
       tab.setAttribute('aria-pressed', String(tab.dataset.styleSection === sectionId));
     renderGrid();
-    parentButton.hidden = s.items.length === 1;
     parentButton.setAttribute('aria-pressed', String(!selectedId));
-    selection.textContent = selectedId ? child().label : (s.items.length === 1 ? s.label : '');
-    inheritButton.hidden = !selectedId || !Object.keys(entry).length || s.items.length === 1;
-    fillRow.hidden = !caps.fill;
-    strokeRow.hidden = !caps.stroke;
-    widthRow.hidden = !caps.width;
-    dashRow.hidden = !caps.dash;
-    rangeRow.hidden = !caps.scale;
+    selection.textContent = selectedId ? child().label : '';
+    inheritButton.disabled = !selectedId || !Object.keys(entry).length;
+    // Keep all property rows at fixed positions. Unsupported properties
+    // visibly remain as disabled controls rather than collapsing the sheet.
+    for (const [row, applicable] of [
+      [fillRow, caps.fill], [strokeRow, caps.stroke], [widthRow, caps.width],
+      [dashRow, caps.dash], [rangeRow, caps.scale]
+    ]) {
+      row.classList.toggle('is-unavailable', !applicable);
+      row.setAttribute('aria-disabled', String(!applicable));
+    }
+    fillInput.disabled = !caps.fill;
+    strokeInput.disabled = !caps.stroke;
+    widthInput.disabled = !caps.width;
+    for (const button of dashButtons) button.disabled = !caps.dash;
+    lowInput.disabled = !caps.scale;
+    highInput.disabled = !caps.scale;
+    if (!caps.fill) {
+      get('[data-fill-swatch]').style.setProperty('--style-color', '#e3e3e7');
+      fillHex.textContent = '—';
+    }
+    if (!caps.stroke) {
+      get('[data-stroke-swatch]').style.setProperty('--style-color', '#e3e3e7');
+      strokeHex.textContent = '—';
+      widthValue.textContent = '—';
+      for (const button of dashButtons) button.setAttribute('aria-pressed', 'false');
+    }
     if (caps.fill) {
       get('[data-fill-swatch]').style.setProperty('--style-color', values.fill);
       fillHex.textContent = values.fill?.toUpperCase() || '';
@@ -259,7 +291,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
     }
     for (const button of host.querySelectorAll('[data-inherit-field]')) {
       const field = button.dataset.inheritField;
-      button.hidden = !selectedId ||
+      const available = field === 'scale' ? caps.scale : !!caps[field];
+      button.disabled = !selectedId || !available ||
         (field === 'scale' ? !('from' in entry || 'to' in entry) : !(field in entry));
     }
     resetOne.disabled = !Object.keys(entry).length;
@@ -343,7 +376,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     const tab = event.target.closest('[data-style-section]');
     if (!tab) return;
     sectionId = tab.dataset.styleSection;
-    selectedId = section().items.length === 1 ? section().items[0] : null;
+    selectedId = null;
     render();
   });
   listen(parentButton, 'click', () => { selectedId = null; render(); });
