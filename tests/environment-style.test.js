@@ -123,3 +123,63 @@ test('late settings loading cannot restyle a closed map', async () => {
   assert.equal(listeners.size, 0);
   assert.equal(calls, 0);
 });
+
+test('live palette updates map immediately and supersedes late saved appearance', async () => {
+  const layers = new Map(environmentStyle.layers.map(layer => [layer.id, layer]));
+  const events = new Map(), paints = [], layouts = new Map(), ranges = [];
+  const container = { clientWidth: 400, clientHeight: 800 };
+  let zoom = environmentZoomForSpan(700, 52, container);
+  let completeLoad;
+  const map = {
+    on(event, callback) { events.set(event, callback); },
+    off(event, callback) { if (events.get(event) === callback) events.delete(event); },
+    getLayer: id => layers.get(id),
+    setPaintProperty: (id, name, value) => paints.push({ id, name, value }),
+    setLayerZoomRange: (id, min, max) => ranges.push([id, min, max]),
+    getContainer: () => container,
+    getCenter: () => ({ lat: 52, lng: 5 }),
+    getZoom: () => zoom,
+    getLayoutProperty: (id, name) => layouts.get(id + ':' + name),
+    setLayoutProperty: (id, name, value) => layouts.set(id + ':' + name, value)
+  };
+  const dispose = bindEnvironmentAppearance(map, {
+    get: () => new Promise(resolve => { completeLoad = resolve; })
+  });
+  assert.equal(typeof dispose.setAppearance, 'function');
+  dispose.setAppearance({ water: { fill: '#abcdef', from: 'street', to: 'detail' } }, 'water');
+  assert.equal(paints.at(-4)?.id, 'water'); // New paint comes from selected category only.
+  assert.ok(paints.some(call => call.id === 'water' && call.name === 'fill-color' &&
+    call.value === '#abcdef'));
+  assert.ok(ranges.some(([id, min]) => id === 'water' && min === 0));
+
+  completeLoad({ value: { water: { fill: '#112233' } } });
+  await Promise.resolve();
+  assert.equal(paints.filter(call => call.id === 'water' && call.name === 'fill-color').at(-1).value,
+    '#abcdef', 'stale IndexedDB response must not override live edits');
+
+  zoom = environmentZoomForSpan(3000, 52, container);
+  events.get('zoom')();
+  assert.equal(layouts.get('water:visibility'), 'none');
+  zoom = environmentZoomForSpan(220, 52, container);
+  events.get('zoom')();
+  assert.equal(layouts.get('water:visibility'), 'visible');
+
+  dispose.setAppearance({}, null);
+  assert.equal(layouts.get('water:visibility'), 'visible');
+  dispose();
+  assert.equal(events.size, 0);
+});
+
+test('style palette is available in map and Settings, while plus/minus buttons remain absent', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const map = await readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8');
+  const settings = await readFile(new URL('../src/ui/SettingsView.js', import.meta.url), 'utf8');
+  const editor = await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url), 'utf8');
+  assert.ok(map.includes('floating: true'));
+  assert.ok(map.includes('appearanceBinding?.setAppearance(next, category)'));
+  assert.ok(settings.includes('data-map-style-settings'));
+  assert.ok(editor.includes('data-style-toggle'));
+  assert.ok(editor.includes('aria-label="Kaartstijl aanpassen"'));
+  assert.equal(map.includes('data-map-zoom-in'), false);
+  assert.equal(map.includes('data-map-zoom-out'), false);
+});
