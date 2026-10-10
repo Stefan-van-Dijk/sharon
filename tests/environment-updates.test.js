@@ -13,7 +13,7 @@ test('a navigation with the current version bypasses cached HTML and reloads HTT
     fetch: async (_, options) => { requestOptions = options; return { ok: true, clone: () => ({}) }; }
   });
   listeners.get('fetch')({ request: { method: 'GET', mode: 'navigate',
-    url: 'https://example.com/sharon/?v=0.1.63' }, respondWith: promise => responsePromise = promise });
+    url: 'https://example.com/sharon/?v=0.1.64' }, respondWith: promise => responsePromise = promise });
   await responsePromise;
   assert.equal(cacheLookups, 0);
   assert.equal(requestOptions.cache, 'reload');
