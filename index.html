@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.71">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.71">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.72">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.72">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -382,7 +382,14 @@
     @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}
 
 
-    /* One shared, edge-to-edge detail viewport for all Sharon modules.
+    /* Detail scroll owns the scroll position; the outer iOS viewport never does.
+       This prevents the fixed logo/title from being scrolled out of view. */
+    body.sharon-shell-active.sharon-detail-active{
+      height:100dvh;overflow:hidden;overscroll-behavior:none;
+    }
+    html:has(body.sharon-detail-active){overflow:hidden}
+    #app:has(.app-stage[data-view="detail"]){height:100dvh;overflow:hidden}
+        /* One shared, edge-to-edge detail viewport for all Sharon modules.
        The fixed chrome owns only the controls; content owns the whole screen. */
     .app-stage[data-view="detail"]{
       --sharon-header-height:54px;
@@ -399,7 +406,7 @@
       padding:0 0 max(24px,env(safe-area-inset-bottom));
     }
     .app-stage[data-view="detail"] .app-header{
-      position:absolute;left:0;right:0;top:0;z-index:40;
+      position:fixed;left:0;right:0;top:0;z-index:40;
       height:calc(env(safe-area-inset-top) + var(--sharon-header-height));
       min-height:0;padding:calc(env(safe-area-inset-top) + 5px)
         max(22px,env(safe-area-inset-right)) 0
@@ -677,16 +684,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.71#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.71#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.71#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.71#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.71#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.72#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.72#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.72#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.72#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.72#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.71"></script>
+  <script type="module" src="./src/main.js?v=0.1.72"></script>
 </body>
 </html>

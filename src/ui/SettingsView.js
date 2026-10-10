@@ -1,10 +1,7 @@
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.71';
-
 export function openSettings(root, {
   settings,
   install,
-  events,
-  store
+  events
 }) {
   const state = settings.get();
   const installState = install.getState();
@@ -57,15 +54,6 @@ export function openSettings(root, {
       </section>
 
       <section class="settings-section">
-        <span class="settings-kicker">Kaartweergave</span>
-        <p class="settings-map-intro">
-          Stel de kleuren, lijnen en zichtbaarheid per schaalniveau in voor Omgeving.
-          De instellingen blijven lokaal en zijn later altijd terug te zetten.
-        </p>
-        <div data-map-style-settings></div>
-      </section>
-
-      <section class="settings-section">
         <span class="settings-kicker">Webapp</span>
 
         <button type="button" class="settings-row" data-install-action ${installState.installed ? 'disabled' : ''}>
@@ -81,7 +69,6 @@ export function openSettings(root, {
     </section>
   `;
 
-  const cleanupAppearance = createEnvironmentAppearanceEditor(root, store);
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
@@ -130,7 +117,6 @@ export function openSettings(root, {
   });
 
   return () => {
-    cleanupAppearance();
     unsubscribeAvailable();
     unsubscribeCompleted();
   };

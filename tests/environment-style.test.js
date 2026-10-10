@@ -171,14 +171,15 @@ test('live palette updates map immediately and supersedes late saved appearance'
   assert.equal(events.size, 0);
 });
 
-test('style palette is available in map and Settings, while plus/minus buttons remain absent', async () => {
+test('style palette is available only in Omgeving and not duplicated in Settings', async () => {
   const { readFile } = await import('node:fs/promises');
   const map = await readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8');
   const settings = await readFile(new URL('../src/ui/SettingsView.js', import.meta.url), 'utf8');
   const editor = await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url), 'utf8');
   assert.ok(map.includes('floating: true'));
   assert.ok(map.includes('appearanceBinding?.setAppearance(next, category)'));
-  assert.ok(settings.includes('data-map-style-settings'));
+  assert.equal(settings.includes('data-map-style-settings'), false);
+  assert.equal(settings.includes('createEnvironmentAppearanceEditor'), false);
   assert.ok(map.includes('data-style-return'));
   assert.ok(map.includes('data-readout-position'));
   assert.ok(map.includes('data-readout-style'));

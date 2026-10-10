@@ -16,6 +16,11 @@ test('every detail view is edge-to-edge with safe content gutters and unified fi
   assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header\{[\s\S]*?height:calc\(env\(safe-area-inset-top\) \+ var\(--sharon-header-height\)\)/);
   assert.match(css, /\.app-stage\.is-environment \.app-view\{\s*padding:0;overflow:hidden;transform:none;/);
   assert.ok(css.includes('.app-header.is-detail .location-pulse{display:none;'));
+  assert.match(css, /body\.sharon-shell-active\.sharon-detail-active\{\s*height:100dvh;overflow:hidden;/);
+  assert.match(css, /html:has\(body\.sharon-detail-active\)\{overflow:hidden\}/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header\{\s*position:fixed;/);
+  const shell = await readFile(new URL('../src/ui/Shell.js', import.meta.url), 'utf8');
+  assert.ok(shell.includes("document.body.classList.toggle('sharon-detail-active', detail)"));
 });
 
 test('compact style editor has all 11 categories in four columns and line icons only', async () => {
