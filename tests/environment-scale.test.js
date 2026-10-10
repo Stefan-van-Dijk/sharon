@@ -41,12 +41,14 @@ test('free zoom reports the nearest original level including nearby and country'
 test('all input methods use native handlers with reduced zoom sensitivity', () => {
   const rates = {};
   configureEnvironmentGestures({
-    touchZoomRotate: { disableRotation() {}, setZoomRate: value => rates.touch = value },
+    touchZoomRotate: { disable: () => rates.touch = 'disabled' },
+    doubleClickZoom: { disable: () => rates.doubleTap = 'disabled' },
     scrollZoom: { setZoomRate: value => rates.trackpad = value,
       setWheelZoomRate: value => rates.wheel = value },
     keyboard: { disableRotation() {} }
   });
-  assert.ok(rates.touch > 0 && rates.touch < 1);
+  assert.equal(rates.touch, 'disabled');
+  assert.equal(rates.doubleTap, 'disabled');
   assert.ok(rates.trackpad < 1 / 100);
   assert.ok(rates.wheel < 1 / 450);
 });
@@ -56,7 +58,7 @@ test('zoom transitions respect bounds, slow large jumps and keep gesture anchors
   const map = { getZoom: () => 5, easeTo: value => options = value };
   environmentZoomTransition(map, 30);
   assert.equal(options.zoom, 22);
-  assert.equal(options.duration, 1400);
+  assert.equal(options.duration, 2200);
   assert.equal(options.easing(0), 0);
   assert.equal(options.easing(1), 1);
   environmentZoomTransition(map, 5.5, { duration: 420, around: [6, 52] });

@@ -1,4 +1,4 @@
-# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.55)
+# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.56)
 
 ## Nieuwe werkwijze
 
@@ -70,7 +70,7 @@ kaartprovider ontvangt geen lokale objectgegevens via deze toepassing.
 - Expliciete MapLibre 6 module-worker en maximaal twee workers.
 - Laatste kaartpositie/zoom lokaal opgeslagen; +/- knoppen en knijpzoom.
 - Appbestanden met het huidige versienummer komen direct uit de shell-cache.
-- Sharon applicatie/shell-cache: 0.1.55.
+- Sharon applicatie/shell-cache: 0.1.56.
 - Standaard HTTP-/browsercache van de kaartdienst; geen eigen tegelgenerator.
 - De serviceworker precachet de lokale kaartmodule en GeoJSON-adapter.
 - De basiskaart bevat alleen geometrie; Wikipedia wordt niet opgehaald.
@@ -156,3 +156,23 @@ basis voor latere projecties en vermijdt fontverzoeken.
 
 In 0.1.55 hebben kaartgebaren voorrang op de swipe naar Home, ook aan de
 linkerkant van het scherm. Terugkeren kan via de bestaande Home-knop.
+
+## Aanraakbediening en positie (0.1.56)
+
+De native combinatie van knijpzoom en tik-sleepzoom is uitgeschakeld.
+Een afzonderlijke touch-controller verwerkt één vinger uitsluitend als
+verschuiven. Twee vingers verschuiven via hun middelpunt; zoomen begint
+alleen bij een duidelijke verandering van hun onderlinge afstand.
+Verdubbeling van de knijpafstand geeft een kwart zoomstap, zonder
+uitloop nadat de vingers worden losgelaten. Wisselen tussen één en twee
+vingers herstelt het anker zonder sprong.
+
++/- doet een kwart zoomstap in 650 ms; niveauovergangen duren 1000–2200 ms.
+De zeven klikbare niveaus blijven beschikbaar. De positieknop heet
+'Ik ben hier', is minimaal 44 px hoog en blijft aanklikbaar bij een
+GPS-verzoek. Een bekende positie wordt direct gebruikt om terug te keren;
+een nieuw GPS-resultaat volgt wanneer beschikbaar. De knop is al aangesloten
+voordat de renderer is geladen. Een pending verzoek wordt hergebruikt.
+
+Gerichte regressietests simuleren een swipe na een tik, samen verschuivende
+vingers, knijpen, wisselen van vingeraantal, jitter en pending GPS.

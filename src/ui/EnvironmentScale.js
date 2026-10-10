@@ -32,10 +32,11 @@ export function environmentZoomForSpan(spanM, lat, container) {
 }
 
 export function configureEnvironmentGestures(map) {
-  map.touchZoomRotate.disableRotation();
-  map.touchZoomRotate.setZoomRate(0.6);
-  map.scrollZoom.setZoomRate(1 / 180);
-  map.scrollZoom.setWheelZoomRate(1 / 800);
+  // Disable the composite handler, which also enables one-finger tap-drag zoom.
+  map.touchZoomRotate.disable();
+  map.doubleClickZoom.disable();
+  map.scrollZoom.setZoomRate(1 / 300);
+  map.scrollZoom.setWheelZoomRate(1 / 1400);
   map.keyboard.disableRotation();
 }
 
@@ -43,7 +44,7 @@ export function configureEnvironmentGestures(map) {
 export function environmentZoomTransition(map, zoom, { duration, around } = {}) {
   map.easeTo({
     zoom: clampZoom(zoom),
-    duration: duration ?? Math.max(650, Math.min(1400, Math.abs(zoom - map.getZoom()) * 140)),
+    duration: duration ?? Math.max(1000, Math.min(2200, Math.abs(zoom - map.getZoom()) * 250)),
     easing: progress => progress * progress * (3 - 2 * progress),
     ...(around ? { around } : {})
   });

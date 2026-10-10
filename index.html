@@ -9,8 +9,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.55">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.55">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.56">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.56">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -281,7 +281,10 @@
     .environment-scale-chip,.environment-refresh{position:absolute;top:max(70px,calc(env(safe-area-inset-top) + 56px));z-index:5;min-height:34px;padding:0 11px;border:1px solid rgba(0,0,0,.055);border-radius:18px;background:rgba(255,255,255,.84);backdrop-filter:blur(12px);color:#55555a;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.035)}
     .environment-scale-chip{left:max(14px,env(safe-area-inset-left))}
     .environment-refresh{right:max(14px,env(safe-area-inset-right))}
-    .environment-refresh:disabled{opacity:.4}
+    .environment-maplibre .environment-refresh{min-height:44px;padding:0 14px;color:#333338;font-size:12px;z-index:12;background:rgba(255,255,255,.96)}
+    .environment-maplibre .environment-scale-chip{min-height:44px}
+    .environment-maplibre .environment-zoom{top:max(126px,calc(env(safe-area-inset-top) + 112px))}
+    .environment-refresh:disabled{opacity:.7}
     .environment-readout{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:5;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;padding:11px 13px;border:1px solid rgba(0,0,0,.05);border-radius:14px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);box-shadow:0 3px 16px rgba(0,0,0,.035)}
     .environment-readout>div{min-width:0;display:grid;gap:3px}
     .environment-readout>div:last-child{text-align:right}
@@ -397,16 +400,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.55#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.55#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.55#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.55#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.55#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.56#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.56#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.56#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.56#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.56#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.55"></script>
+  <script type="module" src="./src/main.js?v=0.1.56"></script>
 </body>
 </html>
