@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { environmentStyle } from '../src/ui/EnvironmentStyle.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 import {
-  APPEARANCE_GROUPS, appearanceDefaults, sanitizeEnvironmentAppearance,
+  APPEARANCE_GROUPS, APPEARANCE_SCALE_OPTIONS, appearanceDefaultLineStyle,
+  appearanceDefaults, sanitizeEnvironmentAppearance,
   applyEnvironmentAppearance, applyEnvironmentVisibility, bindEnvironmentAppearance
 } from '../src/ui/EnvironmentAppearance.js';
 
@@ -178,8 +179,40 @@ test('style palette is available in map and Settings, while plus/minus buttons r
   assert.ok(map.includes('floating: true'));
   assert.ok(map.includes('appearanceBinding?.setAppearance(next, category)'));
   assert.ok(settings.includes('data-map-style-settings'));
-  assert.ok(editor.includes('data-style-toggle'));
-  assert.ok(editor.includes('aria-label="Kaartstijl aanpassen"'));
+  assert.ok(map.includes('data-style-return'));
+  assert.ok(map.includes('data-readout-position'));
+  assert.ok(map.includes('data-readout-style'));
+  assert.ok(editor.includes('data-style-groups'));
+  assert.ok(editor.includes('data-style-fill'));
+  assert.ok(editor.includes('data-scale-low'));
+  assert.ok(editor.includes('data-scale-high'));
   assert.equal(map.includes('data-map-zoom-in'), false);
   assert.equal(map.includes('data-map-zoom-out'), false);
+});
+
+test('editor uses three consistent stroke choices, ordered zoom handles and native defaults', async () => {
+  const { createEnvironmentAppearanceEditor } = await import('../src/ui/EnvironmentAppearanceEditor.js');
+  const { readFile } = await import('node:fs/promises');
+  assert.equal(typeof createEnvironmentAppearanceEditor, 'function');
+  assert.deepEqual(APPEARANCE_SCALE_OPTIONS.map(scale => scale.label), [
+    'Dichtbij', 'Detail', 'Straat', 'Wijk', 'Plaats', 'Regio', 'Land'
+  ]);
+  for (const group of APPEARANCE_GROUPS) {
+    assert.ok(['solid', 'dotted', 'dashed'].includes(appearanceDefaultLineStyle(group)));
+  }
+  const src = await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url), 'utf8');
+  assert.equal((src.match(/id: '(solid|dotted|dashed)'/g) || []).length, 3);
+  assert.ok(src.includes('data-dash-default'));
+  assert.ok(src.includes('data-style-width'));
+  assert.ok(src.includes('data-style-stroke'));
+  assert.ok(src.includes('touch.clientX - bounds.left'));
+  assert.ok(src.includes('dx >= 58'));
+  assert.ok(src.includes('sample.outerHTML = preview(group)'));
+  const stylesheet = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(stylesheet.includes('apple-mobile-web-app-status-bar-style" content="black-translucent"'));
+  assert.ok(stylesheet.includes('.app-stage[data-view="detail"] .app-view'));
+  assert.ok(stylesheet.includes('.environment-readout>.environment-readout-track{display:flex;gap:0'));
+  assert.ok(stylesheet.includes('.environment-style-bar-actions'));
+  const home = await readFile(new URL('../src/ui/SwipeHome.js', import.meta.url), 'utf8');
+  assert.ok(home.includes('[data-map-readout]'));
 });

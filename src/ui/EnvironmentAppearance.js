@@ -1,6 +1,6 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.65';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.66';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.65';
+  from './EnvironmentScale.js?v=0.1.66';
 
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
 export const APPEARANCE_GROUPS = Object.freeze([
@@ -20,7 +20,7 @@ export const APPEARANCE_GROUPS = Object.freeze([
 
 // The seven scale levels are ordered from near (index 0) to country (index 6).
 // "Vanaf" is the furthest-out level; "t/m" is the closest-in level.
-export const APPEARANCE_SCALE_OPTIONS = Object.freeze([...ENVIRONMENT_SCALES].reverse()
+export const APPEARANCE_SCALE_OPTIONS = Object.freeze(ENVIRONMENT_SCALES
   .map(({ id, label }) => ({ id, label })));
 const scaleIndex = id => ENVIRONMENT_SCALES.findIndex(scale => scale.id === id);
 const layers = new Map(environmentStyle.layers.map(layer => [layer.id, layer]));
@@ -34,6 +34,17 @@ const validColor = color => typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.tes
 const validWidth = value => typeof value === 'number' && Number.isFinite(value) &&
   value >= 0.25 && value <= 4;
 const validDash = value => ['default', 'solid', 'dotted', 'dashed'].includes(value);
+
+// The base layer's dash pattern determines which of the three equal choices
+// carries the subtle 'Standaard' label for this category.
+export function appearanceDefaultLineStyle(group) {
+  const pattern = layers.get(group.lines[0])?.paint?.['line-dasharray'];
+  if (Array.isArray(pattern) && typeof pattern[0] === 'number' && typeof pattern[1] === 'number') {
+    if (pattern[0] <= 1 && pattern[1] >= 1.5) return 'dotted';
+    if (pattern[1] > 0) return 'dashed';
+  }
+  return 'solid';
+}
 
 export function appearanceDefaults(group) {
   const fillLayer = group.fill ? layers.get(group.fill) : null;
