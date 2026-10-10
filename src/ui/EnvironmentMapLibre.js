@@ -1,17 +1,17 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.66';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.66';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.66';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.66';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.66';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.66';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.66';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.66';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.67';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.67';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.67';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.67';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.67';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.67';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.67';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.67';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.66';
+} from './EnvironmentScale.js?v=0.1.67';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -249,7 +249,7 @@ export function openEnvironmentView(root, {
     const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
     const renderDiagnostic = () => {
       output.textContent = [
-        'Kaartcontrole 0.1.66 · ' + input + ' · ' + action,
+        'Kaartcontrole 0.1.67 · ' + input + ' · ' + action,
         cameraNote,
         statusNote,
         'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
