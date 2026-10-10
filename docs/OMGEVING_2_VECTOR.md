@@ -1,4 +1,4 @@
-# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.53)
+# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.54)
 
 ## Nieuwe werkwijze
 
@@ -10,7 +10,7 @@ Overpass-verzoeken en geen POST naar `/environment/api/tiles.php`.
 
 | Laag | Bron | Opslag |
 |---|---|---|
-| Basiskaart (wegen, gebouwen, water, grenzen, plaatsnamen) | OpenFreeMap / OpenStreetMap | Provider, eigen browsercache |
+| Basiskaart (wegen, gebouwen, water, grenzen) | OpenFreeMap / OpenStreetMap | Provider, eigen browsercache |
 | Sharon-locaties | `objects` in IndexedDB | Uitsluitend lokaal |
 | Eigen Sharon-geometrieën (punt, lijn, vlak) | Expliciet voor kaart gemarkeerde objecten | Uitsluitend lokaal |
 | Identifiers | Sharon-object ID en optionele externe `sourceId` | In object, niet in kaarttegel |
@@ -65,16 +65,15 @@ kaartprovider ontvangt geen lokale objectgegevens via deze toepassing.
 
 - MapLibre 6.11.2 via UNPKG (vastgepinde versie).
 - Eigen monochrome stijl, afgeleid van OpenFreeMap Positron; meegeleverd in `EnvironmentStyle.js`.
-- Geen sprite-, raster- of externe stijlverzoeken; plaats- en straatnamen blijven behouden.
+- Geen namen, tekstlabels, glyph-, sprite-, raster- of externe stijlverzoeken.
 - Gebouwen vanaf zoom 14, zoom tot 22 (extra zoom vergroot beschikbare geometrie).
 - Expliciete MapLibre 6 module-worker en maximaal twee workers.
 - Laatste kaartpositie/zoom lokaal opgeslagen; +/- knoppen en knijpzoom.
 - Appbestanden met het huidige versienummer komen direct uit de shell-cache.
-- Sharon applicatie/shell-cache: 0.1.53.
+- Sharon applicatie/shell-cache: 0.1.54.
 - Standaard HTTP-/browsercache van de kaartdienst; geen eigen tegelgenerator.
 - De serviceworker precachet de lokale kaartmodule en GeoJSON-adapter.
-- Kaartlabels voor straten en plaatsen blijven zichtbaar; Wikipedia wordt
-  niet opgehaald; provider-POI-overlays worden waar mogelijk verborgen.
+- De basiskaart bevat alleen geometrie; Wikipedia wordt niet opgehaald.
 
 ## Beperkingen en vervolg
 
@@ -138,3 +137,19 @@ met externe bronnen en een projectie-editor vallen buiten deze versie.
 Validatie: volledige Node-tests en MapLibre Style Specification-validatie
 van basiskaart plus objectlagen. Visuele mobiele QA en tijdmetingen zijn
 nog op een echt apparaat nodig.
+
+## Schaalbediening (0.1.54)
+
+Tik op de schaalchip om naar het volgende niveau te gaan, zoals bij de
+oorspronkelijke canvasweergave: Dichtbij (70 m), Detail (220 m), Straat
+(700 m), Wijk (3 km), Plaats (15 km), Regio (70 km), Land (700 km),
+en daarna weer Dichtbij. De schaal gebruikt de langste zichtbare schermzijde,
+zoals de oorspronkelijke kaart. Knijpzoom blijft vrij; de chip volgt steeds
+het dichtstbijzijnde niveau.
+
+Knijp- en sleepzoom heeft 60% van de oorspronkelijke gevoeligheid; muiswiel
+en trackpad zijn rustiger ingesteld. +/- en dubbeltikken veranderen de
+zoom met een halve stap in 420 ms. Niveauovergangen duren 650–1400 ms,
+afhankelijk van de afstand. Ze blijven onderbreekbaar door een nieuw gebaar.
+Straat- en plaatsnamen zijn verwijderd. Dit behoudt de kale geometrische
+basis voor latere projecties en vermijdt fontverzoeken.

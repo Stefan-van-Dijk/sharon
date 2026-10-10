@@ -1,9 +1,12 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.53';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.53';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.53';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.54';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.54';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.54';
+import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
+  environmentZoomForSpan, configureEnvironmentGestures, environmentZoomTransition
+} from './EnvironmentScale.js?v=0.1.54';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -12,7 +15,6 @@ const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css'
 const MAPLIBRE_WORKER = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl-worker.mjs';
 const CAMERA_KEY = 'environment-camera:v1';
 let lastCamera = null;
-const EARTH_CIRCUMFERENCE_M = 40075016.686;
 const LOCAL_LAYERS = Object.freeze(['sharon-points', 'sharon-lines', 'sharon-polygons', 'sharon-polygon-outlines']);
 
 const isCoordinate = point => point &&
@@ -31,12 +33,8 @@ function formatDistance(meters) {
   return `${Math.round(meters / 1000)} km`;
 }
 
-function visibleWidthMeters(map) {
-  const { lat } = map.getCenter();
-  const metersPerPixel = EARTH_CIRCUMFERENCE_M *
-    Math.max(0.00001, Math.cos(lat * Math.PI / 180)) /
-    (512 * 2 ** map.getZoom());
-  return Math.max(1, map.getContainer().clientWidth * metersPerPixel);
+function visibleSpanMeters(map) {
+  return environmentSpanForZoom(map.getZoom(), map.getCenter().lat, map.getContainer());
 }
 
 function areaLengthForWidth(meters) {
@@ -117,14 +115,17 @@ export function installSharonLayers(map) {
 }
 
 function updateReadout(map, userPoint, scaleButton, readout) {
-  const span = visibleWidthMeters(map);
+  const span = visibleSpanMeters(map);
   const center = map.getCenter();
   const areaId = environmentIdForPoint(center, areaLengthForWidth(span));
-  scaleButton.textContent = `${span < 150 ? 'Detail' : span < 1500 ? 'Straat' : span < 6000 ? 'Wijk' : span < 60000 ? 'Plaats' : 'Regio'} · ${formatDistance(span)}`;
+  const scale = environmentScaleForSpan(span);
+  scaleButton.textContent = `${scale.label} · ${formatDistance(span)}`;
+  scaleButton.setAttribute('aria-label', `Schaal wijzigen: ${scale.label}. Volgende niveau: ${nextEnvironmentScale(scale.id).label}`);
+
   const values = [
     ['Positie', userPoint ? environmentPointId(userPoint) : 'Nog niet bepaald',
       userPoint ? `GPS ±${Math.round(Number(userPoint.accuracy) || 0)} m` : 'Gebruik Positie'],
-    ['Gebied', areaId, `Kaartbreedte ${formatDistance(span)}`]
+    ['Gebied', areaId, `Kaartbereik ${formatDistance(span)}`]
   ];
   if (readout.children.length !== values.length) {
     readout.replaceChildren();
@@ -165,7 +166,7 @@ export async function openEnvironmentView(root, {
       <div class="environment-canvas" data-map-canvas>
         <div class="environment-map" data-maplibre-map role="application" aria-label="Interactieve wereldkaart"></div>
         <button type="button" class="environment-scale-chip" data-map-scale
-                aria-label="Inzoomen op de kaart"></button>
+                aria-label="Schaal wijzigen"></button>
         <button type="button" class="environment-refresh" data-map-position
                 aria-label="Huidige positie bepalen">Positie</button>
         <div class="environment-zoom" aria-label="Kaartzoom">
@@ -195,6 +196,7 @@ export async function openEnvironmentView(root, {
   let awaitingFirstPosition = !userPoint;
   let readoutFrame = 0;
   let saveTimer = null;
+  let scaleTarget = null;
 
   const displayFailure = description => {
     if (disposed) return;
@@ -223,12 +225,14 @@ export async function openEnvironmentView(root, {
       container: mapElement,
       style: environmentStyle,
       center: hasCamera ? coordinateArray(camera) : userPoint ? coordinateArray(userPoint) : [5.3, 52.2],
-      zoom: hasCamera ? Math.max(1, Math.min(22, camera.zoom)) : userPoint ? 15 : 6,
+      zoom: hasCamera ? Math.max(1, Math.min(22, camera.zoom))
+        : environmentZoomForSpan(userPoint ? 700 : 700000, userPoint?.lat ?? 52.2, mapElement),
       minZoom: 1,
       maxZoom: 22,
       refreshExpiredTiles: true,
       fadeDuration: 100,
       dragRotate: false,
+      doubleClickZoom: false,
       touchPitch: false,
       maxPitch: 0,
       attributionControl: { compact: true },
@@ -242,9 +246,9 @@ export async function openEnvironmentView(root, {
     const stopFollowing = () => {
       followingPosition = false;
       awaitingFirstPosition = false;
+      scaleTarget = null;
     };
-    map.touchZoomRotate.disableRotation();
-    map.keyboard.disableRotation();
+    configureEnvironmentGestures(map);
     const placePosition = point => {
       if (!isCoordinate(point) || disposed || !map) return;
       userPoint = point;
@@ -256,7 +260,7 @@ export async function openEnvironmentView(root, {
       gpsMarker.setLngLat(coordinateArray(point));
       if (followingPosition) {
         map.easeTo({ center: coordinateArray(point),
-          ...(awaitingFirstPosition ? { zoom: 15 } : {}), duration: 260 });
+          ...(awaitingFirstPosition ? { zoom: environmentZoomForSpan(700, point.lat, mapElement) } : {}), duration: 650 });
         awaitingFirstPosition = false;
       }
       render();
@@ -284,6 +288,7 @@ export async function openEnvironmentView(root, {
       });
     });
     map.on('moveend', () => {
+      scaleTarget = null;
       render();
       const center = map.getCenter().wrap();
       lastCamera = { lat: center.lat, lng: center.lng, zoom: map.getZoom() };
@@ -349,14 +354,23 @@ export async function openEnvironmentView(root, {
       }
     });
     scaleButton.addEventListener('click', () => {
+      const currentId = scaleTarget || environmentScaleForSpan(visibleSpanMeters(map)).id;
+      const next = nextEnvironmentScale(currentId);
       stopFollowing();
-      map.zoomIn({ duration: 200 });
+      environmentZoomTransition(map, environmentZoomForSpan(next.spanM, map.getCenter().lat, mapElement));
+      // easeTo may end the interrupted animation synchronously. Set the new
+      // target afterwards so rapid taps continue through the level sequence.
+      scaleTarget = next.id;
     });
-    root.querySelector('[data-map-zoom-in]').addEventListener('click', () => {
-      stopFollowing(); map.zoomIn({ duration: 200 });
-    });
-    root.querySelector('[data-map-zoom-out]').addEventListener('click', () => {
-      stopFollowing(); map.zoomOut({ duration: 200 });
+    const stepZoom = (direction, around) => {
+      stopFollowing();
+      environmentZoomTransition(map, map.getZoom() + direction * 0.5, { duration: 420, around });
+    };
+    root.querySelector('[data-map-zoom-in]').addEventListener('click', () => stepZoom(1));
+    root.querySelector('[data-map-zoom-out]').addEventListener('click', () => stepZoom(-1));
+    map.on('dblclick', event => {
+      event.preventDefault();
+      stepZoom(event.originalEvent?.shiftKey ? -1 : 1, event.lngLat);
     });
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
     for (const name of ['location.created', 'location.updated', 'location.deleted',
