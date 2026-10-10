@@ -216,3 +216,36 @@ test('editor uses three consistent stroke choices, ordered zoom handles and nati
   const home = await readFile(new URL('../src/ui/SwipeHome.js', import.meta.url), 'utf8');
   assert.ok(home.includes('[data-map-readout]'));
 });
+
+test('provider attribution stays expanded, linked and centered without a separate info toggle', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const renderer = await readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(renderer, /attributionControl:\s*\{ compact: false \}/);
+  assert.ok(css.includes('.maplibregl-ctrl-attrib-button{display:none!important}'));
+  assert.ok(css.includes('.maplibregl-ctrl-attrib-inner a:focus-visible'));
+  assert.ok(css.includes('.maplibregl-ctrl-bottom-right{left:max(14px'));
+  assert.ok(css.includes('justify-content:center'));
+  // Keep MapLibre's live source attribution, not a hardcoded duplicate string.
+  assert.equal(renderer.includes('attributionControl: false'), false);
+});
+
+test('location/scale controls share the title baseline and only the title has a fade', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(css.includes('.environment-map-top-actions{top:calc(env(safe-area-inset-top) + 5px)'));
+  assert.ok(css.includes('.app-stage.is-environment .app-header::before{'));
+  assert.ok(css.includes('top:calc(env(safe-area-inset-top) + 3px)'));
+  assert.ok(css.includes('.app-stage.is-environment .app-header{background:transparent;isolation:isolate}'));
+});
+
+test('compact material and stroke swatches replace mini map shapes without resetting saved style', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const editor = await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(editor.includes('<rect x="12" y="3" width="48" height="19"'));
+  assert.ok(editor.includes('<line x1="10" y1="13" x2="62" y2="13"'));
+  assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+  assert.ok(css.includes('.environment-style-group{height:66px;'));
+  assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
+});
