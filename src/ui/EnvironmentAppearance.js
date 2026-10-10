@@ -153,11 +153,11 @@ export function bindEnvironmentAppearance(map, store) {
   };
   map.on('zoom', update);
   map.on('moveend', update);
-  const setAppearance = next => {
+  const setAppearance = (next, category = null) => {
     if (disposed) return;
     changedInSession = true;
     appearance = sanitizeEnvironmentAppearance(next);
-    applyEnvironmentAppearance(map, appearance);
+    applyEnvironmentAppearance(map, appearance, category);
     lastScaleId = currentScale();
   };
   store.get('meta', ENVIRONMENT_APPEARANCE_KEY).then(saved => {
