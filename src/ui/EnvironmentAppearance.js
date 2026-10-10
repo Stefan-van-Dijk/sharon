@@ -35,6 +35,17 @@ const validWidth = value => typeof value === 'number' && Number.isFinite(value) 
   value >= 0.25 && value <= 4;
 const validDash = value => ['default', 'solid', 'dotted', 'dashed'].includes(value);
 
+// The base layer's dash pattern determines which of the three equal choices
+// carries the subtle 'Standaard' label for this category.
+export function appearanceDefaultLineStyle(group) {
+  const pattern = layers.get(group.lines[0])?.paint?.['line-dasharray'];
+  if (Array.isArray(pattern) && typeof pattern[0] === 'number' && typeof pattern[1] === 'number') {
+    if (pattern[0] <= 1 && pattern[1] >= 1.5) return 'dotted';
+    if (pattern[1] > 0) return 'dashed';
+  }
+  return 'solid';
+}
+
 export function appearanceDefaults(group) {
   const fillLayer = group.fill ? layers.get(group.fill) : null;
   const lineLayer = layers.get(group.lines[0]);
