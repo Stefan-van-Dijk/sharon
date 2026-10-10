@@ -46,8 +46,8 @@ export const environmentStyle = {
         ]
       ],
       "paint": {
-        "fill-color": "#ffffff",
-        "fill-outline-color": "#d9d9dd"
+        "fill-color": "#f6f8fa",
+        "fill-outline-color": "#dce3e8"
       }
     },
     {
@@ -79,7 +79,7 @@ export const environmentStyle = {
       "source-layer": "building",
       "minzoom": 14,
       "paint": {
-        "fill-color": "#ffffff",
+        "fill-color": "#fcfcfd",
         "fill-outline-color": "#dddddf"
       }
     },
