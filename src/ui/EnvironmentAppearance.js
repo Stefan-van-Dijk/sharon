@@ -140,21 +140,39 @@ export function applyEnvironmentVisibility(map, appearance) {
 // Attach only when the MapLibre 'load' event has completed. Closing the map
 // invalidates any late settings result before it can touch a removed renderer.
 export function bindEnvironmentAppearance(map, store) {
-  let disposed = false;
-  let appearance = {};
-  const update = () => { if (!disposed) applyEnvironmentVisibility(map, appearance); };
+  let disposed = false, changedInSession = false;
+  let appearance = {}, lastScaleId = null;
+  const currentScale = () => environmentScaleForSpan(environmentSpanForZoom(
+    map.getZoom(), map.getCenter().lat, map.getContainer())).id;
+  const update = () => {
+    if (disposed) return;
+    const scale = currentScale();
+    if (scale === lastScaleId) return;
+    lastScaleId = scale;
+    applyEnvironmentVisibility(map, appearance);
+  };
   map.on('zoom', update);
   map.on('moveend', update);
-  store.get('meta', ENVIRONMENT_APPEARANCE_KEY).then(saved => {
+  const setAppearance = next => {
     if (disposed) return;
+    changedInSession = true;
+    appearance = sanitizeEnvironmentAppearance(next);
+    applyEnvironmentAppearance(map, appearance);
+    lastScaleId = currentScale();
+  };
+  store.get('meta', ENVIRONMENT_APPEARANCE_KEY).then(saved => {
+    if (disposed || changedInSession) return;
     appearance = sanitizeEnvironmentAppearance(saved?.value);
     applyEnvironmentAppearance(map, appearance);
+    lastScaleId = currentScale();
   }).catch(error => {
     if (!disposed) console.warn('Sharon kaartstijl: lokaal laden mislukt', error);
   });
-  return () => {
+  const dispose = () => {
     disposed = true;
     map.off('zoom', update);
     map.off('moveend', update);
   };
+  dispose.setAppearance = setAppearance;
+  return dispose;
 }
