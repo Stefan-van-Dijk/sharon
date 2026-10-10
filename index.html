@@ -411,6 +411,7 @@
     /* One bottom rail, two equally sized faces; swipe from the left edge of
        the position face brings the style face in from the left. */
     .environment-readout{height:84px;padding:0;overflow:hidden;display:block;touch-action:pan-y}
+    .environment-readout>.environment-readout-track{display:flex;gap:0;text-align:left}
     .environment-readout-track{height:100%;width:200%;display:flex;flex-direction:row-reverse;transform:translate3d(-50%,0,0);transition:transform .25s cubic-bezier(.22,.61,.36,1);will-change:transform}
     .environment-readout-track.is-dragging{transition:none}
     .environment-readout.is-style-active .environment-readout-track{transform:translate3d(0,0,0)}
