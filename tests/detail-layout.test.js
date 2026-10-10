@@ -23,9 +23,9 @@ test('every detail view is edge-to-edge with safe content gutters and unified fi
   assert.ok(shell.includes("document.body.classList.toggle('sharon-detail-active', detail)"));
 });
 
-test('glass appearance editor has six groups, a four-column technical raster and compact controls', async () => {
+test('glass appearance editor has horizontally scrolling groups, a four-visible-column raster and compact controls', async () => {
   const [css,editor] = await Promise.all([readFile(html, 'utf8'),readFile(editorFile, 'utf8')]);
-  assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:1px;/);
+  assert.match(css, /grid-auto-columns:calc\(\(100% - 3px\)\/4\)/);
   assert.match(css, /max-height:min\(65dvh,calc\(100dvh - env\(safe-area-inset-top\) - 178px\)\)/);
   assert.ok(css.includes('.environment-style-tabs button[aria-pressed="true"]'));
   assert.ok(css.includes('.environment-style-flyout[hidden]{display:none!important}'));
