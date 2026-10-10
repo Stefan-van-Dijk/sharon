@@ -146,6 +146,8 @@ export function createShell(root, {
     const detail = mode === 'detail';
     const environment = detail && moduleId === 'environment';
     currentView = detail ? 'detail' : 'home';
+    // iOS must scroll the module outlet, never the page containing the header.
+    document.body.classList.toggle('sharon-detail-active', detail);
 
     stage.dataset.view = currentView;
     frame.dataset.view = currentView;
