@@ -7,6 +7,7 @@ import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.63
 import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.63';
 import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.63';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.63';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.64';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
 } from './EnvironmentScale.js?v=0.1.63';
@@ -318,6 +319,7 @@ export function openEnvironmentView(root, {
   let saveTimer = null;
   let cameraControls = null;
   let positionRequested = false;
+  const appearanceEditor = createEnvironmentAppearanceEditor(root, store, () => mapReady ? map : null);
 
   const displayFailure = description => {
     if (disposed) return;
@@ -427,6 +429,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
+      appearanceEditor.apply();
       updateObjects().catch(() => {});
       render();
     });
@@ -533,6 +536,7 @@ export function openEnvironmentView(root, {
   return () => {
     disposed = true;
     cleanupDiagnostics();
+    appearanceEditor.dispose();
     objectsRevision++;
     cancelAnimationFrame(readoutFrame);
     clearTimeout(saveTimer);
