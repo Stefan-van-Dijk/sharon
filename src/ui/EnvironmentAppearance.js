@@ -157,7 +157,7 @@ function widthPaint(original, multiplier) {
 }
 function affectedByCategory(group, category) {
   return !category || category === group.id ||
-    sectionsById.get(category)?.items.includes(group.id);
+    (category.startsWith('group:') && sectionsById.get(category.slice(6))?.items.includes(group.id));
 }
 function groupLayerIds(group) {
   return [...(group.fill ? [group.fill] : []), ...(group.lines || [])];
