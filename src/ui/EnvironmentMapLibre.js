@@ -179,17 +179,45 @@ export function openEnvironmentView(root, {
         <div class="environment-map" data-maplibre-map role="application" aria-label="Interactieve wereldkaart"></div>
       </div>
       <div class="environment-controls" data-map-controls>
-        <button type="button" class="environment-scale-chip" data-map-scale
-                aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
-        <button type="button" class="environment-refresh" data-map-position
-                aria-label="Ik ben hier: terug naar mijn huidige positie">Ik ben hier</button>
-        <div class="environment-readout" data-map-readout></div>
+        <div class="environment-map-top-actions">
+          <button type="button" class="environment-refresh" data-map-position
+                  aria-label="Ga naar mijn huidige locatie" title="Mijn locatie">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            </svg>
+          </button>
+          <button type="button" class="environment-scale-chip" data-map-scale
+                  aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
+        </div>
+        <div class="environment-readout" data-map-readout>
+          <div class="environment-readout-track" data-readout-track>
+            <div class="environment-readout-position" data-readout-position></div>
+            <div class="environment-readout-style" data-readout-style aria-hidden="true">
+              <button type="button" class="environment-style-return" data-style-return
+                      aria-label="Terug naar positie" title="Terug naar positie">
+                <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor"
+                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3a9 9 0 1 0 0 18h1.5a2.1 2.1 0 0 0 1.4-3.7 1.9 1.9 0 0 1 .8-3.3h2.3A4.3 4.3 0 0 0 22 9.7 9 9 0 0 0 12 3Z"/>
+                  <circle cx="7.5" cy="12" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>
+                </svg>
+              </button>
+              <div class="environment-style-bar-content">
+                <div class="environment-style-bar-actions">
+                  <button type="button" data-style-reset-one>Herstel onderdeel</button>
+                  <button type="button" data-style-reset-all>Alles standaard</button>
+                </div>
+                <small data-style-status>Direct zichtbaar op de kaart · lokaal opgeslagen</small>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
   `;
   const mapElement = root.querySelector('[data-maplibre-map]');
-  const readout = root.querySelector('[data-map-readout]');
+  const readout = root.querySelector('[data-readout-position]');
   const scaleButton = root.querySelector('[data-map-scale]');
   const positionButton = root.querySelector('[data-map-position]');
   const errorBanner = root.querySelector('[data-map-error]');
