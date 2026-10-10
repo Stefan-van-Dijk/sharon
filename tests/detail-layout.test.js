@@ -49,3 +49,25 @@ test('group and child colors use native iOS color inputs and rectangular swatche
   assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
   assert.doesNotMatch(css, /environment-style-fill-dot/);
 });
+
+test('appearance editor keeps an invariant grid and non-applicable controls disabled', async () => {
+  const [css, editor] = await Promise.all([readFile(html, 'utf8'), readFile(editorFile, 'utf8')]);
+  assert.ok(css.includes('height:min(366px,65dvh,calc(100dvh - env(safe-area-inset-top) - 178px))'));
+  assert.ok(css.includes('grid-template-rows:35px 29px 54px 33px 30px 43px 69px'));
+  assert.ok(css.includes('.environment-style-group.is-unavailable'));
+  assert.ok(css.includes('.environment-style-color-row.is-unavailable'));
+  assert.ok(css.includes('.environment-style-range.is-unavailable'));
+  assert.ok(css.includes('.environment-style-panel button[data-inherit-field]:disabled'));
+  assert.ok(editor.includes("button.setAttribute('aria-label', 'Geen onderdeel beschikbaar')"));
+  assert.ok(editor.includes('for (let index = section().items.length; index < 4; index++)'));
+  assert.ok(editor.includes("row.classList.toggle('is-unavailable', !applicable)"));
+  assert.ok(editor.includes('fillInput.disabled = !caps.fill'));
+  assert.ok(editor.includes('strokeInput.disabled = !caps.stroke'));
+  assert.ok(editor.includes('widthInput.disabled = !caps.width'));
+  assert.ok(editor.includes('lowInput.disabled = !caps.scale'));
+  assert.ok(editor.includes('highInput.disabled = !caps.scale'));
+  assert.ok(editor.includes('inheritButton.disabled = !selectedId'));
+  assert.ok(!editor.includes('groups.hidden ='));
+  assert.ok(!editor.includes('fillRow.hidden ='));
+  assert.ok(!editor.includes('rangeRow.hidden ='));
+});
