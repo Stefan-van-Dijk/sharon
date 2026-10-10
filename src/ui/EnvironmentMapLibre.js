@@ -1,15 +1,15 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.60';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.60';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.60';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.60';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.60';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.60';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.61';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.61';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.61';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.61';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.61';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.61';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.60';
+} from './EnvironmentScale.js?v=0.1.61';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -63,6 +63,13 @@ function statusMessage(container, title, detail) {
   description.textContent = detail;
   message.append(heading, description);
   container.append(message);
+}
+
+// Set the GPS coordinate before MapLibre can render the marker on addTo().
+export function createEnvironmentGpsMarker(library, map, element, point) {
+  return new library.Marker({ element, anchor: 'center' })
+    .setLngLat(coordinateArray(point))
+    .addTo(map);
 }
 
 export function installSharonLayers(map) {
@@ -216,7 +223,7 @@ export function openEnvironmentView(root, {
     const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
     const renderDiagnostic = () => {
       output.textContent = [
-        'Kaartcontrole 0.1.60 · ' + input + ' · ' + action,
+        'Kaartcontrole 0.1.61 · ' + input + ' · ' + action,
         cameraNote,
         statusNote,
         'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
@@ -329,9 +336,10 @@ export function openEnvironmentView(root, {
     if (!gpsMarker) {
       const dot = document.createElement('div');
       dot.className = 'sharon-gps-dot';
-      gpsMarker = new rendererLibrary.Marker({ element: dot, anchor: 'center' }).addTo(map);
+      gpsMarker = createEnvironmentGpsMarker(rendererLibrary, map, dot, point);
+    } else {
+      gpsMarker.setLngLat(coordinateArray(point));
     }
-    gpsMarker.setLngLat(coordinateArray(point));
     if (followingPosition) {
       map.easeTo({ center: coordinateArray(point),
         ...(awaitingFirstPosition ? { zoom: environmentZoomForSpan(700, point.lat, mapElement) } : {}), duration: 650 });
