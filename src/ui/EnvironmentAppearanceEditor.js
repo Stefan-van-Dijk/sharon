@@ -111,36 +111,49 @@ export function createEnvironmentAppearanceEditor(root, store, {
         stroke-linecap="round" ${pattern ? `stroke-dasharray="${pattern}"` : ''}/></svg>`;
   };
 
+  // Keep the same DOM input nodes while the native iOS color picker is open.
   const renderGroups = () => {
-    const fragment = document.createDocumentFragment();
-    for (const group of APPEARANCE_GROUPS) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'environment-style-group';
-      wrapper.classList.toggle('is-selected', group.id === selectedId);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'environment-style-group-main';
-      button.dataset.styleGroup = group.id;
-      button.setAttribute('aria-pressed', String(group.id === selectedId));
-      button.setAttribute('aria-label', group.label);
-      button.innerHTML = preview(group) + '<span></span>';
-      button.querySelector('span').textContent = group.label;
-      wrapper.append(button);
-      if (group.fill) {
-        const label = document.createElement('label');
-        label.className = 'environment-style-fill-dot';
-        label.title = group.label + ': vulkleur';
-        const input = document.createElement('input');
-        input.type = 'color';
-        input.dataset.styleFill = group.id;
-        input.setAttribute('aria-label', group.label + ': vulkleur');
-        input.value = valuesFor(group).fill;
-        label.append(input);
-        wrapper.append(label);
+    if (!groups.children.length) {
+      const fragment = document.createDocumentFragment();
+      for (const group of APPEARANCE_GROUPS) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'environment-style-group';
+        wrapper.dataset.groupCard = group.id;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'environment-style-group-main';
+        button.dataset.styleGroup = group.id;
+        button.setAttribute('aria-label', group.label);
+        const label = document.createElement('span');
+        label.textContent = group.label;
+        button.append(document.createElement('svg'), label);
+        wrapper.append(button);
+        if (group.fill) {
+          const dot = document.createElement('label');
+          dot.className = 'environment-style-fill-dot';
+          dot.title = group.label + ': vulkleur';
+          const input = document.createElement('input');
+          input.type = 'color';
+          input.dataset.styleFill = group.id;
+          input.setAttribute('aria-label', group.label + ': vulkleur');
+          dot.append(input);
+          wrapper.append(dot);
+        }
+        fragment.append(wrapper);
       }
-      fragment.append(wrapper);
+      groups.replaceChildren(fragment);
     }
-    groups.replaceChildren(fragment);
+    for (const group of APPEARANCE_GROUPS) {
+      const wrapper = [...groups.children].find(node => node.dataset.groupCard === group.id);
+      wrapper.classList.toggle('is-selected', group.id === selectedId);
+      const button = wrapper.querySelector('[data-style-group]');
+      button.setAttribute('aria-pressed', String(group.id === selectedId));
+      const sample = button.querySelector('svg');
+      // Edit only the preview SVG; never replace a focused color input.
+      sample.outerHTML = preview(group);
+      const input = wrapper.querySelector('[data-style-fill]');
+      if (input && input !== document.activeElement) input.value = valuesFor(group).fill;
+    }
   };
   const render = () => {
     const group = chosen(), values = valuesFor(group);
