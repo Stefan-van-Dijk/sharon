@@ -102,12 +102,13 @@ export function createEnvironmentAppearanceEditor(root, store, {
     const values = valuesFor(group);
     const pattern = values.dash === 'dotted' ? '1 6' : values.dash === 'dashed' ? '9 5' :
       (values.dash === 'solid' ? '' : ({ solid: '', dotted: '1 6', dashed: '9 5' }[appearanceDefaultLineStyle(group)]));
-    if (group.fill) return `<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
-      <path d="M7 28 L16 8 L39 14 L53 5 L80 13 L79 30 Z"
+    // Compact material/line swatches deliberately avoid miniature map geometry.
+    if (group.fill) return `<svg viewBox="0 0 72 25" width="100%" height="25" aria-hidden="true">
+      <rect x="12" y="3" width="48" height="19" rx="4"
         fill="${values.fill}" stroke="${values.stroke}" stroke-width="1.8"/></svg>`;
-    return `<svg viewBox="0 0 88 35" width="100%" height="35" aria-hidden="true">
-      <path d="M6 26 L27 12 L47 23 L65 9 L82 17" fill="none"
-        stroke="${values.stroke}" stroke-width="${Math.min(5, 2.25 * values.width)}"
+    return `<svg viewBox="0 0 72 25" width="100%" height="25" aria-hidden="true">
+      <line x1="10" y1="13" x2="62" y2="13"
+        stroke="${values.stroke}" stroke-width="${Math.min(5, 2.2 * values.width)}"
         stroke-linecap="round" ${pattern ? `stroke-dasharray="${pattern}"` : ''}/></svg>`;
   };
 
