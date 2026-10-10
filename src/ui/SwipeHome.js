@@ -22,7 +22,7 @@ export function bindSwipeHome(surface, onHome, {
     if (!target?.closest) return false;
 
     // Map gestures own the whole map surface, including its left edge.
-    if (target.closest('[data-maplibre-map],[data-environment-map]')) return true;
+    if (target.closest('[data-maplibre-map],[data-environment-map],[data-map-readout]')) return true;
 
     // A swipe row owns leftward gestures, but deliberately leaves
     // rightward gestures available for home navigation.
