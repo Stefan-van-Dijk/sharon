@@ -1,5 +1,5 @@
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
-  environmentZoomForSpan, environmentZoomTransition } from './EnvironmentScale.js?v=0.1.63';
+  environmentZoomForSpan, environmentZoomTransition } from './EnvironmentScale.js?v=0.1.64';
 
 // Keep a requested destination while an animation runs. Repeated taps advance
 // from that destination, rather than the camera's intermediate position.
