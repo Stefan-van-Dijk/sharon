@@ -23,23 +23,29 @@ test('every detail view is edge-to-edge with safe content gutters and unified fi
   assert.ok(shell.includes("document.body.classList.toggle('sharon-detail-active', detail)"));
 });
 
-test('compact style editor has all 11 categories in four columns and line icons only', async () => {
+test('glass appearance editor has six groups, a four-column technical raster and compact controls', async () => {
   const [css,editor] = await Promise.all([readFile(html, 'utf8'),readFile(editorFile, 'utf8')]);
-  assert.match(css, /\.environment-style-groups\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:4px\}/);
-  assert.match(css, /\.environment-style-group\{height:52px;border-radius:9px;overflow:visible\}/);
-  assert.match(css, /max-height:min\(70dvh,calc\(100dvh - env\(safe-area-inset-top\) - 175px\)\)/);
-  assert.match(css, /\.environment-style-dash-choices button\{[\s\S]*?height:44px;/);
-  assert.doesNotMatch(editor, /<span>\$\{item\.label\}<\/span>/);
-  assert.match(editor, /aria-label="\$\{item\.label\}"/);
-  assert.match(editor, /<small data-dash-default>Standaard<\/small>/);
-  assert.match(editor, /APPEARANCE_GROUPS/);
+  assert.match(css, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:1px;/);
+  assert.match(css, /max-height:min\(65dvh,calc\(100dvh - env\(safe-area-inset-top\) - 178px\)\)/);
+  assert.ok(css.includes('.environment-style-tabs button[aria-pressed="true"]'));
+  assert.ok(css.includes('.environment-style-flyout[hidden]{display:none!important}'));
+  assert.ok(editor.includes('data-style-sections'));
+  assert.ok(editor.includes('data-style-parent'));
+  assert.ok(editor.includes('data-style-inherit'));
+  assert.ok(editor.includes('data-style-dash'));
+  assert.ok(editor.includes("small.textContent = 'Standaard'"));
+  assert.ok(editor.includes('data-style-groups'));
+  assert.ok(editor.includes("button.setAttribute('aria-label', group.label)"));
 });
 
-test('color selectors show actual selected colors and a separate edit affordance', async () => {
+test('group and child colors use native iOS color inputs and rectangular swatches', async () => {
   const [css,editor] = await Promise.all([readFile(html, 'utf8'),readFile(editorFile, 'utf8')]);
-  assert.match(css, /\.environment-style-fill-dot::after,[\s\S]*?content:"✎"/);
-  assert.match(css, /background:var\(--swatch-color,#e5e5e8\)/);
-  assert.match(editor, /strokeInput\.closest\('label'\)\?\.style\.setProperty\('--swatch-color', values\.stroke\)/);
-  assert.match(editor, /input\.closest\('label'\)\.style\.setProperty\('--swatch-color', valuesFor\(group\)\.fill\)/);
-  assert.match(editor, /ENVIRONMENT_APPEARANCE_KEY/);
+  assert.ok(css.includes('.environment-color-swatch input[type=color]'));
+  assert.ok(css.includes('background:var(--style-color,#d0d0d5)'));
+  assert.ok(editor.includes('data-style-fill'));
+  assert.ok(editor.includes('data-style-stroke'));
+  assert.ok(editor.includes('data-style-fill-hex'));
+  assert.ok(editor.includes('data-inherit-field'));
+  assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
+  assert.doesNotMatch(css, /environment-style-fill-dot/);
 });
