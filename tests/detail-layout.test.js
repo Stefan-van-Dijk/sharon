@@ -5,14 +5,17 @@ import { readFile } from 'node:fs/promises';
 const html = new URL('../index.html', import.meta.url);
 const editorFile = new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url);
 
-test('detail pages restore safe horizontal gutters while lists scroll underneath the header', async () => {
+test('every detail view is edge-to-edge with safe content gutters and unified fixed header', async () => {
   const css = await readFile(html, 'utf8');
-  assert.match(css, /\.app-stage\[data-view="detail"\]:not\(\.is-environment\) \.app-view>\.module-view\{[\s\S]*?padding-top:calc\(env\(safe-area-inset-top\) \+ 54px\)/);
-  assert.match(css, /padding-right:max\(22px,env\(safe-area-inset-right\)\)/);
-  assert.match(css, /padding-left:max\(22px,env\(safe-area-inset-left\)\)/);
-  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-view\{position:absolute;inset:0;[\s\S]*?overflow-y:auto;/);
-  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header\{position:absolute;/);
-  assert.match(css, /\.app-stage\.is-environment \.app-view\{padding:0;overflow:hidden\}/);
+  assert.match(css, /\.app-stage\[data-view="detail"\]\{[\s\S]*?width:100%;height:100dvh;min-height:100dvh;padding:0!important/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-frame\{[\s\S]*?height:100dvh!important;/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-view\{[\s\S]*?overflow-y:auto;/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-view>\.module-view\{[\s\S]*?padding:calc\(env\(safe-area-inset-top\) \+ 54px\)/);
+  assert.match(css, /max\(22px,env\(safe-area-inset-right\)\)/);
+  assert.match(css, /max\(22px,env\(safe-area-inset-left\)\)/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header\{[\s\S]*?height:calc\(env\(safe-area-inset-top\) \+ var\(--sharon-header-height\)\)/);
+  assert.match(css, /\.app-stage\.is-environment \.app-view\{\s*padding:0;overflow:hidden;transform:none;/);
+  assert.ok(css.includes('.app-header.is-detail .location-pulse{display:none;'));
 });
 
 test('compact style editor has all 11 categories in four columns and line icons only', async () => {

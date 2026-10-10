@@ -230,18 +230,25 @@ test('provider attribution stays expanded, linked and centered without a separat
   assert.equal(renderer.includes('attributionControl: false'), false);
 });
 
-test('map, fade and header controls use distinct layers on the title baseline', async () => {
+test('shared glass header owns the map controls above full-bleed content', async () => {
   const { readFile } = await import('node:fs/promises');
-  const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.ok(css.includes('.app-stage.is-environment .environment-view::before{'));
-  assert.ok(css.includes('top:calc(env(safe-area-inset-top) + 3px)'));
-  assert.ok(css.includes('.app-stage.is-environment .app-header::before{'));
-  assert.match(css, /\.app-stage\.is-environment \.app-header::before\{\s*content:none!important;display:none!important;/);
-  assert.match(css, /\.app-stage\.is-environment \.environment-canvas\{\s*position:absolute;inset:0;z-index:0;/);
-  assert.match(css, /\.app-stage\.is-environment \.environment-view::before\{[\s\S]*?z-index:5;pointer-events:none;/);
-  assert.match(css, /\.app-stage\.is-environment \.environment-controls\{\s*z-index:20;pointer-events:none;/);
-  assert.match(css, /\.app-stage\.is-environment \.app-header\{\s*z-index:30;background:transparent;/);
-  assert.match(css, /\.app-stage\.is-environment \.environment-map-top-actions\{\s*position:absolute;top:calc\(env\(safe-area-inset-top\) \+ 5px\)/);
+  const [css, shell, map] = await Promise.all([
+    readFile(new URL('../index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../src/ui/Shell.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8')
+  ]);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header\{[\s\S]*?z-index:40;/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header::before\{[\s\S]*?backdrop-filter:blur\(12px\)/);
+  assert.match(css, /\.app-stage\[data-view="detail"\] \.app-header::before\{[\s\S]*?pointer-events:none;/);
+  assert.ok(css.includes('.app-header-actions .environment-map-top-actions{'));
+  assert.ok(css.includes('.app-stage.is-environment .environment-canvas{z-index:0}'));
+  assert.ok(css.includes('.app-stage.is-environment .environment-controls{z-index:20;pointer-events:none}'));
+  assert.ok(!css.includes('.app-stage.is-environment .environment-view::before{'));
+  assert.ok(!css.includes('content:none!important;display:none!important;'));
+  assert.ok(shell.includes('data-header-actions'));
+  assert.ok(shell.includes('headerActions\n    }), { animate });'));
+  assert.ok(map.includes('headerActions.replaceChildren(topActions)'));
+  assert.ok(map.includes("topActions?.parentNode === headerActions"));
 });
 
 test('linked map credits sit 4px above readout with compact safe-area spacing', async () => {
