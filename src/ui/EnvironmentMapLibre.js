@@ -8,6 +8,7 @@ import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './Environme
 import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.65';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.65';
 import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.65';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.65';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
 } from './EnvironmentScale.js?v=0.1.65';
@@ -315,6 +316,11 @@ export function openEnvironmentView(root, {
   let saveTimer = null;
   let cameraControls = null;
   let positionRequested = false;
+  let appearanceBinding = null;
+  const cleanupAppearance = createEnvironmentAppearanceEditor(root, store, {
+    floating: true,
+    onChange: next => appearanceBinding?.setAppearance(next)
+  });
 
   const displayFailure = description => {
     if (disposed) return;
@@ -424,7 +430,10 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      unsubscribers.push(bindEnvironmentAppearance(map, store));
+      appearanceBinding = bindEnvironmentAppearance(map, store);
+      unsubscribers.push(appearanceBinding);
+      // The editor may have loaded from IndexedDB before the map's style.
+      cleanupAppearance.apply();
       updateObjects().catch(() => {});
       render();
     });
@@ -525,6 +534,7 @@ export function openEnvironmentView(root, {
   return () => {
     disposed = true;
     cleanupDiagnostics();
+    cleanupAppearance();
     objectsRevision++;
     cancelAnimationFrame(readoutFrame);
     clearTimeout(saveTimer);
