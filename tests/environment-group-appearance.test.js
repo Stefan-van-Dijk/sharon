@@ -65,14 +65,14 @@ test('land updates canvas background; forest and green are subdued genuine vecto
     getLayer: id => byId.get(id),
     setPaintProperty: (id, property, value) => calls.push([id, property, value])
   };
-  applyEnvironmentAppearance(map, { groupStyles: { basis: { fill: '#eeeeee' } } }, 'basis');
+  applyEnvironmentAppearance(map, { groupStyles: { basis: { fill: '#eeeeee' } } }, 'group:basis');
   assert.ok(calls.some(c => c[0] === 'background' &&
     c[1] === 'background-color' && c[2] === '#eeeeee'));
   calls.length = 0;
   applyEnvironmentAppearance(map, {
     groupStyles: { green: { fill: '#aabbcc' } },
     forest: { fill: '#445566' }
-  }, 'green');
+  }, 'group:green');
   assert.ok(calls.some(c => c[0] === 'green' && c[2] === '#aabbcc'));
   assert.ok(calls.some(c => c[0] === 'forest' && c[2] === '#445566'));
 });
