@@ -7,7 +7,7 @@ import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.64
 import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.64';
 import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.64';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.64';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.64';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.65';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
 } from './EnvironmentScale.js?v=0.1.64';
@@ -182,10 +182,6 @@ export function openEnvironmentView(root, {
                 aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
         <button type="button" class="environment-refresh" data-map-position
                 aria-label="Ik ben hier: terug naar mijn huidige positie">Ik ben hier</button>
-        <div class="environment-zoom" aria-label="Kaartzoom">
-          <button type="button" data-map-zoom-in aria-label="Inzoomen" disabled>+</button>
-          <button type="button" data-map-zoom-out aria-label="Uitzoomen" disabled>−</button>
-        </div>
         <div class="environment-readout" data-map-readout></div>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
@@ -319,7 +315,6 @@ export function openEnvironmentView(root, {
   let saveTimer = null;
   let cameraControls = null;
   let positionRequested = false;
-  const appearanceEditor = createEnvironmentAppearanceEditor(root, store, () => mapReady ? map : null);
 
   const displayFailure = description => {
     if (disposed) return;
@@ -429,7 +424,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      appearanceEditor.apply();
+      unsubscribers.push(bindEnvironmentAppearance(map, store));
       updateObjects().catch(() => {});
       render();
     });
@@ -489,13 +484,7 @@ export function openEnvironmentView(root, {
       reportControl('schaalknop ontvangen');
       cameraControls.nextScale();
     }));
-    const stepZoom = direction => {
-      reportControl(direction > 0 ? 'inzoomknop ontvangen' : 'uitzoomknop ontvangen');
-      cameraControls.step(direction);
-    };
-    unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-in]'), () => stepZoom(1)));
-    unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-out]'), () => stepZoom(-1)));
-    for (const button of [scaleButton, root.querySelector('[data-map-zoom-in]'), root.querySelector('[data-map-zoom-out]')]) button.disabled = false;
+    scaleButton.disabled = false;
     reportDiagnosticStatus('knoppen gekoppeld');
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
     for (const name of ['location.created', 'location.updated', 'location.deleted',
@@ -536,7 +525,6 @@ export function openEnvironmentView(root, {
   return () => {
     disposed = true;
     cleanupDiagnostics();
-    appearanceEditor.dispose();
     objectsRevision++;
     cancelAnimationFrame(readoutFrame);
     clearTimeout(saveTimer);
