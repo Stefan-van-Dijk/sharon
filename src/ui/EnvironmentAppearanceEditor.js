@@ -1,7 +1,8 @@
 import {
-  APPEARANCE_GROUPS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
-  appearanceDefaults, appearanceDefaultLineStyle, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.72';
+  APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
+  appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
+  appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
+} from './EnvironmentAppearance.js?v=0.1.73';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -19,59 +20,79 @@ export function createEnvironmentAppearanceEditor(root, store, {
     '<section class="environment-style-flyout" data-map-style-settings aria-label="Kaartstijl aanpassen" hidden></section>');
   const host = root.querySelector('[data-map-style-settings]');
   if (!host) return () => {};
-  host.innerHTML = `
-    <div class="environment-style-panel" aria-label="Kaartstijl">
-      ${floating ? '<header class="environment-style-heading"><strong>Kaartstijl</strong><button type="button" data-style-close aria-label="Sluit kaartstijl">×</button></header>' : ''}
-      <div class="environment-style-groups" data-style-groups role="group" aria-label="Kaartonderdelen"></div>
-      <div class="environment-style-width">
-        <div class="environment-style-width-head">
-          <span>Lijndikte</span>
-          <div class="environment-style-stroke-picker">
-            <label title="Lijnkleur" aria-label="Lijnkleur kiezen">
-              <input data-style-stroke type="color" aria-label="Lijnkleur"/>
-            </label>
-            <small data-style-width-value>1×</small>
-          </div>
-        </div>
-        <input data-style-width type="range" min="0.25" max="4" step="0.25" value="1"
-          aria-label="Lijndikte ten opzichte van standaard"/>
-      </div>
-      <div class="environment-style-dash-choices" role="group" aria-label="Lijnstijl">
-        ${dashOptions.map(item => `
-          <button type="button" data-style-dash="${item.id}" aria-pressed="false"
-            aria-label="${item.label}">
-            <svg viewBox="0 0 78 18" width="100%" height="18" aria-hidden="true">
-              <line x1="6" y1="9" x2="72" y2="9" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" ${item.pattern ? `stroke-dasharray="${item.pattern}"` : ''}/>
-            </svg>
-            <small data-dash-default>Standaard</small>
-          </button>
-        `).join('')}
-      </div>
-      <div class="environment-style-range">
-        <strong>Zichtbaar op schaalniveaus</strong>
-        <div class="environment-scale-range">
-          <div class="environment-scale-rail">
-            <div data-scale-fill></div>
-          </div>
-          <input data-scale-low type="range" min="0" max="6" step="1" value="0"
-            aria-label="Kleinste zichtbare schaalniveau"/>
-          <input data-scale-high type="range" min="0" max="6" step="1" value="6"
-            aria-label="Grootste zichtbare schaalniveau"/>
-        </div>
-        <div class="environment-scale-labels">
-          ${APPEARANCE_SCALE_OPTIONS.map(scale => `<small>${scale.label}</small>`).join('')}
-        </div>
-      </div>
-      ${floating ? '' : '<div class="environment-style-actions"><button type="button" data-style-reset-one>Herstel onderdeel</button><button type="button" data-style-reset-all>Alles standaard</button></div><small class="environment-style-status" data-style-status role="status">Lokaal opgeslagen</small>'}
-    </div>
-  `;
+
+  // All controls have a stable DOM node, especially native color inputs on iOS.
+  host.innerHTML = [
+    '<div class="environment-style-panel" aria-label="Kaartstijl">',
+      '<nav class="environment-style-tabs" data-style-sections aria-label="Kaartgroepen"></nav>',
+      '<div class="environment-style-scope">',
+        '<button type="button" data-style-parent aria-pressed="true">Groep</button>',
+        '<span data-style-selection aria-live="polite"></span>',
+        '<button type="button" data-style-inherit hidden>Groep overnemen ↶</button>',
+      '</div>',
+      '<div class="environment-style-groups" data-style-groups role="group" aria-label="Subgroepen"></div>',
+      '<div class="environment-style-colors">',
+        '<div class="environment-style-color-row" data-style-fill-row>',
+          '<span>Vulling</span>',
+          '<label class="environment-color-edit">',
+            '<span class="environment-color-swatch" data-fill-swatch>',
+              '<input data-style-fill type="color" aria-label="Vulkleur kiezen"/>',
+            '</span>',
+            '<output data-style-fill-hex></output>',
+          '</label>',
+          '<button type="button" data-inherit-field="fill" aria-label="Vulkleur van groep overnemen" hidden>↶</button>',
+        '</div>',
+        '<div class="environment-style-color-row" data-style-stroke-row>',
+          '<span>Lijn</span>',
+          '<label class="environment-color-edit">',
+            '<span class="environment-color-swatch" data-stroke-swatch>',
+              '<input data-style-stroke type="color" aria-label="Lijnkleur kiezen"/>',
+            '</span>',
+            '<output data-style-stroke-hex></output>',
+          '</label>',
+          '<button type="button" data-inherit-field="stroke" aria-label="Lijnkleur van groep overnemen" hidden>↶</button>',
+        '</div>',
+      '</div>',
+      '<div class="environment-style-width">',
+        '<span>Dikte</span>',
+        '<input data-style-width type="range" min="0.25" max="4" step="0.25" value="1" aria-label="Lijndikte"/>',
+        '<output data-style-width-value>1×</output>',
+        '<button type="button" data-inherit-field="width" aria-label="Lijndikte van groep overnemen" hidden>↶</button>',
+      '</div>',
+      '<div class="environment-style-dash-choices" role="group" aria-label="Lijnstijl"></div>',
+      '<div class="environment-style-range">',
+        '<div class="environment-style-range-head"><span>Schaal</span>',
+          '<button type="button" data-inherit-field="scale" aria-label="Schaalbereik van groep overnemen" hidden>↶</button>',
+        '</div>',
+        '<div class="environment-scale-range">',
+          '<div class="environment-scale-rail"><div data-scale-fill></div></div>',
+          '<input data-scale-low type="range" min="0" max="6" step="1" value="0" aria-label="Kleinste zichtbare schaalniveau"/>',
+          '<input data-scale-high type="range" min="0" max="6" step="1" value="6" aria-label="Grootste zichtbare schaalniveau"/>',
+        '</div>',
+        '<div class="environment-scale-labels">',
+          APPEARANCE_SCALE_OPTIONS.map(scale => '<small>' + scale.label + '</small>').join(''),
+        '</div>',
+      '</div>',
+    '</div>'
+  ].join('');
+
   const get = selector => host.querySelector(selector);
+  const tabs = get('[data-style-sections]');
   const groups = get('[data-style-groups]');
+  const parentButton = get('[data-style-parent]');
+  const selection = get('[data-style-selection]');
+  const inheritButton = get('[data-style-inherit]');
+  const fillRow = get('[data-style-fill-row]');
+  const fillInput = get('[data-style-fill]');
+  const fillHex = get('[data-style-fill-hex]');
+  const strokeRow = get('[data-style-stroke-row]');
   const strokeInput = get('[data-style-stroke]');
+  const strokeHex = get('[data-style-stroke-hex]');
+  const widthRow = get('.environment-style-width');
   const widthInput = get('[data-style-width]');
   const widthValue = get('[data-style-width-value]');
-  const dashButtons = [...host.querySelectorAll('[data-style-dash]')];
+  const dashRow = get('.environment-style-dash-choices');
+  const rangeRow = get('.environment-style-range');
   const lowInput = get('[data-scale-low]');
   const highInput = get('[data-scale-high]');
   const scaleFill = get('[data-scale-fill]');
@@ -83,102 +104,165 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const track = floating ? root.querySelector('[data-readout-track]') : null;
   const positionSide = floating ? root.querySelector('[data-readout-position]') : null;
   const styleSide = floating ? root.querySelector('[data-readout-style]') : null;
-  const closeButton = get('[data-style-close]');
+
+  for (const item of APPEARANCE_SECTIONS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.styleSection = item.id;
+    button.textContent = item.label;
+    tabs.append(button);
+  }
+  for (const option of dashOptions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.styleDash = option.id;
+    button.setAttribute('aria-label', option.label);
+    button.setAttribute('aria-pressed', 'false');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 78 18');
+    svg.setAttribute('aria-hidden', 'true');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    for (const [key, val] of Object.entries({
+      x1: '6', y1: '9', x2: '72', y2: '9', stroke: 'currentColor',
+      'stroke-width': '2.5', 'stroke-linecap': 'round'
+    })) line.setAttribute(key, val);
+    if (option.pattern) line.setAttribute('stroke-dasharray', option.pattern);
+    svg.append(line);
+    const small = document.createElement('small');
+    small.dataset.dashDefault = '';
+    small.textContent = 'Standaard';
+    button.append(svg, small);
+    dashRow.append(button);
+  }
+  const dashButtons = [...dashRow.querySelectorAll('[data-style-dash]')];
 
   let overrides = {}, disposed = false, loaded = false, saveTimer = null;
-  let selectedId = APPEARANCE_GROUPS[0].id;
+  let sectionId = 'basis', selectedId = null, shownSectionId = null;
   const listeners = [];
-  const listen = (node, name, callback, options) => {
-    node?.addEventListener(name, callback, options);
-    if (node) listeners.push([node, name, callback, options]);
+  const listen = (node, event, callback, options) => {
+    node?.addEventListener(event, callback, options);
+    if (node) listeners.push([node, event, callback, options]);
   };
   const setStatus = message => { if (!disposed && status) status.textContent = message; };
-  const chosen = () => APPEARANCE_GROUPS.find(group => group.id === selectedId) || APPEARANCE_GROUPS[0];
-  const valuesFor = group => ({ ...appearanceDefaults(group), ...(overrides[group.id] || {}) });
+  const section = () => APPEARANCE_SECTIONS.find(item => item.id === sectionId);
+  const child = () => APPEARANCE_GROUPS.find(group => group.id === selectedId);
+  const currentStyle = () => selectedId ?
+    resolvedEnvironmentAppearance(overrides, selectedId) :
+    { ...appearanceSectionDefaults(section()), ...(overrides.groupStyles?.[sectionId] || {}) };
+  const currentCaps = () => selectedId ? {
+    fill: !!(child().fill || child().background),
+    stroke: !!child().lines?.length,
+    width: !!child().lines?.length,
+    dash: !!child().lines?.length,
+    scale: !child().background
+  } : appearanceSectionProperties(section());
+  const currentEntry = () => selectedId ? (overrides[selectedId] || {}) :
+    (overrides.groupStyles?.[sectionId] || {});
   const notify = category => { if (floating && !disposed) onChange(overrides, category); };
 
+  // No miniature maps: one fill patch or a single line, with current effective style.
   const preview = group => {
-    const values = valuesFor(group);
-    const pattern = values.dash === 'dotted' ? '1 6' : values.dash === 'dashed' ? '9 5' :
-      (values.dash === 'solid' ? '' : ({ solid: '', dotted: '1 6', dashed: '9 5' }[appearanceDefaultLineStyle(group)]));
-    // Compact material/line swatches deliberately avoid miniature map geometry.
-    if (group.fill) return `<svg viewBox="0 0 72 25" width="100%" height="25" aria-hidden="true">
-      <rect x="12" y="3" width="48" height="19" rx="4"
-        fill="${values.fill}" stroke="${values.stroke}" stroke-width="1.8"/></svg>`;
-    return `<svg viewBox="0 0 72 25" width="100%" height="25" aria-hidden="true">
-      <line x1="10" y1="13" x2="62" y2="13"
-        stroke="${values.stroke}" stroke-width="${Math.min(5, 2.2 * values.width)}"
-        stroke-linecap="round" ${pattern ? `stroke-dasharray="${pattern}"` : ''}/></svg>`;
+    const v = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
+    if (group.fill || group.background) {
+      return '<svg viewBox="0 0 72 25" aria-hidden="true">' +
+        '<rect x="12" y="3" width="48" height="19" fill="' + v.fill +
+        '" stroke="' + (v.stroke || '#b9b9bf') + '" stroke-width="1.3"/></svg>';
+    }
+    const pattern = v.dash === 'dotted' ? '1 6' : v.dash === 'dashed' ? '9 5' :
+      v.dash === 'solid' ? '' :
+      ({ solid: '', dotted: '1 6', dashed: '9 5' }[appearanceDefaultLineStyle(group)]);
+    return '<svg viewBox="0 0 72 25" aria-hidden="true">' +
+      '<line x1="10" y1="13" x2="62" y2="13" stroke="' + v.stroke +
+      '" stroke-width="' + Math.min(5, 2.2 * v.width) + '"' +
+      (pattern ? ' stroke-dasharray="' + pattern + '"' : '') +
+      ' stroke-linecap="round"/></svg>';
   };
-
-  // Keep the same DOM input nodes while the native iOS color picker is open.
-  const renderGroups = () => {
-    if (!groups.children.length) {
+  const renderGrid = () => {
+    if (shownSectionId !== sectionId) {
       const fragment = document.createDocumentFragment();
-      for (const group of APPEARANCE_GROUPS) {
+      for (const id of section().items) {
+        const group = APPEARANCE_GROUPS.find(item => item.id === id);
         const wrapper = document.createElement('div');
         wrapper.className = 'environment-style-group';
-        wrapper.dataset.groupCard = group.id;
+        wrapper.dataset.groupCard = id;
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'environment-style-group-main';
-        button.dataset.styleGroup = group.id;
+        button.dataset.styleGroup = id;
         button.setAttribute('aria-label', group.label);
+        const sample = document.createElement('svg');
         const label = document.createElement('span');
         label.textContent = group.label;
-        button.append(document.createElement('svg'), label);
+        const deviation = document.createElement('i');
+        deviation.className = 'environment-style-deviation';
+        deviation.setAttribute('aria-hidden', 'true');
+        button.append(sample, label, deviation);
         wrapper.append(button);
-        if (group.fill) {
-          const dot = document.createElement('label');
-          dot.className = 'environment-style-fill-dot';
-          dot.title = group.label + ': vulkleur';
-          const input = document.createElement('input');
-          input.type = 'color';
-          input.dataset.styleFill = group.id;
-          input.setAttribute('aria-label', group.label + ': vulkleur');
-          dot.append(input);
-          wrapper.append(dot);
-        }
         fragment.append(wrapper);
       }
       groups.replaceChildren(fragment);
+      shownSectionId = sectionId;
     }
-    for (const group of APPEARANCE_GROUPS) {
-      const wrapper = [...groups.children].find(node => node.dataset.groupCard === group.id);
-      wrapper.classList.toggle('is-selected', group.id === selectedId);
+    groups.hidden = section().items.length === 1;
+    for (const id of section().items) {
+      const wrapper = [...groups.children].find(node => node.dataset.groupCard === id);
+      wrapper.classList.toggle('is-selected', id === selectedId);
+      wrapper.classList.toggle('has-deviation', !!overrides[id]);
       const button = wrapper.querySelector('[data-style-group]');
-      button.setAttribute('aria-pressed', String(group.id === selectedId));
-      const sample = button.querySelector('svg');
-      // Edit only the preview SVG; never replace a focused color input.
-      sample.outerHTML = preview(group);
-      const input = wrapper.querySelector('[data-style-fill]');
-      if (input) {
-        input.closest('label').style.setProperty('--swatch-color', valuesFor(group).fill);
-        if (input !== document.activeElement) input.value = valuesFor(group).fill;
-      }
+      button.setAttribute('aria-pressed', String(id === selectedId));
+      button.querySelector('svg').outerHTML = preview(APPEARANCE_GROUPS.find(item => item.id === id));
     }
   };
   const render = () => {
-    const group = chosen(), values = valuesFor(group);
-    renderGroups();
-    strokeInput.value = values.stroke;
-    strokeInput.closest('label')?.style.setProperty('--swatch-color', values.stroke);
-    widthInput.value = String(values.width);
-    widthValue.textContent = values.width + '×';
-    const defaultDash = appearanceDefaultLineStyle(group);
-    const chosenDash = values.dash === 'default' ? defaultDash : values.dash;
-    for (const button of dashButtons) {
-      button.setAttribute('aria-pressed', String(button.dataset.styleDash === chosenDash));
-      button.querySelector('[data-dash-default]').hidden = button.dataset.styleDash !== defaultDash;
+    if (!loaded) return;
+    const s = section(), values = currentStyle(), caps = currentCaps(), entry = currentEntry();
+    for (const tab of tabs.querySelectorAll('[data-style-section]'))
+      tab.setAttribute('aria-pressed', String(tab.dataset.styleSection === sectionId));
+    renderGrid();
+    parentButton.hidden = s.items.length === 1;
+    parentButton.setAttribute('aria-pressed', String(!selectedId));
+    selection.textContent = selectedId ? child().label : (s.items.length === 1 ? s.label : '');
+    inheritButton.hidden = !selectedId || !Object.keys(entry).length || s.items.length === 1;
+    fillRow.hidden = !caps.fill;
+    strokeRow.hidden = !caps.stroke;
+    widthRow.hidden = !caps.width;
+    dashRow.hidden = !caps.dash;
+    rangeRow.hidden = !caps.scale;
+    if (caps.fill) {
+      get('[data-fill-swatch]').style.setProperty('--style-color', values.fill);
+      fillHex.textContent = values.fill?.toUpperCase() || '';
+      if (fillInput !== document.activeElement && values.fill) fillInput.value = values.fill;
     }
-    const low = values.to ? scaleIndex(values.to) : 0;
-    const high = values.from ? scaleIndex(values.from) : APPEARANCE_SCALE_OPTIONS.length - 1;
-    lowInput.value = String(Math.max(0, low));
-    highInput.value = String(Math.max(0, high));
-    const left = Number(lowInput.value) / 6 * 100, right = Number(highInput.value) / 6 * 100;
-    scaleFill.style.left = left + '%';
-    scaleFill.style.width = (right - left) + '%';
-    resetOne.disabled = !overrides[group.id];
+    if (caps.stroke) {
+      get('[data-stroke-swatch]').style.setProperty('--style-color', values.stroke);
+      strokeHex.textContent = values.stroke?.toUpperCase() || '';
+      if (strokeInput !== document.activeElement && values.stroke) strokeInput.value = values.stroke;
+      widthInput.value = String(values.width);
+      widthValue.textContent = values.width + '×';
+      const firstLine = APPEARANCE_GROUPS.find(group =>
+        group.lines?.length && s.items.includes(group.id));
+      const defaultDash = appearanceDefaultLineStyle(selectedId ? child() : firstLine);
+      const chosenDash = values.dash === 'default' ? defaultDash : values.dash;
+      for (const button of dashButtons) {
+        button.setAttribute('aria-pressed', String(button.dataset.styleDash === chosenDash));
+        button.querySelector('[data-dash-default]').hidden = button.dataset.styleDash !== defaultDash;
+      }
+    }
+    if (caps.scale) {
+      const low = values.to && values.to !== 'all' ? scaleIndex(values.to) : 0;
+      const high = values.from && values.from !== 'all' ? scaleIndex(values.from) : 6;
+      lowInput.value = String(Math.max(0, low));
+      highInput.value = String(Math.max(0, high));
+      scaleFill.style.left = (Number(lowInput.value) / 6 * 100) + '%';
+      scaleFill.style.width =
+        ((Number(highInput.value) - Number(lowInput.value)) / 6 * 100) + '%';
+    }
+    for (const button of host.querySelectorAll('[data-inherit-field]')) {
+      const field = button.dataset.inheritField;
+      button.hidden = !selectedId ||
+        (field === 'scale' ? !('from' in entry || 'to' in entry) : !(field in entry));
+    }
+    resetOne.disabled = !Object.keys(entry).length;
     resetAll.disabled = !Object.keys(overrides).length;
   };
   const persist = () => {
@@ -189,23 +273,59 @@ export function createEnvironmentAppearanceEditor(root, store, {
         .catch(() => setStatus('Opslaan mislukt'));
     }, 250);
   };
-  const update = (key, value, groupId = selectedId) => {
-    if (!loaded) return;
-    const group = APPEARANCE_GROUPS.find(item => item.id === groupId);
-    if (!group) return;
-    const entry = { ...(overrides[groupId] || {}) };
-    const defaults = appearanceDefaults(group);
-    if (value === defaults[key] || key === 'dash' && value === 'default' ||
-        key === 'width' && value === 1 ||
-        (key === 'from' || key === 'to') && !value) delete entry[key];
-    else entry[key] = value;
-    if (Object.keys(entry).length) overrides[groupId] = entry;
-    else delete overrides[groupId];
+  const saveChanges = category => {
     overrides = sanitizeEnvironmentAppearance(overrides);
-    notify(groupId);
+    notify(category);
     render();
     setStatus('Direct zichtbaar op de kaart · lokaal opgeslagen');
     persist();
+  };
+  const editEntry = fn => {
+    if (!loaded) return;
+    const entry = { ...currentEntry() };
+    fn(entry);
+    if (selectedId) {
+      if (Object.keys(entry).length) overrides[selectedId] = entry;
+      else delete overrides[selectedId];
+    } else {
+      const parent = { ...(overrides.groupStyles || {}) };
+      if (Object.keys(entry).length) parent[sectionId] = entry;
+      else delete parent[sectionId];
+      if (Object.keys(parent).length) overrides.groupStyles = parent;
+      else delete overrides.groupStyles;
+    }
+    saveChanges(selectedId || sectionId);
+  };
+  const inheritedValue = field => {
+    if (!selectedId) return appearanceSectionDefaults(section())[field];
+    return {
+      ...appearanceDefaults(child()),
+      ...(overrides.groupStyles?.[sectionId] || {})
+    }[field];
+  };
+  const update = (field, value) => editEntry(entry => {
+    const fallback = inheritedValue(field);
+    if (value === fallback || (field === 'dash' && value === 'default' &&
+        (fallback === 'default' || !fallback))) delete entry[field];
+    else entry[field] = value;
+  });
+  const adjustScale = changed => {
+    if (!loaded) return;
+    let low = Number(lowInput.value), high = Number(highInput.value);
+    if (low > high) {
+      if (changed === 'low') high = low;
+      else low = high;
+    }
+    editEntry(entry => {
+      const inherit = selectedId ? (overrides.groupStyles?.[sectionId] || {}) : {};
+      const to = low === 0 ? (inherit.to ? 'all' : '') : APPEARANCE_SCALE_OPTIONS[low].id;
+      const from = high === 6 ? (inherit.from ? 'all' : '') : APPEARANCE_SCALE_OPTIONS[high].id;
+      for (const [key, value] of [['to', to], ['from', from]]) {
+        const parentValue = selectedId ? inherit[key] || '' : '';
+        if (!value || value === parentValue) delete entry[key];
+        else entry[key] = value;
+      }
+    });
   };
   const setStyleMode = active => {
     if (!floating || disposed) return;
@@ -216,8 +336,64 @@ export function createEnvironmentAppearanceEditor(root, store, {
     returnButton.tabIndex = active ? 0 : -1;
     resetOne.tabIndex = active ? 0 : -1;
     resetAll.tabIndex = active ? 0 : -1;
-    if (active) host.querySelector('[data-style-group]')?.focus();
+    if (active) tabs.querySelector('[data-style-section]')?.focus();
   };
+
+  listen(tabs, 'click', event => {
+    const tab = event.target.closest('[data-style-section]');
+    if (!tab) return;
+    sectionId = tab.dataset.styleSection;
+    selectedId = section().items.length === 1 ? section().items[0] : null;
+    render();
+  });
+  listen(parentButton, 'click', () => { selectedId = null; render(); });
+  listen(groups, 'click', event => {
+    const button = event.target.closest('[data-style-group]');
+    if (!button) return;
+    selectedId = button.dataset.styleGroup;
+    render();
+  });
+  listen(inheritButton, 'click', () => {
+    if (!selectedId || !loaded) return;
+    delete overrides[selectedId];
+    saveChanges(selectedId);
+  });
+  listen(host, 'click', event => {
+    const button = event.target.closest('[data-inherit-field]');
+    if (!button || !selectedId || !loaded) return;
+    editEntry(entry => {
+      const field = button.dataset.inheritField;
+      if (field === 'scale') { delete entry.from; delete entry.to; }
+      else delete entry[field];
+    });
+  });
+  listen(fillInput, 'input', () => update('fill', fillInput.value));
+  listen(strokeInput, 'input', () => update('stroke', strokeInput.value));
+  listen(widthInput, 'input', () => update('width', Number(widthInput.value)));
+  for (const button of dashButtons) listen(button, 'click', () => {
+    const firstLine = APPEARANCE_GROUPS.find(group =>
+      group.lines?.length && section().items.includes(group.id));
+    const defaultDash = appearanceDefaultLineStyle(selectedId ? child() : firstLine);
+    update('dash', button.dataset.styleDash === defaultDash ? 'default' : button.dataset.styleDash);
+  });
+  listen(lowInput, 'input', () => adjustScale('low'));
+  listen(highInput, 'input', () => adjustScale('high'));
+  listen(resetOne, 'click', () => {
+    if (!loaded) return;
+    if (selectedId) delete overrides[selectedId];
+    else if (overrides.groupStyles) {
+      delete overrides.groupStyles[sectionId];
+      if (!Object.keys(overrides.groupStyles).length) delete overrides.groupStyles;
+    }
+    saveChanges(selectedId || sectionId);
+  });
+  listen(resetAll, 'click', () => {
+    if (!loaded) return;
+    overrides = {};
+    saveChanges();
+  });
+  listen(returnButton, 'click', () => setStyleMode(false));
+
   // Only a deliberate rightward gesture starting at the left 50 px of the
   // *position bar* activates the editor. This never starts on the map.
   let touchStart = null;
@@ -252,64 +428,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (horizontal && dx >= 58) setStyleMode(true);
   };
 
-  listen(groups, 'click', event => {
-    const button = event.target.closest('[data-style-group]');
-    if (!button) return;
-    selectedId = button.dataset.styleGroup;
-    render();
-  });
-  listen(groups, 'input', event => {
-    const input = event.target.closest('[data-style-fill]');
-    if (!input) return;
-    selectedId = input.dataset.styleFill;
-    update('fill', input.value, selectedId);
-  });
-  listen(strokeInput, 'input', () => update('stroke', strokeInput.value));
-  listen(widthInput, 'input', () => update('width', Number(widthInput.value)));
-  for (const button of dashButtons) listen(button, 'click', () => {
-    const defaultDash = appearanceDefaultLineStyle(chosen());
-    update('dash', button.dataset.styleDash === defaultDash ? 'default' : button.dataset.styleDash);
-  });
-  const adjustScale = changed => {
-    let low = Number(lowInput.value), high = Number(highInput.value);
-    if (low > high) {
-      if (changed === 'low') high = low;
-      else low = high;
-    }
-    // Apply both range limits as one state change, not two MapLibre repaints.
-    const group = chosen(), entry = { ...(overrides[group.id] || {}) };
-    if (low === 0) delete entry.to;
-    else entry.to = APPEARANCE_SCALE_OPTIONS[low].id;
-    if (high === 6) delete entry.from;
-    else entry.from = APPEARANCE_SCALE_OPTIONS[high].id;
-    if (Object.keys(entry).length) overrides[group.id] = entry;
-    else delete overrides[group.id];
-    overrides = sanitizeEnvironmentAppearance(overrides);
-    notify(group.id);
-    render();
-    setStatus('Direct zichtbaar op de kaart · lokaal opgeslagen');
-    persist();
-  };
-  listen(lowInput, 'input', () => { if (loaded) adjustScale('low'); });
-  listen(highInput, 'input', () => { if (loaded) adjustScale('high'); });
-  listen(resetOne, 'click', () => {
-    if (!loaded) return;
-    delete overrides[selectedId];
-    notify(selectedId);
-    render();
-    setStatus('Onderdeel hersteld · lokaal opgeslagen');
-    persist();
-  });
-  listen(resetAll, 'click', () => {
-    if (!loaded) return;
-    overrides = {};
-    notify();
-    render();
-    setStatus('Alles standaard · lokaal opgeslagen');
-    persist();
-  });
-  listen(returnButton, 'click', () => setStyleMode(false));
-  listen(closeButton, 'click', () => setStyleMode(false));
+
   listen(positionSide, 'touchstart', beginSwipe, { passive: true });
   listen(positionSide, 'touchmove', moveSwipe, { passive: false });
   listen(positionSide, 'touchend', finishSwipe, { passive: true });
