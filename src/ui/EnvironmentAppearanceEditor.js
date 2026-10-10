@@ -1,7 +1,7 @@
 import {
   APPEARANCE_GROUPS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.67';
+} from './EnvironmentAppearance.js?v=0.1.68';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
