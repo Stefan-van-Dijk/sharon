@@ -1,6 +1,6 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.67';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.68';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.67';
+  from './EnvironmentScale.js?v=0.1.68';
 
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
 export const APPEARANCE_GROUPS = Object.freeze([
