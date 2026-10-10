@@ -34,6 +34,7 @@ export function environmentZoomForSpan(spanM, lat, container) {
 export function configureEnvironmentGestures(map) {
   // Disable the composite handler, which also enables one-finger tap-drag zoom.
   map.touchZoomRotate.disable();
+  map.dragPan.disable();
   map.doubleClickZoom.disable();
   map.scrollZoom.setZoomRate(1 / 300);
   map.scrollZoom.setWheelZoomRate(1 / 1400);

@@ -1,33 +1,33 @@
-const BUILD = '0.1.56';
+const BUILD = '0.1.57';
 const CACHE = `sharon-shell-${BUILD}`;
 const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest?v=0.1.56',
-  './assets/sharon-mark.png?v=0.1.56',
-  './assets/sharon-wordmark.svg?v=0.1.56',
-  './assets/sharon-logo.svg?v=0.1.56',
-  './src/main.js?v=0.1.56',
-  './src/app.js?v=0.1.56',
-  './src/core/app/InstallService.js?v=0.1.56',
-  './src/core/location/ReverseGeocodeService.js?v=0.1.56',
-  './src/core/location/LocationTriggerService.js?v=0.1.56',
-  './src/core/location/EnvironmentIdentifier.js?v=0.1.56',
-  './src/core/ids/IdentifierService.js?v=0.1.56',
-  './src/ui/Brand.js?v=0.1.56',
-  './src/ui/Boot.js?v=0.1.56',
-  './src/ui/Story.js?v=0.1.56',
-  './src/ui/LocationsView.js?v=0.1.56',
-  './src/ui/EnvironmentMapLibre.js?v=0.1.56',
-  './src/ui/EnvironmentData.js?v=0.1.56',
-  './src/ui/EnvironmentStyle.js?v=0.1.56',
-  './src/ui/EnvironmentScale.js?v=0.1.56',
-  './src/ui/EnvironmentGestures.js?v=0.1.56',
-  './src/ui/EnvironmentPosition.js?v=0.1.56',
-  './src/ui/SettingsView.js?v=0.1.56',
-  './src/ui/SwipeRows.js?v=0.1.56',
-  './src/ui/SwipeHome.js?v=0.1.56',
-  './src/ui/Shell.js?v=0.1.56'
+  './manifest.webmanifest?v=0.1.57',
+  './assets/sharon-mark.png?v=0.1.57',
+  './assets/sharon-wordmark.svg?v=0.1.57',
+  './assets/sharon-logo.svg?v=0.1.57',
+  './src/main.js?v=0.1.57',
+  './src/app.js?v=0.1.57',
+  './src/core/app/InstallService.js?v=0.1.57',
+  './src/core/location/ReverseGeocodeService.js?v=0.1.57',
+  './src/core/location/LocationTriggerService.js?v=0.1.57',
+  './src/core/location/EnvironmentIdentifier.js?v=0.1.57',
+  './src/core/ids/IdentifierService.js?v=0.1.57',
+  './src/ui/Brand.js?v=0.1.57',
+  './src/ui/Boot.js?v=0.1.57',
+  './src/ui/Story.js?v=0.1.57',
+  './src/ui/LocationsView.js?v=0.1.57',
+  './src/ui/EnvironmentMapLibre.js?v=0.1.57',
+  './src/ui/EnvironmentData.js?v=0.1.57',
+  './src/ui/EnvironmentStyle.js?v=0.1.57',
+  './src/ui/EnvironmentScale.js?v=0.1.57',
+  './src/ui/EnvironmentGestures.js?v=0.1.57',
+  './src/ui/EnvironmentPosition.js?v=0.1.57',
+  './src/ui/SettingsView.js?v=0.1.57',
+  './src/ui/SwipeRows.js?v=0.1.57',
+  './src/ui/SwipeHome.js?v=0.1.57',
+  './src/ui/Shell.js?v=0.1.57'
 ];
 
 self.addEventListener('install', event => {
@@ -65,12 +65,12 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     // Versioned app assets are immutable within a build: render them immediately.
     // Navigations still check the network for the next app version.
-    if (url.searchParams.get('v') === BUILD) {
+    if (event.request.mode !== 'navigate' && url.searchParams.get('v') === BUILD) {
       const cached = await caches.match(event.request);
       if (cached) return cached;
     }
     try {
-      const response = await fetch(event.request);
+      const response = await fetch(event.request, event.request.mode === 'navigate' ? { cache: 'reload' } : undefined);
 
       if (response.ok && new URL(event.request.url).origin === self.location.origin) {
         const cache = await caches.open(CACHE);

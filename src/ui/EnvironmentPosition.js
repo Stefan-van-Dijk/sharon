@@ -1,3 +1,5 @@
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.57';
+
 // The return-to-position action stays usable while a shared GPS request is pending.
 export function bindEnvironmentPositionButton(button, {
   location, getPoint, onPoint, onRefreshPoint = onPoint, onRequest = () => {}, onUnavailable = () => {}
@@ -22,6 +24,6 @@ export function bindEnvironmentPositionButton(button, {
       if (!disposed) button.setAttribute('aria-busy', 'false');
     }
   };
-  button.addEventListener('click', click);
-  return () => { disposed = true; button.removeEventListener('click', click); };
+  const unbind = bindEnvironmentButton(button, click);
+  return () => { disposed = true; unbind(); };
 }

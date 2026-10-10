@@ -176,3 +176,18 @@ voordat de renderer is geladen. Een pending verzoek wordt hergebruikt.
 
 Gerichte regressietests simuleren een swipe na een tik, samen verschuivende
 vingers, knijpen, wisselen van vingeraantal, jitter en pending GPS.
+
+### 0.1.57 — telefoonbediening en versiecontrole
+
+Eén Pointer Events-handler verwerkt muis, pen en aanraking. De ingebouwde
+pan-handler is uitgeschakeld, net als tap-drag zoom. Slepen volgt de vinger
+zonder uitloop. Knijpzoom werkt in beide richtingen met factor 0,6 en zonder
+animatie; bij het loslaten van één vinger wordt het anker opnieuw bepaald.
+Knoppen activeren op touch/pen-release en onderdrukken de daaropvolgende
+synthetische click. Toetsenbordbediening blijft beschikbaar.
+
+Service-workerregistratie gebeurt vóór de introductie en werkt ook wanneer
+het load-event al voorbij is. Navigaties omzeilen zowel de versiecache als de
+HTTP-cache; offline blijft de bestaande shell als terugval beschikbaar.
+Pointer-, knop-, GPS- en updategedrag is automatisch getest. Een fysieke
+telefoon is in deze werkomgeving niet beschikbaar voor eindcontrole.

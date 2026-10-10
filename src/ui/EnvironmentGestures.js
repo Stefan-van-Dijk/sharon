@@ -1,120 +1,92 @@
-const PINCH_RATE = 0.25;
 const PAN_THRESHOLD_PX = 5;
-const PINCH_THRESHOLD_RATIO = 0.08;
+const PINCH_RATE = 0.6;
 
-function touchSample(touches, element) {
-  if (!touches.length || touches.length > 2) return null;
-  const rect = element.getBoundingClientRect();
-  const points = Array.from(touches, touch => ({
-    x: touch.clientX - rect.left, y: touch.clientY - rect.top
-  }));
-  const center = points.length === 1 ? points[0] : {
-    x: (points[0].x + points[1].x) / 2,
-    y: (points[0].y + points[1].y) / 2
-  };
-  return {
-    count: points.length, center,
-    distance: points.length === 2 ? Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y) : 0
-  };
-}
-
-// Own touch input explicitly: no tap-then-drag zoom and no zoom inertia.
-// Native mouse, trackpad and keyboard handlers remain available.
-export function bindEnvironmentTouchGestures(map, onStart = () => {}, {
-  requestFrame = requestAnimationFrame, cancelFrame = cancelAnimationFrame
-} = {}) {
+// One owner for mouse, pen and touch. Capture keeps a drag active outside the
+// canvas; UI buttons are siblings and never enter this gesture handler.
+export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
   const element = map.getCanvasContainer();
-  let state = null;
-  let pending = null;
-  let frame = 0;
-  let moved = false;
-  let lastDragAt = -Infinity;
-
-  const discardFrame = () => {
-    if (frame) cancelFrame(frame);
-    frame = 0;
-    pending = null;
+  const pointers = new Map();
+  let previous = null, origin = null, moved = false, lastDragAt = -Infinity;
+  const sample = () => {
+    const points = [...pointers.values()];
+    if (!points.length || points.length > 2) return null;
+    return { center: points.length === 1 ? points[0] : {
+      x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2
+    }, distance: points.length === 2 ? Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y) : 0 };
   };
-  const flush = () => {
-    frame = 0;
-    const sample = pending;
-    pending = null;
-    if (!sample || !state || sample.count !== state.count) return;
-    const dx = sample.center.x - state.center.x;
-    const dy = sample.center.y - state.center.y;
-    if (!state.panning && Math.hypot(sample.center.x - state.origin.x,
-      sample.center.y - state.origin.y) >= PAN_THRESHOLD_PX) state.panning = true;
-    if (state.panning && (dx || dy)) {
-      map.panBy([-dx, -dy], { duration: 0 });
-      moved = true;
-    }
-    if (sample.count === 2 && sample.distance > 0 && state.distance > 0) {
-      if (Math.abs(Math.log(sample.distance / state.startDistance)) >= PINCH_THRESHOLD_RATIO) {
-        state.zooming = true;
-      }
-      if (state.zooming) {
-        const delta = Math.log2(sample.distance / state.distance) * PINCH_RATE;
-        if (delta) {
-          map.easeTo({ zoom: Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + delta)),
-            around: map.unproject([sample.center.x, sample.center.y]), duration: 0 });
-          moved = true;
-        }
-      }
-    }
-    if (state.panning) state.center = sample.center;
-    state.distance = sample.distance;
+  const point = event => {
+    const rect = element.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
-  const reset = touches => {
-    const sample = touchSample(touches, element);
-    state = sample ? { ...sample, origin: sample.center, startDistance: sample.distance,
-      panning: false, zooming: false } : null;
-  };
-  const start = event => {
-    event.stopImmediatePropagation();
-    discardFrame();
-    map.stop();
-    onStart();
-    if (!state) moved = false;
-    reset(event.touches);
+  const down = event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (!pointers.size) { map.stop(); onStart(); moved = false; }
+    pointers.set(event.pointerId, point(event));
+    element.setPointerCapture(event.pointerId);
+    previous = sample(); origin = previous?.center;
   };
   const move = event => {
-    event.stopImmediatePropagation();
-    if (event.cancelable) event.preventDefault();
-    const sample = touchSample(event.touches, element);
-    if (!sample || !state || sample.count !== state.count) {
-      discardFrame(); reset(event.touches); return;
+    if (!pointers.has(event.pointerId)) return;
+    event.preventDefault();
+    pointers.set(event.pointerId, point(event));
+    const current = sample();
+    if (!current || !previous) { previous = current; origin = current?.center; return; }
+    const dx = current.center.x - previous.center.x, dy = current.center.y - previous.center.y;
+    if (!moved && Math.hypot(current.center.x - origin.x, current.center.y - origin.y) >= PAN_THRESHOLD_PX) moved = true;
+    if (moved && (dx || dy)) map.panBy([-dx, -dy], { duration: 0 });
+    if (current.distance > 0 && previous.distance > 0) {
+      const delta = Math.log2(current.distance / previous.distance) * PINCH_RATE;
+      if (delta) {
+        map.easeTo({ zoom: Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + delta)),
+          around: map.unproject([current.center.x, current.center.y]), duration: 0 });
+        moved = true;
+      }
     }
-    pending = sample;
-    if (!frame) frame = requestFrame(flush);
+    previous = current;
   };
-  const end = event => {
-    event.stopImmediatePropagation();
-    if (frame) { cancelFrame(frame); flush(); }
-    if (moved) {
-      lastDragAt = performance.now();
-      if (event.cancelable) event.preventDefault();
-    }
-    reset(event.touches);
-  };
-  const cancel = event => {
-    event.stopImmediatePropagation();
-    discardFrame(); state = null;
+  const up = event => {
+    if (!pointers.delete(event.pointerId)) return;
     if (moved) lastDragAt = performance.now();
+    previous = sample(); origin = previous?.center;
+    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
   };
   const click = event => {
     if (performance.now() - lastDragAt > 400) return;
     event.preventDefault(); event.stopImmediatePropagation();
   };
-  const options = { capture: true, passive: false };
-  for (const [name, handler] of [
-    ['touchstart', start], ['touchmove', move], ['touchend', end],
-    ['touchcancel', cancel], ['click', click]
-  ]) element.addEventListener(name, handler, options);
+  const handlers = [['pointerdown', down], ['pointermove', move], ['pointerup', up],
+    ['pointercancel', up], ['lostpointercapture', up], ['click', click]];
+  for (const [name, fn] of handlers) element.addEventListener(name, fn, { capture: true, passive: false });
   return () => {
-    discardFrame(); state = null;
-    for (const [name, handler] of [
-      ['touchstart', start], ['touchmove', move], ['touchend', end],
-      ['touchcancel', cancel], ['click', click]
-    ]) element.removeEventListener(name, handler, options);
+    for (const [name, fn] of handlers) element.removeEventListener(name, fn, true);
+    for (const id of pointers.keys()) if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+    pointers.clear();
   };
+}
+
+// Safari can suppress synthetic clicks after touch gestures. Activate touch
+// buttons on release, suppress the duplicate click, and retain keyboard clicks.
+export function bindEnvironmentButton(button, action) {
+  let start = null, lastTouchAt = -Infinity;
+  const down = event => {
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      start = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    }
+  };
+  const up = event => {
+    if (!start || start.id !== event.pointerId) return;
+    const tap = Math.hypot(event.clientX - start.x, event.clientY - start.y) < 10;
+    start = null;
+    lastTouchAt = performance.now();
+    event.preventDefault();
+    if (tap) action();
+  };
+  const cancel = () => { start = null; };
+  const click = event => {
+    if (event.detail !== 0 && performance.now() - lastTouchAt < 600) return;
+    action();
+  };
+  const handlers = [['pointerdown', down], ['pointerup', up], ['pointercancel', cancel], ['click', click]];
+  for (const [name, fn] of handlers) button.addEventListener(name, fn);
+  return () => { for (const [name, fn] of handlers) button.removeEventListener(name, fn); };
 }

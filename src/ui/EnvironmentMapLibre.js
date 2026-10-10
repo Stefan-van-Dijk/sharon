@@ -1,14 +1,14 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.56';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.56';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.56';
-import { bindEnvironmentTouchGestures } from './EnvironmentGestures.js?v=0.1.56';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.56';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.57';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.57';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.57';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.57';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.57';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures, environmentZoomTransition
-} from './EnvironmentScale.js?v=0.1.56';
+} from './EnvironmentScale.js?v=0.1.57';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -353,7 +353,7 @@ export async function openEnvironmentView(root, {
       displayFailure('Kaartgegevens tijdelijk niet beschikbaar. Probeer opnieuw met verbinding.');
       console.warn('Sharon Omgeving: vectorkaart', event.error);
     });
-    scaleButton.addEventListener('click', () => {
+    unsubscribers.push(bindEnvironmentButton(scaleButton, () => {
       const currentId = scaleTarget || environmentScaleForSpan(visibleSpanMeters(map)).id;
       const next = nextEnvironmentScale(currentId);
       stopFollowing();
@@ -361,13 +361,13 @@ export async function openEnvironmentView(root, {
       // easeTo may end the interrupted animation synchronously. Set the new
       // target afterwards so rapid taps continue through the level sequence.
       scaleTarget = next.id;
-    });
+    }));
     const stepZoom = (direction, around) => {
       stopFollowing();
       environmentZoomTransition(map, map.getZoom() + direction * 0.25, { duration: 650, around });
     };
-    root.querySelector('[data-map-zoom-in]').addEventListener('click', () => stepZoom(1));
-    root.querySelector('[data-map-zoom-out]').addEventListener('click', () => stepZoom(-1));
+    unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-in]'), () => stepZoom(1)));
+    unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-out]'), () => stepZoom(-1)));
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
     for (const name of ['location.created', 'location.updated', 'location.deleted',
       'environment.objects.changed']) {

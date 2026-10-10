@@ -38,9 +38,10 @@ test('free zoom reports the nearest original level including nearby and country'
   assert.equal(environmentScaleForSpan(650000).label, 'Land');
 });
 
-test('all input methods use native handlers with reduced zoom sensitivity', () => {
+test('native touch and drag handlers are disabled before custom pointer input', () => {
   const rates = {};
   configureEnvironmentGestures({
+    dragPan: { disable: () => rates.pan = 'disabled' },
     touchZoomRotate: { disable: () => rates.touch = 'disabled' },
     doubleClickZoom: { disable: () => rates.doubleTap = 'disabled' },
     scrollZoom: { setZoomRate: value => rates.trackpad = value,
@@ -48,6 +49,7 @@ test('all input methods use native handlers with reduced zoom sensitivity', () =
     keyboard: { disableRotation() {} }
   });
   assert.equal(rates.touch, 'disabled');
+  assert.equal(rates.pan, 'disabled');
   assert.equal(rates.doubleTap, 'disabled');
   assert.ok(rates.trackpad < 1 / 100);
   assert.ok(rates.wheel < 1 / 450);
