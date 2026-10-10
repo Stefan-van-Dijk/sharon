@@ -128,16 +128,9 @@
 
     #app{position:relative;min-height:inherit}
     .app-stage{--home-swipe-x:0px;--home-swipe-progress:0;--home-swipe-radius:0px;--home-swipe-shadow:0;box-sizing:border-box;width:100%;min-height:100dvh;padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));position:relative;z-index:10;background:#fff;overflow:clip;border-radius:var(--home-swipe-radius) 0 0 var(--home-swipe-radius)}
-    .app-stage[data-view="detail"]{height:100dvh;min-height:100dvh;padding-bottom:0;touch-action:pan-y;overscroll-behavior-x:none}
-    .app-stage[data-view="detail"]:not(.is-environment) .app-frame{height:calc(100dvh - max(22px,env(safe-area-inset-top)));min-height:0}
-    .app-stage[data-view="detail"]:not(.is-environment) .app-view{overflow-y:auto;padding-bottom:max(24px,env(safe-area-inset-bottom))}
     .app-stage.is-home-swiping,.app-stage.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-10px 0 30px rgba(0,0,0,var(--home-swipe-shadow))}
     .app-stage.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease,border-radius .24s cubic-bezier(.22,.61,.36,1)}
     .app-frame{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
-    .app-stage.is-environment{touch-action:auto;height:100dvh;min-height:100dvh;padding:0;background:#fff}
-    .app-frame.is-environment{width:100%;max-width:none;height:100dvh;min-height:100dvh;margin:0;overflow:hidden;background:#fff}
-    .app-stage.is-environment .app-header{position:absolute;top:0;left:0;right:0;z-index:30;min-height:calc(54px + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left));background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.68) 62%,rgba(255,255,255,0) 100%);border-bottom-color:transparent;backdrop-filter:none}
-    .app-stage.is-environment .app-view{transform:none;position:absolute;inset:0;z-index:1;min-height:0;overflow:hidden}
     .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
@@ -387,23 +380,90 @@
     @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}
 
 
-    /* Full-bleed details: content draws behind the status/header area; the
-       header stays an overlay, while list scroll content passes underneath. */
-    .app-stage[data-view="detail"]{padding:0!important;height:100dvh;min-height:100dvh}
-    .app-stage[data-view="detail"] .app-frame{height:100dvh!important;min-height:100dvh!important;max-width:none}
-    .app-stage[data-view="detail"] .app-header{position:absolute;left:0;right:0;top:0;z-index:30;min-height:calc(54px + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left));background:linear-gradient(180deg,rgba(255,255,255,.93) 0%,rgba(255,255,255,.57) 65%,rgba(255,255,255,0) 100%);backdrop-filter:none;border-bottom:0;pointer-events:none}
-    .app-stage[data-view="detail"] .app-header .persistent-brand-button{pointer-events:auto}
-    .app-stage[data-view="detail"] .app-view{position:absolute;inset:0;z-index:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:max(24px,env(safe-area-inset-bottom))}
-    .app-stage[data-view="detail"]:not(.is-environment) .app-view>.module-view{padding-top:calc(env(safe-area-inset-top) + 70px)}
-    .app-stage.is-environment .app-header{background:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.18) 70%,rgba(255,255,255,0) 100%)}
-    .app-stage.is-environment .app-view{padding:0;overflow:hidden}
-    .app-stage.is-environment .app-frame{width:100%}
-    /* Compact right-aligned camera controls. */
-    .environment-map-top-actions{position:absolute;top:max(70px,calc(env(safe-area-inset-top) + 56px));right:max(14px,env(safe-area-inset-right));z-index:6;display:flex;align-items:center;gap:8px;pointer-events:none}
-    .environment-maplibre .environment-map-top-actions .environment-refresh,
-    .environment-maplibre .environment-map-top-actions .environment-scale-chip{position:static;min-height:44px;pointer-events:auto}
-    .environment-maplibre .environment-map-top-actions .environment-refresh{width:44px;min-width:44px;padding:0;display:grid;place-items:center;border-radius:50%;color:#444}
-    .environment-maplibre .environment-map-top-actions .environment-scale-chip{min-width:0;padding:0 14px;white-space:nowrap}
+    /* One shared, edge-to-edge detail viewport for all Sharon modules.
+       The fixed chrome owns only the controls; content owns the whole screen. */
+    .app-stage[data-view="detail"]{
+      --sharon-header-height:54px;
+      width:100%;height:100dvh;min-height:100dvh;padding:0!important;
+      touch-action:pan-y;overscroll-behavior-x:none;
+    }
+    .app-stage[data-view="detail"] .app-frame{
+      width:100%;max-width:none;height:100dvh!important;min-height:100dvh!important;
+      margin:0;position:relative;background:transparent;
+    }
+    .app-stage[data-view="detail"] .app-view{
+      position:absolute;inset:0;z-index:1;min-height:0;overflow-y:auto;
+      -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
+      padding:0 0 max(24px,env(safe-area-inset-bottom));
+    }
+    .app-stage[data-view="detail"] .app-header{
+      position:absolute;left:0;right:0;top:0;z-index:40;
+      height:calc(env(safe-area-inset-top) + var(--sharon-header-height));
+      min-height:0;padding:calc(env(safe-area-inset-top) + 5px)
+        max(22px,env(safe-area-inset-right)) 0
+        max(22px,env(safe-area-inset-left));
+      display:flex;align-items:center;gap:9px;
+      background:transparent;border:0;backdrop-filter:none;
+      -webkit-backdrop-filter:none;pointer-events:none;isolation:isolate;
+    }
+    /* iOS-like top glass: backdrop includes the status bar and gracefully
+       fades into module content. It never receives touches or dims controls. */
+    .app-stage[data-view="detail"] .app-header::before{
+      content:"";position:absolute;left:0;right:0;top:0;
+      height:calc(env(safe-area-inset-top) + 104px);
+      background:linear-gradient(180deg,
+        rgba(255,255,255,.57) 0%,
+        rgba(255,255,255,.42) 33%,
+        rgba(255,255,255,.16) 70%,
+        rgba(255,255,255,0) 100%);
+      -webkit-backdrop-filter:blur(12px) saturate(130%);
+      backdrop-filter:blur(12px) saturate(130%);
+      -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 33%,transparent 100%);
+      mask-image:linear-gradient(to bottom,#000 0%,#000 33%,transparent 100%);
+      z-index:-1;pointer-events:none;
+    }
+    .app-stage[data-view="detail"] .app-header .persistent-brand-button,
+    .app-stage[data-view="detail"] .app-header-actions{
+      pointer-events:auto;
+    }
+    .app-stage[data-view="detail"] .app-view>.module-view{
+      width:100%;max-width:560px;margin:0 auto;
+      padding:calc(env(safe-area-inset-top) + 54px)
+        max(22px,env(safe-area-inset-right))
+        max(24px,env(safe-area-inset-bottom))
+        max(22px,env(safe-area-inset-left));
+    }
+    .app-header-actions{margin-left:auto;display:flex;align-items:center;min-width:0}
+    .app-header-actions:empty{display:none}
+    .app-header-actions .environment-map-top-actions{
+      position:static;display:flex;align-items:center;gap:8px;pointer-events:auto;
+    }
+    .app-header-actions .environment-map-top-actions button{
+      position:static;z-index:auto;min-height:44px;height:44px;pointer-events:auto;
+      color:#35353a;background:rgba(255,255,255,.9);
+      border:1px solid rgba(0,0,0,.07);box-shadow:0 2px 12px rgba(0,0,0,.045);
+      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    }
+    .app-header-actions .environment-map-top-actions .environment-refresh{
+      display:grid;place-items:center;width:44px;min-width:44px;padding:0;
+      border-radius:50%;
+    }
+    .app-header-actions .environment-map-top-actions .environment-scale-chip{
+      min-width:0;padding:0 12px;border-radius:18px;white-space:nowrap;
+      font-size:11px;
+    }
+    .app-header-actions .environment-map-top-actions button:disabled{opacity:.55}
+    .app-stage.is-environment{height:100dvh;min-height:100dvh;touch-action:auto}
+    .app-stage.is-environment .app-view{
+      padding:0;overflow:hidden;transform:none;
+    }
+    .app-stage.is-environment .environment-view,
+    .app-stage.is-environment .environment-canvas{
+      position:absolute;inset:0;width:100%;height:100%;
+    }
+    .app-stage.is-environment .environment-view{isolation:isolate}
+    .app-stage.is-environment .environment-canvas{z-index:0}
+    .app-stage.is-environment .environment-controls{z-index:20;pointer-events:none}
     /* One bottom rail, two equally sized faces; swipe from the left edge of
        the position face brings the style face in from the left. */
     .environment-readout{height:68px;padding:0;overflow:hidden;display:block;touch-action:pan-y;pointer-events:auto}
