@@ -495,6 +495,90 @@
     .environment-style-fill-dot{width:20px;height:20px;right:3px;top:3px}
     .environment-style-fill-dot input[type=color]{width:34px;height:34px;top:-7px;left:-7px}
     @media(max-width:360px){.environment-style-groups{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+    /* Shared detail screen: let lists scroll behind the fixed header, but
+       restore the original safe 22px gutters and a correct first-row offset. */
+    .app-stage[data-view="detail"]:not(.is-environment) .app-view>.module-view{
+      width:100%;max-width:560px;margin:0 auto;
+      padding-top:calc(env(safe-area-inset-top) + 54px);
+      padding-right:max(22px,env(safe-area-inset-right));
+      padding-bottom:max(24px,env(safe-area-inset-bottom));
+      padding-left:max(22px,env(safe-area-inset-left));
+    }
+    /* Dense palette layout: show all eleven choices and their controls
+       without requiring scroll on ordinary portrait iPhone screens. */
+    .environment-style-flyout{
+      max-height:min(70dvh,calc(100dvh - env(safe-area-inset-top) - 175px));
+      padding:10px 12px;overflow-y:auto;
+    }
+    .environment-style-panel{gap:10px}
+    .environment-style-flyout .environment-style-panel{gap:8px}
+    .environment-style-heading{min-height:35px}
+    .environment-style-flyout .environment-style-heading button{min-width:38px;min-height:38px;width:38px;height:38px}
+    .environment-style-groups{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+    .environment-style-group{height:52px;border-radius:9px;overflow:visible}
+    .environment-style-group-main{padding:4px 3px;gap:0}
+    .environment-style-group-main svg{height:20px;max-width:100%}
+    .environment-style-group-main span{font-size:9px;line-height:1.1;max-height:20px}
+    .environment-style-width{gap:4px}
+    .environment-style-width-head{font-size:12px}
+    .environment-style-width>input[type=range]{margin:0;min-height:24px}
+    .environment-style-dash-choices{gap:5px}
+    .environment-style-dash-choices button{
+      height:44px;min-height:44px;
+      padding:5px 3px 3px;gap:0;
+      border-radius:10px;justify-content:space-between
+    }
+    .environment-style-dash-choices button svg{height:15px}
+    .environment-style-dash-choices button small{font-size:9px;line-height:10px}
+    .environment-style-range{gap:4px}
+    .environment-style-range strong{font-size:12px}
+    .environment-scale-range{height:32px}
+    .environment-scale-rail{top:13px}
+    .environment-scale-range input[type=range]{height:32px}
+    .environment-scale-labels small{font-size:clamp(8px,2.15vw,9px)}
+    .environment-style-fill-dot{
+      width:34px;height:34px;min-height:34px!important;
+      right:-4px;top:-5px;
+      overflow:visible;border:0;box-shadow:none;background:transparent;
+      touch-action:manipulation
+    }
+    .environment-style-fill-dot::before,
+    .environment-style-stroke-picker label::before{
+      content:"";position:absolute;top:5px;right:5px;
+      width:20px;height:20px;border-radius:50%;
+      background:var(--swatch-color,#e5e5e8);
+      border:1.5px solid #666970;
+      box-shadow:0 1px 3px rgba(0,0,0,.15);
+      pointer-events:none
+    }
+    .environment-style-fill-dot::after,
+    .environment-style-stroke-picker label::after{
+      content:"✎";position:absolute;right:0;bottom:0;
+      display:grid;place-items:center;width:13px;height:13px;
+      background:#fff;border:1px solid #a1a1a5;
+      border-radius:50%;color:#45454b;font-size:10px;line-height:1;
+      pointer-events:none
+    }
+    .environment-style-fill-dot input[type=color],
+    .environment-style-stroke-picker input[type=color]{
+      position:absolute;inset:0;width:100%;height:100%;
+      padding:0;margin:0;opacity:0;cursor:pointer;
+      -webkit-appearance:none;appearance:none;z-index:2
+    }
+    .environment-style-stroke-picker label{
+      display:block;width:38px;height:36px;min-height:36px!important;
+      border:0;overflow:visible;background:transparent;position:relative
+    }
+    .environment-style-stroke-picker label::before{width:23px;height:23px}
+    .environment-style-stroke-picker{gap:5px}
+    .environment-style-stroke-picker small{min-width:26px;font-size:11px}
+    @media (max-width:360px){
+      .environment-style-groups{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .environment-style-group-main span{font-size:8px}
+      .environment-style-flyout{padding:8px 10px}
+    }
+
     @media (prefers-reduced-motion:reduce){
       .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}
       .location-pulse.is-searching::after{animation:none;opacity:.4}
