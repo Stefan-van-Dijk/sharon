@@ -1,10 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.58';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.58';
-import { openSettings } from './SettingsView.js?v=0.1.58';
-import { sharonWordmark } from './Brand.js?v=0.1.58';
-import { bindSwipeHome } from './SwipeHome.js?v=0.1.58';
+import { openLocationsView } from './LocationsView.js?v=0.1.59';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.59';
+import { openSettings } from './SettingsView.js?v=0.1.59';
+import { sharonWordmark } from './Brand.js?v=0.1.59';
+import { bindSwipeHome } from './SwipeHome.js?v=0.1.59';
 
-const APP_VERSION = '0.1.58';
+const APP_VERSION = '0.1.59';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -127,8 +127,11 @@ export function createShell(root, {
     }
 
     const cleanup = await renderer();
+    if (change !== viewChange) {
+      if (typeof cleanup === 'function') cleanup();
+      return;
+    }
     if (typeof cleanup === 'function') viewCleanup = cleanup;
-    if (change !== viewChange) return;
 
     if (animate) {
       requestAnimationFrame(() => outlet.classList.remove('is-changing'));

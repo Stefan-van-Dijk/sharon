@@ -5,13 +5,13 @@ import { bindEnvironmentPositionButton } from '../src/ui/EnvironmentPosition.js'
 
 function harness() {
   const listeners = new Map(), captured = new Set(), pans = [], zooms = [];
-  let zoom = 15;
+  let zoom = 15, stops = 0;
   const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture: id => captured.add(id), hasPointerCapture: id => captured.has(id),
     releasePointerCapture: id => captured.delete(id),
     addEventListener: (name, fn) => listeners.set(name, fn),
     removeEventListener: name => listeners.delete(name) };
-  const dispose = bindEnvironmentTouchGestures({ getContainer: () => element, stop() {},
+  const dispose = bindEnvironmentTouchGestures({ getContainer: () => element, stop() { stops++; },
     getZoom: () => zoom, getMinZoom: () => 1, getMaxZoom: () => 22,
     unproject: point => point, panBy: offset => pans.push(offset),
     easeTo: options => { zoom = options.zoom; zooms.push(options); } });
@@ -25,7 +25,7 @@ function harness() {
     assert.equal(stopped, true, 'renderer touch handlers must not run after the outer capture handler');
     return prevented;
   };
-  return { send, touch, pans, zooms, captured, dispose };
+  return { send, touch, pans, zooms, captured, dispose, get stops() { return stops; } };
 }
 
 test('single finger and mouse drag at half speed, without zoom or inertia', () => {
@@ -66,24 +66,29 @@ test('native touch pinch zooms in and out; lifting one finger reanchors', () => 
   h.dispose();
 });
 
-test('touch controls work without synthetic click and do not run twice with it', () => {
-  const listeners = new Map(); let count = 0;
-  const unbind = bindEnvironmentButton({ addEventListener: (name, fn) => listeners.set(name, fn),
-    removeEventListener: name => listeners.delete(name) }, () => count++);
-  const contact = { identifier: 1, clientX: 10, clientY: 20 };
-  const event = { touches: [contact], changedTouches: [contact], cancelable: true,
-    preventDefault() {}, stopPropagation() {} };
-  listeners.get('touchstart')(event); listeners.get('touchend')(event);
-  assert.equal(count, 1);
-  listeners.get('click')({ detail: 1 }); assert.equal(count, 1);
-  listeners.get('click')({ detail: 0 }); assert.equal(count, 2);
-  listeners.get('touchstart')(event);
-  listeners.get('touchmove')({ ...event, touches: [{ ...contact, clientX: 40 }] });
-  listeners.get('touchend')(event);
-  assert.equal(count, 2, 'moving away and back must not activate the button');
-  listeners.get('touchstart')(event); listeners.get('touchcancel')(event);
-  listeners.get('touchend')(event); assert.equal(count, 2);
-  unbind(); assert.equal(listeners.size, 0);
+test('slow small pinch increments eventually activate zoom while a map tap does not stop it', () => {
+  const h = harness();
+  h.touch('touchstart', [[100, 100]]); h.touch('touchend', []);
+  assert.equal(h.stops, 0);
+  h.touch('touchstart', [[100, 100], [200, 100]]);
+  for (let i = 1; i <= 20; i++) h.touch('touchmove', [[100, 100], [200 + i * 0.25, 100]]);
+  assert.ok(h.zooms.length > 0);
+  assert.equal(h.stops, 1);
+  h.touch('touchend', []);
+  h.dispose();
+});
+
+test('buttons use browser clicks for touch, mouse and keyboard without cancelling touch events', () => {
+  const button = new EventTarget(); let count = 0;
+  const dispose = bindEnvironmentButton(button, () => count++);
+  const start = new Event('touchstart', { cancelable: true });
+  button.dispatchEvent(start);
+  assert.equal(start.defaultPrevented, false);
+  button.dispatchEvent(new Event('click')); // browser activation after a tap
+  button.dispatchEvent(new Event('click')); // repeated activation
+  assert.equal(count, 2);
+  dispose(); button.dispatchEvent(new Event('click'));
+  assert.equal(count, 2);
 });
 
 test('Ik ben hier immediately reuses a known position and stays usable during GPS', async () => {

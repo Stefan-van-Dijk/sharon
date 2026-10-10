@@ -205,3 +205,23 @@ heeft een expliciete z-index en de Omgeving-container gebruikt geen transform.
 knopactie. Deze controle blijft lokaal en bevat geen coördinaten of identifiers.
 Aanraakadapter en knoppen zijn automatisch getest; fysieke iOS-eindcontrole
 blijft nodig.
+
+### 0.1.59 — bediening vereenvoudigd en levensduur hersteld
+
+De Sharon-bediening staat in een eigen overlay naast de kaartsurface. Alleen
+knoppen ontvangen pointer-input in die overlay. Knoppen gebruiken normale
+browserclicks, zonder touchstart te annuleren of touchend als click te vervangen.
+Kaartgebaren negeren rendererknoppen en links. Een kaarttap onderbreekt geen
+camera-animatie of GPS-volgen; pas echt slepen/knijpen doet dat.
+
+Zoom- en schaalcommando's bewaren hun doel tijdens animaties. Drie snelle
+min-tikken geven samen 1,5 zoomniveau verschil, ook wanneer eerdere animaties
+nog lopen. Moveend van een onderbroken animatie wist het nieuwe doel niet.
+
+Omgeving geeft haar cleanup direct terug, voordat het laden van de renderer
+klaar is. Sluiten tijdens laden voorkomt dat een laat resultaat alsnog een
+kaart of handlers aanmaakt. Shell accepteert geen cleanup van een oudere
+schermwissel als cleanup voor het huidige scherm. Tests omvatten deze
+laadannulering, herhaalde zoom/schaaltikken en bediening na handmatig slepen.
+De precieze oorzaak op de fysieke iPhone blijft zonder gebeurteniscontrole
+onbevestigd; deze versie verwijdert aantoonbare zwakke plekken in de code.

@@ -1,14 +1,15 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.58';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.58';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.58';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.58';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.58';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.59';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.59';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.59';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.59';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.59';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.59';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
-  environmentZoomForSpan, configureEnvironmentGestures, environmentZoomTransition
-} from './EnvironmentScale.js?v=0.1.58';
+  environmentZoomForSpan, configureEnvironmentGestures
+} from './EnvironmentScale.js?v=0.1.59';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -159,21 +160,23 @@ export function createMapLibreInstance(library, options) {
   return new library.Map(options);
 }
 
-export async function openEnvironmentView(root, {
-  store, location, events, setTitle = () => {}
+export function openEnvironmentView(root, {
+  store, location, events, setTitle = () => {}, loadRenderer = () => import(MAPLIBRE_JS)
 }) {
   setTitle('Omgeving');
   root.innerHTML = `
     <section class="module-view environment-view environment-maplibre">
       <div class="environment-canvas" data-map-canvas>
         <div class="environment-map" data-maplibre-map role="application" aria-label="Interactieve wereldkaart"></div>
+      </div>
+      <div class="environment-controls" data-map-controls>
         <button type="button" class="environment-scale-chip" data-map-scale
-                aria-label="Schaal wijzigen"></button>
+                aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
         <button type="button" class="environment-refresh" data-map-position
                 aria-label="Ik ben hier: terug naar mijn huidige positie">Ik ben hier</button>
         <div class="environment-zoom" aria-label="Kaartzoom">
-          <button type="button" data-map-zoom-in aria-label="Inzoomen">+</button>
-          <button type="button" data-map-zoom-out aria-label="Uitzoomen">−</button>
+          <button type="button" data-map-zoom-in aria-label="Inzoomen" disabled>+</button>
+          <button type="button" data-map-zoom-out aria-label="Uitzoomen" disabled>−</button>
         </div>
         <div class="environment-readout" data-map-readout></div>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
@@ -187,11 +190,12 @@ export async function openEnvironmentView(root, {
   const errorBanner = root.querySelector('[data-map-error]');
   // Opt-in, local diagnostic view: no coordinates or private data are logged.
   let reportControl = () => {};
+  let cleanupDiagnostics = () => {};
   if (new URLSearchParams(window.location.search).get('kaarttest') === '1') {
     const output = document.createElement('output');
     output.className = 'environment-control-check';
-    output.textContent = 'Kaartcontrole 0.1.58 · starten';
-    root.querySelector('[data-map-canvas]').append(output);
+    output.textContent = 'Kaartcontrole 0.1.59 · starten';
+    root.querySelector('[data-map-controls]').append(output);
     let input = 'geen aanraking', action = 'geen actie';
     reportControl = value => { action = value; output.textContent = `${input} · ${action}`; };
     const inspect = event => {
@@ -199,8 +203,10 @@ export async function openEnvironmentView(root, {
       input = `${event.type}: ${target?.getAttribute('aria-label') || 'kaart'}`;
       output.textContent = `${input} · ${action}`;
     };
-    const surface = root.querySelector('[data-map-canvas]');
-    for (const name of ['touchstart', 'touchend', 'pointercancel']) surface.addEventListener(name, inspect, true);
+    const surface = root.querySelector('.environment-view');
+    const names = ['touchstart', 'touchend', 'pointercancel', 'click'];
+    for (const name of names) surface.addEventListener(name, inspect, true);
+    cleanupDiagnostics = () => { for (const name of names) surface.removeEventListener(name, inspect, true); };
   }
 
   let disposed = false;
@@ -217,7 +223,7 @@ export async function openEnvironmentView(root, {
   let awaitingFirstPosition = !userPoint;
   let readoutFrame = 0;
   let saveTimer = null;
-  let scaleTarget = null;
+  let cameraControls = null;
   let positionRequested = false;
 
   const displayFailure = description => {
@@ -254,7 +260,7 @@ export async function openEnvironmentView(root, {
       reportControl('positieknop ontvangen');
       positionRequested = true;
       followingPosition = true;
-      scaleTarget = null;
+      cameraControls?.reset();
     },
     onPoint: placePosition,
     // A later GPS result updates the marker without undoing intervening drags.
@@ -262,12 +268,14 @@ export async function openEnvironmentView(root, {
     onUnavailable: () => displayFailure('GPS niet beschikbaar. Een bekende positie blijft bruikbaar.')
   }));
 
+  const initialize = async () => {
   try {
     ensureRendererStyle();
     const [lib, saved] = await Promise.all([
-      import(MAPLIBRE_JS),
+      loadRenderer(),
       lastCamera ? Promise.resolve({ value: lastCamera }) : store.get('meta', CAMERA_KEY).catch(() => null)
     ]);
+    if (disposed) return;
     rendererLibrary = lib;
     // MapLibre 6 ESM requires an explicit module-worker URL.
     lib.setWorkerUrl?.(MAPLIBRE_WORKER);
@@ -275,7 +283,6 @@ export async function openEnvironmentView(root, {
     const camera = saved?.value;
     const hasCamera = !positionRequested && isCoordinate(camera) && Number.isFinite(camera.zoom);
     if (hasCamera) { followingPosition = false; awaitingFirstPosition = false; }
-    if (disposed) return () => {};
     map = createMapLibreInstance(lib, {
       container: mapElement,
       style: environmentStyle,
@@ -301,9 +308,13 @@ export async function openEnvironmentView(root, {
     const stopFollowing = () => {
       followingPosition = false;
       awaitingFirstPosition = false;
-      scaleTarget = null;
+      cameraControls?.reset();
     };
     reportControl('kaart gestart');
+    cameraControls = createEnvironmentCameraControls(map, () => {
+      followingPosition = false;
+      awaitingFirstPosition = false;
+    });
     configureEnvironmentGestures(map);
     unsubscribers.push(bindEnvironmentTouchGestures(map, stopFollowing));
 
@@ -329,7 +340,7 @@ export async function openEnvironmentView(root, {
       });
     });
     map.on('moveend', () => {
-      scaleTarget = null;
+      cameraControls?.settle();
       render();
       const center = map.getCenter().wrap();
       lastCamera = { lat: center.lat, lng: center.lng, zoom: map.getZoom() };
@@ -375,21 +386,15 @@ export async function openEnvironmentView(root, {
     });
     unsubscribers.push(bindEnvironmentButton(scaleButton, () => {
       reportControl('schaalknop ontvangen');
-      const currentId = scaleTarget || environmentScaleForSpan(visibleSpanMeters(map)).id;
-      const next = nextEnvironmentScale(currentId);
-      stopFollowing();
-      environmentZoomTransition(map, environmentZoomForSpan(next.spanM, map.getCenter().lat, mapElement));
-      // easeTo may end the interrupted animation synchronously. Set the new
-      // target afterwards so rapid taps continue through the level sequence.
-      scaleTarget = next.id;
+      cameraControls.nextScale();
     }));
-    const stepZoom = (direction, around) => {
+    const stepZoom = direction => {
       reportControl(direction > 0 ? 'inzoomknop ontvangen' : 'uitzoomknop ontvangen');
-      stopFollowing();
-      environmentZoomTransition(map, map.getZoom() + direction * 0.25, { duration: 650, around });
+      cameraControls.step(direction);
     };
     unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-in]'), () => stepZoom(1)));
     unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-out]'), () => stepZoom(-1)));
+    for (const button of [scaleButton, root.querySelector('[data-map-zoom-in]'), root.querySelector('[data-map-zoom-out]')]) button.disabled = false;
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
     for (const name of ['location.created', 'location.updated', 'location.deleted',
       'environment.objects.changed']) {
@@ -421,8 +426,12 @@ export async function openEnvironmentView(root, {
     displayFailure(error.message || 'Open de kaart opnieuw wanneer er verbinding is.');
   }
 
+  };
+  initialize();
+
   return () => {
     disposed = true;
+    cleanupDiagnostics();
     objectsRevision++;
     cancelAnimationFrame(readoutFrame);
     clearTimeout(saveTimer);

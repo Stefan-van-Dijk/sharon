@@ -7,7 +7,7 @@ const PINCH_RATE = 0.6;
 export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
   const element = map.getContainer();
   const pointers = new Map();
-  let previous = null, origin = null, moved = false, lastDragAt = -Infinity;
+  let previous = null, origin = null, originDistance = 0, moved = false, lastDragAt = -Infinity;
   const sample = points => {
     if (!points.length || points.length > 2) return null;
     return { center: points.length === 1 ? points[0] : {
@@ -19,16 +19,18 @@ export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
   const begin = points => {
-    if (!previous) { map.stop(); onStart(); moved = false; }
-    previous = sample(points); origin = previous?.center;
+    if (!previous) moved = false;
+    previous = sample(points); origin = previous?.center; originDistance = previous?.distance || 0;
   };
   const movePoints = points => {
     const current = sample(points);
-    if (!current || !previous) { previous = current; origin = current?.center; return; }
+    if (!current || !previous) { previous = current; origin = current?.center; originDistance = current?.distance || 0; return; }
     const dx = current.center.x - previous.center.x, dy = current.center.y - previous.center.y;
-    if (!moved && Math.hypot(current.center.x - origin.x, current.center.y - origin.y) >= PAN_THRESHOLD_PX) moved = true;
+    const pans = Math.hypot(current.center.x - origin.x, current.center.y - origin.y) >= PAN_THRESHOLD_PX;
+    const pinches = current.distance > 0 && previous.distance > 0 && Math.abs(current.distance - originDistance) >= 3;
+    if (!moved && (pans || pinches)) { map.stop(); onStart(); moved = true; }
     if (moved && (dx || dy)) map.panBy([-dx * PAN_RATE, -dy * PAN_RATE], { duration: 0 });
-    if (current.distance > 0 && previous.distance > 0) {
+    if (moved && current.distance > 0 && previous.distance > 0) {
       const delta = Math.log2(current.distance / previous.distance) * PINCH_RATE;
       if (delta) {
         map.easeTo({ zoom: Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + delta)),
@@ -40,9 +42,10 @@ export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
   };
   const end = points => {
     if (moved) lastDragAt = performance.now();
-    previous = sample(points); origin = previous?.center;
+    previous = sample(points); origin = previous?.center; originDistance = previous?.distance || 0;
   };
   const down = event => {
+    if (event.target?.closest?.('button,a,input,select,textarea')) return;
     if (event.pointerType === 'touch' || (event.pointerType === 'mouse' && event.button !== 0)) return;
     pointers.set(event.pointerId, point(event));
     element.setPointerCapture(event.pointerId);
@@ -62,18 +65,22 @@ export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
   const touches = event => Array.from(event.touches, point);
   // Capture at the outer map element, before any renderer touch listeners.
   // The Sharon controls are outside this element and retain their own events.
-  const touchStart = event => { event.stopImmediatePropagation(); begin(touches(event)); };
+  const isControl = event => event.target?.closest?.('button,a,input,select,textarea');
+  const touchStart = event => { if (isControl(event)) return; event.stopImmediatePropagation(); begin(touches(event)); };
   const touchMove = event => {
+    if (isControl(event)) return;
     event.stopImmediatePropagation();
     if (event.cancelable) event.preventDefault();
     movePoints(touches(event));
   };
   const touchEnd = event => {
+    if (isControl(event)) return;
     event.stopImmediatePropagation();
     if (moved && event.cancelable) event.preventDefault();
     end(touches(event));
   };
   const click = event => {
+    if (isControl(event)) return;
     if (performance.now() - lastDragAt > 400) return;
     event.preventDefault(); event.stopImmediatePropagation();
   };
@@ -88,37 +95,9 @@ export function bindEnvironmentTouchGestures(map, onStart = () => {}) {
   };
 }
 
-// Native touch release activates the button even when iOS supplies no click
-// or cancels pointer input. Mouse/keyboard continue to use ordinary clicks.
+// Ordinary browser activation handles touch, mouse, keyboard and accessibility.
+// This listener never cancels touchstart or substitutes a synthetic click.
 export function bindEnvironmentButton(button, action) {
-  let start = null, lastTouchAt = -Infinity;
-  const touchStart = event => {
-    event.stopPropagation();
-    if (event.cancelable) event.preventDefault();
-    const touch = event.touches.length === 1 ? event.touches[0] : null;
-    start = touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY, moved: false } : null;
-  };
-  const touchMove = event => {
-    event.stopPropagation();
-    if (event.cancelable) event.preventDefault();
-    const touch = Array.from(event.touches).find(t => t.identifier === start?.id);
-    if (touch && Math.hypot(touch.clientX - start.x, touch.clientY - start.y) >= 10) start.moved = true;
-  };
-  const touchEnd = event => {
-    event.stopPropagation();
-    if (event.cancelable) event.preventDefault();
-    const touch = Array.from(event.changedTouches).find(t => t.identifier === start?.id);
-    const tap = touch && !start.moved && Math.hypot(touch.clientX - start.x, touch.clientY - start.y) < 10;
-    start = null; lastTouchAt = performance.now();
-    if (tap) action();
-  };
-  const cancel = () => { start = null; lastTouchAt = performance.now(); };
-  const click = event => {
-    if (event.detail !== 0 && performance.now() - lastTouchAt < 600) return;
-    action();
-  };
-  const handlers = [['touchstart', touchStart], ['touchmove', touchMove],
-    ['touchend', touchEnd], ['touchcancel', cancel], ['click', click]];
-  for (const [name, fn] of handlers) button.addEventListener(name, fn, { passive: false });
-  return () => { for (const [name, fn] of handlers) button.removeEventListener(name, fn); };
+  button.addEventListener('click', action);
+  return () => button.removeEventListener('click', action);
 }
