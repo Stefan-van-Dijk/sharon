@@ -20,7 +20,7 @@ export const APPEARANCE_GROUPS = Object.freeze([
 
 // The seven scale levels are ordered from near (index 0) to country (index 6).
 // "Vanaf" is the furthest-out level; "t/m" is the closest-in level.
-export const APPEARANCE_SCALE_OPTIONS = Object.freeze([...ENVIRONMENT_SCALES].reverse()
+export const APPEARANCE_SCALE_OPTIONS = Object.freeze(ENVIRONMENT_SCALES
   .map(({ id, label }) => ({ id, label })));
 const scaleIndex = id => ENVIRONMENT_SCALES.findIndex(scale => scale.id === id);
 const layers = new Map(environmentStyle.layers.map(layer => [layer.id, layer]));
