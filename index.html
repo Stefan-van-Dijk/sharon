@@ -9,8 +9,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.68">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.68">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.69">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.69">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -579,6 +579,67 @@
       .environment-style-flyout{padding:8px 10px}
     }
 
+
+    /* Map header and footer layering (0.1.69). The map, fade and actions
+       must be separate layers: the translucent fade may never dim controls. */
+    .app-stage.is-environment .app-header{
+      z-index:30;background:transparent;isolation:auto;
+    }
+    .app-stage.is-environment .app-header::before{
+      content:none!important;display:none!important;
+    }
+    .app-stage.is-environment .environment-view{
+      position:absolute;inset:0;width:100%;height:100%;
+      isolation:isolate;
+    }
+    .app-stage.is-environment .environment-canvas{
+      position:absolute;inset:0;z-index:0;
+    }
+    .app-stage.is-environment .environment-view::before{
+      content:"";position:absolute;left:0;right:0;
+      top:calc(env(safe-area-inset-top) + 3px);
+      height:112px;z-index:5;pointer-events:none;
+      background:linear-gradient(180deg,
+        rgba(255,255,255,.43) 0%,
+        rgba(255,255,255,.20) 45%,
+        rgba(255,255,255,0) 100%);
+    }
+    .app-stage.is-environment .environment-controls{
+      z-index:20;pointer-events:none;
+    }
+    .app-stage.is-environment .environment-map-top-actions{
+      position:absolute;top:calc(env(safe-area-inset-top) + 5px);
+      right:max(22px,env(safe-area-inset-right));
+      z-index:21;pointer-events:none;
+    }
+    .app-stage.is-environment .environment-map-top-actions button{
+      pointer-events:auto;opacity:1;
+    }
+    .app-stage.is-environment .environment-map-top-actions button:disabled{
+      opacity:.55;
+    }
+    /* MapLibre's live linked attribution moves below the readout. Both
+       elements share the bottom safe-area reference to avoid overlap. */
+    .app-stage.is-environment .environment-readout{
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 32px);
+    }
+    .environment-maplibre .maplibregl-ctrl-bottom-right{
+      left:max(14px,env(safe-area-inset-left));
+      right:max(14px,env(safe-area-inset-right));
+      bottom:max(12px,env(safe-area-inset-bottom));
+      display:flex;justify-content:center;pointer-events:none;
+    }
+    .environment-maplibre .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{
+      width:auto;max-width:100%;min-height:22px;pointer-events:auto;
+      background:rgba(255,255,255,.79);
+    }
+    .environment-maplibre .maplibregl-ctrl-attrib-inner{
+      text-align:center;line-height:1.35;white-space:normal;
+    }
+    .app-stage.is-environment .environment-style-flyout{
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 111px);
+    }
+
     @media (prefers-reduced-motion:reduce){
       .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}
       .location-pulse.is-searching::after{animation:none;opacity:.4}
@@ -607,16 +668,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.68#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.68#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.68#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.68#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.68#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.69#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.69#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.69#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.69#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.69#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.68"></script>
+  <script type="module" src="./src/main.js?v=0.1.69"></script>
 </body>
 </html>

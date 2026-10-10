@@ -230,13 +230,29 @@ test('provider attribution stays expanded, linked and centered without a separat
   assert.equal(renderer.includes('attributionControl: false'), false);
 });
 
-test('location/scale controls share the title baseline and only the title has a fade', async () => {
+test('map, fade and header controls use distinct layers on the title baseline', async () => {
   const { readFile } = await import('node:fs/promises');
   const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.ok(css.includes('.environment-map-top-actions{top:calc(env(safe-area-inset-top) + 5px)'));
-  assert.ok(css.includes('.app-stage.is-environment .app-header::before{'));
+  assert.ok(css.includes('.app-stage.is-environment .environment-view::before{'));
   assert.ok(css.includes('top:calc(env(safe-area-inset-top) + 3px)'));
-  assert.ok(css.includes('.app-stage.is-environment .app-header{background:transparent;isolation:isolate}'));
+  assert.ok(css.includes('.app-stage.is-environment .app-header::before{'));
+  assert.match(css, /\.app-stage\.is-environment \.app-header::before\{\s*content:none!important;display:none!important;/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-canvas\{\s*position:absolute;inset:0;z-index:0;/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-view::before\{[\s\S]*?z-index:5;pointer-events:none;/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-controls\{\s*z-index:20;pointer-events:none;/);
+  assert.match(css, /\.app-stage\.is-environment \.app-header\{\s*z-index:30;background:transparent;/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-map-top-actions\{\s*position:absolute;top:calc\(env\(safe-area-inset-top\) \+ 5px\)/);
+});
+
+test('provider credits sit centered beneath readout inside safe area, still linked', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const map = await readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url), 'utf8');
+  assert.match(css, /\.app-stage\.is-environment \.environment-readout\{\s*bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 32px\)/);
+  assert.match(css, /\.environment-maplibre \.maplibregl-ctrl-bottom-right\{[\s\S]*?bottom:max\(12px,env\(safe-area-inset-bottom\)\);/);
+  assert.match(css, /\.app-stage\.is-environment \.environment-style-flyout\{\s*bottom:calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 111px\)/);
+  assert.ok(css.includes('.environment-maplibre .maplibregl-ctrl-attrib-inner a:focus-visible'));
+  assert.match(map, /attributionControl:\s*\{ compact: false \}/);
 });
 
 test('compact material and stroke swatches replace mini map shapes without resetting saved style', async () => {
