@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { environmentStyle } from '../src/ui/EnvironmentStyle.js';
+import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 import {
   APPEARANCE_GROUPS, appearanceDefaults, sanitizeEnvironmentAppearance,
-  applyEnvironmentAppearance
+  applyEnvironmentAppearance, applyEnvironmentVisibility, bindEnvironmentAppearance
 } from '../src/ui/EnvironmentAppearance.js';
 
 test('Sharon keeps subtle neutral basemap and separate editable polygon strokes', () => {
@@ -53,4 +54,72 @@ test('stored appearance rejects arbitrary paint expressions and unknown categori
   }), { water: { fill: '#aabbcc' }, buildings: {
     fill: '#112233', width: .5, dash: 'dashed' } });
   assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).fill, '#f6f8fa');
+});
+
+test('scale visibility accepts a coarse-to-fine range and hides layers outside it', () => {
+  const layers = new Map(environmentStyle.layers.map(layer => [layer.id, layer]));
+  const state = { zoom: 14 };
+  const zoomRanges = [], layouts = new Map(), paints = [];
+  const container = { clientWidth: 400, clientHeight: 800 };
+  const map = {
+    getLayer: id => layers.get(id),
+    setPaintProperty: (id, property, value) => paints.push({ id, property, value }),
+    setLayerZoomRange: (id, min, max) => zoomRanges.push({ id, min, max }),
+    getContainer: () => container,
+    getCenter: () => ({ lat: 52, lng: 5 }),
+    getZoom: () => state.zoom,
+    getLayoutProperty: (id, property) => layouts.get(id + ':' + property),
+    setLayoutProperty: (id, property, value) => layouts.set(id + ':' + property, value)
+  };
+  const setScale = span => {
+    state.zoom = environmentZoomForSpan(span, 52, container);
+    applyEnvironmentVisibility(map, { buildings: { from: 'street', to: 'detail' } });
+  };
+  applyEnvironmentAppearance(map, { buildings: { from: 'street', to: 'detail' } });
+  assert.ok(zoomRanges.some(entry => entry.id === 'building' && entry.min === 0));
+  setScale(700); // Street: visible
+  assert.equal(layouts.get('building:visibility') || 'visible', 'visible');
+  setScale(220); // Detail: visible
+  assert.equal(layouts.get('building:visibility') || 'visible', 'visible');
+  setScale(3000); // District: too far out
+  assert.equal(layouts.get('building:visibility'), 'none');
+  setScale(70); // Near: too far in
+  assert.equal(layouts.get('building:visibility'), 'none');
+  applyEnvironmentAppearance(map, {});
+  assert.equal(layouts.get('building:visibility'), 'visible');
+  assert.ok(zoomRanges.some(entry => entry.id === 'building' && entry.min === 14));
+  assert.ok(paints.some(entry => entry.id === 'building' && entry.property === 'fill-color'));
+});
+
+test('scale-range settings validate bounds and preserve existing customized colors', () => {
+  assert.deepEqual(sanitizeEnvironmentAppearance({
+    water: { fill: '#AABBCC', from: 'region', to: 'street' },
+    buildings: { from: 'near', to: 'country', stroke: '#ABCDEF' },
+    major: { from: 'unknown', to: 12, width: 1.5 }
+  }), {
+    water: { fill: '#aabbcc', from: 'region', to: 'street' },
+    buildings: { from: 'near', stroke: '#abcdef' },
+    major: { width: 1.5 }
+  });
+  assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).from, '');
+  assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).to, '');
+});
+
+test('late settings loading cannot restyle a closed map', async () => {
+  let resolve, listeners = new Map(), calls = 0;
+  const map = {
+    on(name, handler) { listeners.set(name, handler); },
+    off(name, handler) { if (listeners.get(name) === handler) listeners.delete(name); },
+    getLayer: () => ({}),
+    setPaintProperty: () => { calls++; }
+  };
+  const dispose = bindEnvironmentAppearance(map, {
+    get: () => new Promise(response => resolve = response)
+  });
+  assert.equal(listeners.size, 2);
+  dispose();
+  resolve({ value: { water: { fill: '#bbccdd' } } });
+  await Promise.resolve();
+  assert.equal(listeners.size, 0);
+  assert.equal(calls, 0);
 });
