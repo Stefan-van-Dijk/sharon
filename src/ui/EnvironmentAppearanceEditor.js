@@ -44,7 +44,6 @@ export function createEnvironmentAppearanceEditor(root, store, {
               <line x1="6" y1="9" x2="72" y2="9" stroke="currentColor" stroke-width="2.5"
                 stroke-linecap="round" ${item.pattern ? `stroke-dasharray="${item.pattern}"` : ''}/>
             </svg>
-            <span>${item.label}</span>
             <small data-dash-default>Standaard</small>
           </button>
         `).join('')}
@@ -153,13 +152,17 @@ export function createEnvironmentAppearanceEditor(root, store, {
       // Edit only the preview SVG; never replace a focused color input.
       sample.outerHTML = preview(group);
       const input = wrapper.querySelector('[data-style-fill]');
-      if (input && input !== document.activeElement) input.value = valuesFor(group).fill;
+      if (input) {
+        input.closest('label').style.setProperty('--swatch-color', valuesFor(group).fill);
+        if (input !== document.activeElement) input.value = valuesFor(group).fill;
+      }
     }
   };
   const render = () => {
     const group = chosen(), values = valuesFor(group);
     renderGroups();
     strokeInput.value = values.stroke;
+    strokeInput.closest('label')?.style.setProperty('--swatch-color', values.stroke);
     widthInput.value = String(values.width);
     widthValue.textContent = values.width + '×';
     const defaultDash = appearanceDefaultLineStyle(group);
