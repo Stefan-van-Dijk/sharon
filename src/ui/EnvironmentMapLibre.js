@@ -1,15 +1,15 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.59';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.59';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.59';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.59';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.59';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.59';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.60';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.60';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.60';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.60';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.60';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.60';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.59';
+} from './EnvironmentScale.js?v=0.1.60';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -188,25 +188,111 @@ export function openEnvironmentView(root, {
   const scaleButton = root.querySelector('[data-map-scale]');
   const positionButton = root.querySelector('[data-map-position]');
   const errorBanner = root.querySelector('[data-map-error]');
-  // Opt-in, local diagnostic view: no coordinates or private data are logged.
+  // Opt-in diagnostics: local only; never log coordinates or identifiers.
   let reportControl = () => {};
+  let reportCameraRequest = () => {};
+  let registerCameraDiagnostics = () => {};
+  let reportDiagnosticError = () => {};
+  let reportDiagnosticStatus = () => {};
   let cleanupDiagnostics = () => {};
   if (new URLSearchParams(window.location.search).get('kaarttest') === '1') {
     const output = document.createElement('output');
     output.className = 'environment-control-check';
-    output.textContent = 'Kaartcontrole 0.1.59 · starten';
+    output.style.whiteSpace = 'pre-line';
+    output.style.lineHeight = '1.4';
+    output.style.maxHeight = '40vh';
+    output.style.overflow = 'hidden';
     root.querySelector('[data-map-controls]').append(output);
+
     let input = 'geen aanraking', action = 'geen actie';
-    reportControl = value => { action = value; output.textContent = `${input} · ${action}`; };
+    let cameraNote = 'Camera: renderer wordt geladen';
+    let statusNote = 'Status: wachten op initialisatie';
+    let errorNote = '';
+    let diagnosticMap = null;
+    let verificationTimer = null;
+    let commandSequence = 0;
+    const counts = { zoomstart: 0, zoom: 0, zoomend: 0, moveend: 0 };
+    let detachMapEvents = () => {};
+    const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
+    const renderDiagnostic = () => {
+      output.textContent = [
+        'Kaartcontrole 0.1.60 · ' + input + ' · ' + action,
+        cameraNote,
+        statusNote,
+        'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
+          ' / zoomend ' + counts.zoomend + ' / moveend ' + counts.moveend,
+        ...(errorNote ? [errorNote] : [])
+      ].join('\n');
+    };
+    reportControl = value => { action = value; renderDiagnostic(); };
+    reportDiagnosticStatus = value => {
+      statusNote = 'Status: ' + value;
+      renderDiagnostic();
+    };
+    reportDiagnosticError = error => {
+      const message = error?.message ?? error?.reason?.message ?? String(error || 'onbekende fout');
+      errorNote = 'Fout: ' + String(message).slice(0, 170);
+      renderDiagnostic();
+    };
+    reportCameraRequest = ({ from, to, scale }) => {
+      if (!diagnosticMap) return;
+      const sequence = ++commandSequence;
+      clearTimeout(verificationTimer);
+      cameraNote = 'Zoom: ' + formatZoom(from) + ' → doel ' + formatZoom(to) +
+        ' → nu ' + formatZoom(diagnosticMap.getZoom());
+      statusNote = 'Status: ' + (scale ? 'schaal ' + scale : 'zoom') + ' aangevraagd';
+      renderDiagnostic();
+      verificationTimer = setTimeout(() => {
+        if (sequence !== commandSequence || !output.isConnected || !diagnosticMap) return;
+        const actual = diagnosticMap.getZoom();
+        const reached = Math.abs(actual - to) < 0.08;
+        const moving = diagnosticMap.isMoving?.() || false;
+        cameraNote = 'Zoom: ' + formatZoom(from) + ' → doel ' + formatZoom(to) +
+          ' → na 2,6s ' + formatZoom(actual);
+        statusNote = reached ? 'Status: DOEL BEREIKT' :
+          moving ? 'Status: CAMERA BEWEEGT NOG' : 'Status: DOEL NIET BEREIKT / ONDERBROKEN';
+        renderDiagnostic();
+      }, 2600);
+    };
+    registerCameraDiagnostics = instance => {
+      diagnosticMap = instance;
+      reportDiagnosticStatus('kaartobject gemaakt');
+      const handlers = [];
+      for (const name of ['zoomstart', 'zoom', 'zoomend', 'moveend']) {
+        const handler = () => {
+          counts[name] += 1;
+          if (name !== 'zoom') renderDiagnostic();
+        };
+        instance.on(name, handler);
+        handlers.push([name, handler]);
+      }
+      detachMapEvents = () => {
+        for (const [name, handler] of handlers) instance.off(name, handler);
+        diagnosticMap = null;
+      };
+    };
     const inspect = event => {
       const target = event.target.closest?.('[data-map-position],[data-map-scale],[data-map-zoom-in],[data-map-zoom-out]');
-      input = `${event.type}: ${target?.getAttribute('aria-label') || 'kaart'}`;
-      output.textContent = `${input} · ${action}`;
+      input = event.type + ': ' + (target?.getAttribute('aria-label') || 'kaart');
+      renderDiagnostic();
     };
     const surface = root.querySelector('.environment-view');
     const names = ['touchstart', 'touchend', 'pointercancel', 'click'];
     for (const name of names) surface.addEventListener(name, inspect, true);
-    cleanupDiagnostics = () => { for (const name of names) surface.removeEventListener(name, inspect, true); };
+    const handleWindowError = event => {
+      if (event.error || event.message) reportDiagnosticError(event.error || event.message);
+    };
+    const handleRejection = event => reportDiagnosticError(event.reason);
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    cleanupDiagnostics = () => {
+      clearTimeout(verificationTimer);
+      detachMapEvents();
+      for (const name of names) surface.removeEventListener(name, inspect, true);
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+    renderDiagnostic();
   }
 
   let disposed = false;
@@ -300,6 +386,7 @@ export function openEnvironmentView(root, {
       attributionControl: { compact: true },
       renderWorldCopies: true
     });
+    registerCameraDiagnostics(map);
 
     const render = () => {
       if (!disposed && map) updateReadout(map, userPoint, scaleButton, readout);
@@ -311,10 +398,11 @@ export function openEnvironmentView(root, {
       cameraControls?.reset();
     };
     reportControl('kaart gestart');
+    reportDiagnosticStatus('kaart gemaakt; bediening koppelen');
     cameraControls = createEnvironmentCameraControls(map, () => {
       followingPosition = false;
       awaitingFirstPosition = false;
-    });
+    }, reportCameraRequest);
     configureEnvironmentGestures(map);
     unsubscribers.push(bindEnvironmentTouchGestures(map, stopFollowing));
 
@@ -328,6 +416,7 @@ export function openEnvironmentView(root, {
     map.on('load', () => {
       if (disposed) return;
       mapReady = true;
+      reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
       updateObjects().catch(() => {});
@@ -381,6 +470,7 @@ export function openEnvironmentView(root, {
 
     // Loading failures do not trigger old Overpass requests.
     map.on('error', event => {
+      reportDiagnosticError(event.error || 'MapLibre-kaartfout');
       displayFailure('Kaartgegevens tijdelijk niet beschikbaar. Probeer opnieuw met verbinding.');
       console.warn('Sharon Omgeving: vectorkaart', event.error);
     });
@@ -395,6 +485,7 @@ export function openEnvironmentView(root, {
     unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-in]'), () => stepZoom(1)));
     unsubscribers.push(bindEnvironmentButton(root.querySelector('[data-map-zoom-out]'), () => stepZoom(-1)));
     for (const button of [scaleButton, root.querySelector('[data-map-zoom-in]'), root.querySelector('[data-map-zoom-out]')]) button.disabled = false;
+    reportDiagnosticStatus('knoppen gekoppeld');
     unsubscribers.push(events.on('location.changed', event => placePosition(event.detail)));
     for (const name of ['location.created', 'location.updated', 'location.deleted',
       'environment.objects.changed']) {
@@ -422,6 +513,8 @@ export function openEnvironmentView(root, {
     }
   } catch (error) {
     reportControl('kaart starten mislukt');
+    reportDiagnosticError(error);
+    reportDiagnosticStatus('kaart starten mislukt');
     console.warn('Sharon Omgeving: MapLibre kan niet starten', error);
     displayFailure(error.message || 'Open de kaart opnieuw wanneer er verbinding is.');
   }
