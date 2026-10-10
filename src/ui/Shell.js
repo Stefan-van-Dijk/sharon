@@ -40,6 +40,7 @@ export function createShell(root, {
         </button>
 
         <h1 class="app-view-title" data-view-title></h1>
+        <div class="app-header-actions" data-header-actions></div>
 
         <span
           class="location-pulse is-searching"
@@ -63,6 +64,7 @@ export function createShell(root, {
   const brand = root.querySelector('[data-app-brand]');
   const title = root.querySelector('[data-view-title]');
   const status = root.querySelector('[data-location-status]');
+  const headerActions = root.querySelector('[data-header-actions]');
   const toast = root.querySelector('[data-trigger-toast]');
   const outlet = root.querySelector('[data-view-outlet]');
 
@@ -149,6 +151,7 @@ export function createShell(root, {
     frame.dataset.view = currentView;
     stage.classList.toggle('is-environment', environment);
     frame.classList.toggle('is-environment', environment);
+    if (!environment) headerActions.replaceChildren();
     header.classList.toggle('is-detail', detail);
     brand.classList.toggle('is-detail', detail);
     brandButton.setAttribute(
@@ -260,7 +263,8 @@ export function createShell(root, {
       store,
       location,
       events,
-      setTitle: setDetailTitle
+      setTitle: setDetailTitle,
+      headerActions
     }), { animate });
   };
 
