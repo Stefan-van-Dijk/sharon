@@ -47,7 +47,7 @@ export const environmentStyle = {
       ],
       "paint": {
         "fill-color": "#f6f8fa",
-        "fill-outline-color": "#dce3e8"
+        "fill-outline-color": "rgba(0,0,0,0)"
       }
     },
     {
@@ -80,7 +80,7 @@ export const environmentStyle = {
       "minzoom": 14,
       "paint": {
         "fill-color": "#fcfcfd",
-        "fill-outline-color": "#dddddf"
+        "fill-outline-color": "rgba(0,0,0,0)"
       }
     },
     {
@@ -985,3 +985,21 @@ export const environmentStyle = {
     }
   ]
 };
+
+// Dedicated polygon outlines allow editable width and dotted/dashed strokes.
+for (const [fillId, outlineId, color] of [
+  ['water', 'water-outline', '#dce3e8'],
+  ['building', 'building-outline', '#dddddf']
+]) {
+  const index = environmentStyle.layers.findIndex(layer => layer.id === fillId);
+  const fill = environmentStyle.layers[index];
+  environmentStyle.layers.splice(index + 1, 0, {
+    id: outlineId,
+    type: 'line',
+    source: fill.source,
+    'source-layer': fill['source-layer'],
+    ...(fill.filter ? { filter: fill.filter } : {}),
+    ...(fill.minzoom !== undefined ? { minzoom: fill.minzoom } : {}),
+    paint: { 'line-color': color, 'line-width': 1 }
+  });
+}
