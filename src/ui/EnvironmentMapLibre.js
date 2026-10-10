@@ -319,7 +319,7 @@ export function openEnvironmentView(root, {
   let appearanceBinding = null;
   const cleanupAppearance = createEnvironmentAppearanceEditor(root, store, {
     floating: true,
-    onChange: next => appearanceBinding?.setAppearance(next)
+    onChange: (next, category) => appearanceBinding?.setAppearance(next, category)
   });
 
   const displayFailure = description => {
