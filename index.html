@@ -618,26 +618,27 @@
     .app-stage.is-environment .environment-map-top-actions button:disabled{
       opacity:.55;
     }
-    /* MapLibre's live linked attribution moves below the readout. Both
-       elements share the bottom safe-area reference to avoid overlap. */
+    /* Compact bottom stack: 68px readout, 4px gap, 18px linked attribution.
+       Keep iOS's safe-area clearance; do not sacrifice the home indicator. */
     .app-stage.is-environment .environment-readout{
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 32px);
+      bottom:max(12px,env(safe-area-inset-bottom));
     }
     .environment-maplibre .maplibregl-ctrl-bottom-right{
       left:max(14px,env(safe-area-inset-left));
       right:max(14px,env(safe-area-inset-right));
-      bottom:max(12px,env(safe-area-inset-bottom));
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 72px);
       display:flex;justify-content:center;pointer-events:none;
     }
     .environment-maplibre .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{
-      width:auto;max-width:100%;min-height:22px;pointer-events:auto;
-      background:rgba(255,255,255,.79);
+      width:auto;max-width:100%;min-height:18px;
+      padding:1px 4px;pointer-events:auto;
+      background:rgba(255,255,255,.74);
     }
     .environment-maplibre .maplibregl-ctrl-attrib-inner{
-      text-align:center;line-height:1.35;white-space:normal;
+      text-align:center;font-size:9px;line-height:1.2;white-space:normal;
     }
     .app-stage.is-environment .environment-style-flyout{
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 111px);
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 103px);
     }
 
     @media (prefers-reduced-motion:reduce){
