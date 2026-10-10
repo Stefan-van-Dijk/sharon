@@ -2,7 +2,7 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.74';
+} from './EnvironmentAppearance.js?v=0.1.75';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -215,6 +215,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
         fragment.append(wrapper);
       }
       groups.replaceChildren(fragment);
+      // Every group starts at its first four tiles. Horizontal dragging stays
+      // local to this raster; no extra rows or jump in the surrounding map.
+      groups.scrollLeft = 0;
       shownSectionId = sectionId;
     }
     for (const id of section().items) {

@@ -1,5 +1,6 @@
 // Sharon monochrome basemap, adapted from OpenFreeMap Positron (OpenMapTiles schema).
-// No labels, sprites, glyphs, decorative POIs or raster requests; only subdued woodland/park landcover fills.
+// No labels, sprites, glyphs, decorative POIs or raster requests; subtle,
+// non-overlapping OpenMapTiles landcover classes keep every terrain color editable.
 export const environmentStyle = {
   "version": 8,
   "name": "Sharon Minimal",
@@ -23,17 +24,215 @@ export const environmentStyle = {
       "source": "openmaptiles",
       "source-layer": "landcover",
       "minzoom": 5,
-      "filter": ["in", ["get", "class"], ["literal", ["wood", "forest"]]],
+      "filter": ["==", ["get", "class"], "wood"],
       "paint": { "fill-color": "#edf4ee", "fill-opacity": 1 }
     },
     {
       "id": "green",
       "type": "fill",
       "source": "openmaptiles",
-      "source-layer": "landuse",
+      "source-layer": "landcover",
       "minzoom": 7,
-      "filter": ["in", ["get", "class"], ["literal", ["park", "grass", "garden", "recreation_ground"]]],
+      "filter": ["in", ["get", "subclass"], ["literal", ["park", "garden", "flowerbed", "recreation_ground", "village_green", "golf_course"]]],
       "paint": { "fill-color": "#f2f6f1", "fill-opacity": 1 }
+    },
+    {
+      "id": "grassland",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["grass","grassland","fell"]]],
+      "paint": { "fill-color": "#eef3ee", "fill-opacity": 1 }
+    },
+    {
+      "id": "heath",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["heath"]]],
+      "paint": { "fill-color": "#f0eeed", "fill-opacity": 1 }
+    },
+    {
+      "id": "scrub",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["scrub","shrubbery"]]],
+      "paint": { "fill-color": "#eaefe8", "fill-opacity": 1 }
+    },
+    {
+      "id": "meadow",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["meadow"]]],
+      "paint": { "fill-color": "#f1f4ea", "fill-opacity": 1 }
+    },
+    {
+      "id": "tundra",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 5,
+      "filter": ["in",["get","subclass"],["literal",["tundra"]]],
+      "paint": { "fill-color": "#f3f1ee", "fill-opacity": 1 }
+    },
+    {
+      "id": "beach",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 6,
+      "filter": ["in",["get","subclass"],["literal",["beach"]]],
+      "paint": { "fill-color": "#faf6ee", "fill-opacity": 1 }
+    },
+    {
+      "id": "dunes",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 6,
+      "filter": ["in",["get","subclass"],["literal",["dune"]]],
+      "paint": { "fill-color": "#f8f4eb", "fill-opacity": 1 }
+    },
+    {
+      "id": "sand",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 6,
+      "filter": ["in",["get","subclass"],["literal",["sand"]]],
+      "paint": { "fill-color": "#fbf8f0", "fill-opacity": 1 }
+    },
+    {
+      "id": "wetland",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["wetland","wet_meadow"]]],
+      "paint": { "fill-color": "#edf3f3", "fill-opacity": 1 }
+    },
+    {
+      "id": "bog",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["bog"]]],
+      "paint": { "fill-color": "#ecf0ed", "fill-opacity": 1 }
+    },
+    {
+      "id": "marsh",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["marsh","swamp"]]],
+      "paint": { "fill-color": "#e9f0ec", "fill-opacity": 1 }
+    },
+    {
+      "id": "reedbed",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["reedbed"]]],
+      "paint": { "fill-color": "#eaf0e6", "fill-opacity": 1 }
+    },
+    {
+      "id": "tidalflat",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 6,
+      "filter": ["in",["get","subclass"],["literal",["tidalflat","saltmarsh","saltern"]]],
+      "paint": { "fill-color": "#f1f2ed", "fill-opacity": 1 }
+    },
+    {
+      "id": "mangrove",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["mangrove"]]],
+      "paint": { "fill-color": "#e7efea", "fill-opacity": 1 }
+    },
+    {
+      "id": "farmland",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 7,
+      "filter": ["in",["get","subclass"],["literal",["farmland","farm"]]],
+      "paint": { "fill-color": "#f5f4ed", "fill-opacity": 1 }
+    },
+    {
+      "id": "orchard",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 8,
+      "filter": ["in",["get","subclass"],["literal",["orchard"]]],
+      "paint": { "fill-color": "#f0f3ea", "fill-opacity": 1 }
+    },
+    {
+      "id": "vineyard",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 8,
+      "filter": ["in",["get","subclass"],["literal",["vineyard"]]],
+      "paint": { "fill-color": "#f3f0ec", "fill-opacity": 1 }
+    },
+    {
+      "id": "allotments",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 9,
+      "filter": ["in",["get","subclass"],["literal",["allotments"]]],
+      "paint": { "fill-color": "#f2f2ec", "fill-opacity": 1 }
+    },
+    {
+      "id": "nursery",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 9,
+      "filter": ["in",["get","subclass"],["literal",["plant_nursery"]]],
+      "paint": { "fill-color": "#edf1ea", "fill-opacity": 1 }
+    },
+    {
+      "id": "rock",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 5,
+      "filter": ["in",["get","subclass"],["literal",["bare_rock"]]],
+      "paint": { "fill-color": "#f0f0f1", "fill-opacity": 1 }
+    },
+    {
+      "id": "scree",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 6,
+      "filter": ["in",["get","subclass"],["literal",["scree"]]],
+      "paint": { "fill-color": "#f2f1f1", "fill-opacity": 1 }
+    },
+    {
+      "id": "glacier",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 0,
+      "filter": ["in",["get","subclass"],["literal",["glacier","ice_shelf"]]],
+      "paint": { "fill-color": "#f7fafc", "fill-opacity": 1 }
     },
     {
       "id": "water",
