@@ -294,7 +294,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       if (Object.keys(parent).length) overrides.groupStyles = parent;
       else delete overrides.groupStyles;
     }
-    saveChanges(selectedId || sectionId);
+    saveChanges(selectedId || 'group:' + sectionId);
   };
   const inheritedValue = field => {
     if (!selectedId) return appearanceSectionDefaults(section())[field];
@@ -385,7 +385,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       delete overrides.groupStyles[sectionId];
       if (!Object.keys(overrides.groupStyles).length) delete overrides.groupStyles;
     }
-    saveChanges(selectedId || sectionId);
+    saveChanges(selectedId || 'group:' + sectionId);
   });
   listen(resetAll, 'click', () => {
     if (!loaded) return;
