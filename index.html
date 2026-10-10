@@ -275,6 +275,16 @@
     .environment-style-actions button{min-height:44px;padding:7px;border:1px solid #e5e5e8;border-radius:11px;background:#f8f8f9;color:#36363a;font-size:12px}
     .environment-style-panel button:disabled,.environment-style-panel select:disabled{opacity:.5}
     .environment-style-status{display:block;color:#85858b;font-size:11px;line-height:1.4}
+    /* Small bottom-left map style icon; floating editor appears only on request. */
+    .environment-style-floating{position:absolute;left:max(14px,env(safe-area-inset-left));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 106px);z-index:27;pointer-events:none}
+    .environment-style-icon{width:44px;height:44px;padding:0;display:grid;place-items:center;border:1px solid rgba(0,0,0,.09);border-radius:15px;background:rgba(255,255,255,.92);color:#55565d;box-shadow:0 2px 12px rgba(0,0,0,.045);pointer-events:auto;touch-action:manipulation}
+    .environment-style-icon[aria-expanded="true"]{background:#f5f5f7}
+    .environment-style-icon:focus-visible{outline:2px solid #555;outline-offset:2px}
+    .environment-style-flyout{position:absolute;bottom:calc(100% + 8px);left:0;width:min(350px,calc(100vw - 28px));max-height:min(56dvh,520px);padding:14px;border:1px solid #e3e3e7;border-radius:18px;background:rgba(255,255,255,.98);box-shadow:0 10px 34px rgba(0,0,0,.12);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;pointer-events:auto}
+    .environment-style-flyout[hidden]{display:none!important}
+    .environment-style-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .environment-style-heading strong{font-size:14px;font-weight:550}
+    .environment-style-heading button{width:44px;height:44px;padding:0;border:0;border-radius:11px;background:#f3f3f5;color:#46464d;font-size:22px;pointer-events:auto}
     .environment-control-check{position:absolute;left:14px;right:14px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 140px);z-index:40;padding:8px;background:#fff;border:1px solid #aaa;font-size:11px;pointer-events:none}
     .environment-canvas.is-panning{cursor:grabbing}
     .environment-map{position:absolute;inset:0;transform-origin:center;transition:transform .12s ease-out;will-change:transform}
