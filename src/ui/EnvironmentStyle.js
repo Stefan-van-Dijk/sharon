@@ -1,5 +1,5 @@
 // Sharon monochrome basemap, adapted from OpenFreeMap Positron (OpenMapTiles schema).
-// No labels, sprites, glyphs, decorative POIs, landcover fills or raster requests.
+// No labels, sprites, glyphs, decorative POIs or raster requests; only subdued woodland/park landcover fills.
 export const environmentStyle = {
   "version": 8,
   "name": "Sharon Minimal",
@@ -16,6 +16,24 @@ export const environmentStyle = {
       "paint": {
         "background-color": "#ffffff"
       }
+    },
+    {
+      "id": "forest",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "minzoom": 5,
+      "filter": ["in", ["get", "class"], ["literal", ["wood", "forest"]]],
+      "paint": { "fill-color": "#edf4ee", "fill-opacity": 1 }
+    },
+    {
+      "id": "green",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landuse",
+      "minzoom": 7,
+      "filter": ["in", ["get", "class"], ["literal", ["park", "grass", "garden", "recreation_ground"]]],
+      "paint": { "fill-color": "#f2f6f1", "fill-opacity": 1 }
     },
     {
       "id": "water",

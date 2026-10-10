@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { environmentStyle } from '../src/ui/EnvironmentStyle.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 import {
-  APPEARANCE_GROUPS, APPEARANCE_SCALE_OPTIONS, appearanceDefaultLineStyle,
-  appearanceDefaults, sanitizeEnvironmentAppearance,
+  APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, appearanceDefaultLineStyle,
+  appearanceDefaults, appearanceSectionFor, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance,
   applyEnvironmentAppearance, applyEnvironmentVisibility, bindEnvironmentAppearance
 } from '../src/ui/EnvironmentAppearance.js';
 
@@ -47,14 +47,14 @@ test('map appearance changes fill, line paint, thickness and dots then resets co
 });
 
 test('stored appearance rejects arbitrary paint expressions and unknown categories', () => {
-  assert.equal(APPEARANCE_GROUPS.length, 11);
+  assert.equal(APPEARANCE_GROUPS.length, 15);
   assert.deepEqual(sanitizeEnvironmentAppearance({
     invented: { fill: '#abcdef' },
     water: { fill: '#AaBBcc', stroke: ['!', 'danger'], width: 900, dash: 'INVALID' },
     buildings: { fill: '#112233', width: .5, dash: 'dashed', arbitrary: true }
   }), { water: { fill: '#aabbcc' }, buildings: {
     fill: '#112233', width: .5, dash: 'dashed' } });
-  assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).fill, '#f6f8fa');
+  assert.equal(appearanceDefaults(APPEARANCE_GROUPS.find(item => item.id === 'water')).fill, '#f6f8fa');
 });
 
 test('scale visibility accepts a coarse-to-fine range and hides layers outside it', () => {
@@ -102,8 +102,8 @@ test('scale-range settings validate bounds and preserve existing customized colo
     buildings: { from: 'near', stroke: '#abcdef' },
     major: { width: 1.5 }
   });
-  assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).from, '');
-  assert.equal(appearanceDefaults(APPEARANCE_GROUPS[0]).to, '');
+  assert.equal(appearanceDefaults(APPEARANCE_GROUPS.find(item => item.id === 'water')).from, '');
+  assert.equal(appearanceDefaults(APPEARANCE_GROUPS.find(item => item.id === 'water')).to, '');
 });
 
 test('late settings loading cannot restyle a closed map', async () => {
@@ -208,7 +208,7 @@ test('editor uses three consistent stroke choices, ordered zoom handles and nati
   assert.ok(src.includes('data-style-stroke'));
   assert.ok(src.includes('touch.clientX - bounds.left'));
   assert.ok(src.includes('dx >= 58'));
-  assert.ok(src.includes('sample.outerHTML = preview(group)'));
+  assert.ok(src.includes("button.querySelector('svg').outerHTML = preview("));
   const stylesheet = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(stylesheet.includes('apple-mobile-web-app-status-bar-style" content="black-translucent"'));
   assert.ok(stylesheet.includes('.app-stage[data-view="detail"] .app-view'));
@@ -264,13 +264,15 @@ test('linked map credits sit 4px above readout with compact safe-area spacing', 
   assert.match(map, /attributionControl:\s*\{ compact: false \}/);
 });
 
-test('compact material and stroke swatches replace mini map shapes without resetting saved style', async () => {
+test('grouped technical raster displays real fill and stroke samples without color dots', async () => {
   const { readFile } = await import('node:fs/promises');
   const editor = await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.ok(editor.includes('<rect x="12" y="3" width="48" height="19"'));
-  assert.ok(editor.includes('<line x1="10" y1="13" x2="62" y2="13"'));
+  assert.ok(editor.includes('rect x="12" y="3" width="48" height="19"'));
+  assert.ok(editor.includes('line x1="10" y1="13" x2="62" y2="13"'));
   assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
-  assert.ok(css.includes('.environment-style-group{height:66px;'));
+  assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;'));
+  assert.ok(css.includes('backdrop-filter:blur(18px) saturate(145%)'));
+  assert.ok(!css.includes('environment-style-fill-dot'));
   assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
 });
