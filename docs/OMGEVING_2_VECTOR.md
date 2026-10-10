@@ -1,4 +1,4 @@
-# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.54)
+# Omgeving 2.0 — standaard vectorkaart (Sharon v0.1.55)
 
 ## Nieuwe werkwijze
 
@@ -70,7 +70,7 @@ kaartprovider ontvangt geen lokale objectgegevens via deze toepassing.
 - Expliciete MapLibre 6 module-worker en maximaal twee workers.
 - Laatste kaartpositie/zoom lokaal opgeslagen; +/- knoppen en knijpzoom.
 - Appbestanden met het huidige versienummer komen direct uit de shell-cache.
-- Sharon applicatie/shell-cache: 0.1.54.
+- Sharon applicatie/shell-cache: 0.1.55.
 - Standaard HTTP-/browsercache van de kaartdienst; geen eigen tegelgenerator.
 - De serviceworker precachet de lokale kaartmodule en GeoJSON-adapter.
 - De basiskaart bevat alleen geometrie; Wikipedia wordt niet opgehaald.
@@ -153,3 +153,6 @@ zoom met een halve stap in 420 ms. Niveauovergangen duren 650–1400 ms,
 afhankelijk van de afstand. Ze blijven onderbreekbaar door een nieuw gebaar.
 Straat- en plaatsnamen zijn verwijderd. Dit behoudt de kale geometrische
 basis voor latere projecties en vermijdt fontverzoeken.
+
+In 0.1.55 hebben kaartgebaren voorrang op de swipe naar Home, ook aan de
+linkerkant van het scherm. Terugkeren kan via de bestaande Home-knop.

@@ -1,12 +1,12 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.54';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.54';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.54';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.55';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.55';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.55';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures, environmentZoomTransition
-} from './EnvironmentScale.js?v=0.1.54';
+} from './EnvironmentScale.js?v=0.1.55';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
