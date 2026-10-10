@@ -382,7 +382,14 @@
     @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}
 
 
-    /* One shared, edge-to-edge detail viewport for all Sharon modules.
+    /* Detail scroll owns the scroll position; the outer iOS viewport never does.
+       This prevents the fixed logo/title from being scrolled out of view. */
+    body.sharon-shell-active.sharon-detail-active{
+      height:100dvh;overflow:hidden;overscroll-behavior:none;
+    }
+    html:has(body.sharon-detail-active){overflow:hidden}
+    #app:has(.app-stage[data-view="detail"]){height:100dvh;overflow:hidden}
+        /* One shared, edge-to-edge detail viewport for all Sharon modules.
        The fixed chrome owns only the controls; content owns the whole screen. */
     .app-stage[data-view="detail"]{
       --sharon-header-height:54px;
@@ -399,7 +406,7 @@
       padding:0 0 max(24px,env(safe-area-inset-bottom));
     }
     .app-stage[data-view="detail"] .app-header{
-      position:absolute;left:0;right:0;top:0;z-index:40;
+      position:fixed;left:0;right:0;top:0;z-index:40;
       height:calc(env(safe-area-inset-top) + var(--sharon-header-height));
       min-height:0;padding:calc(env(safe-area-inset-top) + 5px)
         max(22px,env(safe-area-inset-right)) 0
