@@ -1,14 +1,14 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.57';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.57';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.57';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.57';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.57';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.58';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.58';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.58';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.58';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.58';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures, environmentZoomTransition
-} from './EnvironmentScale.js?v=0.1.57';
+} from './EnvironmentScale.js?v=0.1.58';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -185,6 +185,24 @@ export async function openEnvironmentView(root, {
   const scaleButton = root.querySelector('[data-map-scale]');
   const positionButton = root.querySelector('[data-map-position]');
   const errorBanner = root.querySelector('[data-map-error]');
+  // Opt-in, local diagnostic view: no coordinates or private data are logged.
+  let reportControl = () => {};
+  if (new URLSearchParams(window.location.search).get('kaarttest') === '1') {
+    const output = document.createElement('output');
+    output.className = 'environment-control-check';
+    output.textContent = 'Kaartcontrole 0.1.58 · starten';
+    root.querySelector('[data-map-canvas]').append(output);
+    let input = 'geen aanraking', action = 'geen actie';
+    reportControl = value => { action = value; output.textContent = `${input} · ${action}`; };
+    const inspect = event => {
+      const target = event.target.closest?.('[data-map-position],[data-map-scale],[data-map-zoom-in],[data-map-zoom-out]');
+      input = `${event.type}: ${target?.getAttribute('aria-label') || 'kaart'}`;
+      output.textContent = `${input} · ${action}`;
+    };
+    const surface = root.querySelector('[data-map-canvas]');
+    for (const name of ['touchstart', 'touchend', 'pointercancel']) surface.addEventListener(name, inspect, true);
+  }
+
   let disposed = false;
   let userPoint = isCoordinate(location.latest) ? location.latest : null;
   let followingPosition = true;
@@ -233,6 +251,7 @@ export async function openEnvironmentView(root, {
   unsubscribers.push(bindEnvironmentPositionButton(positionButton, {
     location, getPoint: () => userPoint,
     onRequest: () => {
+      reportControl('positieknop ontvangen');
       positionRequested = true;
       followingPosition = true;
       scaleTarget = null;
@@ -284,6 +303,7 @@ export async function openEnvironmentView(root, {
       awaitingFirstPosition = false;
       scaleTarget = null;
     };
+    reportControl('kaart gestart');
     configureEnvironmentGestures(map);
     unsubscribers.push(bindEnvironmentTouchGestures(map, stopFollowing));
 
@@ -354,6 +374,7 @@ export async function openEnvironmentView(root, {
       console.warn('Sharon Omgeving: vectorkaart', event.error);
     });
     unsubscribers.push(bindEnvironmentButton(scaleButton, () => {
+      reportControl('schaalknop ontvangen');
       const currentId = scaleTarget || environmentScaleForSpan(visibleSpanMeters(map)).id;
       const next = nextEnvironmentScale(currentId);
       stopFollowing();
@@ -363,6 +384,7 @@ export async function openEnvironmentView(root, {
       scaleTarget = next.id;
     }));
     const stepZoom = (direction, around) => {
+      reportControl(direction > 0 ? 'inzoomknop ontvangen' : 'uitzoomknop ontvangen');
       stopFollowing();
       environmentZoomTransition(map, map.getZoom() + direction * 0.25, { duration: 650, around });
     };
@@ -394,6 +416,7 @@ export async function openEnvironmentView(root, {
       resizeObserver.observe(mapElement);
     }
   } catch (error) {
+    reportControl('kaart starten mislukt');
     console.warn('Sharon Omgeving: MapLibre kan niet starten', error);
     displayFailure(error.message || 'Open de kaart opnieuw wanneer er verbinding is.');
   }

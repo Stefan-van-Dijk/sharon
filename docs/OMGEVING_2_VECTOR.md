@@ -191,3 +191,17 @@ het load-event al voorbij is. Navigaties omzeilen zowel de versiecache als de
 HTTP-cache; offline blijft de bestaande shell als terugval beschikbaar.
 Pointer-, knop-, GPS- en updategedrag is automatisch getest. Een fysieke
 telefoon is in deze werkomgeving niet beschikbaar voor eindcontrole.
+
+### 0.1.58 — native aanraking en rustiger verplaatsen
+
+Vingerinput gebruikt Touch Events op het buitenste kaartelement, vóór de
+rendererhandlers. Muis/pen gebruiken Pointer Events en vinger-pointerevents
+worden overgeslagen. De native pan- en zoomhandlers blijven uitgeschakeld.
+Verplaatsing heeft factor 0,5 zonder uitloop. Knoppen gebruiken touchstart en
+touchend rechtstreeks; bewegen of annuleren activeert geen knop. De kaart
+heeft een expliciete z-index en de Omgeving-container gebruikt geen transform.
+
+`?kaarttest=1` toont optioneel de ontvangen aanraakgebeurtenis en de uitgevoerde
+knopactie. Deze controle blijft lokaal en bevat geen coördinaten of identifiers.
+Aanraakadapter en knoppen zijn automatisch getest; fysieke iOS-eindcontrole
+blijft nodig.
