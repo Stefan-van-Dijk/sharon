@@ -170,7 +170,8 @@ export function createMapLibreInstance(library, options) {
 }
 
 export function openEnvironmentView(root, {
-  store, location, events, setTitle = () => {}, loadRenderer = () => import(MAPLIBRE_JS)
+  store, location, events, setTitle = () => {}, headerActions = null,
+  loadRenderer = () => import(MAPLIBRE_JS)
 }) {
   setTitle('Omgeving');
   root.innerHTML = `
@@ -221,6 +222,10 @@ export function openEnvironmentView(root, {
   const scaleButton = root.querySelector('[data-map-scale]');
   const positionButton = root.querySelector('[data-map-position]');
   const errorBanner = root.querySelector('[data-map-error]');
+  // One physical header row for every module. Keep the controls owned by this
+  // view and remove them on exit, even if map loading fails or is canceled.
+  const topActions = root.querySelector('.environment-map-top-actions');
+  if (headerActions && topActions) headerActions.replaceChildren(topActions);
   // Opt-in diagnostics: local only; never log coordinates or identifiers.
   let reportControl = () => {};
   let reportCameraRequest = () => {};
@@ -562,6 +567,7 @@ export function openEnvironmentView(root, {
 
   return () => {
     disposed = true;
+    if (headerActions && topActions?.parentNode === headerActions) topActions.remove();
     cleanupDiagnostics();
     cleanupAppearance();
     objectsRevision++;
