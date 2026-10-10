@@ -4,76 +4,95 @@ import { bindEnvironmentTouchGestures, bindEnvironmentButton } from '../src/ui/E
 import { bindEnvironmentPositionButton } from '../src/ui/EnvironmentPosition.js';
 
 function harness() {
-  const listeners = new Map(), captured = new Set(), pans = [], zooms = [];
-  let zoom = 15, stops = 0;
-  const element = { getBoundingClientRect: () => ({ left: 0, top: 0 }),
+  const listeners = new Map(), captured = new Set(), updates = [];
+  const container = { clientWidth: 400, clientHeight: 800,
+    getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture: id => captured.add(id), hasPointerCapture: id => captured.has(id),
     releasePointerCapture: id => captured.delete(id),
     addEventListener: (name, fn) => listeners.set(name, fn),
-    removeEventListener: name => listeners.delete(name) };
-  const dispose = bindEnvironmentTouchGestures({ getContainer: () => element, stop() { stops++; },
+    removeEventListener: name => listeners.delete(name)
+  };
+  let center = { lng: 0, lat: 0 }, zoom = 4, stops = 0, manuals = 0;
+  const map = {
+    getContainer: () => container,
     getZoom: () => zoom, getMinZoom: () => 1, getMaxZoom: () => 22,
-    unproject: point => point, panBy: offset => pans.push(offset),
-    easeTo: options => { zoom = options.zoom; zooms.push(options); } });
+    stop() { stops++; },
+    unproject([x, y]) { const scale = 2 ** zoom;
+      return { lng: center.lng + (x - 200) / scale,
+        lat: center.lat + (y - 400) / scale }; },
+    project(geo) { const scale = 2 ** zoom;
+      return { x: 200 + (geo.lng - center.lng) * scale,
+        y: 400 + (geo.lat - center.lat) * scale }; },
+    jumpTo(options) { zoom = options.zoom; center = options.center; updates.push(options); }
+  };
+  const dispose = bindEnvironmentTouchGestures(map, () => manuals++);
   const send = (name, id, x, y, pointerType = 'mouse') => listeners.get(name)({
     pointerId: id, clientX: x, clientY: y, pointerType, button: 0,
-    preventDefault() {}, stopImmediatePropagation() {} });
+    preventDefault() {}, stopImmediatePropagation() {}, target: null
+  });
   const touch = (name, points) => {
     let stopped = false, prevented = false;
     listeners.get(name)({ touches: points.map(([clientX, clientY]) => ({ clientX, clientY })),
-      cancelable: true, preventDefault() { prevented = true; }, stopImmediatePropagation() { stopped = true; } });
-    assert.equal(stopped, true, 'renderer touch handlers must not run after the outer capture handler');
+      target: null, cancelable: true, preventDefault() { prevented = true; },
+      stopImmediatePropagation() { stopped = true; } });
+    assert.equal(stopped, true);
     return prevented;
   };
-  return { send, touch, pans, zooms, captured, dispose, get stops() { return stops; } };
+  return { map, touch, send, updates, captured, dispose,
+    get stops() { return stops; }, get manuals() { return manuals; } };
 }
 
-test('single finger and mouse drag at half speed, without zoom or inertia', () => {
+test('one-finger and mouse pan follow 1:1 without starting delayed animations', () => {
   for (const type of ['touch', 'mouse']) {
     const h = harness();
     if (type === 'touch') {
       h.send('pointerdown', 1, 100, 100, 'touch');
       assert.equal(h.captured.size, 0);
       h.touch('touchstart', [[100, 100]]);
-      assert.equal(h.touch('touchmove', [[100, 220]]), true);
+      h.touch('touchmove', [[200, 220]]);
       h.touch('touchend', []);
     } else {
       h.send('pointerdown', 1, 100, 100);
-      h.send('pointermove', 1, 100, 220);
-      h.send('pointerup', 1, 100, 220);
+      h.send('pointermove', 1, 200, 220);
+      h.send('pointerup', 1, 200, 220);
     }
-    assert.equal(h.pans.length, 1);
-    assert.equal(h.pans[0][1], -60);
-    assert.equal(h.zooms.length, 0);
-    assert.equal(h.captured.size, 0);
+    assert.equal(h.updates.length, 1);
+    assert.equal(h.map.project({ lng: -6.25, lat: -18.75 }).x, 200);
+    assert.deepEqual(h.map.project({ lng: -6.25, lat: -18.75 }), { x: 200, y: 220 });
+    assert.equal(h.updates[0].zoom, 4);
+    assert.equal(h.stops, 1);
     h.dispose();
   }
 });
 
-test('native touch pinch zooms in and out; lifting one finger reanchors', () => {
+test('two touching map points remain under both fingers while pinching and moving', () => {
   const h = harness();
+  const p1 = h.map.unproject([100, 100]), p2 = h.map.unproject([200, 100]);
   h.touch('touchstart', [[100, 100], [200, 100]]);
-  h.touch('touchmove', [[100, 100], [300, 100]]);
-  assert.ok(Math.abs(h.zooms.at(-1).zoom - 15.6) < 0.00001);
-  h.touch('touchmove', [[100, 100], [200, 100]]);
-  assert.ok(Math.abs(h.zooms.at(-1).zoom - 15) < 0.00001);
-  assert.ok(h.zooms.every(o => o.duration === 0));
-  h.touch('touchend', [[200, 100]]);
-  h.touch('touchmove', [[210, 130]]);
-  assert.deepEqual(h.pans.at(-1), [-5, -15]);
-  assert.equal(h.zooms.length, 2);
+  h.touch('touchmove', [[90, 105], [310, 105]]);
+  assert.equal(h.updates.length, 1, 'only one camera operation per move');
+  assert.ok(Math.abs(h.map.getZoom() - (4 + Math.log2(2.2))) < 1e-10);
+  for (const [geo, x, y] of [[p1, 90, 105], [p2, 310, 105]]) {
+    const actual = h.map.project(geo);
+    assert.ok(Math.abs(actual.x - x) < 1e-8);
+    assert.ok(Math.abs(actual.y - y) < 1e-8);
+  }
+  h.touch('touchend', [[310, 105]]);
+  h.touch('touchmove', [[340, 135]]);
+  assert.equal(h.updates.length, 2);
   h.touch('touchcancel', []);
   h.dispose();
 });
 
-test('slow small pinch increments eventually activate zoom while a map tap does not stop it', () => {
+test('a tap does not cancel camera animations; tiny movements activate as one gesture', () => {
   const h = harness();
   h.touch('touchstart', [[100, 100]]); h.touch('touchend', []);
   assert.equal(h.stops, 0);
   h.touch('touchstart', [[100, 100], [200, 100]]);
-  for (let i = 1; i <= 20; i++) h.touch('touchmove', [[100, 100], [200 + i * 0.25, 100]]);
-  assert.ok(h.zooms.length > 0);
+  for (let i = 1; i <= 12; i++) h.touch('touchmove', [[100, 100], [200 + i * .25, 100]]);
+  assert.ok(h.updates.length > 0);
   assert.equal(h.stops, 1);
+  assert.equal(h.manuals, 1);
   h.touch('touchend', []);
   h.dispose();
 });

@@ -1,15 +1,16 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.63';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.63';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.63';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.63';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.63';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.63';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.64';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.64';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.64';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.64';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.64';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.64';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.64';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.63';
+} from './EnvironmentScale.js?v=0.1.64';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -223,7 +224,7 @@ export function openEnvironmentView(root, {
     const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
     const renderDiagnostic = () => {
       output.textContent = [
-        'Kaartcontrole 0.1.63 · ' + input + ' · ' + action,
+        'Kaartcontrole 0.1.64 · ' + input + ' · ' + action,
         cameraNote,
         statusNote,
         'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
@@ -318,6 +319,7 @@ export function openEnvironmentView(root, {
   let saveTimer = null;
   let cameraControls = null;
   let positionRequested = false;
+  const appearanceEditor = createEnvironmentAppearanceEditor(root, store, () => mapReady ? map : null);
 
   const displayFailure = description => {
     if (disposed) return;
@@ -427,6 +429,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
+      appearanceEditor.apply();
       updateObjects().catch(() => {});
       render();
     });
@@ -533,6 +536,7 @@ export function openEnvironmentView(root, {
   return () => {
     disposed = true;
     cleanupDiagnostics();
+    appearanceEditor.dispose();
     objectsRevision++;
     cancelAnimationFrame(readoutFrame);
     clearTimeout(saveTimer);

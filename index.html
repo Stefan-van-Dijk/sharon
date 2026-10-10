@@ -9,8 +9,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.63">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.63">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.64">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.64">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -262,6 +262,24 @@
     .environment-controls{position:absolute;inset:0;z-index:20;pointer-events:none}
     .environment-controls button{pointer-events:auto;touch-action:manipulation}
     .environment-controls button:disabled{opacity:.5}
+
+    /* Map appearance editor is isolated from the gesture surface. */
+    .environment-style-toggle{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(235px,calc(env(safe-area-inset-top) + 222px));z-index:24;min-height:44px;padding:0 15px;border:1px solid #e5e5e8;border-radius:16px;background:rgba(255,255,255,.96);color:#333;font-size:12px;pointer-events:auto}
+    .environment-style-panel{position:absolute;top:max(285px,calc(env(safe-area-inset-top) + 272px));right:max(12px,env(safe-area-inset-right));width:min(330px,calc(100vw - 24px));max-height:min(55dvh,480px);z-index:25;overflow:auto;overscroll-behavior:contain;padding:16px;display:grid;gap:12px;border:1px solid #e3e3e6;border-radius:18px;background:#fff;box-shadow:0 10px 34px rgba(0,0,0,.12);pointer-events:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+    .environment-style-panel[hidden],.environment-style-panel [hidden]{display:none!important}
+    .environment-style-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .environment-style-heading strong{font-size:16px;font-weight:550}
+    .environment-style-heading button{border:0;background:#f4f4f5;border-radius:12px;font-size:22px;width:44px;height:44px;color:#333}
+    .environment-style-panel label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;color:#505056;font-size:13px;min-height:40px}
+    .environment-style-panel label select{grid-column:1/-1}
+    .environment-style-panel input[type=color]{width:55px;height:38px;padding:2px;border:1px solid #e4e4e6;border-radius:9px;background:#fff}
+    .environment-style-panel input[type=range]{width:100%;grid-column:1/-1;accent-color:#333;touch-action:pan-x}
+    .environment-style-panel select{width:100%;height:42px;padding:0 10px;border:1px solid #e5e5e8;border-radius:10px;background:white;color:#333}
+    .environment-style-panel label small{font-size:11px;color:#777}
+    .environment-style-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .environment-style-actions button{min-height:44px;padding:4px 8px;border:1px solid #e5e5e8;border-radius:11px;background:#f8f8f9;color:#36363a;font-size:12px}
+    .environment-style-panel button:disabled,.environment-style-toggle:disabled{opacity:.5}
+    .environment-style-status{display:block;color:#85858b;font-size:11px;line-height:1.4}
     .environment-control-check{position:absolute;left:14px;right:14px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 140px);z-index:40;padding:8px;background:#fff;border:1px solid #aaa;font-size:11px;pointer-events:none}
     .environment-canvas.is-panning{cursor:grabbing}
     .environment-map{position:absolute;inset:0;transform-origin:center;transition:transform .12s ease-out;will-change:transform}
@@ -407,16 +425,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.63#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.63#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.63#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.63#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.63#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.64#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.64#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.64#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.64#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.64#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.63"></script>
+  <script type="module" src="./src/main.js?v=0.1.64"></script>
 </body>
 </html>
