@@ -3,6 +3,7 @@ import {
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
 } from './EnvironmentAppearance.js?v=0.1.75';
+import { HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.76';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -30,7 +31,11 @@ export function createEnvironmentAppearanceEditor(root, store, {
         '<span data-style-selection aria-live="polite"></span>',
         '<button type="button" data-style-inherit disabled>Groep overnemen ↶</button>',
       '</div>',
-      '<div class="environment-style-groups" data-style-groups role="group" aria-label="Subgroepen"></div>',
+      '<div class="environment-style-subgroup-rail">',
+        '<div class="environment-style-groups" data-style-groups role="group" aria-label="Subgroepen"></div>',
+        '<button type="button" class="environment-style-more environment-style-more-prev" data-style-more-prev aria-label="Vorige subgroepen" disabled>‹</button>',
+        '<button type="button" class="environment-style-more environment-style-more-next" data-style-more-next aria-label="Volgende subgroepen" disabled>›</button>',
+      '</div>',
       '<div class="environment-style-colors">',
         '<div class="environment-style-color-row" data-style-fill-row>',
           '<span>Vulling</span>',
@@ -42,8 +47,13 @@ export function createEnvironmentAppearanceEditor(root, store, {
           '</label>',
           '<button type="button" data-inherit-field="fill" aria-label="Vulkleur van groep overnemen" disabled>↶</button>',
         '</div>',
+        '<div class="environment-style-color-row" data-style-hatch-row>',
+          '<span>Arcering</span>',
+          '<select data-style-hatch aria-label="Arcering"></select>',
+          '<button type="button" data-inherit-field="hatch" aria-label="Arcering van groep overnemen" disabled>↶</button>',
+        '</div>',
         '<div class="environment-style-color-row" data-style-stroke-row>',
-          '<span>Lijn</span>',
+          '<span data-style-stroke-label>Lijn</span>',
           '<label class="environment-color-edit">',
             '<span class="environment-color-swatch" data-stroke-swatch>',
               '<input data-style-stroke type="color" aria-label="Lijnkleur kiezen"/>',
@@ -79,12 +89,17 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const get = selector => host.querySelector(selector);
   const tabs = get('[data-style-sections]');
   const groups = get('[data-style-groups]');
+  const morePrev = get('[data-style-more-prev]');
+  const moreNext = get('[data-style-more-next]');
   const parentButton = get('[data-style-parent]');
   const selection = get('[data-style-selection]');
   const inheritButton = get('[data-style-inherit]');
   const fillRow = get('[data-style-fill-row]');
   const fillInput = get('[data-style-fill]');
   const fillHex = get('[data-style-fill-hex]');
+  const hatchRow = get('[data-style-hatch-row]');
+  const hatchInput = get('[data-style-hatch]');
+  const strokeLabel = get('[data-style-stroke-label]');
   const strokeRow = get('[data-style-stroke-row]');
   const strokeInput = get('[data-style-stroke]');
   const strokeHex = get('[data-style-stroke-hex]');
@@ -111,6 +126,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
     button.dataset.styleSection = item.id;
     button.textContent = item.label;
     tabs.append(button);
+  }
+  for (const hatch of HATCH_OPTIONS) {
+    const option = document.createElement('option');
+    option.value = hatch.id;
+    option.textContent = hatch.label;
+    hatchInput.append(option);
   }
   for (const option of dashOptions) {
     const button = document.createElement('button');
@@ -160,13 +181,27 @@ export function createEnvironmentAppearanceEditor(root, store, {
     (overrides.groupStyles?.[sectionId] || {});
   const notify = category => { if (floating && !disposed) onChange(overrides, category); };
 
+  const hatchPreview = (group, hatch) => {
+    if (!hatch || hatch === 'none') return '';
+    const id = 'preview-pattern-' + group.id;
+    const shapes = {
+      diagonal: '<path d="M-3 3L3 -3 M0 10L10 0 M7 13L13 7"/>',
+      cross: '<path d="M0 0L10 10 M10 0L0 10"/>',
+      horizontal: '<path d="M0 5H10"/>',
+      dots: '<circle cx="3" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/>'
+    };
+    return '<defs><pattern id="' + id + '" width="10" height="10" patternUnits="userSpaceOnUse">' +
+      '<g fill="none" stroke="#5b6165" stroke-width="1">' + shapes[hatch].replace(/<circle/g, '<circle fill="#5b6165" stroke="none"') +
+      '</g></pattern></defs><rect x="12" y="3" width="48" height="19" fill="url(#' + id + ')"/>';
+  };
   // No miniature maps: one fill patch or a single line, with current effective style.
   const preview = group => {
     const v = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
     if (group.fill || group.background) {
       return '<svg viewBox="0 0 72 25" aria-hidden="true">' +
         '<rect x="12" y="3" width="48" height="19" fill="' + v.fill +
-        '" stroke="' + (v.stroke || '#b9b9bf') + '" stroke-width="1.3"/></svg>';
+        '" stroke="' + (v.stroke || '#b9b9bf') + '" stroke-width="1.3"/>' +
+        (group.fill ? hatchPreview(group, v.hatch) : '') + '</svg>';
     }
     const pattern = v.dash === 'dotted' ? '1 6' : v.dash === 'dashed' ? '9 5' :
       v.dash === 'solid' ? '' :
@@ -200,20 +235,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
         wrapper.append(button);
         fragment.append(wrapper);
       }
-      // Always reserve four positions. Empty positions stay disabled instead
-      // of collapsing the raster when a section has one or two children.
-      for (let index = section().items.length; index < 4; index++) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'environment-style-group is-unavailable';
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'environment-style-group-main';
-        button.disabled = true;
-        button.textContent = '—';
-        button.setAttribute('aria-label', 'Geen onderdeel beschikbaar');
-        wrapper.append(button);
-        fragment.append(wrapper);
-      }
+      // Only real groups create separators: one child has zero separators,
+      // four children have three, longer rows naturally continue sideways.
       groups.replaceChildren(fragment);
       // Every group starts at its first four tiles. Horizontal dragging stays
       // local to this raster; no extra rows or jump in the surrounding map.
@@ -229,25 +252,51 @@ export function createEnvironmentAppearanceEditor(root, store, {
       button.querySelector('svg').outerHTML = preview(APPEARANCE_GROUPS.find(item => item.id === id));
     }
   };
+  const updateScrollHints = () => {
+    const count = section().items.length;
+    const width = groups.clientWidth || 1;
+    const cell = width / 4;
+    const left = groups.scrollLeft || 0;
+    const shownBefore = Math.min(count, Math.max(0, Math.floor((left + 2) / cell)));
+    const remaining = Math.max(0, count - 4 - shownBefore);
+    morePrev.disabled = left < 4;
+    moreNext.disabled = count <= 4 || left + width >= groups.scrollWidth - 3;
+    morePrev.textContent = '‹ ' + shownBefore;
+    moreNext.textContent = '+' + remaining + ' ›';
+    morePrev.setAttribute('aria-label', 'Vorige subgroepen, ' + shownBefore + ' terug');
+    moreNext.setAttribute('aria-label', 'Volgende subgroepen, ' + remaining + ' meer');
+  };
   const render = () => {
     if (!loaded) return;
     const s = section(), values = currentStyle(), caps = currentCaps(), entry = currentEntry();
     for (const tab of tabs.querySelectorAll('[data-style-section]'))
       tab.setAttribute('aria-pressed', String(tab.dataset.styleSection === sectionId));
     renderGrid();
+    updateScrollHints();
     parentButton.setAttribute('aria-pressed', String(!selectedId));
     selection.textContent = selectedId ? child().label : '';
     inheritButton.disabled = !selectedId || !Object.keys(entry).length;
     // Keep all property rows at fixed positions. Unsupported properties
     // visibly remain as disabled controls rather than collapsing the sheet.
     for (const [row, applicable] of [
-      [fillRow, caps.fill], [strokeRow, caps.stroke], [widthRow, caps.width],
+      [widthRow, caps.width],
       [dashRow, caps.dash], [rangeRow, caps.scale]
     ]) {
       row.classList.toggle('is-unavailable', !applicable);
       row.setAttribute('aria-disabled', String(!applicable));
     }
+    // Only the applicable color properties appear in this specific row.
+    fillRow.hidden = !caps.fill;
+    hatchRow.hidden = !caps.hatch;
+    strokeRow.hidden = !caps.stroke;
+    strokeLabel.textContent = selectedId && child()?.fill ? 'Rand' :
+      !selectedId && section().items.some(id =>
+        APPEARANCE_GROUPS.find(group => group.id === id)?.fill) ? 'Rand/lijn' : 'Lijn';
+    const colorCount = Number(caps.fill) + Number(caps.hatch) + Number(caps.stroke);
+    get('.environment-style-colors').style.gridTemplateColumns =
+      'repeat(' + Math.max(1, colorCount) + ', minmax(0,1fr))';
     fillInput.disabled = !caps.fill;
+    hatchInput.disabled = !caps.hatch;
     strokeInput.disabled = !caps.stroke;
     widthInput.disabled = !caps.width;
     for (const button of dashButtons) button.disabled = !caps.dash;
@@ -263,6 +312,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       widthValue.textContent = '—';
       for (const button of dashButtons) button.setAttribute('aria-pressed', 'false');
     }
+    if (caps.hatch) hatchInput.value = values.hatch || 'none';
     if (caps.fill) {
       get('[data-fill-swatch]').style.setProperty('--style-color', values.fill);
       fillHex.textContent = values.fill?.toUpperCase() || '';
@@ -372,7 +422,10 @@ export function createEnvironmentAppearanceEditor(root, store, {
     returnButton.tabIndex = active ? 0 : -1;
     resetOne.tabIndex = active ? 0 : -1;
     resetAll.tabIndex = active ? 0 : -1;
-    if (active) tabs.querySelector('[data-style-section]')?.focus();
+    if (active) {
+      tabs.querySelector('[data-style-section]')?.focus();
+      updateScrollHints();
+    }
   };
 
   listen(tabs, 'click', event => {
@@ -383,6 +436,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
     render();
   });
   listen(parentButton, 'click', () => { selectedId = null; render(); });
+  listen(groups, 'scroll', updateScrollHints, { passive: true });
+  listen(morePrev, 'click', () => groups.scrollBy({ left: -groups.clientWidth * .75, behavior: 'smooth' }));
+  listen(moreNext, 'click', () => groups.scrollBy({ left: groups.clientWidth * .75, behavior: 'smooth' }));
   listen(groups, 'click', event => {
     const button = event.target.closest('[data-style-group]');
     if (!button) return;
@@ -404,6 +460,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     });
   });
   listen(fillInput, 'input', () => update('fill', fillInput.value));
+  listen(hatchInput, 'change', () => update('hatch', hatchInput.value));
   listen(strokeInput, 'input', () => update('stroke', strokeInput.value));
   listen(widthInput, 'input', () => update('width', Number(widthInput.value)));
   for (const button of dashButtons) listen(button, 'click', () => {
