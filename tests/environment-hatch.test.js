@@ -147,3 +147,39 @@ test('hatch controls only apply to polygon selections and the color row hides im
   assert.ok(!editor.includes("button.setAttribute('aria-label', 'Geen onderdeel beschikbaar')"));
   assert.ok(APPEARANCE_SECTIONS.find(g => g.id === 'wetlands').items.length > 4);
 });
+
+test('every hatch has a matching vector preview with the map tile pixels', () => {
+  const seen = new Set();
+  for (const option of HATCH_OPTIONS) {
+    const preview = environmentHatchPreview(option.id, 'choice-' + option.id);
+    assert.ok(preview.startsWith('<svg viewBox="0 0 64 30"'));
+    assert.ok(preview.includes('aria-hidden="true"'));
+    if (option.id === 'none') continue;
+    assert.ok(preview.includes('patternUnits="userSpaceOnUse"'));
+    assert.ok(preview.includes('sharon-hatch-preview-choice-' + option.id));
+    assert.ok(!seen.has(preview));
+    seen.add(preview);
+  }
+  assert.equal(seen.size, 15);
+});
+
+test('buildings move into Basis without losing former per-group styles', () => {
+  const old = {
+    groupStyles: {
+      buildings: { fill: '#d1d2d3', stroke: '#a1a2a3', hatch: 'cross', width: 2 },
+      roads: { stroke: '#555555' }
+    },
+    buildings: { stroke: '#112233', hatch: 'none' }
+  };
+  const saved = sanitizeEnvironmentAppearance(old);
+  assert.deepEqual(saved.buildings, {
+    fill: '#d1d2d3', stroke: '#112233', hatch: 'none', width: 2
+  });
+  assert.equal(saved.groupStyles?.buildings, undefined);
+  assert.equal(saved.groupStyles.roads.stroke, '#555555');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').fill, '#d1d2d3');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').stroke, '#112233');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').hatch, 'none');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'none');
+  assert.equal(sanitizeEnvironmentAppearance(saved).buildings.width, 2);
+});
