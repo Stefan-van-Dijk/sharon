@@ -8,13 +8,16 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 
-test('ten logical groups contain thirty-seven distinct editable parts', () => {
+test('nine groups keep thirty-seven distinct editable parts including buildings under Basis', () => {
   assert.deepEqual(APPEARANCE_SECTIONS.map(group => group.label),
-    ['Basis', 'Water', 'Wegen', 'Transport', 'Gebouwen', 'Groen',
+    ['Basis', 'Water', 'Wegen', 'Transport', 'Groen',
       'Zand & kust', 'Natte natuur', 'Landbouw', 'Rots & ijs']);
   assert.equal(APPEARANCE_GROUPS.length, 37);
   assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 37);
   assert.equal(appearanceSectionFor('forest').id, 'green');
+  assert.equal(appearanceSectionFor('buildings').id, 'basis');
+  assert.deepEqual(APPEARANCE_SECTIONS.find(section => section.id === 'basis').items,
+    ['land', 'borders', 'buildings']);
   assert.equal(appearanceSectionFor('motorway').id, 'roads');
   assert.deepEqual(APPEARANCE_SECTIONS.find(group => group.id === 'transport').items,
     ['rail', 'runways', 'taxiways', 'piers']);
@@ -204,6 +207,7 @@ test('main and subcategory swipes do not change panel height or old gesture inte
   assert.ok(editor.includes('groups.scrollLeft = 0'));
   assert.ok(!editor.includes('for (let index = section().items.length; index < 4; index++)'));
   assert.ok(css.includes('.environment-style-group:not(:last-child)'));
-  assert.ok(editor.includes('data-style-more-next'));
+  assert.ok(!editor.includes('data-style-more-next'));
+  assert.ok(!editor.includes('data-style-more-prev'));
   assert.ok(editor.includes('dx >= 58'));
 });

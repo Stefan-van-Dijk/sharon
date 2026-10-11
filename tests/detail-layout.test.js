@@ -58,8 +58,8 @@ test('appearance editor keeps an invariant grid and non-applicable controls disa
   assert.ok(css.includes('.environment-style-color-row.is-unavailable'));
   assert.ok(css.includes('.environment-style-range.is-unavailable'));
   assert.ok(css.includes('.environment-style-panel button[data-inherit-field]:disabled'));
-  assert.ok(editor.includes('data-style-more-next'));
-  assert.ok(editor.includes('data-style-more-prev'));
+  assert.ok(!editor.includes('data-style-more-next'));
+  assert.ok(!editor.includes('data-style-more-prev'));
   assert.ok(editor.includes('groups.scrollLeft = 0'));
   assert.ok(editor.includes("row.classList.toggle('is-unavailable', !applicable)"));
   assert.ok(editor.includes('fillInput.disabled = !caps.fill'));

@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.76">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.76">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.77">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.77">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -502,7 +502,7 @@
     }
     .environment-style-flyout[hidden]{display:none!important}
     .environment-style-panel{
-      display:grid;gap:7px;width:100%;max-width:none;
+      position:relative;display:grid;gap:7px;width:100%;max-width:none;
       grid-template-rows:35px 29px 54px 44px 30px 43px 69px;
       align-content:start;
     }
@@ -541,8 +541,8 @@
       border:0;background:none;color:#52525a;font-size:10px;white-space:nowrap;
     }
     .environment-style-scope [data-style-inherit]:disabled{color:#b3b3b9;opacity:.55}
-    /* No card outlines: only vertical hairline separators between real items.
-       Four full items remain visible; a small +N indicator announces overflow. */
+    /* Only hairline separators indicate subcategories. Swipe the uncluttered
+       four-column rail directly to see more; no numeric overlays or arrows. */
     .environment-style-subgroup-rail{position:relative;height:54px;min-width:0}
     .environment-style-groups{
       display:grid;grid-auto-flow:column;
@@ -559,17 +559,6 @@
     }
     .environment-style-group:not(:last-child){border-right:1px solid rgba(70,70,80,.2)}
     .environment-style-group.is-selected{background:rgba(65,65,75,.11)}
-    .environment-style-more{
-      position:absolute;z-index:3;top:13px;height:29px!important;min-height:29px!important;
-      width:42px;min-width:42px!important;padding:0 3px;
-      border:1px solid rgba(70,70,80,.17);border-radius:7px;
-      background:rgba(255,255,255,.93);color:#33333a;
-      font-size:11px;font-weight:650;backdrop-filter:blur(9px);
-      pointer-events:auto;touch-action:manipulation;
-    }
-    .environment-style-more-prev{left:0}
-    .environment-style-more-next{right:0}
-    .environment-style-more:disabled{opacity:0!important;pointer-events:none}
     .environment-style-group-main{
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       gap:0;width:100%;height:100%;min-width:0!important;min-height:54px!important;
@@ -606,11 +595,46 @@
       border:1px solid rgba(50,50,60,.22);border-radius:4px;
       background:var(--style-color,#d0d0d5);overflow:hidden;
     }
-    .environment-style-color-row select{
-      display:block;width:100%;height:27px;min-height:27px;min-width:0;
+    .environment-style-color-row .environment-hatch-current{
+      display:flex;align-items:center;justify-content:space-between;gap:3px;
+      width:100%;height:27px;min-height:27px!important;min-width:0!important;
       border:1px solid rgba(60,60,65,.2);border-radius:5px;
-      padding:1px 2px;background:rgba(255,255,255,.63);font-size:10px;
-      color:#45454c;touch-action:manipulation;
+      padding:1px 4px;background:rgba(255,255,255,.68);
+      color:#414149;touch-action:manipulation;cursor:pointer;
+    }
+    .environment-hatch-current [data-hatch-current-preview]{
+      display:block;width:45px;max-width:60%;height:22px;overflow:hidden;
+    }
+    .environment-hatch-current svg{display:block;width:100%;height:100%}
+    .environment-hatch-current small{
+      display:block;font-size:9px;line-height:1.1;max-width:48%;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .environment-hatch-picker{
+      position:absolute;z-index:10;bottom:82px;left:0;right:0;
+      display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:4px;padding:7px;
+      border:1px solid rgba(80,80,85,.22);border-radius:12px;
+      background:rgba(250,250,251,.97);
+      -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+      box-shadow:0 9px 24px rgba(0,0,0,.14);
+      max-height:min(245px,53dvh);overflow-y:auto;overscroll-behavior:contain;
+    }
+    .environment-hatch-picker[hidden]{display:none!important}
+    .environment-hatch-picker .environment-hatch-choice{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:2px;padding:4px 3px;min-height:46px!important;height:46px;
+      min-width:0!important;border:1px solid rgba(65,65,75,.12);border-radius:6px;
+      color:#45454d;background:rgba(255,255,255,.55);touch-action:manipulation;
+    }
+    .environment-hatch-picker .environment-hatch-choice[aria-pressed="true"]{
+      border-color:#595962;background:rgba(60,60,70,.10);
+    }
+    .environment-hatch-sample{display:block;height:23px;width:100%}
+    .environment-hatch-sample svg{display:block;width:100%;height:100%}
+    .environment-hatch-choice small{
+      display:block;max-width:100%;overflow:hidden;white-space:nowrap;
+      text-overflow:ellipsis;font-size:8px;line-height:10px;
     }
     .environment-color-swatch input[type=color]{
       position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;
@@ -758,16 +782,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.76#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.76#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.76#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.76#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.76#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.77#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.77#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.77#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.77#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.77#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.76"></script>
+  <script type="module" src="./src/main.js?v=0.1.77"></script>
 </body>
 </html>

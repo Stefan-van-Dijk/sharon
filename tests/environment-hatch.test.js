@@ -7,7 +7,7 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 import {
-  HATCH_OPTIONS, createEnvironmentHatchTile,
+  HATCH_OPTIONS, createEnvironmentHatchTile, environmentHatchPreview,
   environmentHatchImageId, registerEnvironmentHatches
 } from '../src/ui/EnvironmentHatch.js';
 
@@ -41,7 +41,9 @@ test('every real polygon has a fill, independent hatch and line outline; land ha
 
 test('hatch tiles are seamless transparent textures with bounded pixels, no network requests', () => {
   assert.deepEqual(HATCH_OPTIONS.map(x => x.id),
-    ['none', 'diagonal', 'cross', 'horizontal', 'dots']);
+    ['none', 'diagonal', 'reverse', 'fine', 'wide', 'cross', 'crossfine',
+      'horizontal', 'vertical', 'grid', 'dots', 'densedots', 'dash', 'brick',
+      'waves', 'diamonds']);
   assert.equal(createEnvironmentHatchTile('none'), null);
   assert.equal(createEnvironmentHatchTile('arbitrary'), null);
   for (const option of HATCH_OPTIONS.slice(1)) {
@@ -64,7 +66,7 @@ test('hatch tiles are seamless transparent textures with bounded pixels, no netw
   };
   registerEnvironmentHatches(mock);
   registerEnvironmentHatches(mock); // idempotent after map has loaded
-  assert.equal(images.size, 4);
+  assert.equal(images.size, 15);
 });
 
 test('hatch inheritance remains independent of fill and outline, with explicit none deviation', () => {
@@ -134,12 +136,50 @@ test('hatch controls only apply to polygon selections and the color row hides im
   assert.ok(editor.includes("strokeRow.hidden = !caps.stroke"));
   assert.ok(editor.includes("fillRow.hidden = !caps.fill"));
   assert.ok(editor.includes("hatchInput.disabled = !caps.hatch"));
-  assert.ok(editor.includes("listen(hatchInput, 'change'"));
+  assert.ok(editor.includes("listen(hatchPicker, 'click'"));
+  assert.ok(editor.includes('environmentHatchPreview'));
+  assert.ok(editor.includes('data-hatch-choice'));
   assert.ok(editor.includes('data-inherit-field="hatch"'));
-  assert.ok(css.includes('.environment-style-color-row select'));
+  assert.ok(css.includes('.environment-hatch-picker .environment-hatch-choice'));
   assert.ok(css.includes('.environment-style-group:not(:last-child)'));
-  assert.ok(css.includes('.environment-style-more-next'));
-  assert.ok(editor.includes("moreNext.textContent = '+' + remaining + ' ›'"));
+  assert.ok(!css.includes('.environment-style-more-next'));
+  assert.ok(!editor.includes("moreNext.textContent = '+' + remaining + ' ›'"));
   assert.ok(!editor.includes("button.setAttribute('aria-label', 'Geen onderdeel beschikbaar')"));
   assert.ok(APPEARANCE_SECTIONS.find(g => g.id === 'wetlands').items.length > 4);
+});
+
+test('every hatch has a matching vector preview with the map tile pixels', () => {
+  const seen = new Set();
+  for (const option of HATCH_OPTIONS) {
+    const preview = environmentHatchPreview(option.id, 'choice-' + option.id);
+    assert.ok(preview.startsWith('<svg viewBox="0 0 64 30"'));
+    assert.ok(preview.includes('aria-hidden="true"'));
+    if (option.id === 'none') continue;
+    assert.ok(preview.includes('patternUnits="userSpaceOnUse"'));
+    assert.ok(preview.includes('sharon-hatch-preview-choice-' + option.id));
+    assert.ok(!seen.has(preview));
+    seen.add(preview);
+  }
+  assert.equal(seen.size, 15);
+});
+
+test('buildings move into Basis without losing former per-group styles', () => {
+  const old = {
+    groupStyles: {
+      buildings: { fill: '#d1d2d3', stroke: '#a1a2a3', hatch: 'cross', width: 2 },
+      roads: { stroke: '#555555' }
+    },
+    buildings: { stroke: '#112233', hatch: 'none' }
+  };
+  const saved = sanitizeEnvironmentAppearance(old);
+  assert.deepEqual(saved.buildings, {
+    fill: '#d1d2d3', stroke: '#112233', hatch: 'none', width: 2
+  });
+  assert.equal(saved.groupStyles?.buildings, undefined);
+  assert.equal(saved.groupStyles.roads.stroke, '#555555');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').fill, '#d1d2d3');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').stroke, '#112233');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').hatch, 'none');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'none');
+  assert.equal(sanitizeEnvironmentAppearance(saved).buildings.width, 2);
 });
