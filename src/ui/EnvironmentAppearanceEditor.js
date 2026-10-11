@@ -2,12 +2,12 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.81';
+} from './EnvironmentAppearance.js?v=0.1.82';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.1.81';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.81';
+} from './EnvironmentHeight.js?v=0.1.82';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.82';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -257,8 +257,6 @@ export function createEnvironmentAppearanceEditor(root, store, {
   };
   // No miniature maps: one fill patch or a single line, with current effective style.
   const preview = (group, bandIndex = null) => {
-    if (group.unavailable)
-      return '<svg viewBox="0 0 72 25" aria-hidden="true"><path d="M14 13H58" stroke="#aaaab2" stroke-width="1.5" stroke-dasharray="2 4"/></svg>';
     const base = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
     const v = bandIndex === null ? base : {
       ...base, ...(overrides.heightBands?.[group.id]?.styles?.[bandIndex] || {})
@@ -307,12 +305,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
         const label = document.createElement('span');
         if (entry.bandIndex === null) {
           button.dataset.styleGroup = entry.groupId;
-          if (group.unavailable) {
-            wrapper.classList.add('is-source-unavailable');
-            button.disabled = true;
-            button.title = group.label + ' — extra objectgegevens nodig';
-            button.setAttribute('aria-label', group.label + ': nog geen kaartgegevens');
-          } else button.setAttribute('aria-label', group.label);
+          button.setAttribute('aria-label', group.label);
           label.textContent = group.label;
         } else {
           wrapper.classList.add('is-height-band');

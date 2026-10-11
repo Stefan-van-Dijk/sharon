@@ -8,12 +8,12 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 
-test('ten groups include an infrastructure group and clear source availability including buildings under Basis', () => {
+test('ten groups include only supported Objecten types and buildings under Basis', () => {
   assert.deepEqual(APPEARANCE_SECTIONS.map(group => group.label),
     ['Basis', 'Water', 'Wegen', 'Transport', 'Objecten', 'Groen',
       'Zand & kust', 'Natte natuur', 'Landbouw', 'Rots & ijs']);
-  assert.equal(APPEARANCE_GROUPS.length, 44);
-  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 44);
+  assert.equal(APPEARANCE_GROUPS.length, 41);
+  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 41);
   assert.equal(appearanceSectionFor('forest').id, 'green');
   assert.equal(appearanceSectionFor('buildings').id, 'basis');
   assert.deepEqual(APPEARANCE_SECTIONS.find(section => section.id === 'basis').items,

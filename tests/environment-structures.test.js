@@ -7,19 +7,23 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentHatchPreview } from '../src/ui/EnvironmentHatch.js';
 
-test('engineering objects form a separate horizontally scrollable group', () => {
+test('Objecten shows only source-backed types, with horizontal scrolling', () => {
   const section = APPEARANCE_SECTIONS.find(item => item.id === 'structures');
   assert.equal(section.label, 'Objecten');
   assert.deepEqual(section.items, [
-    'bridges','tunnels','piers','dams','fords','pumpingStations','locks','weirs'
+    'bridges','tunnels','piers','dams','fords'
   ]);
   assert.equal(appearanceSectionFor('piers').id, 'structures');
   assert.equal(APPEARANCE_SECTIONS.find(item => item.id === 'transport').items.includes('piers'), false);
-  assert.equal(section.items.length, 8);
-  const groups = new Map(APPEARANCE_GROUPS.map(item => [item.id,item]));
+  assert.equal(section.items.length, 5);
+  const byId = new Map(APPEARANCE_GROUPS.map(item => [item.id,item]));
+  for (const id of section.items) {
+    const item = byId.get(id);
+    assert.ok(item, 'missing real object group: ' + id);
+    assert.ok(item.fill || item.lines?.length, 'no source-backed layers for ' + id);
+  }
   for (const name of ['pumpingStations','locks','weirs']) {
-    assert.equal(groups.get(name).unavailable, true);
-    assert.ok(!groups.get(name).lines && !groups.get(name).fill);
+    assert.ok(!byId.has(name), 'unsupported type should not be offered: ' + name);
   }
 });
 
@@ -91,8 +95,9 @@ test('hatch symbol fills the whole button, without nested dashed box', async () 
   assert.ok(!preview.includes('stroke-dasharray'));
   assert.ok(css.includes('display:block;width:100%;max-width:none;height:100%;overflow:hidden'));
   assert.ok(css.includes('padding:0;background:rgba(255,255,255,.68);overflow:hidden'));
-  assert.ok(css.includes('.environment-style-group.is-source-unavailable'));
+  assert.ok(!css.includes('.environment-style-group.is-source-unavailable'));
+  assert.ok(!css.includes('extra objectgegevens nodig'));
   const editor=await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js',import.meta.url),'utf8');
-  assert.ok(editor.includes("button.disabled = true"));
-  assert.ok(editor.includes('extra objectgegevens nodig'));
+  assert.ok(!editor.includes('is-source-unavailable'));
+  assert.ok(!editor.includes('extra objectgegevens nodig'));
 });

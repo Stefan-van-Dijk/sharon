@@ -1,8 +1,8 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.81';
-import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch, applyEnvironmentColoredHatch, DEFAULT_HATCH_COLOR } from './EnvironmentHatch.js?v=0.1.81';
-import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.81';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.82';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch, applyEnvironmentColoredHatch, DEFAULT_HATCH_COLOR } from './EnvironmentHatch.js?v=0.1.82';
+import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.82';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.81';
+  from './EnvironmentScale.js?v=0.1.82';
 
 // Keep v1: all individual customizations made in previous Sharon versions survive.
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
@@ -27,9 +27,6 @@ export const APPEARANCE_GROUPS = Object.freeze([
   { id: 'tunnels', label: 'Tunnels', lines: ['structure_tunnel'] },
   { id: 'fords', label: 'Doorwaadbaar', lines: ['structure_ford'] },
   { id: 'dams', label: 'Dammen', fill: 'structure_dam', lines: ['structure_dam-outline'] },
-  { id: 'pumpingStations', label: 'Gemalen', unavailable: true },
-  { id: 'locks', label: 'Sluizen', unavailable: true },
-  { id: 'weirs', label: 'Stuwen', unavailable: true },
   { id: 'buildings', label: 'Gebouwen', fill: 'building', lines: ['building-outline'] },
   { id: 'green', label: 'Groen', fill: 'green', lines: ['green-outline'] },
   { id: 'forest', label: 'Bos', fill: 'forest', lines: ['forest-outline'] },
@@ -63,8 +60,7 @@ export const APPEARANCE_SECTIONS = Object.freeze([
   { id: 'roads', label: 'Wegen', items: ['minor', 'major', 'motorway', 'paths'] },
   { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways'] },
   { id: 'structures', label: 'Objecten', items: [
-    'bridges', 'tunnels', 'piers', 'dams', 'fords',
-    'pumpingStations', 'locks', 'weirs'
+    'bridges', 'tunnels', 'piers', 'dams', 'fords'
   ] },
   { id: 'green', label: 'Groen', items: ['green', 'forest', 'grassland', 'heath', 'scrub', 'meadow', 'tundra'] },
   { id: 'coast', label: 'Zand & kust', items: ['beach', 'dunes', 'sand'] },
