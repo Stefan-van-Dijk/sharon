@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.94">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.94">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.95">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.95">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1244,6 +1244,96 @@
     .sh-location-simple-footer .story-primary-action,.sh-location-simple-submit{min-width:105px;height:44px;margin:0;padding:0 18px;border:0;background:#111;color:#fff;font-size:14px;font-weight:550}
     .sh-location-simple-footer .story-text-action{min-height:44px}
     @media(max-width:480px){.sh-location-simple-start{min-height:calc(100dvh - 195px)}.sh-location-simple-footer{padding-top:10px;padding-bottom:max(8px,env(safe-area-inset-bottom))}}
+
+    /* Locations questions: one answer at a time, editable overview after selection. */
+    .app-header-actions .sh-location-header-save{
+      min-height:44px;padding:0 4px;border:0;background:transparent;
+      font-size:13px;font-weight:560;color:#111;white-space:nowrap;cursor:pointer;
+    }
+    .app-header-actions .sh-location-header-save[hidden]{display:none!important}
+    .app-stage[data-view="detail"] .app-view>.module-view.sh-location-dialog{
+      max-width:none;padding-bottom:max(90px,env(safe-area-inset-bottom));background:#fff;
+    }
+    .sh-location-dialog [hidden]{display:none!important}
+    .sh-location-dialog-nav{max-width:620px;margin:0 auto;border:0}
+    .sh-location-dialog-nav>span{display:none}
+    .sh-location-dialog .location-form{width:min(620px,100%);margin:0 auto}
+    .sh-location-question{
+      min-height:calc(100dvh - env(safe-area-inset-top) - 220px);
+      display:flex;flex-direction:column;justify-content:center;padding:30px 0 110px;
+    }
+    .sh-location-question-title{
+      color:#111;font-size:clamp(24px,5.7vw,30px);
+      font-weight:300;line-height:1.38;letter-spacing:-.035em;margin:0 0 29px;
+    }
+    .sh-location-answer{
+      display:flex;align-items:center;justify-content:space-between;
+      width:100%;min-height:58px;padding:10px 1px;
+      border:0;border-top:1px solid #ececef;
+      text-align:left;background:transparent;color:#151515;font-size:16px;
+      font-weight:400;cursor:pointer;gap:12px;
+    }
+    .sh-location-answer span:last-child{font-size:23px;font-weight:260;color:#a3a3a8}
+    .sh-location-answer.is-subtle{color:#888}
+    .sh-location-answer:last-child{border-bottom:1px solid #ececef}
+    .sh-location-answer:disabled{opacity:.45}
+    .sh-location-or{margin:17px auto;color:#999;font-size:12px}
+    .sh-location-question-name{padding:8px 0 15px;border-bottom:1px solid #ececef}
+    .sh-location-question-name span{display:block;color:#7a7a80;font-size:12px}
+    .sh-location-question-name input{width:100%;height:45px;border:0;background:transparent;color:#111;font-size:21px;font-weight:350}
+    .sh-location-question>.story-note{color:#777;font-size:12px;line-height:1.5;min-height:18px;margin:16px 0}
+    .sh-location-question-footer{
+      position:fixed;z-index:25;left:0;right:0;bottom:var(--sh-keyboard-inset,0px);
+      display:flex;justify-content:flex-end;gap:18px;align-items:center;
+      padding:10px max(22px,env(safe-area-inset-right))
+        max(9px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));
+      background:rgba(255,255,255,.97);
+      border-top:1px solid #ececef;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    }
+    .sh-location-question-footer>button{min-height:44px}
+    .sh-location-review{padding:24px 0 36px}
+    .sh-location-review .sh-location-question-title{margin-bottom:13px}
+    .sh-location-review .clean-field{padding:12px 0;border-bottom:1px solid #ececef}
+    .sh-location-review .clean-field>span{font-size:13px;color:#77777c}
+    .sh-location-review .clean-field input{height:44px;font-size:17px}
+    .sh-location-review .sh-location-group{padding:11px 0}
+    .sh-location-review .sh-location-group>.clean-field{padding:5px 0;border:0}
+    .sh-location-review .sh-location-note{font-size:11px}
+    .sh-location-review .sh-location-group .sh-location-tools{padding:4px 0}
+    .sh-location-review .sh-location-inline-header{padding:5px 0}
+    .sh-location-gps-summary{font-size:12px;color:#8b8b91;margin:8px 0 5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .sh-location-coordinate-details{border-bottom:1px solid #ececef;padding:7px 0}
+    .sh-location-coordinate-details summary{font-size:12px;color:#777;cursor:pointer;list-style:none;min-height:36px;display:flex;align-items:center}
+    .sh-location-coordinate-details summary::after{content:'⌄';margin-left:auto;font-size:19px}
+    .sh-location-coordinate-details[open] summary::after{transform:rotate(180deg)}
+    .sh-location-coordinate-details summary::-webkit-details-marker{display:none}
+    .sh-radius-original-field{display:none!important}
+    .sh-radius-editor{margin:24px 0 28px;padding:4px 0 16px}
+    .sh-radius-editor>label{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#555}
+    .sh-radius-editor>label span{color:#111;font-size:14px;font-variant-numeric:tabular-nums}
+    .sh-radius-editor input[type=range]{display:block;width:100%;height:40px;margin:9px 0 13px;accent-color:#111;cursor:pointer}
+    .sh-radius-map-host{position:relative;height:245px;overflow:hidden;background:#f4f4f3;isolation:isolate}
+    .sh-radius-map-host[hidden]{display:none!important}
+    .sh-radius-map{position:absolute;inset:0}
+    .sh-radius-overlay{position:absolute;inset:0;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center}
+    .sh-radius-fade{position:absolute;width:100px;height:100px;border-radius:50%;
+      background:radial-gradient(circle,rgba(28,28,28,.18) 0%,rgba(35,35,35,.14) 45%,rgba(40,40,40,.075) 70%,rgba(40,40,40,0) 100%);
+      transition:width .11s linear,height .11s linear;pointer-events:none}
+    .sh-radius-center{width:9px;height:9px;border-radius:50%;background:#111;border:2px solid #fff;z-index:1;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+    .sh-radius-map-note{position:absolute;z-index:3;bottom:0;left:0;right:0;padding:12px;
+      color:#555;font-size:10px;text-align:center;line-height:1.4;
+      background:linear-gradient(0deg,rgba(255,255,255,.95),rgba(255,255,255,0))}
+    .sh-radius-editor>.story-note{margin:13px 0 0;color:#8a8a91;font-size:11px;line-height:1.45}
+    .sh-location-review .sh-location-dialog-native-save{width:auto;margin:22px 0;min-width:120px}
+    .sh-location-dialog-native-save[hidden]{display:none!important}
+    .sh-location-review .sh-location-secondary-actions{margin-top:12px}
+    .sh-location-review .sh-location-merge{margin-top:10px}
+    @media(max-width:480px){
+      .sh-location-question{min-height:calc(100dvh - env(safe-area-inset-top) - 185px)}
+      .sh-radius-map-host{height:220px}
+      .sh-location-question-title{font-size:25px}
+    }
+    @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
   </style>
 </head>
 <body>
@@ -1257,16 +1347,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.94#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.94#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.94#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.94#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.94#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.95#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.95#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.95#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.95#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.95#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.94"></script>
+  <script type="module" src="./src/main.js?v=0.1.95"></script>
 </body>
 </html>

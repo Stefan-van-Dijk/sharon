@@ -52,9 +52,8 @@ export class LocationTriggerService {
 
         const radius = clampRadius(target.data?.radiusM);
         const distanceM = distanceBetween(point, coordinates);
-        const inside = distanceM <= radius;
-
         const previous = action.data?.state?.inside;
+        const inside = classifyLocationPresence(distanceM, radius, point.accuracy, previous);
         const nextState = {
           inside,
           distanceM: Math.round(distanceM),
@@ -98,6 +97,19 @@ export class LocationTriggerService {
       this.#running = false;
     }
   }
+}
+
+// GPS positions have an uncertainty band; do not flip in/out at an
+// imaginary perfectly sharp boundary. Hold the prior state in that band.
+// A definite outside -> definite inside transition is needed for notifications.
+export function classifyLocationPresence(distanceM, radiusM, accuracyM = 0, previous = null) {
+  const radius = Math.min(2000, Math.max(20, Number(radiusM) || 100));
+  const accuracy = Math.max(0, Number(accuracyM) || 0);
+  const margin = Math.max(10, Math.min(200, accuracy));
+  if (!Number.isFinite(distanceM)) return previous === true || previous === false ? previous : null;
+  if (distanceM <= Math.max(0, radius - margin)) return true;
+  if (distanceM >= radius + margin) return false;
+  return previous === true || previous === false ? previous : null;
 }
 
 export function distanceBetween(a, b) {
