@@ -2,12 +2,16 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.88';
+} from './EnvironmentAppearance.js?v=0.1.89';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.1.88';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.88';
+} from './EnvironmentHeight.js?v=0.1.89';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.89';
+import {
+  ENVIRONMENT_SCENARIOS_KEY, STYLE_SCENARIOS,
+  createEnvironmentScenarioDeck, saveEnvironmentScenario, changeEnvironmentScenario
+} from './EnvironmentScenarios.js?v=0.1.89';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -111,6 +115,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
       '</div>',
     '</div>'
   ].join('');
+  if (floating) host.insertAdjacentHTML('afterbegin',
+    '<button type="button" class="environment-style-dismiss-handle" data-style-dismiss aria-label="Kaartstijleditor sluiten" title="Sleep omlaag om te sluiten"><span aria-hidden="true"></span></button>');
 
   const get = selector => host.querySelector(selector);
   const tabs = get('[data-style-sections]');
@@ -158,6 +164,11 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const positionSide = floating ? root.querySelector('[data-readout-position]') : null;
   const styleSide = floating ? root.querySelector('[data-readout-style]') : null;
   const desktopStyleToggle = floating ? root.querySelector('[data-desktop-style-toggle]') : null;
+  const dismissHandle = floating ? get('[data-style-dismiss]') : null;
+  const scenarioBar = floating ? root.querySelector('[data-style-scenarios]') : null;
+  const scenarioLabel = floating ? root.querySelector('[data-style-scenario-label]') : null;
+  const scenarioPrev = floating ? root.querySelector('[data-style-scenario-prev]') : null;
+  const scenarioNext = floating ? root.querySelector('[data-style-scenario-next]') : null;
 
   for (const item of APPEARANCE_SECTIONS) {
     const button = document.createElement('button');
@@ -206,6 +217,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const dashButtons = [...dashRow.querySelectorAll('[data-style-dash]')];
 
   let overrides = {}, disposed = false, loaded = false, saveTimer = null;
+  let scenarioDeck = null;
   let sectionId = 'basis', selectedId = null, shownSectionId = null;
   let activeHeightBand = null, editingHeightCut = null;
   const heightDraft = { land: HEIGHT_TARGETS.land.suggested,
@@ -216,6 +228,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (node) listeners.push([node, event, callback, options]);
   };
   const setStatus = message => { if (!disposed && status) status.textContent = message; };
+  const renderScenario = () => {
+    if (!scenarioLabel || !scenarioDeck) return;
+    const {active} = scenarioDeck;
+    scenarioLabel.textContent = STYLE_SCENARIOS[active].label +
+      ' · ' + (active + 1) + '/' + STYLE_SCENARIOS.length;
+  };
   const section = () => APPEARANCE_SECTIONS.find(item => item.id === sectionId);
   const child = () => APPEARANCE_GROUPS.find(group => group.id === selectedId);
   const isHeightClass = () => activeHeightBand !== null && !!selectedId &&
@@ -521,16 +539,23 @@ export function createEnvironmentAppearanceEditor(root, store, {
     resetOne.disabled = !Object.keys(entry).length;
     resetAll.disabled = !Object.keys(overrides).length;
   };
+  const persistNow = () => {
+    const saves = [store.put('meta', {key:ENVIRONMENT_APPEARANCE_KEY,value:overrides})];
+    if (scenarioDeck) saves.push(store.put('meta', {
+      key:ENVIRONMENT_SCENARIOS_KEY,value:scenarioDeck
+    }));
+    Promise.all(saves).catch(() => setStatus('Opslaan mislukt'));
+  };
   const persist = () => {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       saveTimer = null;
-      if (!disposed) store.put('meta', { key: ENVIRONMENT_APPEARANCE_KEY, value: overrides })
-        .catch(() => setStatus('Opslaan mislukt'));
-    }, 250);
+      if (!disposed) persistNow();
+    },250);
   };
   const saveChanges = category => {
     overrides = sanitizeEnvironmentAppearance(overrides);
+    if (scenarioDeck) scenarioDeck = saveEnvironmentScenario(scenarioDeck,overrides);
     notify(category);
     render();
     setStatus('Direct zichtbaar op de kaart · lokaal opgeslagen');
@@ -595,10 +620,22 @@ export function createEnvironmentAppearanceEditor(root, store, {
       }
     });
   };
+  const selectScenario = direction => {
+    if (!loaded || !scenarioDeck) return;
+    scenarioDeck = saveEnvironmentScenario(scenarioDeck,overrides);
+    scenarioDeck = changeEnvironmentScenario(scenarioDeck,direction);
+    overrides = {...scenarioDeck.slots[scenarioDeck.active]};
+    activeHeightBand = null; editingHeightCut = null;
+    closeHatchPicker(); closeHeightPicker();
+    notify(); render(); renderScenario();
+    setStatus('Stijl '+STYLE_SCENARIOS[scenarioDeck.active].label+' · lokaal opgeslagen');
+    persist();
+  };
   const setStyleMode = active => {
     if (!floating || disposed) return;
     readout.classList.toggle('is-style-active', active);
     host.hidden = !active;
+    host.style.translate = '';
     desktopStyleToggle?.setAttribute('aria-pressed', String(active));
     desktopStyleToggle?.setAttribute('aria-expanded', String(active));
     desktopStyleToggle?.setAttribute('aria-label', active ?
@@ -772,6 +809,54 @@ export function createEnvironmentAppearanceEditor(root, store, {
     closeHeightPicker(); saveChanges();
   });
   listen(returnButton, 'click', () => setStyleMode(false));
+  listen(scenarioPrev, 'click', () => selectScenario(-1));
+  listen(scenarioNext, 'click', () => selectScenario(1));
+  // Swipe only the scenario name, never the restore buttons or map.
+  let scenarioTouch = null;
+  listen(scenarioBar, 'touchstart', event => {
+    if (event.touches.length !== 1 || event.target.closest('button')) return;
+    scenarioTouch={x:event.touches[0].clientX,y:event.touches[0].clientY};
+  },{passive:true});
+  listen(scenarioBar, 'touchend', event => {
+    if (!scenarioTouch) return;
+    const touch=event.changedTouches?.[0];
+    const dx=(touch?.clientX ?? scenarioTouch.x)-scenarioTouch.x;
+    const dy=(touch?.clientY ?? scenarioTouch.y)-scenarioTouch.y;
+    scenarioTouch=null;
+    if (Math.abs(dx)>=42 && Math.abs(dx)>Math.abs(dy)*1.5)
+      selectScenario(dx<0?1:-1);
+  },{passive:true});
+  listen(scenarioBar, 'touchcancel', () => {scenarioTouch=null;},{passive:true});
+
+  // The grab handle dismisses the floating panel and does not capture any
+  // touches on color inputs, lines, height sliders or the map.
+  let dismissTouch=null;
+  listen(dismissHandle,'click',()=>setStyleMode(false));
+  listen(dismissHandle,'touchstart',event=>{
+    if(event.touches.length!==1)return;
+    dismissTouch={x:event.touches[0].clientX,y:event.touches[0].clientY,dy:0};
+  },{passive:true});
+  listen(dismissHandle,'touchmove',event=>{
+    if(!dismissTouch||event.touches.length!==1)return;
+    const dx=event.touches[0].clientX-dismissTouch.x;
+    const dy=event.touches[0].clientY-dismissTouch.y;
+    if(dy< -12 || Math.abs(dx)>Math.max(16,dy)){
+      dismissTouch=null;host.style.translate='';return;
+    }
+    dismissTouch.dy=Math.max(0,dy);
+    if(dy>6 && event.cancelable)event.preventDefault();
+    host.style.translate='0px '+Math.min(160,dismissTouch.dy)+'px';
+  },{passive:false});
+  listen(dismissHandle,'touchend',event=>{
+    if(!dismissTouch){host.style.translate='';return;}
+    const end=event.changedTouches?.[0]?.clientY??dismissTouch.y;
+    const dy=Math.max(dismissTouch.dy,end-dismissTouch.y);
+    dismissTouch=null;host.style.translate='';
+    if(dy>=65)setStyleMode(false);
+  },{passive:true});
+  listen(dismissHandle,'touchcancel',()=>{
+    dismissTouch=null;host.style.translate='';
+  },{passive:true});
   // The desktop dot is an alternative entry point; the swipe on the position
   // bar remains unchanged for phone users.
   listen(desktopStyleToggle, 'click', () => {
@@ -830,22 +915,27 @@ export function createEnvironmentAppearanceEditor(root, store, {
   }, { passive: true });
 
   // Controls are inert until locally stored customizations have been read.
-  const allControls = [...host.querySelectorAll('input,button'), resetOne, resetAll];
+  const allControls = [...host.querySelectorAll('input,button'), resetOne, resetAll,
+    scenarioPrev, scenarioNext].filter(Boolean);
   for (const control of allControls) control.disabled = true;
   if (floating) setStyleMode(false);
-  store.get('meta', ENVIRONMENT_APPEARANCE_KEY).then(saved => {
-    if (disposed) return;
-    overrides = sanitizeEnvironmentAppearance(saved?.value);
-    loaded = true;
-    for (const control of allControls) control.disabled = false;
-    render();
-    notify();
-  }).catch(() => {
-    if (disposed) return;
-    loaded = true;
-    for (const control of allControls) control.disabled = false;
-    render();
-    notify();
+  Promise.all([
+    store.get('meta',ENVIRONMENT_APPEARANCE_KEY),
+    store.get('meta',ENVIRONMENT_SCENARIOS_KEY).catch(()=>null)
+  ]).then(([saved,scenarios])=>{
+    if(disposed)return;
+    overrides=sanitizeEnvironmentAppearance(saved?.value);
+    scenarioDeck=createEnvironmentScenarioDeck(overrides,scenarios?.value);
+    overrides={...scenarioDeck.slots[scenarioDeck.active]};
+    loaded=true;
+    for(const control of allControls)control.disabled=false;
+    render();renderScenario();notify();
+  }).catch(()=>{
+    if(disposed)return;
+    scenarioDeck=createEnvironmentScenarioDeck({});
+    loaded=true;
+    for(const control of allControls)control.disabled=false;
+    render();renderScenario();notify();
     setStatus('Kon lokale instellingen niet laden');
   });
 
@@ -853,7 +943,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (disposed) return;
     if (saveTimer) {
       clearTimeout(saveTimer);
-      store.put('meta', { key: ENVIRONMENT_APPEARANCE_KEY, value: overrides }).catch(() => {});
+      persistNow();
     }
     disposed = true;
     for (const [node, name, callback, options] of listeners)
