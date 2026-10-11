@@ -57,6 +57,16 @@ export function createEnvironmentAppearanceEditor(root, store, {
           '</button>',
           '<button type="button" data-inherit-field="hatch" aria-label="Arcering van groep overnemen" disabled>↶</button>',
         '</div>',
+        '<div class="environment-style-color-row" data-style-hatch-color-row>',
+          '<span>Arceerkleur</span>',
+          '<label class="environment-color-edit">',
+            '<span class="environment-color-swatch" data-hatch-color-swatch>',
+              '<input data-style-hatch-color type="color" aria-label="Arceerkleur kiezen"/>',
+            '</span>',
+            '<output data-style-hatch-color-hex></output>',
+          '</label>',
+          '<button type="button" data-inherit-field="hatchColor" aria-label="Arceerkleur van groep overnemen" disabled>↶</button>',
+        '</div>',
         '<div class="environment-style-color-row" data-style-stroke-row>',
           '<span data-style-stroke-label>Lijn</span>',
           '<label class="environment-color-edit">',
@@ -122,6 +132,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const fillHex = get('[data-style-fill-hex]');
   const hatchRow = get('[data-style-hatch-row]');
   const hatchInput = get('[data-style-hatch]');
+  const hatchColorRow = get('[data-style-hatch-color-row]');
+  const hatchColorInput = get('[data-style-hatch-color]');
+  const hatchColorHex = get('[data-style-hatch-color-hex]');
   const hatchPicker = get('[data-hatch-picker]');
   const hatchPreview = get('[data-hatch-current-preview]');
   const strokeLabel = get('[data-style-stroke-label]');
@@ -216,10 +229,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
   };
   const currentCaps = () => isHeightClass() ? {
     fill: true, hatch: selectedId === 'buildings',
+    hatchColor: selectedId === 'buildings',
     stroke: selectedId === 'buildings', width: false, dash: false, scale: false
   } : selectedId ? {
     fill: !!(child().fill || child().background),
     hatch: !!(child().fill || child().background),
+    hatchColor: !!(child().fill || child().background),
     stroke: !!child().lines?.length,
     width: !!child().lines?.length,
     dash: !!child().lines?.length,
@@ -231,22 +246,25 @@ export function createEnvironmentAppearanceEditor(root, store, {
     (overrides.groupStyles?.[sectionId] || {});
   const notify = category => { if (floating && !disposed) onChange(overrides, category); };
 
-  const hatchOverlay = (group, hatch) => {
+  const hatchOverlay = (group, hatch, color, suffix = '') => {
     if (!hatch || hatch === 'none') return '';
     // Use the exact same texture pixels in the preview as on the MapLibre map.
-    return environmentHatchPreview(hatch, 'part-' + group.id).replace(
+    return environmentHatchPreview(hatch, 'part-' + group.id + suffix, color).replace(
       '<svg viewBox="0 0 64 30"',
       '<svg x="12" y="3" width="48" height="19" viewBox="0 0 64 30"'
     );
   };
   // No miniature maps: one fill patch or a single line, with current effective style.
-  const preview = group => {
-    const v = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
+  const preview = (group, bandIndex = null) => {
+    const base = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
+    const v = bandIndex === null ? base : {
+      ...base, ...(overrides.heightBands?.[group.id]?.styles?.[bandIndex] || {})
+    };
     if (group.fill || group.background) {
       return '<svg viewBox="0 0 72 25" aria-hidden="true">' +
         '<rect x="12" y="3" width="48" height="19" fill="' + v.fill +
         '" stroke="' + (v.stroke || '#b9b9bf') + '" stroke-width="1.3"/>' +
-        (group.fill ? hatchOverlay(group, v.hatch) : '') + '</svg>';
+        hatchOverlay(group, v.hatch, v.hatchColor, bandIndex === null ? '' : '-h' + bandIndex) + '</svg>';
     }
     const pattern = v.dash === 'dotted' ? '1 6' : v.dash === 'dashed' ? '9 5' :
       v.dash === 'solid' ? '' :
@@ -257,22 +275,46 @@ export function createEnvironmentAppearanceEditor(root, store, {
       (pattern ? ' stroke-dasharray="' + pattern + '"' : '') +
       ' stroke-linecap="round"/></svg>';
   };
+  // The real height classes appear directly after Land/Buildings in the same
+  // horizontal rail. No additional row, tabs, detached popover or dummy cells.
+  const subgroupEntries = () => section().items.flatMap(id => {
+    const result = [{ groupId: id, bandIndex: null, key: id }];
+    const cuts = overrides.heightBands?.[id]?.cuts || [];
+    for (let i = 0; i <= cuts.length; i++) {
+      if (cuts.length) result.push({ groupId: id, bandIndex: i, key: id + ':height:' + i });
+    }
+    return result;
+  });
   const renderGrid = () => {
-    if (shownSectionId !== sectionId) {
+    const entries = subgroupEntries();
+    const signature = sectionId + '/' + section().items.map(id =>
+      id + ':' + (overrides.heightBands?.[id]?.cuts || []).join(',')).join('|');
+    if (shownSectionId !== signature) {
+      const sameSection = shownSectionId?.startsWith(sectionId + '/');
+      const scrollBefore = sameSection ? groups.scrollLeft : 0;
       const fragment = document.createDocumentFragment();
-      for (const id of section().items) {
-        const group = APPEARANCE_GROUPS.find(item => item.id === id);
+      for (const entry of entries) {
+        const group = APPEARANCE_GROUPS.find(item => item.id === entry.groupId);
         const wrapper = document.createElement('div');
         wrapper.className = 'environment-style-group';
-        wrapper.dataset.groupCard = id;
+        wrapper.dataset.groupCard = entry.key;
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'environment-style-group-main';
-        button.dataset.styleGroup = id;
-        button.setAttribute('aria-label', group.label);
-        const sample = document.createElement('svg');
         const label = document.createElement('span');
-        label.textContent = group.label;
+        if (entry.bandIndex === null) {
+          button.dataset.styleGroup = entry.groupId;
+          button.setAttribute('aria-label', group.label);
+          label.textContent = group.label;
+        } else {
+          wrapper.classList.add('is-height-band');
+          button.dataset.heightParent = entry.groupId;
+          button.dataset.heightIndex = String(entry.bandIndex);
+          const range = heightBandLabel(overrides.heightBands, entry.groupId, entry.bandIndex);
+          button.setAttribute('aria-label', group.label + ', hoogte ' + range);
+          label.textContent = range;
+        }
+        const sample = document.createElement('svg');
         const deviation = document.createElement('i');
         deviation.className = 'environment-style-deviation';
         deviation.setAttribute('aria-hidden', 'true');
@@ -280,21 +322,22 @@ export function createEnvironmentAppearanceEditor(root, store, {
         wrapper.append(button);
         fragment.append(wrapper);
       }
-      // Only real groups create separators: one child has zero separators,
-      // four children have three, longer rows naturally continue sideways.
       groups.replaceChildren(fragment);
-      // Every group starts at its first four tiles. Horizontal dragging stays
-      // local to this raster; no extra rows or jump in the surrounding map.
-      groups.scrollLeft = 0;
-      shownSectionId = sectionId;
+      groups.scrollLeft = scrollBefore;
+      shownSectionId = signature;
     }
-    for (const id of section().items) {
-      const wrapper = [...groups.children].find(node => node.dataset.groupCard === id);
-      wrapper.classList.toggle('is-selected', id === selectedId);
-      wrapper.classList.toggle('has-deviation', !!overrides[id]);
-      const button = wrapper.querySelector('[data-style-group]');
-      button.setAttribute('aria-pressed', String(id === selectedId));
-      button.querySelector('svg').outerHTML = preview(APPEARANCE_GROUPS.find(item => item.id === id));
+    for (const entry of entries) {
+      const wrapper = [...groups.children].find(node => node.dataset.groupCard === entry.key);
+      const isSelected = selectedId === entry.groupId && activeHeightBand === entry.bandIndex;
+      const style = entry.bandIndex === null
+        ? overrides[entry.groupId]
+        : overrides.heightBands?.[entry.groupId]?.styles?.[entry.bandIndex];
+      wrapper.classList.toggle('is-selected', isSelected);
+      wrapper.classList.toggle('has-deviation', !!style && Object.keys(style).length > 0);
+      const button = wrapper.querySelector('button');
+      button.setAttribute('aria-pressed', String(isSelected));
+      button.querySelector('svg').outerHTML = preview(
+        APPEARANCE_GROUPS.find(item => item.id === entry.groupId), entry.bandIndex);
     }
   };
   const closeHatchPicker = () => {
@@ -388,15 +431,20 @@ export function createEnvironmentAppearanceEditor(root, store, {
     // Only the applicable color properties appear in this specific row.
     fillRow.hidden = !caps.fill;
     hatchRow.hidden = !caps.hatch;
+    hatchColorRow.hidden = !caps.hatchColor;
     strokeRow.hidden = !caps.stroke;
     strokeLabel.textContent = selectedId && child()?.fill ? 'Rand' :
       !selectedId && section().items.some(id =>
         APPEARANCE_GROUPS.find(group => group.id === id)?.fill) ? 'Rand/lijn' : 'Lijn';
-    const colorCount = Number(caps.fill) + Number(caps.hatch) + Number(caps.stroke);
-    get('.environment-style-colors').style.gridTemplateColumns =
+    const colorCount = Number(caps.fill) + Number(caps.hatch) +
+      Number(caps.hatchColor) + Number(caps.stroke);
+    const colorGrid = get('.environment-style-colors');
+    colorGrid.style.gridTemplateColumns =
       'repeat(' + Math.max(1, colorCount) + ', minmax(0,1fr))';
+    colorGrid.classList.toggle('is-four-col', colorCount === 4);
     fillInput.disabled = !caps.fill;
     hatchInput.disabled = !caps.hatch;
+    hatchColorInput.disabled = !caps.hatchColor;
     strokeInput.disabled = !caps.stroke;
     widthInput.disabled = !caps.width;
     for (const button of dashButtons) button.disabled = !caps.dash;
@@ -414,12 +462,22 @@ export function createEnvironmentAppearanceEditor(root, store, {
     }
     if (caps.hatch) {
       const active = values.hatch || 'none';
-      hatchPreview.innerHTML = environmentHatchPreview(active, 'current');
+      hatchPreview.innerHTML = environmentHatchPreview(active, 'current', values.hatchColor);
       const label = HATCH_OPTIONS.find(option => option.id === active)?.label || 'Geen';
       hatchInput.setAttribute('aria-label', 'Arcering kiezen: ' + label);
-      for (const button of hatchPicker.querySelectorAll('[data-hatch-choice]'))
+      for (const button of hatchPicker.querySelectorAll('[data-hatch-choice]')) {
         button.setAttribute('aria-pressed', String(button.dataset.hatchChoice === active));
+        if (!hatchPicker.hidden) button.querySelector('.environment-hatch-sample').innerHTML =
+          environmentHatchPreview(button.dataset.hatchChoice,
+            'choice-' + button.dataset.hatchChoice, values.hatchColor);
+      }
     } else closeHatchPicker();
+    if (caps.hatchColor) {
+      const hatchColor = values.hatchColor || '#3e4549';
+      get('[data-hatch-color-swatch]').style.setProperty('--style-color', hatchColor);
+      hatchColorHex.textContent = hatchColor.toUpperCase();
+      if (hatchColorInput !== document.activeElement) hatchColorInput.value = hatchColor;
+    }
     if (caps.fill) {
       get('[data-fill-swatch]').style.setProperty('--style-color', values.fill);
       fillHex.textContent = values.fill?.toUpperCase() || '';
@@ -481,7 +539,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       const current = overrides.heightBands;
       const oldStyle = current[selectedId].styles[activeHeightBand];
       let next = { ...current };
-      for (const field of ['fill', 'stroke', 'hatch']) {
+      for (const field of ['fill', 'stroke', 'hatch', 'hatchColor']) {
         if (Object.hasOwn(entry, field) !== Object.hasOwn(oldStyle, field) ||
             entry[field] !== oldStyle[field])
           next = editHeightBand(next, selectedId, activeHeightBand, field,
@@ -559,10 +617,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
     closeHatchPicker(); closeHeightPicker(); render();
   });
   listen(groups, 'click', event => {
-    const button = event.target.closest('[data-style-group]');
-    if (!button) return;
-    selectedId = button.dataset.styleGroup;
-    activeHeightBand = null; editingHeightCut = null;
+    const band = event.target.closest('[data-height-parent][data-height-index]');
+    const group = event.target.closest('[data-style-group]');
+    if (!band && !group) return;
+    selectedId = band?.dataset.heightParent || group.dataset.styleGroup;
+    activeHeightBand = band ? Number(band.dataset.heightIndex) : null;
+    editingHeightCut = null;
     closeHatchPicker(); closeHeightPicker();
     render();
   });
@@ -640,9 +700,17 @@ export function createEnvironmentAppearanceEditor(root, store, {
     closeHeightPicker(); closeHatchPicker(); render();
   });
   listen(fillInput, 'input', () => update('fill', fillInput.value));
+  listen(hatchColorInput, 'input', () => update('hatchColor', hatchColorInput.value));
   listen(hatchInput, 'click', () => {
     if (hatchInput.disabled) return;
     hatchPicker.hidden = !hatchPicker.hidden;
+    if (!hatchPicker.hidden) {
+      const color = currentStyle().hatchColor || '#3e4549';
+      for (const button of hatchPicker.querySelectorAll('[data-hatch-choice]'))
+        button.querySelector('.environment-hatch-sample').innerHTML =
+          environmentHatchPreview(button.dataset.hatchChoice,
+            'choice-' + button.dataset.hatchChoice, color);
+    }
     hatchInput.setAttribute('aria-expanded', String(!hatchPicker.hidden));
   });
   listen(hatchPicker, 'click', event => {
