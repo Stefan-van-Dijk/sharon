@@ -93,7 +93,7 @@ export function serializeEnvironmentStyle(scenarioId,appearance){
  return JSON.stringify({
    format:STYLE_EXPORT_FORMAT,version:1,name:scenario.label,
    appearance:sanitizeEnvironmentAppearance(appearance)
- },null,2)+'\\n';
+ },null,2);
 }
 /** Parse externally supplied JSON without trusting its keys or values. */
 export function parseEnvironmentStyle(json){

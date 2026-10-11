@@ -33,7 +33,7 @@ test('scenario swiping and independent edits persist across reloads',()=>{
  assert.equal(restored.active,1);
  assert.deepEqual(restored.slots[1],{land:{fill:'#aabbcc'}});
  assert.deepEqual(changeEnvironmentScenario(restored,-1).slots[0],original.slots[0]);
- assert.equal(changeEnvironmentScenario(restored,-2).active,3);
+ assert.equal(changeEnvironmentScenario(restored,-2).active,STYLE_SCENARIOS.length-1);
  assert.equal(changeEnvironmentScenario(restored,4).active,1);
 });
 test('invalid persisted scenario data is safely sanitized',()=>{
@@ -104,4 +104,23 @@ test('import rejects invalid, oversized or unsupported files',()=>{
    JSON.stringify({format:STYLE_EXPORT_FORMAT,version:1,appearance:[]}),
    'x'.repeat(MAX_STYLE_FILE_BYTES+1)])
   assert.throws(()=>parseEnvironmentStyle(data));
+});
+
+test('stylebar offers import/export instead of both reset controls and provides 10px visual credit gap',async()=>{
+ const [map,editor,css]=await Promise.all([
+  readFile(new URL('../src/ui/EnvironmentMapLibre.js',import.meta.url),'utf8'),
+  readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js',import.meta.url),'utf8'),
+  readFile(new URL('../index.html',import.meta.url),'utf8')
+ ]);
+ for(const marker of ['data-style-export','data-style-import','data-style-import-file'])
+   assert.ok(map.includes(marker));
+ assert.ok(!map.includes('data-style-reset-one'));
+ assert.ok(!map.includes('data-style-reset-all'));
+ assert.ok(editor.includes("listen(exportButton,'click'"));
+ assert.ok(editor.includes("listen(importButton,'click'"));
+ assert.ok(editor.includes("listen(importFile,'change'"));
+ assert.ok(editor.includes("parseEnvironmentStyle(await file.text())"));
+ assert.ok(editor.includes("serializeEnvironmentStyle(selected.id,overrides)"));
+ assert.ok(css.includes('bottom:calc(max(12px,env(safe-area-inset-bottom)) + 79px);'));
+ assert.ok(!css.includes('bottom:calc(max(12px,env(safe-area-inset-bottom)) + 67px);'));
 });
