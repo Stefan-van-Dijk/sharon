@@ -309,7 +309,15 @@ export function createShell(root, {
   });
 
   bindSwipeHome(stage, () => {
-    if (currentView === 'detail') return showHome();
+    if (currentView !== 'detail') return;
+    // A rightward edge swipe from an open location edits back to its module
+    // list, not all the way to Sharon's home screen.
+    const backToLocations = outlet.querySelector('.location-editor-view [data-back]');
+    if (backToLocations) {
+      backToLocations.click();
+      return;
+    }
+    return showHome();
   }, {
     isEnabled: () => currentView === 'detail'
   });
