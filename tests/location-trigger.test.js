@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   LocationTriggerService,
-  distanceBetween
+  distanceBetween, classifyLocationPresence
 } from '../src/core/location/LocationTriggerService.js';
 
 test('afstand tussen gelijke punten is nul', () => {
@@ -77,4 +77,14 @@ test('locatietrigger vuurt pas na buiten naar binnen overgang', async () => {
   await service.evaluate({ lat: 52.0, lng: 6.0 });
   assert.equal(fired.length, 1);
   assert.equal(fired[0].message, 'Welkom thuis');
+});
+
+
+test('fuzzy GPS boundary keeps prior classification until reading is definite', () => {
+  assert.equal(classifyLocationPresence(100, 100, 25, null), null);
+  assert.equal(classifyLocationPresence(100, 100, 25, false), false);
+  assert.equal(classifyLocationPresence(100, 100, 25, true), true);
+  assert.equal(classifyLocationPresence(72, 100, 25, false), true);
+  assert.equal(classifyLocationPresence(128, 100, 25, true), false);
+  assert.equal(classifyLocationPresence(60, 100, 0, null), true);
 });
