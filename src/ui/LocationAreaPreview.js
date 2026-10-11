@@ -42,9 +42,8 @@ export function fadeStartPercent(radius, accuracy) {
 export function radiusForZoom(zoom, latitude, screenRadius = AREA_RADIUS_PX) {
   const metres = Math.max(1, Number(screenRadius) || AREA_RADIUS_PX) *
     metersPerPixel(latitude, zoom);
-  const rounded = metres < 150 ? Math.round(metres / 5) * 5
-    : metres < 500 ? Math.round(metres / 10) * 10
-    : Math.round(metres / 25) * 25;
+  // Match the existing stored form constraint (min 20, max 2000, step 10).
+  const rounded = Math.round(metres / 10) * 10;
   return radiusMeters(rounded);
 }
 
