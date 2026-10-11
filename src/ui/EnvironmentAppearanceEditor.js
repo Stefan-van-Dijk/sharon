@@ -319,6 +319,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
     heightSlider.step = String(target.step);
     heightSlider.value = String(heightDraft[selectedId]);
     heightValue.textContent = heightDraft[selectedId] + ' m';
+    get('[data-height-note]').textContent = selectedId === 'land'
+      ? 'Hoogte op basis van Mapterhorn-terreinmodel. De extra kaartlaag laadt pas zodra een grens bestaat.'
+      : 'Geschatte gebouwhoogte uit kaartgegevens. Zonder grens blijft de gebouwstijl ongewijzigd.';
     heightAdd.textContent = editingHeightCut === null ? 'Grens toevoegen' : 'Grens verplaatsen';
     heightAdd.disabled = editingHeightCut === null && cuts.length >= MAX_HEIGHT_CUTS;
     heightCuts.replaceChildren();
