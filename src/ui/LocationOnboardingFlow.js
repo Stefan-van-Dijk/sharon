@@ -65,6 +65,7 @@ export function enhanceLocationEditor(root, {
   let chosenParentId = initialParent || '';
   let addressTouched = false;
   let nameTouched = false;
+  let programmaticChange = false;
 
   const box = document.createElement('div');
   box.className = 'sh-location-dialog-content';
@@ -134,7 +135,9 @@ export function enhanceLocationEditor(root, {
   const change = (field, value) => {
     if (String(field.value || '') !== String(value ?? '')) {
       field.value = value ?? '';
-      field.dispatchEvent(new Event('input', { bubbles: true }));
+      programmaticChange = true;
+      try { field.dispatchEvent(new Event('input', { bubbles: true })); }
+      finally { programmaticChange = false; }
     }
   };
   function currentPoint() {
@@ -249,8 +252,7 @@ export function enhanceLocationEditor(root, {
       const parentId = answer.slice(7);
       if (!validParent(parentId)) { feedback.textContent = 'Kies een bestaande locatie met adres.'; return; }
       setParent(parentId);
-      if (!form.elements.title.value.trim()) change(form.elements.title, 'Sublocatie');
-      showDetails();
+      showDetails({ focusName: !form.elements.title.value.trim() });
     }
   }
 
@@ -329,8 +331,8 @@ export function enhanceLocationEditor(root, {
   });
   next.addEventListener('click', continueManual);
   back.addEventListener('click', showStart);
-  form.elements.title.addEventListener('input', () => { nameTouched = true; });
-  form.elements.address.addEventListener('input', () => { addressTouched = true; });
+  form.elements.title.addEventListener('input', () => { if (!programmaticChange) nameTouched = true; });
+  form.elements.address.addEventListener('input', () => { if (!programmaticChange) addressTouched = true; });
   ['lat','lng','parentId'].forEach(field =>
     form.elements[field]?.addEventListener('input', () => { syncCoordinates(); mapPreview?.update(); }));
   radiusRange.addEventListener('input', () => {
