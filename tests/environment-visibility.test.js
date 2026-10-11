@@ -41,7 +41,7 @@ test('attribution-adjacent button toggles a single scoped clean-map state and cl
     const iconBefore = button.innerHTML;
     assert.ok(iconBefore.includes('class="environment-visibility-dot"'), 'visible mode starts as a subtle dot');
     assert.ok(iconBefore.includes('class="environment-visibility-logo"'));
-    assert.ok(iconBefore.includes('src="./assets/sharon-logo.svg?v=0.1.89"'));
+    assert.ok(iconBefore.includes('src="./assets/sharon-logo.svg?v=0.1.90"'));
     assert.ok(iconBefore.includes('alt="" aria-hidden="true"'), 'mark is decorative; button label communicates intent');
     assert.ok(!iconBefore.includes('visibility-eye'), 'the eye icon is fully replaced');
     let stopped = 0;
@@ -93,5 +93,5 @@ test('credits start expanded, collapse on explicit hide, and remain recoverable 
   assert.ok(map.includes('attributionControl: { compact: false }'));
   assert.ok(editor.includes("listen(positionSide, 'touchstart', beginSwipe"));
   assert.ok(editor.includes("if (horizontal && dx >= 58) setStyleMode(true)"));
-  assert.ok(worker.includes("EnvironmentVisibility.js?v=0.1.89"));
+  assert.ok(worker.includes("EnvironmentVisibility.js?v=0.1.90"));
 });

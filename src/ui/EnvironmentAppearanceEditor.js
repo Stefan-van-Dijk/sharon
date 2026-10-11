@@ -2,16 +2,17 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.89';
+} from './EnvironmentAppearance.js?v=0.1.90';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.1.89';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.89';
+} from './EnvironmentHeight.js?v=0.1.90';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.90';
 import {
   ENVIRONMENT_SCENARIOS_KEY, STYLE_SCENARIOS,
-  createEnvironmentScenarioDeck, saveEnvironmentScenario, changeEnvironmentScenario
-} from './EnvironmentScenarios.js?v=0.1.89';
+  createEnvironmentScenarioDeck, saveEnvironmentScenario, changeEnvironmentScenario,
+  isStandardScenario, parseEnvironmentStyle, serializeEnvironmentStyle, MAX_STYLE_FILE_BYTES
+} from './EnvironmentScenarios.js?v=0.1.90';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -155,8 +156,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const lowInput = get('[data-scale-low]');
   const highInput = get('[data-scale-high]');
   const scaleFill = get('[data-scale-fill]');
-  const resetOne = floating ? root.querySelector('[data-style-reset-one]') : get('[data-style-reset-one]');
-  const resetAll = floating ? root.querySelector('[data-style-reset-all]') : get('[data-style-reset-all]');
+  const exportButton = floating ? root.querySelector('[data-style-export]') : null;
+  const importButton = floating ? root.querySelector('[data-style-import]') : null;
+  const importFile = floating ? root.querySelector('[data-style-import-file]') : null;
   const status = floating ? root.querySelector('[data-style-status]') : get('[data-style-status]');
   const returnButton = floating ? root.querySelector('[data-style-return]') : null;
   const readout = floating ? root.querySelector('[data-map-readout]') : null;
@@ -536,8 +538,17 @@ export function createEnvironmentAppearanceEditor(root, store, {
       button.disabled = !selectedId || !available ||
         (field === 'scale' ? !('from' in entry || 'to' in entry) : !(field in entry));
     }
-    resetOne.disabled = !Object.keys(entry).length;
-    resetAll.disabled = !Object.keys(overrides).length;
+    // Standaard is always the original renderer appearance, not an editable
+    // slot. All other scenarios remain separately editable.
+    if (scenarioDeck && isStandardScenario(scenarioDeck)) {
+      host.classList.add('is-standard-scenario');
+      for (const button of host.querySelectorAll('input,button')) {
+        if (button === dismissHandle ||
+            button.matches('[data-style-section],[data-style-parent],[data-style-group]'))
+          continue;
+        button.disabled = true;
+      }
+    } else host.classList.remove('is-standard-scenario');
   };
   const persistNow = () => {
     const saves = [store.put('meta', {key:ENVIRONMENT_APPEARANCE_KEY,value:overrides})];
@@ -554,7 +565,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
     },250);
   };
   const saveChanges = category => {
-    overrides = sanitizeEnvironmentAppearance(overrides);
+    overrides = isStandardScenario(scenarioDeck) ? {} :
+      sanitizeEnvironmentAppearance(overrides);
     if (scenarioDeck) scenarioDeck = saveEnvironmentScenario(scenarioDeck,overrides);
     notify(category);
     render();
@@ -625,6 +637,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     scenarioDeck = saveEnvironmentScenario(scenarioDeck,overrides);
     scenarioDeck = changeEnvironmentScenario(scenarioDeck,direction);
     overrides = {...scenarioDeck.slots[scenarioDeck.active]};
+    for (const control of host.querySelectorAll('input,button')) control.disabled = false;
     activeHeightBand = null; editingHeightCut = null;
     closeHatchPicker(); closeHeightPicker();
     notify(); render(); renderScenario();
@@ -645,8 +658,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
     styleSide.setAttribute('aria-hidden', String(!active));
     positionSide.setAttribute('aria-hidden', String(active));
     returnButton.tabIndex = active ? 0 : -1;
-    resetOne.tabIndex = active ? 0 : -1;
-    resetAll.tabIndex = active ? 0 : -1;
+    if (exportButton) exportButton.tabIndex = active ? 0 : -1;
+    if (importButton) importButton.tabIndex = active ? 0 : -1;
     if (active) tabs.querySelector('[data-style-section]')?.focus();
     else { closeHatchPicker(); closeHeightPicker(); }
   };
@@ -788,25 +801,54 @@ export function createEnvironmentAppearanceEditor(root, store, {
   });
   listen(lowInput, 'input', () => adjustScale('low'));
   listen(highInput, 'input', () => adjustScale('high'));
-  listen(resetOne, 'click', () => {
-    if (!loaded) return;
-    if (isHeightClass()) {
-      let next = overrides.heightBands;
-      for (const field of Object.keys(currentEntry()))
-        next = editHeightBand(next, selectedId, activeHeightBand, field, null);
-      overrides.heightBands = next;
-    } else if (selectedId) delete overrides[selectedId];
-    else if (overrides.groupStyles) {
-      delete overrides.groupStyles[sectionId];
-      if (!Object.keys(overrides.groupStyles).length) delete overrides.groupStyles;
+  // Exports contain only whitelisted map appearance values, never positions,
+  // objects, identifiers, notes or app settings.
+  listen(exportButton,'click',()=>{
+    if(!loaded||!scenarioDeck)return;
+    try{
+      const selected=STYLE_SCENARIOS[scenarioDeck.active];
+      const json=serializeEnvironmentStyle(selected.id,overrides);
+      const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const anchor=document.createElement('a');
+      anchor.href=url;
+      anchor.download='sharon-kaartstijl-'+selected.id+'.json';
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+      setStatus('Stijl '+selected.label+' geëxporteerd');
+    }catch(error){
+      setStatus('Exporteren mislukt');
+      window.alert?.('Kon de stijl niet exporteren: '+error.message);
     }
-    saveChanges(selectedId || 'group:' + sectionId);
   });
-  listen(resetAll, 'click', () => {
-    if (!loaded) return;
-    overrides = {};
-    activeHeightBand = null; editingHeightCut = null;
-    closeHeightPicker(); saveChanges();
+  listen(importButton,'click',()=>{
+    if(!loaded||!scenarioDeck)return;
+    if(isStandardScenario(scenarioDeck)){
+      window.alert?.('Standaard blijft ongewijzigd. Kies eerst een bewerkbaar scenario.');
+      return;
+    }
+    importFile?.click();
+  });
+  listen(importFile,'change',async()=>{
+    const file=importFile?.files?.[0];
+    if(importFile)importFile.value='';
+    if(!file||disposed)return;
+    try{
+      if(file.size>MAX_STYLE_FILE_BYTES)throw new Error('Bestand is te groot');
+      const incoming=parseEnvironmentStyle(await file.text());
+      if(disposed||!loaded||!scenarioDeck)return;
+      overrides=incoming;
+      scenarioDeck=saveEnvironmentScenario(scenarioDeck,overrides);
+      activeHeightBand=null;editingHeightCut=null;
+      closeHatchPicker();closeHeightPicker();
+      notify();render();renderScenario();persist();
+      setStatus('Kaartstijl geïmporteerd · lokaal opgeslagen');
+    }catch(error){
+      setStatus('Importeren mislukt');
+      window.alert?.('Kon de kaartstijl niet importeren: '+error.message);
+    }
   });
   listen(returnButton, 'click', () => setStyleMode(false));
   listen(scenarioPrev, 'click', () => selectScenario(-1));
@@ -915,7 +957,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   }, { passive: true });
 
   // Controls are inert until locally stored customizations have been read.
-  const allControls = [...host.querySelectorAll('input,button'), resetOne, resetAll,
+  const allControls = [...host.querySelectorAll('input,button'), exportButton, importButton,
     scenarioPrev, scenarioNext].filter(Boolean);
   for (const control of allControls) control.disabled = true;
   if (floating) setStyleMode(false);
