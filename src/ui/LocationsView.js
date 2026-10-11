@@ -349,7 +349,7 @@ export async function openLocationsView(root, {
         };
       });
     releaseEditor = enhanceLocationEditor(root, {
-      isNew, useGps, location, geocoder, knownLocations, initialParent,
+      isNew, useGps, location, geocoder, events, knownLocations, initialParent,
       saveInHeader: false
     });
   }
@@ -416,7 +416,13 @@ function readNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 function locationIcon(type) {
-  return ({ home: '⌂', work: '▣', business: '◇', private: '○', other: '·' })[type] || '·';
+  return ({
+    home:'⌂', work:'▣', customer:'▣', business:'◇', private:'○',
+    parking:'P', fuel:'◈', shop:'▤', supermarket:'▤',
+    restaurant:'◒', hospitality:'◒', family:'⌂', sport:'◉',
+    school:'▱', healthcare:'+', hotel:'⌂', construction:'△',
+    public:'◎', other:'·'
+  })[type] || '·';
 }
 function formatCoordinates(point) {
   return Number.isFinite(point?.lat) && Number.isFinite(point?.lng)
