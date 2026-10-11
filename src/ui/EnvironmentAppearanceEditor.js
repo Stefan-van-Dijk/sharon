@@ -3,6 +3,10 @@ import {
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
 } from './EnvironmentAppearance.js?v=0.1.77';
+import {
+  HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
+  removeHeightCut, editHeightBand, heightBandLabel
+} from './EnvironmentHeight.js?v=0.1.78';
 import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.77';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
@@ -29,6 +33,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
       '<div class="environment-style-scope">',
         '<button type="button" data-style-parent aria-pressed="true">Groep</button>',
         '<span data-style-selection aria-live="polite"></span>',
+        '<button type="button" class="environment-height-trigger" data-height-open hidden aria-label="Hoogtegroepen instellen" aria-expanded="false">Hoogte</button>',
         '<button type="button" data-style-inherit disabled>Groep overnemen ↶</button>',
       '</div>',
       '<div class="environment-style-subgroup-rail">',
@@ -65,6 +70,16 @@ export function createEnvironmentAppearanceEditor(root, store, {
         '</div>',
       '</div>',
       '<div class="environment-hatch-picker" data-hatch-picker role="group" aria-label="Kies een arcering" hidden></div>',
+      '<div class="environment-height-picker" data-height-picker hidden>',
+        '<div class="environment-height-head"><strong data-height-title>Hoogte</strong><span data-height-count>1 groep</span>',
+          '<button type="button" data-height-close aria-label="Sluiten">×</button></div>',
+        '<div class="environment-height-edit"><input data-height-slider type="range" aria-label="Hoogtegrens" />',
+          '<output data-height-value>20 m</output>',
+          '<button type="button" data-height-add>Grens toevoegen</button></div>',
+        '<div class="environment-height-cut-list" data-height-cuts></div>',
+        '<div class="environment-height-band-list" data-height-bands></div>',
+        '<small data-height-note>Verplaats de schuif en kies Grens toevoegen. Zonder grens blijft alles één geheel.</small>',
+      '</div>',
       '<div class="environment-style-width">',
         '<span>Dikte</span>',
         '<input data-style-width type="range" min="0.25" max="4" step="0.25" value="1" aria-label="Lijndikte"/>',
@@ -93,6 +108,15 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const groups = get('[data-style-groups]');
   const parentButton = get('[data-style-parent]');
   const selection = get('[data-style-selection]');
+  const heightOpen = get('[data-height-open]');
+  const heightPicker = get('[data-height-picker]');
+  const heightTitle = get('[data-height-title]');
+  const heightCount = get('[data-height-count]');
+  const heightSlider = get('[data-height-slider]');
+  const heightValue = get('[data-height-value]');
+  const heightAdd = get('[data-height-add]');
+  const heightCuts = get('[data-height-cuts]');
+  const heightBandsList = get('[data-height-bands]');
   const inheritButton = get('[data-style-inherit]');
   const fillRow = get('[data-style-fill-row]');
   const fillInput = get('[data-style-fill]');
@@ -171,6 +195,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
 
   let overrides = {}, disposed = false, loaded = false, saveTimer = null;
   let sectionId = 'basis', selectedId = null, shownSectionId = null;
+  let activeHeightBand = null, editingHeightCut = null;
+  const heightDraft = { land: HEIGHT_TARGETS.land.suggested,
+    buildings: HEIGHT_TARGETS.buildings.suggested };
   const listeners = [];
   const listen = (node, event, callback, options) => {
     node?.addEventListener(event, callback, options);
@@ -179,10 +206,20 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const setStatus = message => { if (!disposed && status) status.textContent = message; };
   const section = () => APPEARANCE_SECTIONS.find(item => item.id === sectionId);
   const child = () => APPEARANCE_GROUPS.find(group => group.id === selectedId);
-  const currentStyle = () => selectedId ?
-    resolvedEnvironmentAppearance(overrides, selectedId) :
-    { ...appearanceSectionDefaults(section()), ...(overrides.groupStyles?.[sectionId] || {}) };
-  const currentCaps = () => selectedId ? {
+  const isHeightClass = () => activeHeightBand !== null && !!selectedId &&
+    !!overrides.heightBands?.[selectedId]?.styles?.[activeHeightBand];
+  const currentStyle = () => {
+    const base = selectedId ?
+      resolvedEnvironmentAppearance(overrides, selectedId) :
+      { ...appearanceSectionDefaults(section()), ...(overrides.groupStyles?.[sectionId] || {}) };
+    return isHeightClass() ? {
+      ...base, ...overrides.heightBands[selectedId].styles[activeHeightBand]
+    } : base;
+  };
+  const currentCaps = () => isHeightClass() ? {
+    fill: true, hatch: selectedId === 'buildings',
+    stroke: selectedId === 'buildings', width: false, dash: false, scale: false
+  } : selectedId ? {
     fill: !!(child().fill || child().background),
     hatch: !!child().fill,
     stroke: !!child().lines?.length,
@@ -190,7 +227,9 @@ export function createEnvironmentAppearanceEditor(root, store, {
     dash: !!child().lines?.length,
     scale: !child().background
   } : appearanceSectionProperties(section());
-  const currentEntry = () => selectedId ? (overrides[selectedId] || {}) :
+  const currentEntry = () => isHeightClass()
+    ? overrides.heightBands[selectedId].styles[activeHeightBand]
+    : selectedId ? (overrides[selectedId] || {}) :
     (overrides.groupStyles?.[sectionId] || {});
   const notify = category => { if (floating && !disposed) onChange(overrides, category); };
 
@@ -264,6 +303,61 @@ export function createEnvironmentAppearanceEditor(root, store, {
     hatchPicker.hidden = true;
     hatchInput.setAttribute('aria-expanded', 'false');
   };
+  const closeHeightPicker = () => {
+    heightPicker.hidden = true;
+    heightOpen.setAttribute('aria-expanded', 'false');
+  };
+  const renderHeightPicker = () => {
+    const target = HEIGHT_TARGETS[selectedId];
+    if (!target) { closeHeightPicker(); return; }
+    const band = overrides.heightBands?.[selectedId];
+    const cuts = band?.cuts || [];
+    heightTitle.textContent = target.label;
+    heightCount.textContent = (cuts.length + 1) + (cuts.length ? ' groepen' : ' groep');
+    heightSlider.min = String(target.min + target.step);
+    heightSlider.max = String(target.max - target.step);
+    heightSlider.step = String(target.step);
+    heightSlider.value = String(heightDraft[selectedId]);
+    heightValue.textContent = heightDraft[selectedId] + ' m';
+    heightAdd.textContent = editingHeightCut === null ? 'Grens toevoegen' : 'Grens verplaatsen';
+    heightAdd.disabled = editingHeightCut === null && cuts.length >= MAX_HEIGHT_CUTS;
+    heightCuts.replaceChildren();
+    cuts.forEach((height, index) => {
+      const row = document.createElement('span');
+      row.className = 'environment-height-cut';
+      const edit = document.createElement('button');
+      edit.type = 'button'; edit.dataset.heightCut = String(index);
+      edit.textContent = height + ' m';
+      edit.setAttribute('aria-pressed', String(editingHeightCut === index));
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.dataset.heightRemove = String(index);
+      remove.textContent = '×';
+      remove.setAttribute('aria-label', 'Hoogtegrens ' + height + ' meter verwijderen');
+      row.append(edit, remove);
+      heightCuts.append(row);
+    });
+    heightBandsList.replaceChildren();
+    if (!cuts.length) {
+      const label = document.createElement('small');
+      label.textContent = 'Alle hoogtes samen · geen verdeling';
+      heightBandsList.append(label);
+    } else {
+      // The original subgroup remains unchanged; altitude bands inherit
+      // its styling until a band is explicitly customized.
+      const normal = document.createElement('button');
+      normal.type = 'button'; normal.dataset.heightBand = 'all';
+      normal.textContent = 'Alle hoogtes';
+      normal.setAttribute('aria-pressed', String(activeHeightBand === null));
+      heightBandsList.append(normal);
+      for (let i = 0; i <= cuts.length; i++) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.dataset.heightBand = String(i);
+        button.textContent = heightBandLabel(overrides.heightBands, selectedId, i);
+        button.setAttribute('aria-pressed', String(activeHeightBand === i));
+        heightBandsList.append(button);
+      }
+    }
+  };
   const render = () => {
     if (!loaded) return;
     const s = section(), values = currentStyle(), caps = currentCaps(), entry = currentEntry();
@@ -271,7 +365,15 @@ export function createEnvironmentAppearanceEditor(root, store, {
       tab.setAttribute('aria-pressed', String(tab.dataset.styleSection === sectionId));
     renderGrid();
     parentButton.setAttribute('aria-pressed', String(!selectedId));
-    selection.textContent = selectedId ? child().label : '';
+    const bandTitle = isHeightClass()
+      ? ' · ' + heightBandLabel(overrides.heightBands, selectedId, activeHeightBand) : '';
+    selection.textContent = selectedId ? child().label + bandTitle : '';
+    heightOpen.hidden = !HEIGHT_TARGETS[selectedId];
+    if (HEIGHT_TARGETS[selectedId]) {
+      const count = overrides.heightBands?.[selectedId]?.cuts?.length || 0;
+      heightOpen.textContent = 'Hoogte ' + (count + 1);
+      renderHeightPicker();
+    } else closeHeightPicker();
     inheritButton.disabled = !selectedId || !Object.keys(entry).length;
     // Keep all property rows at fixed positions. Unsupported properties
     // visibly remain as disabled controls rather than collapsing the sheet.
@@ -373,7 +475,18 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (!loaded) return;
     const entry = { ...currentEntry() };
     fn(entry);
-    if (selectedId) {
+    if (isHeightClass()) {
+      const current = overrides.heightBands;
+      const oldStyle = current[selectedId].styles[activeHeightBand];
+      let next = { ...current };
+      for (const field of ['fill', 'stroke', 'hatch']) {
+        if (Object.hasOwn(entry, field) !== Object.hasOwn(oldStyle, field) ||
+            entry[field] !== oldStyle[field])
+          next = editHeightBand(next, selectedId, activeHeightBand, field,
+            Object.hasOwn(entry, field) ? entry[field] : null);
+      }
+      overrides.heightBands = next;
+    } else if (selectedId) {
       if (Object.keys(entry).length) overrides[selectedId] = entry;
       else delete overrides[selectedId];
     } else {
@@ -387,6 +500,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   };
   const inheritedValue = field => {
     if (!selectedId) return appearanceSectionDefaults(section())[field];
+    if (isHeightClass()) return resolvedEnvironmentAppearance(overrides, selectedId)[field];
     return {
       ...appearanceDefaults(child()),
       ...(overrides.groupStyles?.[sectionId] || {})
@@ -426,7 +540,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     resetOne.tabIndex = active ? 0 : -1;
     resetAll.tabIndex = active ? 0 : -1;
     if (active) tabs.querySelector('[data-style-section]')?.focus();
-    else closeHatchPicker();
+    else { closeHatchPicker(); closeHeightPicker(); }
   };
 
   listen(tabs, 'click', event => {
@@ -434,20 +548,31 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (!tab) return;
     sectionId = tab.dataset.styleSection;
     selectedId = null;
-    closeHatchPicker();
+    activeHeightBand = null; editingHeightCut = null;
+    closeHatchPicker(); closeHeightPicker();
     render();
   });
-  listen(parentButton, 'click', () => { selectedId = null; closeHatchPicker(); render(); });
+  listen(parentButton, 'click', () => {
+    selectedId = null; activeHeightBand = null; editingHeightCut = null;
+    closeHatchPicker(); closeHeightPicker(); render();
+  });
   listen(groups, 'click', event => {
     const button = event.target.closest('[data-style-group]');
     if (!button) return;
     selectedId = button.dataset.styleGroup;
-    closeHatchPicker();
+    activeHeightBand = null; editingHeightCut = null;
+    closeHatchPicker(); closeHeightPicker();
     render();
   });
   listen(inheritButton, 'click', () => {
     if (!selectedId || !loaded) return;
-    delete overrides[selectedId];
+    if (isHeightClass()) {
+      const entry = currentEntry();
+      let next = overrides.heightBands;
+      for (const field of Object.keys(entry))
+        next = editHeightBand(next, selectedId, activeHeightBand, field, null);
+      overrides.heightBands = next;
+    } else delete overrides[selectedId];
     saveChanges(selectedId);
   });
   listen(host, 'click', event => {
@@ -458,6 +583,59 @@ export function createEnvironmentAppearanceEditor(root, store, {
       if (field === 'scale') { delete entry.from; delete entry.to; }
       else delete entry[field];
     });
+  });
+  listen(heightOpen, 'click', () => {
+    if (!HEIGHT_TARGETS[selectedId]) return;
+    const open = heightPicker.hidden;
+    closeHatchPicker();
+    heightPicker.hidden = !open;
+    heightOpen.setAttribute('aria-expanded', String(open));
+    if (open) renderHeightPicker();
+  });
+  listen(get('[data-height-close]'), 'click', closeHeightPicker);
+  listen(heightSlider, 'input', () => {
+    if (!HEIGHT_TARGETS[selectedId]) return;
+    heightDraft[selectedId] = Number(heightSlider.value);
+    heightValue.textContent = heightDraft[selectedId] + ' m';
+  });
+  listen(heightAdd, 'click', () => {
+    if (!HEIGHT_TARGETS[selectedId] || !loaded) return;
+    const bands = overrides.heightBands || {};
+    const before = JSON.stringify(bands);
+    const value = heightDraft[selectedId];
+    const next = editingHeightCut === null
+      ? addHeightCut(bands, selectedId, value)
+      : moveHeightCut(bands, selectedId, editingHeightCut, value);
+    if (JSON.stringify(next) === before) {
+      setStatus('Deze grens bestaat al of valt buiten een bestaande klasse');
+      return;
+    }
+    overrides.heightBands = next;
+    editingHeightCut = null; activeHeightBand = null;
+    saveChanges(selectedId);
+  });
+  listen(heightCuts, 'click', event => {
+    const remove = event.target.closest('[data-height-remove]');
+    const edit = event.target.closest('[data-height-cut]');
+    if (!selectedId) return;
+    if (remove) {
+      overrides.heightBands = removeHeightCut(overrides.heightBands, selectedId,
+        Number(remove.dataset.heightRemove));
+      if (!Object.keys(overrides.heightBands).length) delete overrides.heightBands;
+      editingHeightCut = null; activeHeightBand = null;
+      saveChanges(selectedId);
+    } else if (edit) {
+      editingHeightCut = Number(edit.dataset.heightCut);
+      heightDraft[selectedId] = overrides.heightBands[selectedId].cuts[editingHeightCut];
+      renderHeightPicker();
+    }
+  });
+  listen(heightBandsList, 'click', event => {
+    const button = event.target.closest('[data-height-band]');
+    if (!button) return;
+    activeHeightBand = button.dataset.heightBand === 'all' ? null :
+      Number(button.dataset.heightBand);
+    closeHeightPicker(); closeHatchPicker(); render();
   });
   listen(fillInput, 'input', () => update('fill', fillInput.value));
   listen(hatchInput, 'click', () => {
@@ -494,7 +672,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
   listen(highInput, 'input', () => adjustScale('high'));
   listen(resetOne, 'click', () => {
     if (!loaded) return;
-    if (selectedId) delete overrides[selectedId];
+    if (isHeightClass()) {
+      let next = overrides.heightBands;
+      for (const field of Object.keys(currentEntry()))
+        next = editHeightBand(next, selectedId, activeHeightBand, field, null);
+      overrides.heightBands = next;
+    } else if (selectedId) delete overrides[selectedId];
     else if (overrides.groupStyles) {
       delete overrides.groupStyles[sectionId];
       if (!Object.keys(overrides.groupStyles).length) delete overrides.groupStyles;
@@ -504,7 +687,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
   listen(resetAll, 'click', () => {
     if (!loaded) return;
     overrides = {};
-    saveChanges();
+    activeHeightBand = null; editingHeightCut = null;
+    closeHeightPicker(); saveChanges();
   });
   listen(returnButton, 'click', () => setStyleMode(false));
 
