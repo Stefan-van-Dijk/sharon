@@ -208,9 +208,28 @@ export function enhanceLocationEditor(root, { isNew = false } = {}) {
     progress.querySelector('span').style.width = ((step + 1) / QUESTIONS.length * 100) + '%';
     if (status) status.textContent = '';
     if (step === QUESTIONS.length - 1) renderSummary();
-    form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'instant' });
+    form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
     showQuestion(QUESTIONS[step]);
   }
+
+  // Prevent implicit form submission before the review step (e.g. Enter on iPhone).
+  form.addEventListener('submit', event => {
+    if (step === QUESTIONS.length - 1) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (validateCurrent()) show(step + 1);
+  }, true);
+  form.addEventListener('keydown', event => {
+    if (step === QUESTIONS.length - 1 || event.key !== 'Enter') return;
+    const input = event.target;
+    if (input?.matches?.('[name="address"]')) {
+      event.preventDefault();
+      root.querySelector('[data-lookup]')?.click();
+    } else if (input?.matches?.('[name="title"]')) {
+      event.preventDefault();
+      if (validateCurrent()) show(step + 1);
+    }
+  }, true);
 
   previous.addEventListener('click', () => show(step - 1));
   next.addEventListener('click', () => {
