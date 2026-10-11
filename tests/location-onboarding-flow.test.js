@@ -13,7 +13,7 @@ test('the preferred reference uses one editable screen, not three onboarding ste
   assert.ok(flow.includes('sh-location-reference-address'));
   assert.ok(flow.includes('data-coordinates-text'));
   assert.ok(flow.includes('data-radius-map'));
-  assert.ok(flow.includes('Herkenningsstraal'));
+  assert.ok(flow.includes('Herkenningsafstand aanpassen'));
   assert.ok(flow.includes('Wat voor plek is dit?'));
   assert.ok(flow.includes('Meer instellingen'));
   assert.ok(css.includes('.sh-location-reference-page'));
