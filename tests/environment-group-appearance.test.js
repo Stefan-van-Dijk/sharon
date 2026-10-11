@@ -202,6 +202,8 @@ test('main and subcategory swipes do not change panel height or old gesture inte
   assert.ok(css.includes('height:min(378px,65dvh'));
   assert.ok(css.includes('grid-template-rows:35px 29px 54px 44px 30px 43px 69px'));
   assert.ok(editor.includes('groups.scrollLeft = 0'));
-  assert.ok(editor.includes('for (let index = section().items.length; index < 4; index++)'));
+  assert.ok(!editor.includes('for (let index = section().items.length; index < 4; index++)'));
+  assert.ok(css.includes('.environment-style-group:not(:last-child)'));
+  assert.ok(editor.includes('data-style-more-next'));
   assert.ok(editor.includes('dx >= 58'));
 });
