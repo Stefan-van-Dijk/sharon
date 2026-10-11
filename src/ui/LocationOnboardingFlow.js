@@ -184,6 +184,7 @@ export function enhanceLocationEditor(root, {
           changeInput(form.elements.lat, point.lat.toFixed(7));
           changeInput(form.elements.lng, point.lng.toFixed(7));
           accuracy = 0; // A manually positioned pin is not an accuracy measurement.
+          addressManuallyEdited = false;
           syncText();
           renderParents();
           void reversePoint(point);
@@ -281,7 +282,7 @@ export function enhanceLocationEditor(root, {
     const nativeChoice = parentSelect.selectedOptions[0];
     if (chosen && !suggestions.slice(0, 2).some(x => x.id === chosen)) {
       parentMore.hidden = false;
-      if (!remaining && nativeChoice) {
+      if (nativeChoice) {
         parentChips.append(createChip(chosen, nativeChoice.textContent, true, () => {
           parentMore.hidden = !parentMore.hidden;
         }));
@@ -323,6 +324,7 @@ export function enhanceLocationEditor(root, {
   form.addEventListener('sh-location-accuracy', event => {
     accuracy = Number(event.detail?.accuracy) || 0;
     mapView?.refresh();
+    if (event.detail?.point && !addressManuallyEdited) void reversePoint(event.detail.point);
   });
   const triggerSwitch = triggerGroup?.querySelector('[name="triggerEnabled"]');
   triggerSwitch?.addEventListener('change', event => {
