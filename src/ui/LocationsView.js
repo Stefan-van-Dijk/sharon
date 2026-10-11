@@ -11,11 +11,12 @@ const TYPES = new Map(LOCATION_TYPES);
 const DEFAULT_RADIUS = 100;
 
 export async function openLocationsView(root, {
-  store, location, geocoder, events, initialLocationId = '', setTitle = () => {}
+  store, location, geocoder, events, initialLocationId = '', setTitle = () => {}, headerActions = null
 }) {
   let objects = [], locations = [], byId = new Map();
   let prefs = (await store.get('meta', PREF_KEY))?.value || { sort: 'alpha', order: [] };
   let unbindSwipes = null;
+  let releaseEditor = null;
 
   async function reload() {
     objects = await store.getAll('objects');
@@ -25,15 +26,25 @@ export async function openLocationsView(root, {
   await reload();
 
   async function list(status = '') {
+    releaseEditor?.();
+    releaseEditor = null;
     setTitle('Locaties');
     unbindSwipes?.();
+    if (headerActions) {
+      headerActions.replaceChildren();
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'sh-location-header-add';
+      add.setAttribute('data-create-location', '');
+      add.setAttribute('aria-label', 'Locatie toevoegen');
+      add.textContent = '+';
+      add.addEventListener('click', () => edit(null));
+      headerActions.append(add);
+    }
     const rows = orderedLocations(locations, prefs.sort, prefs.order);
     root.innerHTML = `
       <section class="module-view locations-view">
-        <div class="sh-locations-toolbar">
-          <button type="button" data-create-location>+ Locatie</button>
-          <button type="button" data-create-current>Huidige positie</button>
-        </div>
+        ${!headerActions ? `<div class="sh-locations-toolbar"><span>Locaties</span><button type="button" data-create-location>+</button></div>` : ""}
         <div class="sh-locations-sort" aria-label="Locaties sorteren">
           <button type="button" data-sort="recent" ${prefs.sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
           <button type="button" data-sort="alpha" ${prefs.sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
@@ -74,8 +85,7 @@ export async function openLocationsView(root, {
       </section>
     `;
 
-    root.querySelector('[data-create-location]').addEventListener('click', () => edit(null));
-    root.querySelector('[data-create-current]').addEventListener('click', () => edit(null, '', true));
+    root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
       onOpen: id => edit(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
@@ -140,6 +150,9 @@ export async function openLocationsView(root, {
   }
 
   async function edit(item = null, selectedParent = '', useGps = false) {
+    releaseEditor?.();
+    releaseEditor = null;
+    headerActions?.replaceChildren();
     unbindSwipes?.();
     unbindSwipes = null;
     const isNew = !item;
@@ -337,8 +350,7 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
-    enhanceLocationEditor(root, { isNew, skipInitialFocus: useGps });
-    if (useGps) root.querySelector('[data-current-gps]').click();
+    releaseEditor = enhanceLocationEditor(root, { isNew, useGps, location, geocoder });
   }
 
 
@@ -453,7 +465,7 @@ export async function openLocationsView(root, {
 
   if (initialLocationId && byId.has(initialLocationId)) await edit(byId.get(initialLocationId));
   else await list();
-  return () => unbindSwipes?.();
+  return () => { unbindSwipes?.(); releaseEditor?.(); };
 }
 
 function radius(value) {
