@@ -252,6 +252,10 @@ export function enhanceLocationEditor(root, {
       const parentId = answer.slice(7);
       if (!validParent(parentId)) { feedback.textContent = 'Kies een bestaande locatie met adres.'; return; }
       setParent(parentId);
+      // Child shares the selected address unless the user explicitly enters its own.
+      if (!nameTouched && form.elements.title.value === 'Huidige locatie') {
+        change(form.elements.title, '');
+      }
       showDetails({ focusName: !form.elements.title.value.trim() });
     }
   }
@@ -285,10 +289,10 @@ export function enhanceLocationEditor(root, {
           const line1 = result.line1 || [result.street, result.number].filter(Boolean).join(' ');
           const line2 = result.line2 || [result.postcode, result.city].filter(Boolean).join(' ');
           const full = [line1, line2].filter(Boolean).join(', ');
-          if (full && !addressTouched && !form.elements.address.value.trim()) {
+          if (full && !form.elements.parentId.value && !addressTouched && !form.elements.address.value.trim()) {
             change(form.elements.address, full);
           }
-          if (!nameTouched && form.elements.title.value === 'Huidige locatie') {
+          if (!form.elements.parentId.value && !nameTouched && form.elements.title.value === 'Huidige locatie') {
             change(form.elements.title, String(line1 || result.city || 'Huidige locatie').slice(0, 80));
           }
           syncCoordinates();
