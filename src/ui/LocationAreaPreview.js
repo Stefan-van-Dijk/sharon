@@ -156,6 +156,14 @@ export function mountLocationArea(host, {
         pin.setAttribute('aria-label', 'Versleep om de GPS-positie te wijzigen');
         marker = new lib.Marker({ element: pin, draggable: true, anchor: 'bottom' })
           .setLngLat([center.lng, center.lat]).addTo(map);
+        marker.on('drag', () => {
+          const dragged = marker.getLngLat();
+          const pixels = map.project?.([dragged.lng, dragged.lat]);
+          if (pixels) {
+            overlay.style.left = pixels.x + 'px';
+            overlay.style.top = pixels.y + 'px';
+          }
+        });
         marker.on('dragend', () => {
           const point = marker.getLngLat();
           updatePoint({ lat: point.lat, lng: point.lng });
