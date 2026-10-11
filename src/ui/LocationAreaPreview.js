@@ -72,7 +72,9 @@ export function mountLocationArea(host, {
     // Screen geometry stays fixed, while the basemap zoom changes.
     ring.style.width = AREA_RADIUS_PX * 2 + 'px';
     ring.style.height = AREA_RADIUS_PX * 2 + 'px';
-    ring.style.setProperty('--sh-area-fade-start', fadeStartPercent(getRadius?.(), getAccuracy?.()) + '%');
+    const start = fadeStartPercent(getRadius?.(), getAccuracy?.());
+    ring.style.setProperty('--sh-area-fade-start', start + '%');
+    ring.style.setProperty('--sh-area-fade-middle', (start + 100) / 2 + '%');
     const accuracy = Number(getAccuracy?.()) || 0;
     note.textContent = accuracy > 0
       ? 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · GPS ±' + Math.round(accuracy) + ' m'
