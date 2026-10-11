@@ -33,6 +33,9 @@ test('location preview reuses existing Sharon basemap, no GPS watcher', async ()
   assert.ok(file.includes("marker.on('dragend'"));
   assert.ok(file.includes("radial") === false, 'soft edge should be CSS driven');
   assert.ok(file.includes("map.remove()"));
+  assert.ok(file.includes("loadSharonRenderer(loadRenderer)"));
+  assert.ok(file.includes("createSharonMap(lib"));
+  assert.ok(file.includes("new ResizeObserver(resize)"));
   assert.ok(!file.includes("navigator.geolocation"));
 });
 
@@ -77,7 +80,7 @@ test('map initialization configures the MapLibre ESM worker and slider zoom chan
     });
     await view.update();
     assert.match(workerUrl, /maplibre-gl-worker\.mjs$/);
-    assert.equal(workerCount, 1);
+    assert.equal(workerCount, 2);
     assert.equal(savedMap.options.interactive, true);
     assert.equal(savedMap.options.center[0], 5);
     const firstZoom = savedMap.options.zoom;
