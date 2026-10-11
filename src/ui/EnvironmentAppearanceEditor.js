@@ -54,7 +54,6 @@ export function createEnvironmentAppearanceEditor(root, store, {
           '<span>Arcering</span>',
           '<button type="button" class="environment-hatch-current" data-style-hatch aria-label="Arcering kiezen" aria-expanded="false">',
             '<span data-hatch-current-preview></span>',
-            '<small data-hatch-current-name>Geen</small>',
           '</button>',
           '<button type="button" data-inherit-field="hatch" aria-label="Arcering van groep overnemen" disabled>↶</button>',
         '</div>',
@@ -125,7 +124,6 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const hatchInput = get('[data-style-hatch]');
   const hatchPicker = get('[data-hatch-picker]');
   const hatchPreview = get('[data-hatch-current-preview]');
-  const hatchName = get('[data-hatch-current-name]');
   const strokeLabel = get('[data-style-stroke-label]');
   const strokeRow = get('[data-style-stroke-row]');
   const strokeInput = get('[data-style-stroke]');
@@ -221,7 +219,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     stroke: selectedId === 'buildings', width: false, dash: false, scale: false
   } : selectedId ? {
     fill: !!(child().fill || child().background),
-    hatch: !!child().fill,
+    hatch: !!(child().fill || child().background),
     stroke: !!child().lines?.length,
     width: !!child().lines?.length,
     dash: !!child().lines?.length,
@@ -417,7 +415,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (caps.hatch) {
       const active = values.hatch || 'none';
       hatchPreview.innerHTML = environmentHatchPreview(active, 'current');
-      hatchName.textContent = HATCH_OPTIONS.find(option => option.id === active)?.label || 'Geen';
+      const label = HATCH_OPTIONS.find(option => option.id === active)?.label || 'Geen';
+      hatchInput.setAttribute('aria-label', 'Arcering kiezen: ' + label);
       for (const button of hatchPicker.querySelectorAll('[data-hatch-choice]'))
         button.setAttribute('aria-pressed', String(button.dataset.hatchChoice === active));
     } else closeHatchPicker();
