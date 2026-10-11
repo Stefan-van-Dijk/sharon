@@ -1,3 +1,4 @@
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.1.98';
 import {
   environmentIdForPoint,
   environmentPointId
@@ -14,11 +15,7 @@ import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
 } from './EnvironmentScale.js?v=0.1.90';
 
-// World geography stays with a vector tile provider; Sharon saves only its own objects.
-// Pin the renderer version instead of relying on a moving CDN "latest".
-const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
-const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
-const MAPLIBRE_WORKER = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl-worker.mjs';
+// Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
 let lastCamera = null;
 const LOCAL_LAYERS = Object.freeze(['sharon-points', 'sharon-lines', 'sharon-polygons', 'sharon-polygon-outlines']);
@@ -45,15 +42,6 @@ function visibleSpanMeters(map) {
 
 function areaLengthForWidth(meters) {
   return meters < 3000 ? 6 : meters < 100000 ? 4 : 2;
-}
-
-function ensureRendererStyle() {
-  if (document.querySelector('[data-sharon-maplibre-css]')) return;
-  const css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = MAPLIBRE_CSS;
-  css.dataset.sharonMaplibreCss = 'true';
-  document.head.append(css);
 }
 
 function statusMessage(container, title, detail) {
@@ -163,11 +151,8 @@ function updateReadout(map, userPoint, scaleButton, readout) {
  */
 // MapLibre 6's ESM namespace exposes Map, but no supported() helper.
 export function createMapLibreInstance(library, options) {
-  if (typeof library?.Map !== 'function') {
-    throw new Error('De kaartbibliotheek kon niet worden geladen.');
-  }
-  // A genuine GPU/WebGL failure will be raised by the constructor itself.
-  return new library.Map(options);
+  // Same constructor used by the location card.
+  return createSharonMap(library, options);
 }
 
 export function openEnvironmentView(root, {
@@ -419,9 +404,7 @@ export function openEnvironmentView(root, {
     ]);
     if (disposed) return;
     rendererLibrary = lib;
-    // MapLibre 6 ESM requires an explicit module-worker URL.
-    lib.setWorkerUrl?.(MAPLIBRE_WORKER);
-    lib.setWorkerCount?.(2);
+    configureRenderer(lib);
     const camera = saved?.value;
     const hasCamera = !positionRequested && isCoordinate(camera) && Number.isFinite(camera.zoom);
     if (hasCamera) { followingPosition = false; awaitingFirstPosition = false; }
