@@ -14,7 +14,7 @@ test('Sharon beheert sublocaties zonder module-import/export', async () => {
   assert.ok(source.includes('name="parentId"'));
   assert.ok(source.includes('name="address"'));
   assert.ok(!source.includes('data-import'));
-  assert.ok(source.includes('headerActions.append(headerSave)'));
+  assert.ok(source.includes('saveInHeader: false'));
 });
 
 test('service worker cachet de hiërarchiemodule met dezelfde buildversie', async () => {
