@@ -1,8 +1,8 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.77';
-import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.77';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.78';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.78';
 import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.78';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.77';
+  from './EnvironmentScale.js?v=0.1.78';
 
 // Keep v1: all individual customizations made in previous Sharon versions survive.
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
