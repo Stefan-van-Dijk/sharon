@@ -1,3 +1,5 @@
+import { focusTextField } from './TextInputFocus.js?v=0.1.93';
+
 // An onboarding-like presentation for the existing location form.
 // Fields, save handlers, address lookup and GPS controls remain in LocationsView.
 const QUESTIONS = [
@@ -13,7 +15,7 @@ const esc = value => String(value ?? '').replace(/[&<>]/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;'
 })[character]);
 
-export function enhanceLocationEditor(root, { isNew = false } = {}) {
+export function enhanceLocationEditor(root, { isNew = false, skipInitialFocus = false } = {}) {
   const page = root.querySelector('.location-editor-view');
   const form = page?.querySelector('[data-location-form]');
   if (!page || !form || form.dataset.guided === '1') return;
@@ -197,7 +199,8 @@ export function enhanceLocationEditor(root, { isNew = false } = {}) {
     return true;
   }
 
-  function show(nextStep) {
+  function show(nextStep, { focus = true } = {}) {
+    const lastStep = step;
     step = Math.max(0, Math.min(QUESTIONS.length - 1, nextStep));
     scenes.forEach((scene, index) => { scene.hidden = index !== step; });
     counter.textContent = (isNew ? 'Toevoegen' : 'Aanpassen') + ' · ' + (step + 1) + ' / ' + QUESTIONS.length;
@@ -209,6 +212,18 @@ export function enhanceLocationEditor(root, { isNew = false } = {}) {
     if (status) status.textContent = '';
     if (step === QUESTIONS.length - 1) renderSummary();
     form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
+    // Focus before any await/animation: iOS can open the keyboard during
+    // the same tap on Verder/Terug, rather than requiring a second tap.
+    if (focus) {
+      const target = step === 0 ? scenes[0].querySelector('[name="address"]')
+        : step === 1 ? scenes[1].querySelector('[name="title"]') : null;
+      if (target) {
+        focusTextField(target);
+      } else if (lastStep !== step && form.contains(document.activeElement)) {
+        // Choice/review steps should not leave a text keyboard covering the options.
+        document.activeElement?.blur?.();
+      }
+    }
     showQuestion(QUESTIONS[step]);
   }
 
@@ -242,5 +257,5 @@ export function enhanceLocationEditor(root, { isNew = false } = {}) {
     }
   });
 
-  show(0);
+  show(0, { focus: !skipInitialFocus });
 }
