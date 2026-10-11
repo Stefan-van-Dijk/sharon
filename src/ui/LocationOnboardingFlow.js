@@ -168,6 +168,10 @@ export function enhanceLocationEditor(root, {
       form.elements.lng.value = point.lng;
       foundAccuracy = Number.isFinite(point.accuracy) ? Math.round(point.accuracy) : null;
       detectionStatus.textContent = 'Positie gevonden.';
+      if (!form.elements.title.value.trim()) form.elements.title.value = 'Huidige locatie';
+      showDetails();
+      setStatus('Positie gevonden. Adres wordt gecontroleerd…');
+      // Show the coordinates immediately; reverse geocoding may be slow.
       if (geocoder?.reverse) {
         try {
           const addr = await geocoder.reverse(point);
@@ -179,7 +183,7 @@ export function enhanceLocationEditor(root, {
             if (formatted && !form.elements.address.value.trim()) {
               form.elements.address.value = formatted;
             }
-            if (!form.elements.title.value.trim()) {
+            if (form.elements.title.value === 'Huidige locatie') {
               form.elements.title.value = String(line1 || addr.city || 'Huidige locatie').slice(0, 80);
             }
           }
@@ -187,10 +191,10 @@ export function enhanceLocationEditor(root, {
           // GPS remains usable if geocoding fails.
         }
       }
-      if (!form.elements.title.value.trim()) form.elements.title.value = 'Huidige locatie';
-      if (destroyed || !form.isConnected) return;
-      showDetails();
-      setStatus('Positie gevonden. Controleer de gegevens en pas ze eventueel aan.');
+      if (!destroyed && form.isConnected) {
+        updatePreview();
+        setStatus('Controleer de gegevens en pas ze eventueel aan.');
+      }
     } catch (error) {
       if (!destroyed) detectionStatus.textContent = error?.message || 'Locatie kon niet worden bepaald.';
     } finally {
@@ -217,7 +221,15 @@ export function enhanceLocationEditor(root, {
   next.addEventListener('click', continueManually);
   back.addEventListener('click', showStart);
   ['title', 'address', 'lat', 'lng'].forEach(name =>
-    form.elements[name]?.addEventListener('input', updatePreview));
+    form.elements[name]?.addEventListener('input', () => {
+      if (name === 'lat' || name === 'lng') foundAccuracy = null;
+      updatePreview();
+    }));
+  fields.trigger?.querySelector('[name="triggerEnabled"]')?.addEventListener('change', event => {
+    if (event.currentTarget.checked) {
+      focusTextField(fields.trigger.querySelector('[name="triggerMessage"]'));
+    }
+  });
 
   // A visual viewport shrinks when iOS opens its keyboard. A fixed footer
   // is lifted into the visible part of the screen on resize AND scroll.
