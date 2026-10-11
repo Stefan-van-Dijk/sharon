@@ -337,7 +337,7 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
-    enhanceLocationEditor(root, { isNew });
+    enhanceLocationEditor(root, { isNew, skipInitialFocus: useGps });
     if (useGps) root.querySelector('[data-current-gps]').click();
   }
 
