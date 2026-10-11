@@ -66,7 +66,7 @@ export async function openLocationsView(root, {
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
         </div>
         <div class="sh-locations-transfer">
-          <label class="sh-location-file">Importeer uit Log<input type="file" accept=".json,application/json" data-import hidden></label>
+          <button type="button" data-import-button>Importeer uit Log</button><input type="file" accept=".json,application/json" data-import hidden>
           <button type="button" data-export>Exporteer</button>
         </div>
         <p class="sh-location-feedback" role="status" data-list-status>${escapeHtml(status)}</p>
@@ -112,6 +112,7 @@ export async function openLocationsView(root, {
         root.querySelector('[data-list-status]').textContent = error.message;
       }
     });
+    root.querySelector('[data-import-button]').addEventListener('click', () => root.querySelector('[data-import]').click());
     root.querySelector('[data-export]').addEventListener('click', () => exportLocations());
   }
 
