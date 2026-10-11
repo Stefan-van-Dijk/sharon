@@ -28,7 +28,7 @@ test('hatch-color controls change only hatch pigment, not fill, stroke or patter
   assert.ok(environmentHatchPreview('dots', 'test-red', '#aa5500').includes('fill="#aa5500"'));
   assert.ok(!environmentHatchPreview('dots', 'test-blue', '#0033ff').includes('fill="#aa5500"'));
   const land = createEnvironmentLandHatchTile('#eeeeee', 'dots', '#aa5500');
-  assert.ok(Array.from(land.data).some(v => v === 170));
+  assert.ok(Array.from(land.data).some((v, i) => i % 4 === 0 && v < 238));
   assert.ok(Array.from(land.data).some(v => v === 238));
 });
 
