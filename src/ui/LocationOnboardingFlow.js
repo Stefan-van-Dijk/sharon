@@ -25,7 +25,7 @@ export function suggestedParents(point, places = [], selectedId = '') {
     .sort((a, b) => a.meters - b.meters || String(a.title).localeCompare(String(b.title), 'nl'));
   const selected = ranked.find(item => item.id === selectedId);
   return [selected, ...ranked].filter((item, index, list) =>
-    item && list.findIndex(other => other.id === item.id) === index).slice(0, 3);
+    item && list.findIndex(other => other?.id === item.id) === index).slice(0, 3);
 }
 const validPoint = point => {
   const lat = Number(point?.lat), lng = Number(point?.lng);
