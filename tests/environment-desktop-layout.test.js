@@ -27,7 +27,7 @@ test('discreet 10px black dot has larger pointer hit target and keyboard accessi
   assert.ok(map.includes('aria-label="Kaartstijl aanpassen"'));
   assert.ok(map.includes('aria-pressed="false" aria-expanded="false"'));
   assert.ok(css.includes('.app-stage.is-environment .environment-desktop-style-toggle{'));
-  assert.ok(css.includes('@media (max-width:899px){'));
+  assert.ok(css.includes('.app-stage.is-environment .environment-desktop-style-toggle{display:none}'));
   assert.ok(css.includes('display:grid;place-items:center;position:absolute;'));
   assert.ok(css.includes('left:max(16px,env(safe-area-inset-left));'));
   assert.ok(css.includes('bottom:max(16px,env(safe-area-inset-bottom));'));
@@ -58,14 +58,17 @@ test('mobile readout swipe and map rendering remain intact', async () => {
   assert.ok(map.includes('map.resize()'));
 });
 
-test('touchscreen style dot keeps safe area and avoids mobile overlays', async () => {
+test('narrow screens hide dot and hit area; swipe opens style while wide screens keep button', async () => {
   const [css,controller] = await Promise.all([readFile(html,'utf8'),readFile(editor,'utf8')]);
-  assert.ok(css.includes('left:max(12px,env(safe-area-inset-left));'));
-  assert.ok(css.includes('bottom:calc(max(12px,env(safe-area-inset-bottom)) + 108px);'));
-  assert.ok(css.includes('@media (max-width:899px){'));
-  assert.ok(css.includes('.environment-desktop-style-toggle[aria-pressed="true"]{'));
+  assert.ok(css.includes('.app-stage.is-environment .environment-desktop-style-toggle{display:none}'));
+  const desktop = css.slice(css.indexOf('    @media (min-width:900px){'));
+  assert.ok(desktop.includes('.app-stage.is-environment .environment-desktop-style-toggle{'));
+  assert.ok(desktop.includes('display:grid;place-items:center;position:absolute;'));
+  assert.ok(!css.includes('bottom:calc(max(12px,env(safe-area-inset-bottom)) + 108px);'));
   assert.ok(!css.includes('@media (min-width:900px) and (pointer:fine)'));
   assert.ok(controller.includes("listen(positionSide, 'touchstart', beginSwipe"));
+  assert.ok(controller.includes("listen(positionSide, 'touchmove', moveSwipe"));
+  assert.ok(controller.includes("if (horizontal && dx >= 58) setStyleMode(true)"));
   assert.ok(controller.includes("listen(desktopStyleToggle, 'click'"));
 });
 
