@@ -8,6 +8,7 @@ import {
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 import {
   HATCH_OPTIONS, createEnvironmentHatchTile, environmentHatchPreview,
+  createEnvironmentLandHatchTile, applyEnvironmentLandHatch, LAND_HATCH_IMAGE_ID,
   environmentHatchImageId, registerEnvironmentHatches
 } from '../src/ui/EnvironmentHatch.js';
 
@@ -66,7 +67,7 @@ test('hatch tiles are seamless transparent textures with bounded pixels, no netw
   };
   registerEnvironmentHatches(mock);
   registerEnvironmentHatches(mock); // idempotent after map has loaded
-  assert.equal(images.size, 15);
+  assert.equal(images.size, 16);
 });
 
 test('hatch inheritance remains independent of fill and outline, with explicit none deviation', () => {
@@ -78,7 +79,7 @@ test('hatch inheritance remains independent of fill and outline, with explicit n
     major: { hatch: 'dots' },
     green: { hatch: 'invalid', fill: '#bad' }
   });
-  assert.deepEqual(saved.land, { fill: '#fafafa' });
+  assert.deepEqual(saved.land, { hatch: 'dots', fill: '#fafafa' });
   assert.ok(!saved.major);
   assert.ok(!saved.green);
   assert.equal(resolvedEnvironmentAppearance(saved, 'grassland').hatch, 'diagonal');
@@ -180,6 +181,66 @@ test('buildings move into Basis without losing former per-group styles', () => {
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').fill, '#d1d2d3');
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').stroke, '#112233');
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').hatch, 'none');
-  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'none');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'dots');
   assert.equal(sanitizeEnvironmentAppearance(saved).buildings.width, 2);
+});
+
+
+test('Land supports hatching with preserved fill color and live sprite updates', () => {
+  const tile = createEnvironmentLandHatchTile('#ffeedd', 'diagonal');
+  assert.equal(tile.width, 16);
+  assert.equal(tile.height, 16);
+  const samples = Array.from({length:256}, (_,i) => tile.data.slice(i*4,i*4+4));
+  assert.ok(samples.some(p=>p[0]===255 && p[1]===238 && p[2]===221 && p[3]===255));
+  assert.ok(samples.some(p=>p[0]!==255 && p[1]!==238 && p[2]!==221 && p[3]===255));
+  assert.equal(createEnvironmentLandHatchTile('#ffeedd', 'none'), null);
+  const images = new Map();
+  const paints = [];
+  const map = {
+    getLayer:id=>id==='background',
+    hasImage:id=>images.has(id),
+    addImage:(id,image)=>images.set(id,image),
+    updateImage:(id,image)=>images.set(id,image),
+    setPaintProperty:(id,key,value)=>paints.push([id,key,value])
+  };
+  applyEnvironmentLandHatch(map,'#ffeedd','diagonal');
+  assert.ok(images.has(LAND_HATCH_IMAGE_ID));
+  assert.deepEqual(paints.at(-1), ['background','background-pattern',LAND_HATCH_IMAGE_ID]);
+  applyEnvironmentLandHatch(map,'#123456','dots');
+  const updated=images.get(LAND_HATCH_IMAGE_ID);
+  assert.ok(Array.from(updated.data).some(x=>x===0x12));
+  applyEnvironmentLandHatch(map,'#123456','none');
+  assert.deepEqual(paints.at(-1),['background','background-pattern',null]);
+  assert.equal(images.size,1);
+});
+
+test('Land hatch inherits Basis setting while preserving user selected background color', () => {
+  const calls=[],images=new Map();
+  const map={
+    getLayer:id=>id==='background',
+    hasImage:id=>images.has(id),
+    addImage:(id,img)=>images.set(id,img),
+    updateImage:(id,img)=>images.set(id,img),
+    setPaintProperty:(id,key,val)=>calls.push([id,key,val])
+  };
+  const appearance=sanitizeEnvironmentAppearance({
+    groupStyles:{basis:{fill:'#bbaacc',hatch:'cross'}},
+    land:{fill:'#abcdef'}
+  });
+  assert.equal(appearance.groupStyles.basis.hatch,'cross');
+  assert.equal(resolvedEnvironmentAppearance(appearance,'land').hatch,'cross');
+  applyEnvironmentAppearance(map,appearance,'land');
+  assert.ok(calls.some(x=>x[0]==='background'&&x[1]==='background-color'&&x[2]==='#abcdef'));
+  assert.ok(calls.some(x=>x[0]==='background'&&x[1]==='background-pattern'&&x[2]===LAND_HATCH_IMAGE_ID));
+  const sprite=images.get(LAND_HATCH_IMAGE_ID);
+  assert.ok(sprite&&sprite.data.length===1024);
+});
+
+test('only the selected hatch motif is visible in style editor, never its name', async () => {
+  const {readFile}=await import('node:fs/promises');
+  const text=await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js',import.meta.url),'utf8');
+  assert.ok(text.includes("hatch: !!(child().fill || child().background)"));
+  assert.ok(text.includes('data-hatch-current-preview'));
+  assert.ok(!text.includes('data-hatch-current-name'));
+  assert.ok(text.includes("'aria-label', 'Arcering kiezen: '"));
 });
