@@ -19,7 +19,13 @@ export const HATCH_OPTIONS = Object.freeze([
   { id: 'diamonds', label: 'Ruiten' }
 ]);
 
+export const DEFAULT_HATCH_COLOR = '#3e4549';
 export const environmentHatchImageId = id => 'sharon-hatch-' + id;
+const hatchRGB = color => /^#[0-9a-f]{6}$/i.test(color)
+  ? [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16))
+  : [62, 69, 73];
+export const environmentColoredHatchImageId = (groupId, index = null) =>
+  'sharon-hatch-custom-' + groupId + (index === null ? '' : '-' + index);
 const mod = (n, divisor) => ((n % divisor) + divisor) % divisor;
 
 function pixelOn(kind, x, y) {
@@ -49,15 +55,16 @@ function pixelOn(kind, x, y) {
   }
 }
 
-export function createEnvironmentHatchTile(kind) {
+export function createEnvironmentHatchTile(kind, color = DEFAULT_HATCH_COLOR) {
   if (!HATCH_OPTIONS.some(entry => entry.id === kind && kind !== 'none')) return null;
   const size = 16;
   const data = new Uint8Array(size * size * 4);
+  const rgb = hatchRGB(color);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       if (!pixelOn(kind, x, y)) continue;
       const i = (y * size + x) * 4;
-      data[i] = 62; data[i + 1] = 69; data[i + 2] = 73;
+      data[i] = rgb[0]; data[i + 1] = rgb[1]; data[i + 2] = rgb[2];
       data[i + 3] = kind === 'crossfine' || kind === 'grid' ? 145 : 185;
     }
   }
@@ -66,11 +73,11 @@ export function createEnvironmentHatchTile(kind) {
 
 // Same pixels in the map and the picker: compact SVG path, no remote assets.
 // Safe token is supplied from fixed ids and unique per preview occurrence.
-export function environmentHatchPreview(kind, token) {
+export function environmentHatchPreview(kind, token, color = DEFAULT_HATCH_COLOR) {
   if (kind === 'none' || !createEnvironmentHatchTile(kind)) {
     return '<svg viewBox="0 0 64 30" aria-hidden="true"><rect x="1" y="1" width="62" height="28" fill="none" stroke="#b0b0b5" stroke-dasharray="3 3"/><path d="M6 26L58 4" stroke="#b5b5ba" stroke-width="1.2"/></svg>';
   }
-  const { width, height, data } = createEnvironmentHatchTile(kind);
+  const { width, height, data } = createEnvironmentHatchTile(kind, color);
   let path = '';
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -78,8 +85,9 @@ export function environmentHatchPreview(kind, token) {
     }
   }
   const id = 'sharon-hatch-preview-' + token;
+  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_HATCH_COLOR;
   return '<svg viewBox="0 0 64 30" aria-hidden="true"><defs><pattern id="' + id +
-    '" width="16" height="16" patternUnits="userSpaceOnUse"><path fill="#53585c" d="' +
+    '" width="16" height="16" patternUnits="userSpaceOnUse"><path fill="' + safeColor + '" d="' +
     path + '"/></pattern></defs><rect width="64" height="30" fill="url(#' + id +
     ')"/></svg>';
 }
@@ -88,10 +96,10 @@ export function environmentHatchPreview(kind, token) {
 // color+lines sprite instead of a transparent one so the user's land color
 // remains visible below the chosen hatch.
 export const LAND_HATCH_IMAGE_ID = 'sharon-land-hatch-current';
-export function createEnvironmentLandHatchTile(color, hatch) {
+export function createEnvironmentLandHatchTile(color, hatch, hatchColor = DEFAULT_HATCH_COLOR) {
   const rgb = /^#[0-9a-f]{6}$/i.test(color) ? [1,3,5].map(i =>
     parseInt(color.slice(i, i + 2), 16)) : [255, 255, 255];
-  const hatchTile = createEnvironmentHatchTile(hatch);
+  const hatchTile = createEnvironmentHatchTile(hatch, hatchColor);
   if (!hatchTile) return null;
   const pixels = new Uint8Array(16 * 16 * 4);
   for (let i = 0; i < pixels.length; i += 4) {
@@ -103,10 +111,10 @@ export function createEnvironmentLandHatchTile(color, hatch) {
   }
   return { width: 16, height: 16, data: pixels };
 }
-export function applyEnvironmentLandHatch(map, color, hatch) {
+export function applyEnvironmentLandHatch(map, color, hatch, hatchColor = DEFAULT_HATCH_COLOR) {
   if (typeof map.getLayer !== 'function' || !map.getLayer('background') ||
       typeof map.setPaintProperty !== 'function') return;
-  const tile = createEnvironmentLandHatchTile(color, hatch);
+  const tile = createEnvironmentLandHatchTile(color, hatch, hatchColor);
   if (!tile) {
     map.setPaintProperty('background', 'background-pattern', null);
     return;
@@ -118,6 +126,22 @@ export function applyEnvironmentLandHatch(map, color, hatch) {
   } else map.addImage(LAND_HATCH_IMAGE_ID, tile);
   map.setPaintProperty('background', 'background-pattern', LAND_HATCH_IMAGE_ID);
 }
+// One stable custom image per subgroup/height band. updateImage avoids
+// unbounded sprite accumulation when a user drags the native color picker.
+export function applyEnvironmentColoredHatch(map, groupId, hatch, color, index = null) {
+  if (!hatch || hatch === 'none') return environmentHatchImageId('none');
+  if (!/^#[0-9a-f]{6}$/i.test(color) ||
+      typeof map.addImage !== 'function') return environmentHatchImageId(hatch);
+  const id = environmentColoredHatchImageId(groupId, index);
+  const image = createEnvironmentHatchTile(hatch, color);
+  if (!image) return environmentHatchImageId('none');
+  if (map.hasImage?.(id)) {
+    if (typeof map.updateImage !== 'function') return environmentHatchImageId(hatch);
+    map.updateImage(id, image);
+  } else map.addImage(id, image);
+  return id;
+}
+
 export function registerEnvironmentHatches(map) {
   if (typeof map.addImage !== 'function') return;
   // An explicit fully transparent sprite allows feature-driven fill-patterns
