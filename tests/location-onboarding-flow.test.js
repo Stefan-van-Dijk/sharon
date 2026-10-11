@@ -9,7 +9,7 @@ test('guided location creation and editing use the same onboarding flow', async 
   const locations = await read('../src/ui/LocationsView.js');
   const guided = await read('../src/ui/LocationOnboardingFlow.js');
   assert.equal(typeof enhanceLocationEditor, 'function');
-  assert.ok(locations.includes('enhanceLocationEditor(root, { isNew })'));
+  assert.ok(locations.includes('enhanceLocationEditor(root, { isNew, skipInitialFocus: useGps })'));
   assert.ok(guided.includes("const QUESTIONS = ["));
   assert.ok(guided.includes("'Waar ligt deze plek?'"));
   assert.ok(guided.includes("'Hoe zullen we deze plek noemen?'"));
