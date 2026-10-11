@@ -31,6 +31,7 @@ export function typeLocationConclusion(element, sentence, { reducedMotion = fals
     return () => {};
   }
   element.textContent = '';
+  element.classList?.add?.('is-typing');
   let index = 0;
   function writeNext() {
     if (stopped || !element.isConnected) return;
@@ -40,11 +41,14 @@ export function typeLocationConclusion(element, sentence, { reducedMotion = fals
       const char = value[index - 1];
       const delay = /[.,:]/.test(char) ? 100 : char === ' ' ? 12 : speed;
       handle = setTimeout(writeNext, delay);
+    } else {
+      element.classList?.remove?.('is-typing');
     }
   }
   writeNext();
   return () => {
     stopped = true;
     if (handle !== null) clearTimeout(handle);
+    element.classList?.remove?.('is-typing');
   };
 }
