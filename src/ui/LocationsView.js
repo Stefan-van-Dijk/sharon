@@ -1,10 +1,10 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.92';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.93';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.92';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.93';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.1.92';
+} from '../core/location/LocationHierarchy.js?v=0.1.93';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -337,7 +337,7 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
-    enhanceLocationEditor(root, { isNew });
+    enhanceLocationEditor(root, { isNew, skipInitialFocus: useGps });
     if (useGps) root.querySelector('[data-current-gps]').click();
   }
 

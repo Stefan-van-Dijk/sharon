@@ -1,3 +1,5 @@
+import { focusTextField } from './TextInputFocus.js?v=0.1.93';
+
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
 const WELCOME_MS = 850;
@@ -55,6 +57,7 @@ function askForName(root, { initialName = '' } = {}) {
 
   const form = panel.querySelector('[data-sharon-intro-form]');
   const input = form.querySelector('input[name="name"]');
+  focusTextField(input);
 
   return new Promise(resolve => {
     form.addEventListener('submit', event => {

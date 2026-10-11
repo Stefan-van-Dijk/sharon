@@ -1,4 +1,5 @@
 import { sharonWordmark } from './Brand.js?v=0.1.42';
+import { focusTextField } from './TextInputFocus.js?v=0.1.93';
 
 const PLACE_TYPES = [
   { id: 'home', label: 'Thuis' },
@@ -189,6 +190,7 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 
   const form = stage.querySelector('[data-place-search]');
   const results = stage.querySelector('[data-place-results]');
+  focusTextField(form.querySelector('input[name="query"]'));
 
   return new Promise(resolve => {
     if (fallback) {
