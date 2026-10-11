@@ -95,7 +95,8 @@ test('hatch symbol fills the whole button, without nested dashed box', async () 
   assert.ok(!preview.includes('stroke-dasharray'));
   assert.ok(css.includes('display:block;width:100%;max-width:none;height:100%;overflow:hidden'));
   assert.ok(css.includes('padding:0;background:rgba(255,255,255,.68);overflow:hidden'));
-  assert.ok(css.includes('.environment-style-group.is-source-unavailable'));
+  assert.ok(!css.includes('.environment-style-group.is-source-unavailable'));
+  assert.ok(!css.includes('extra objectgegevens nodig'));
   const editor=await readFile(new URL('../src/ui/EnvironmentAppearanceEditor.js',import.meta.url),'utf8');
   assert.ok(!editor.includes('is-source-unavailable'));
   assert.ok(!editor.includes('extra objectgegevens nodig'));
