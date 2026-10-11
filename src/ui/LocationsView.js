@@ -253,6 +253,7 @@ export async function openLocationsView(root, {
         if (!form.isConnected) return;
         form.elements.lat.value = pos.lat;
         form.elements.lng.value = pos.lng;
+        form.elements.lat.dispatchEvent(new Event('input', { bubbles: true }));
         setStatus(`GPS ingesteld · nauwkeurigheid ±${Math.round(pos.accuracy)} m`);
       } catch (error) { setStatus(error.message); }
       finally { button.disabled = false; }
@@ -268,6 +269,7 @@ export async function openLocationsView(root, {
         if (!form.isConnected) return;
         form.elements.lat.value = found.lat;
         form.elements.lng.value = found.lng;
+        form.elements.lat.dispatchEvent(new Event('input', { bubbles: true }));
         pickedAddress = null;
         setStatus('GPS ingevuld vanuit het gevonden adres. Controleer de positie.');
       } catch (error) { setStatus(error.message); }
@@ -282,6 +284,7 @@ export async function openLocationsView(root, {
         if (!result || !form.isConnected) return;
         pickedAddress = { street: result.street, number: result.number, postcode: result.postcode, city: result.city };
         form.elements.address.value = addressText(pickedAddress);
+        form.elements.address.dispatchEvent(new Event('input', { bubbles: true }));
         setStatus('Adres overgenomen. Controleer en bewaar de locatie.');
       } catch (error) { setStatus(error.message); }
     });
