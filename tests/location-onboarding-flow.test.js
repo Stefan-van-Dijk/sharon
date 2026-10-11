@@ -61,13 +61,25 @@ test('all existing data fields and actions remain saved once', async () => {
   assert.ok(!locations.includes('data-export'));
 });
 
-test('range changes map zoom, category chips write to original select, map has current GPS button', async () => {
+test('map zoom sets recognition radius; changing GPS requires explicit action', async () => {
   const flow = await read('../src/ui/LocationOnboardingFlow.js');
   const worker = await read('../service-worker.js');
-  assert.ok(flow.includes("radiusRange.addEventListener('input'"));
-  assert.ok(flow.includes('mapView.update()'));
+  assert.ok(flow.includes("onRadiusChange: radius =>"));
+  assert.ok(flow.includes("form.elements.radiusM.value = String(radius)"));
+  assert.ok(flow.includes("mapView?.setPositionEditable(positionEditing)"));
+  assert.ok(flow.includes("view.querySelector('[data-zoom-in]')"));
+  assert.ok(flow.includes("view.querySelector('[data-zoom-out]')"));
   assert.ok(flow.includes('typeSelect.value = option.value'));
-  assert.ok(flow.includes("view.querySelector('[data-map-controls]').append(gpsButton)"));
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.98"));
-  assert.ok(worker.includes("const BUILD = '0.1.98'"));
+  assert.ok(flow.includes('mapControls.append(gpsButton)'));
+  assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.99"));
+  assert.ok(worker.includes("const BUILD = '0.1.99'"));
+});
+
+test('isolated locations show no unnecessary main-location choices', async () => {
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  assert.ok(flow.includes('parentSection.hidden = suggestions.length === 0 && !chosen'));
+  assert.ok(flow.includes("nearbyKnownLocations(point, eligible, accuracy)"));
+  assert.ok(flow.includes("view.querySelector('[data-more-fields]').prepend(parentLabel)"));
+  assert.ok(flow.includes("moreSettings.open = true"));
 });
