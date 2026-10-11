@@ -8,19 +8,19 @@ import {
 } from '../src/ui/EnvironmentAppearance.js';
 import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 
-test('nine groups keep thirty-seven distinct editable parts including buildings under Basis', () => {
+test('ten groups include an infrastructure group and clear source availability including buildings under Basis', () => {
   assert.deepEqual(APPEARANCE_SECTIONS.map(group => group.label),
-    ['Basis', 'Water', 'Wegen', 'Transport', 'Groen',
+    ['Basis', 'Water', 'Wegen', 'Transport', 'Kunstwerken', 'Groen',
       'Zand & kust', 'Natte natuur', 'Landbouw', 'Rots & ijs']);
-  assert.equal(APPEARANCE_GROUPS.length, 37);
-  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 37);
+  assert.equal(APPEARANCE_GROUPS.length, 44);
+  assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 44);
   assert.equal(appearanceSectionFor('forest').id, 'green');
   assert.equal(appearanceSectionFor('buildings').id, 'basis');
   assert.deepEqual(APPEARANCE_SECTIONS.find(section => section.id === 'basis').items,
     ['land', 'borders', 'buildings']);
   assert.equal(appearanceSectionFor('motorway').id, 'roads');
   assert.deepEqual(APPEARANCE_SECTIONS.find(group => group.id === 'transport').items,
-    ['rail', 'runways', 'taxiways', 'piers']);
+    ['rail', 'runways', 'taxiways']);
 });
 
 test('group color and thickness inherit separately, native defaults stay intact', () => {
