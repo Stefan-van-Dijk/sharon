@@ -10,7 +10,7 @@ import { environmentZoomForSpan } from '../src/ui/EnvironmentScale.js';
 
 test('ten groups include an infrastructure group and clear source availability including buildings under Basis', () => {
   assert.deepEqual(APPEARANCE_SECTIONS.map(group => group.label),
-    ['Basis', 'Water', 'Wegen', 'Transport', 'Kunstwerken', 'Groen',
+    ['Basis', 'Water', 'Wegen', 'Transport', 'Objecten', 'Groen',
       'Zand & kust', 'Natte natuur', 'Landbouw', 'Rots & ijs']);
   assert.equal(APPEARANCE_GROUPS.length, 44);
   assert.equal(new Set(APPEARANCE_SECTIONS.flatMap(section => section.items)).size, 44);
