@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.84">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.84">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.85">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.85">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -889,6 +889,49 @@
         bottom:calc(max(18px,env(safe-area-inset-bottom)) + 82px);
       }
     }
+    /* Keep map provider credits visible. A single small eye button sits
+       alongside attribution and never covers its links. */
+    .environment-maplibre .maplibregl-ctrl-bottom-right{
+      align-items:center;gap:3px;
+    }
+    .environment-maplibre .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{
+      min-width:0;max-width:calc(100% - 47px);
+    }
+    .environment-maplibre .maplibregl-ctrl-bottom-right>.environment-visibility-control{
+      float:none;display:flex;align-items:center;justify-content:center;
+      width:44px;flex:0 0 44px;margin:0;background:none;
+      border:0;box-shadow:none;pointer-events:auto;
+    }
+    .environment-maplibre .environment-visibility-toggle{
+      display:grid;place-items:center;width:44px;height:44px;
+      min-width:44px;min-height:44px;padding:0;border:0;
+      border-radius:50%;background:transparent;color:#68686e;
+      cursor:pointer;touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .environment-maplibre .environment-visibility-toggle svg{
+      display:block;width:17px;height:17px;fill:none;stroke:currentColor;
+      stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+    }
+    .environment-visibility-toggle .visibility-eye-off{display:none!important}
+    .environment-visibility-toggle[aria-pressed="true"] .visibility-eye{display:none!important}
+    .environment-visibility-toggle[aria-pressed="true"] .visibility-eye-off{display:block!important}
+    .environment-visibility-toggle:focus-visible{
+      outline:2px solid #111;outline-offset:0;
+    }
+    /* Viewing-only mode: no header or other buttons, but the map and
+       obligatory credits stay interactive. This is scoped to Omgeving. */
+    .app-stage.is-environment.is-map-clean .app-header{
+      visibility:hidden;pointer-events:none;
+    }
+    .app-stage.is-environment.is-map-clean .environment-readout,
+    .app-stage.is-environment.is-map-clean .environment-style-flyout,
+    .app-stage.is-environment.is-map-clean .environment-desktop-style-toggle{
+      display:none!important;
+    }
+    .app-stage.is-environment.is-map-clean .environment-maplibre .maplibregl-ctrl-bottom-right{
+      bottom:max(12px,env(safe-area-inset-bottom));
+    }
     @media (prefers-reduced-motion:reduce){
       .brand-phrase,.brand-final,.share-word,.on-word,.merge-e,.merge-o,.sharon-mark,.intro-copy{transition-duration:.01ms!important}
       .location-pulse.is-searching::after{animation:none;opacity:.4}
@@ -917,16 +960,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.84#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.84#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.84#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.84#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.84#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.85#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.85#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.85#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.85#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.85#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.84"></script>
+  <script type="module" src="./src/main.js?v=0.1.85"></script>
 </body>
 </html>
