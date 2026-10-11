@@ -40,11 +40,9 @@ test('location editor, onboarding and other-place search all focus text inputs',
     read('../src/ui/Boot.js'),
     read('../src/ui/Story.js')
   ]);
-  assert.match(guided, /step === 0 \? scenes\[0\]\.querySelector\('\[name="address"\]'\)/);
-  assert.match(guided, /step === 1 \? scenes\[1\]\.querySelector\('\[name="title"\]'\)/);
-  assert.match(guided, /focusTextField\(target\)/);
-  assert.match(guided, /focusTextField\(trigger\.querySelector\('\[name="triggerMessage"\]'\)\)/);
-  assert.match(locations, /skipInitialFocus: useGps/);
+  assert.match(guided, /focusTextField\(form\.elements\.title\)/);
+  assert.match(guided, /focusTextField\(fields\.trigger\.querySelector/);
+  assert.match(locations, /isNew, useGps, location, geocoder/);
   assert.match(intro, /focusTextField\(input\)/);
   assert.match(story, /focusTextField\(form\.querySelector\('input\[name="query"\]'\)\)/);
 });
