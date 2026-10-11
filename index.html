@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.78">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.78">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.79">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.79">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -630,6 +630,12 @@
     }
     .environment-style-group:not(:last-child){border-right:1px solid rgba(70,70,80,.2)}
     .environment-style-group.is-selected{background:rgba(65,65,75,.11)}
+    .environment-style-group.is-height-band .environment-style-group-main span{
+      font-size:8px;color:#5f616b;
+    }
+    .environment-style-group.is-height-band.is-selected .environment-style-group-main span{
+      color:#27272d;font-weight:650;
+    }
     .environment-style-group-main{
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       gap:0;width:100%;height:100%;min-width:0!important;min-height:54px!important;
@@ -649,6 +655,14 @@
     .environment-style-colors{
       display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
       align-items:stretch;gap:4px;min-width:0;
+    }
+    /* At four applicable properties, show color squares instead of cramming
+       7-character HEX outputs into a narrow iPhone column. */
+    .environment-style-colors.is-four-col .environment-color-edit output{
+      display:none;
+    }
+    .environment-style-colors.is-four-col .environment-color-swatch{
+      width:30px;flex-basis:30px;
     }
     .environment-style-color-row{
       position:relative;display:grid;grid-template-rows:12px 27px;
@@ -853,16 +867,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.78#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.78#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.78#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.78#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.78#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.79#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.79#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.79#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.79#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.79#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.78"></script>
+  <script type="module" src="./src/main.js?v=0.1.79"></script>
 </body>
 </html>
