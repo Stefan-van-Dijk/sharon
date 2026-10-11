@@ -38,7 +38,8 @@ const validPoint = point => {
 
 export function enhanceLocationEditor(root, {
   isNew = false, location, geocoder, useGps = false,
-  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false
+  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
+  events = null
 } = {}) {
   const page = root.querySelector('.location-editor-view');
   const form = page?.querySelector('[data-location-form]');
@@ -352,6 +353,7 @@ export function enhanceLocationEditor(root, {
     // Existing LocationsView handler performs the actual GPS check.
     addressManuallyEdited = false;
   });
+  const unsubscribeLocation = events?.on?.('location.changed', () => updateConclusion());
   form.addEventListener('sh-location-accuracy', event => {
     accuracy = Number(event.detail?.accuracy) || 0;
     updateConclusion();
@@ -376,6 +378,7 @@ export function enhanceLocationEditor(root, {
   function cleanup() {
     disposed = true;
     stopTyping();
+    if (typeof unsubscribeLocation === 'function') unsubscribeLocation();
     ++geocodeRequest;
     mapView?.dispose();
     mapView = null;
