@@ -31,51 +31,51 @@ export async function openLocationsView(root, {
     setTitle('Locaties');
     unbindSwipes?.();
     const rows = orderedLocations(locations, prefs.sort, prefs.order);
-    root.innerHTML = \`
+    root.innerHTML = `
       <section class="module-view locations-view">
         <div class="sh-locations-toolbar">
           <button type="button" data-create-location>+ Locatie</button>
           <button type="button" data-create-current>Huidige positie</button>
         </div>
         <div class="sh-locations-sort" aria-label="Locaties sorteren">
-          <button type="button" data-sort="recent" \${prefs.sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
-          <button type="button" data-sort="alpha" \${prefs.sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
-          <button type="button" data-sort="custom" \${prefs.sort === 'custom' ? 'aria-pressed="true"' : ''}>Eigen</button>
+          <button type="button" data-sort="recent" ${prefs.sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
+          <button type="button" data-sort="alpha" ${prefs.sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
+          <button type="button" data-sort="custom" ${prefs.sort === 'custom' ? 'aria-pressed="true"' : ''}>Eigen</button>
         </div>
         <div class="sh-locations-list swipe-list" data-swipe-list>
-          \${rows.length ? rows.map(({ item, depth }, index) => {
+          ${rows.length ? rows.map(({ item, depth }, index) => {
             const effective = resolveLocation(item, byId);
             const own = addressText(item.data?.address);
             const parent = byId.get(parentIdOf(item));
             const secondary = own || (parent ? 'Onder ' + (parent.data?.title || 'locatie') : effective.address)
               || (effective.coordinates ? formatCoordinates(effective.coordinates) : 'Geen adres of GPS');
             const custom = prefs.sort === 'custom';
-            return \`<div class="sh-location-node" style="--nest:\${Math.min(depth, 8)}" data-node="\${escapeAttribute(item.id)}">
-              <div class="swipe-row" data-swipe-row="\${escapeAttribute(item.id)}">
+            return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}">
+              <div class="swipe-row" data-swipe-row="${escapeAttribute(item.id)}">
                 <div class="swipe-actions">
                   <button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk</button>
                   <button type="button" class="swipe-action-delete" data-swipe-delete>Verwijder</button>
                 </div>
                 <button type="button" class="clean-row swipe-surface sh-location-row" data-swipe-surface>
-                  <span class="sh-location-kind" aria-hidden="true">\${locationIcon(item.data?.kind)}</span>
+                  <span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>
                   <span class="sh-location-copy">
-                    <strong>\${escapeHtml(item.data?.title || 'Locatie')}</strong>
-                    <small>\${escapeHtml(secondary)}</small>
+                    <strong>${escapeHtml(item.data?.title || 'Locatie')}</strong>
+                    <small>${escapeHtml(secondary)}</small>
                   </span>
                   <span class="sh-location-chevron" aria-hidden="true">›</span>
                 </button>
               </div>
-              \${custom ? \`<div class="sh-location-order"><button type="button" data-move="\${escapeAttribute(item.id)}" data-direction="-1" aria-label="Omhoog">↑</button><button type="button" data-move="\${escapeAttribute(item.id)}" data-direction="1" aria-label="Omlaag">↓</button></div>\` : ''}
-              </div>\`;
+              ${custom ? `<div class="sh-location-order"><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="-1" aria-label="Omhoog">↑</button><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="1" aria-label="Omlaag">↓</button></div>` : ''}
+              </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
         </div>
         <div class="sh-locations-transfer">
           <label class="sh-location-file">Importeer uit Log<input type="file" accept=".json,application/json" data-import hidden></label>
           <button type="button" data-export>Exporteer</button>
         </div>
-        <p class="sh-location-feedback" role="status" data-list-status>\${escapeHtml(status)}</p>
+        <p class="sh-location-feedback" role="status" data-list-status>${escapeHtml(status)}</p>
       </section>
-    \`;
+    `;
 
     root.querySelector('[data-create-location]').addEventListener('click', () => edit(null));
     root.querySelector('[data-create-current]').addEventListener('click', () => edit(null, '', true));
@@ -111,7 +111,7 @@ export async function openLocationsView(root, {
       try {
         const count = await importLogLocations(JSON.parse(await file.text()));
         await reload();
-        list(count ? \`\${count} locaties geïmporteerd.\` : 'Geen nieuwe locaties gevonden.');
+        list(count ? `${count} locaties geïmporteerd.` : 'Geen nieuwe locaties gevonden.');
       } catch (error) {
         root.querySelector('[data-list-status]').textContent = error.message;
       }
@@ -134,7 +134,7 @@ export async function openLocationsView(root, {
       list('Verplaats of verwijder eerst de onderliggende locaties.');
       return;
     }
-    if (!confirm(\`“\${item.data?.title || 'Locatie'}” verwijderen?\`)) return;
+    if (!confirm(`“${item.data?.title || 'Locatie'}” verwijderen?`)) return;
     const now = Date.now();
     await store.put('objects', { ...item, updatedAt: now, deletedAt: now });
     for (const action of objects.filter(x => x.type === 'location-action' && !x.deletedAt && x.data?.locationId === id)) {
@@ -163,50 +163,50 @@ export async function openLocationsView(root, {
     setTitle(isNew ? 'Nieuwe locatie' : 'Locatie');
     const coordinateInput = (coordinate) => coordinate == null ? '' : String(coordinate);
 
-    root.innerHTML = \`
+    root.innerHTML = `
       <section class="module-view location-editor-view">
-        <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>\${isNew ? 'Toevoegen' : escapeHtml(pathForLocation(item, byId))}</span></div>
+        <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${isNew ? 'Toevoegen' : escapeHtml(pathForLocation(item, byId))}</span></div>
         <form class="location-form" data-location-form>
-          <label class="clean-field"><span>Naam</span><input type="text" name="title" maxlength="80" required value="\${escapeAttribute(original.title || '')}" placeholder="Naam van de plek"></label>
+          <label class="clean-field"><span>Naam</span><input type="text" name="title" maxlength="80" required value="${escapeAttribute(original.title || '')}" placeholder="Naam van de plek"></label>
           <label class="clean-field"><span>Onder locatie</span>
-            <select name="parentId"><option value="">Geen · hoofdlocatie</option>\${choices.map(x => \`<option value="\${escapeAttribute(x.id)}" \${x.id === initialParent ? 'selected' : ''}>\${escapeHtml(pathForLocation(x, byId))}</option>\`).join('')}</select>
+            <select name="parentId"><option value="">Geen · hoofdlocatie</option>${choices.map(x => `<option value="${escapeAttribute(x.id)}" ${x.id === initialParent ? 'selected' : ''}>${escapeHtml(pathForLocation(x, byId))}</option>`).join('')}</select>
           </label>
           <div class="sh-location-group">
-            <label class="clean-field"><span>Adres (optioneel)</span><input name="address" type="text" maxlength="300" value="\${escapeAttribute(addressText(original.address))}" placeholder="Straat, huisnummer, plaats"></label>
+            <label class="clean-field"><span>Adres (optioneel)</span><input name="address" type="text" maxlength="300" value="${escapeAttribute(addressText(original.address))}" placeholder="Straat, huisnummer, plaats"></label>
             <div class="sh-location-tools"><button type="button" data-lookup>Zoek GPS bij adres</button><button type="button" data-reverse>Zoek adres bij GPS</button></div>
-            <small class="sh-location-note" data-inherit-address>\${!addressText(original.address) && effective?.address ? 'Zonder eigen adres: ' + escapeHtml(effective.address) : 'Iedere locatie mag een eigen adres hebben.'}</small>
+            <small class="sh-location-note" data-inherit-address>${!addressText(original.address) && effective?.address ? 'Zonder eigen adres: ' + escapeHtml(effective.address) : 'Iedere locatie mag een eigen adres hebben.'}</small>
           </div>
           <div class="sh-location-group">
             <div class="sh-location-inline-header"><span>GPS-coördinaten (optioneel)</span><button type="button" data-current-gps>Gebruik huidige GPS</button></div>
             <div class="sh-location-coordinates">
-              <label class="clean-field"><span>Breedtegraad</span><input name="lat" type="number" inputmode="decimal" step="any" min="-90" max="90" value="\${escapeAttribute(coordinateInput(own?.lat))}" placeholder="52.00000"></label>
-              <label class="clean-field"><span>Lengtegraad</span><input name="lng" type="number" inputmode="decimal" step="any" min="-180" max="180" value="\${escapeAttribute(coordinateInput(own?.lng))}" placeholder="6.00000"></label>
+              <label class="clean-field"><span>Breedtegraad</span><input name="lat" type="number" inputmode="decimal" step="any" min="-90" max="90" value="${escapeAttribute(coordinateInput(own?.lat))}" placeholder="52.00000"></label>
+              <label class="clean-field"><span>Lengtegraad</span><input name="lng" type="number" inputmode="decimal" step="any" min="-180" max="180" value="${escapeAttribute(coordinateInput(own?.lng))}" placeholder="6.00000"></label>
             </div>
-            <small class="sh-location-note">\${!own && effective?.coordinates ? 'Zonder eigen GPS: positie van bovenliggende locatie (' + escapeHtml(formatCoordinates(effective.coordinates)) + ').' : 'GPS kan handmatig of via je huidige positie worden ingevuld.'}</small>
+            <small class="sh-location-note">${!own && effective?.coordinates ? 'Zonder eigen GPS: positie van bovenliggende locatie (' + escapeHtml(formatCoordinates(effective.coordinates)) + ').' : 'GPS kan handmatig of via je huidige positie worden ingevuld.'}</small>
           </div>
           <label class="clean-field"><span>Type</span>
-            <select name="kind">\${LOCATION_TYPES.map(([id, title]) => \`<option value="\${id}" \${(original.kind || 'other') === id ? 'selected' : ''}>\${title}</option>\`).join('')}</select>
+            <select name="kind">${LOCATION_TYPES.map(([id, title]) => `<option value="${id}" ${(original.kind || 'other') === id ? 'selected' : ''}>${title}</option>`).join('')}</select>
           </label>
           <label class="clean-field"><span>Rit delen</span>
             <select name="shareRide">
-              <option value="never" \${(original.shareRide || 'never') === 'never' ? 'selected' : ''}>Nooit</option>
-              <option value="ask" \${original.shareRide === 'ask' ? 'selected' : ''}>Vraag mij</option>
-              <option value="always" \${original.shareRide === 'always' ? 'selected' : ''}>Altijd</option>
+              <option value="never" ${(original.shareRide || 'never') === 'never' ? 'selected' : ''}>Nooit</option>
+              <option value="ask" ${original.shareRide === 'ask' ? 'selected' : ''}>Vraag mij</option>
+              <option value="always" ${original.shareRide === 'always' ? 'selected' : ''}>Altijd</option>
             </select>
           </label>
-          <label class="clean-field radius-field"><span>Herkenningsstraal</span><div><input name="radiusM" type="number" min="20" max="2000" step="10" value="\${radius(original.radiusM)}"><em>meter</em></div></label>
+          <label class="clean-field radius-field"><span>Herkenningsstraal</span><div><input name="radiusM" type="number" min="20" max="2000" step="10" value="${radius(original.radiusM)}"><em>meter</em></div></label>
           <section class="clean-section">
-            <div class="section-heading"><span>Melding bij binnenkomst</span><label class="mini-switch"><input name="triggerEnabled" type="checkbox" \${trigger.enabled ? 'checked' : ''}><span></span></label></div>
-            <label class="clean-field trigger-message"><span>Tekst melding</span><input name="triggerMessage" maxlength="160" value="\${escapeAttribute(trigger.message || 'Je bent bij ' + (original.title || 'deze plek') + '.')}" /></label>
+            <div class="section-heading"><span>Melding bij binnenkomst</span><label class="mini-switch"><input name="triggerEnabled" type="checkbox" ${trigger.enabled ? 'checked' : ''}><span></span></label></div>
+            <label class="clean-field trigger-message"><span>Tekst melding</span><input name="triggerMessage" maxlength="160" value="${escapeAttribute(trigger.message || 'Je bent bij ' + (original.title || 'deze plek') + '.')}" /></label>
             <p class="clean-help">Een melding verschijnt pas wanneer Sharon eerst buiten en vervolgens binnen de straal meet. Er wordt geen extra GPS-volgsysteem gestart.</p>
           </section>
           <div class="location-check"><button class="text-action" type="button" data-check-distance>Controleer afstand</button><span data-distance-status></span></div>
           <p class="sh-location-feedback" data-editor-status role="status"></p>
-          <button type="submit" class="primary-line-action">\${isNew ? 'Voeg locatie toe' : 'Bewaar locatie'}</button>
+          <button type="submit" class="primary-line-action">${isNew ? 'Voeg locatie toe' : 'Bewaar locatie'}</button>
         </form>
-        \${item ? '<button type="button" class="sh-location-add-child" data-add-child>+ Sublocatie toevoegen</button>' : ''}
+        ${item ? '<button type="button" class="sh-location-add-child" data-add-child>+ Sublocatie toevoegen</button>' : ''}
       </section>
-    \`;
+    `;
 
     const form = root.querySelector('[data-location-form]');
     const status = root.querySelector('[data-editor-status]');
@@ -222,7 +222,7 @@ export async function openLocationsView(root, {
         if (!form.isConnected) return;
         form.elements.lat.value = pos.lat;
         form.elements.lng.value = pos.lng;
-        setStatus(\`GPS ingesteld · nauwkeurigheid ±\${Math.round(pos.accuracy)} m\`);
+        setStatus(`GPS ingesteld · nauwkeurigheid ±${Math.round(pos.accuracy)} m`);
       } catch (error) { setStatus(error.message); }
       finally { button.disabled = false; }
     });
@@ -264,7 +264,7 @@ export async function openLocationsView(root, {
         const point = await location.checkNow({ reason: 'location-distance', maxAgeMs: 0, highAccuracy: true, browserMaxAgeMs: 0 });
         if (!form.isConnected) return;
         const meters = Math.round(distanceBetween(point, target));
-        setStatus(\`\${meters} m afstand · \${meters <= radius(form.elements.radiusM.value) ? 'binnen' : 'buiten'} herkenningsstraal\`);
+        setStatus(`${meters} m afstand · ${meters <= radius(form.elements.radiusM.value) ? 'binnen' : 'buiten'} herkenningsstraal`);
       } catch (error) { setStatus(error.message); }
     });
 
@@ -306,7 +306,7 @@ export async function openLocationsView(root, {
             updatedAt: now,
             data: {
               ...(locationAction?.data || {}), locationId: savedId, event: 'enter', enabled,
-              message: String(values.get('triggerMessage') || '').trim() || \`Je bent bij \${title}.\`,
+              message: String(values.get('triggerMessage') || '').trim() || `Je bent bij ${title}.`,
               state: locationAction?.data?.state || null
             }
           });
@@ -331,7 +331,7 @@ export async function openLocationsView(root, {
       bundle?.source_data?.kilometer?.data?.locations;
     if (!Array.isArray(source)) throw Error('Geen Log-locaties aangetroffen in dit JSON-bestand.');
     if (!source.length) return 0;
-    if (!confirm(\`\${source.length} locaties uit Log toevoegen? Bestaande locaties blijven behouden; eerder geïmporteerde worden overgeslagen.\`)) return 0;
+    if (!confirm(`${source.length} locaties uit Log toevoegen? Bestaande locaties blijven behouden; eerder geïmporteerde worden overgeslagen.`)) return 0;
     const ids = new Map();
     const existing = new Map(locations.filter(x => x.data?.logSourceId).map(x => [String(x.data.logSourceId), x.id]));
     for (const row of source) {
@@ -401,7 +401,7 @@ function locationIcon(type) {
 }
 function formatCoordinates(point) {
   return Number.isFinite(point?.lat) && Number.isFinite(point?.lng)
-    ? \`\${point.lat.toFixed(5)}, \${point.lng.toFixed(5)}\` : '—';
+    ? `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` : '—';
 }
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[char]);
