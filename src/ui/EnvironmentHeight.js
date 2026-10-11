@@ -16,6 +16,7 @@ function sanitizeBandStyle(entry, target) {
   if (target === 'buildings') {
     if (validColor(entry.stroke)) cleaned.stroke = entry.stroke.toLowerCase();
     if (validHatch(entry.hatch)) cleaned.hatch = entry.hatch;
+    if (validColor(entry.hatchColor)) cleaned.hatchColor = entry.hatchColor.toLowerCase();
   }
   return cleaned;
 }
