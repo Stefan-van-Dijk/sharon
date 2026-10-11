@@ -257,7 +257,8 @@ export function createShell(root, {
       geocoder,
       events,
       initialLocationId: locationId,
-      setTitle: setDetailTitle
+      setTitle: setDetailTitle,
+      headerActions
     }), { animate });
   };
 
