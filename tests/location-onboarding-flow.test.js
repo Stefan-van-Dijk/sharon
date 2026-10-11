@@ -23,6 +23,9 @@ test('the guided editor keeps the original fields, actions and one save form', a
   assert.ok(guided.includes("form.querySelector('[data-editor-status]')"));
   assert.ok(guided.includes("form.querySelector('[type=\"submit\"]')"));
   assert.ok(guided.includes('save.classList.add'));
+  assert.ok(guided.includes("event.stopImmediatePropagation()"));
+  assert.ok(guided.includes("step === QUESTIONS.length - 1"));
+  assert.ok(guided.includes("root.querySelector('[data-lookup]')?.click()"));
   assert.ok(guided.includes("if (extra) scenes[5].append(extra)"));
   assert.ok(guided.includes("if (merge) scenes[5].append(merge)"));
   assert.ok(locations.includes("if (useGps) root.querySelector('[data-current-gps]').click()"));
