@@ -19,11 +19,12 @@ export function createEnvironmentVisibilityControl(stage) {
       button.setAttribute('aria-label', 'Kaartbediening en bronvermelding verbergen');
       button.setAttribute('aria-pressed', 'false');
       button.title = 'Kaartbediening en bronvermelding verbergen';
-      // Reuse the exact Sharon mark used by the app. The mark does not
-      // change between states; accessible labels convey the current action.
-      button.innerHTML = `<img class="environment-visibility-logo"
-        src="./assets/sharon-logo.svg?v=0.1.87"
-        alt="" aria-hidden="true" draggable="false">`;
+      // Keep both visuals mounted: CSS morphs a subtle dot into the existing
+      // Sharon logo without rebuilding DOM or affecting the 44px hit target.
+      button.innerHTML = `<span class="environment-visibility-dot" aria-hidden="true"></span>
+        <img class="environment-visibility-logo"
+          src="./assets/sharon-logo.svg?v=0.1.88"
+          alt="" aria-hidden="true" draggable="false">`;
       onClick = event => {
         event.stopPropagation();
         const hidden = stage?.classList.toggle('is-map-clean') ?? false;

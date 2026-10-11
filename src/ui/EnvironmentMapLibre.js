@@ -1,18 +1,18 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.87';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.87';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.87';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.87';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.87';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.1.87';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.87';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.87';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.87';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.88';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.88';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.88';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.88';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.88';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.1.88';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.88';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.88';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.88';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.87';
+} from './EnvironmentScale.js?v=0.1.88';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -260,7 +260,7 @@ export function openEnvironmentView(root, {
     const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
     const renderDiagnostic = () => {
       output.textContent = [
-        'Kaartcontrole 0.1.87 · ' + input + ' · ' + action,
+        'Kaartcontrole 0.1.88 · ' + input + ' · ' + action,
         cameraNote,
         statusNote,
         'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
