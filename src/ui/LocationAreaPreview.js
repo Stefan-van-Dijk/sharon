@@ -16,6 +16,14 @@ export function fadedRadiusPixels(radius, accuracy, latitude, zoom) {
     uncertainty };
 }
 
+export function zoomForArea(radius, latitude) {
+  const meters = Math.min(2000, Math.max(20, Number(radius) || 100));
+  // At the initial zoom the fade fits the preview instead of covering it.
+  const metersPerDesiredPixel = (meters + Math.max(15, meters * .18)) / 70;
+  const mercatorWidth = Math.cos(Math.max(-85, Math.min(85, Number(latitude))) * Math.PI / 180) * 40075016.686;
+  return Math.max(9, Math.min(20, Math.log2(mercatorWidth / (512 * metersPerDesiredPixel))));
+}
+
 function pointOf(raw) {
   const lat = Number(raw?.lat), lng = Number(raw?.lng);
   return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
@@ -29,7 +37,7 @@ export function mountLocationArea(host, { getPoint, getRadius, getAccuracy = () 
   let map = null;
   let alive = true;
   let loading = false;
-  let currentZoom = 17;
+  let currentZoom = 15;
   let lastPoint = null;
   let overlay = null;
   let accuracyLabel = null;
@@ -65,6 +73,7 @@ export function mountLocationArea(host, { getPoint, getRadius, getAccuracy = () 
       return;
     }
     if (loading) return;
+    currentZoom = zoomForArea(getRadius?.(), point.lat);
     loading = true;
     try {
       if (!document.querySelector('link[data-sh-location-map-css]')) {
