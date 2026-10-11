@@ -29,6 +29,9 @@ test('map fade scales in real meters without a sharp edge', () => {
     'zooming in should reduce recognition radius');
   assert.ok(radiusForZoom(zoomForArea(100, 52) - 1, 52) > 100,
     'zooming out should increase recognition radius');
+  for (const zoomStep of [13, 14.5, 16, 18, 20]) {
+    assert.equal(radiusForZoom(zoomStep, 52) % 10, 0, 'radius respects persisted form step of 10 m');
+  }
 });
 
 test('location preview reuses existing Sharon basemap, no GPS watcher', async () => {
