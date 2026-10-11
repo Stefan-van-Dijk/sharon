@@ -99,3 +99,56 @@ test('map initialization configures the MapLibre ESM worker and slider zoom chan
     globalThis.document = oldDocument;
   }
 });
+
+
+test('location card waits for visible dimensions and initializes after ResizeObserver', async () => {
+  const previousDocument = globalThis.document;
+  const previousObserver = globalThis.ResizeObserver;
+  const box = { width: 0, height: 0 };
+  let onResize = null, disconnected = false, instances = 0;
+  const makeElement = () => ({
+    hidden: false, textContent: '', isConnected: true,
+    style: { setProperty() {} }
+  });
+  const elements = {
+    '[data-map]': { ...makeElement(), getBoundingClientRect() { return box; } },
+    '[data-area-overlay]': makeElement(),
+    '.sh-radius-fade': makeElement(),
+    '[data-map-placeholder]': makeElement(),
+    '[data-map-note]': makeElement()
+  };
+  const host = { innerHTML: '', querySelector(key) { return elements[key]; }, replaceChildren() {} };
+  class FakeMap {
+    constructor() { instances++; }
+    on() {}
+    resize() {}
+    remove() {}
+  }
+  globalThis.document = { querySelector() { return {}; } };
+  globalThis.ResizeObserver = class {
+    constructor(fn) { onResize = fn; }
+    observe() {}
+    disconnect() { disconnected = true; }
+  };
+  try {
+    const view = mountLocationArea(host, {
+      getPoint: () => ({ lat: 52, lng: 6 }),
+      getRadius: () => 100,
+      loadRenderer: async () => ({ Map: FakeMap })
+    });
+    await view.update();
+    assert.equal(instances, 0);
+    assert.match(elements['[data-map-placeholder]'].textContent, /scherm/i);
+    box.width = 280;
+    box.height = 240;
+    onResize();
+    // Deferred load is asynchronous. It must not need a second user tap.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(instances, 1);
+    view.dispose();
+    assert.equal(disconnected, true);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.ResizeObserver = previousObserver;
+  }
+});
