@@ -630,6 +630,12 @@
     }
     .environment-style-group:not(:last-child){border-right:1px solid rgba(70,70,80,.2)}
     .environment-style-group.is-selected{background:rgba(65,65,75,.11)}
+    .environment-style-group.is-source-unavailable{
+      background:rgba(165,165,172,.07);
+    }
+    .environment-style-group.is-source-unavailable .environment-style-group-main{
+      opacity:.38;cursor:not-allowed;
+    }
     .environment-style-group.is-height-band .environment-style-group-main span{
       font-size:8px;color:#5f616b;
     }
@@ -684,11 +690,11 @@
       display:flex;align-items:center;justify-content:space-between;gap:3px;
       width:100%;height:27px;min-height:27px!important;min-width:0!important;
       border:1px solid rgba(60,60,65,.2);border-radius:5px;
-      padding:1px 4px;background:rgba(255,255,255,.68);
+      padding:0;background:rgba(255,255,255,.68);overflow:hidden;
       color:#414149;touch-action:manipulation;cursor:pointer;
     }
     .environment-hatch-current [data-hatch-current-preview]{
-      display:block;width:45px;max-width:60%;height:22px;overflow:hidden;
+      display:block;width:100%;max-width:none;height:100%;overflow:hidden;
     }
     .environment-hatch-current svg{display:block;width:100%;height:100%}
     .environment-hatch-current small{
@@ -708,14 +714,14 @@
     .environment-hatch-picker[hidden]{display:none!important}
     .environment-hatch-picker .environment-hatch-choice{
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:2px;padding:4px 3px;min-height:46px!important;height:46px;
+      gap:2px;padding:0 2px 3px;min-height:46px!important;height:46px;
       min-width:0!important;border:1px solid rgba(65,65,75,.12);border-radius:6px;
       color:#45454d;background:rgba(255,255,255,.55);touch-action:manipulation;
     }
     .environment-hatch-picker .environment-hatch-choice[aria-pressed="true"]{
       border-color:#595962;background:rgba(60,60,70,.10);
     }
-    .environment-hatch-sample{display:block;height:23px;width:100%}
+    .environment-hatch-sample{display:block;height:31px;width:100%;overflow:hidden}
     .environment-hatch-sample svg{display:block;width:100%;height:100%}
     .environment-hatch-choice small{
       display:block;max-width:100%;overflow:hidden;white-space:nowrap;
