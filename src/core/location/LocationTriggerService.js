@@ -1,3 +1,5 @@
+import { resolveLocation } from './LocationHierarchy.js?v=0.1.91';
+
 export class LocationTriggerService {
   #store;
   #events;
@@ -45,8 +47,8 @@ export class LocationTriggerService {
         const target = locations.get(action.data?.locationId);
         if (!target) continue;
 
-        const coordinates = target.data?.coordinates ?? {};
-        if (!isFinitePoint(coordinates)) continue;
+        const coordinates = resolveLocation(target, locations).coordinates;
+        if (!coordinates) continue;
 
         const radius = clampRadius(target.data?.radiusM);
         const distanceM = distanceBetween(point, coordinates);
