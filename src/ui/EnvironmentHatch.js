@@ -86,6 +86,13 @@ export function environmentHatchPreview(kind, token) {
 
 export function registerEnvironmentHatches(map) {
   if (typeof map.addImage !== 'function') return;
+  // An explicit fully transparent sprite allows feature-driven fill-patterns
+  // to turn off hatches for individual building-height bands.
+  if (!map.hasImage?.(environmentHatchImageId('none'))) {
+    map.addImage(environmentHatchImageId('none'), {
+      width: 16, height: 16, data: new Uint8Array(16 * 16 * 4)
+    });
+  }
   for (const option of HATCH_OPTIONS) {
     if (option.id === 'none') continue;
     const id = environmentHatchImageId(option.id);
