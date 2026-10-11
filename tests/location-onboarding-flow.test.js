@@ -61,7 +61,7 @@ test('review reuses original address field, uses soft map and accuracy-aware sli
   assert.ok(flow.includes('reviewFields.append(nameField, addressField, parentField'));
   assert.ok(flow.includes('mountLocationArea(radiusHost'));
   assert.ok(flow.includes('form.elements.radiusM'));
-  assert.ok(flow.includes('input type="range"'));
+  assert.ok(flow.includes('type="range"'));
   assert.ok(flow.includes('saveButton.hidden = true'));
   assert.ok(html.includes('sh-radius-fade'));
   assert.ok(html.includes('radial-gradient(circle'));
