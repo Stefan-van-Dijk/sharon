@@ -15,7 +15,7 @@ test('every real polygon has a fill, independent hatch and line outline; land ha
   const layers = environmentStyle.layers;
   const byId = new Map(layers.map(l => [l.id, l]));
   const polygons = APPEARANCE_GROUPS.filter(g => g.fill);
-  assert.equal(polygons.length, 24);
+  assert.equal(polygons.length, 26);
   const land = APPEARANCE_GROUPS.find(g => g.id === 'land');
   assert.equal(land.background, 'background');
   assert.ok(!land.fill && !land.lines?.length);
