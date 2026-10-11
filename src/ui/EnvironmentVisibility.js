@@ -23,7 +23,7 @@ export function createEnvironmentVisibilityControl(stage) {
       // Sharon logo without rebuilding DOM or affecting the 44px hit target.
       button.innerHTML = `<span class="environment-visibility-dot" aria-hidden="true"></span>
         <img class="environment-visibility-logo"
-          src="./assets/sharon-logo.svg?v=0.1.88"
+          src="./assets/sharon-logo.svg?v=0.1.89"
           alt="" aria-hidden="true" draggable="false">`;
       onClick = event => {
         event.stopPropagation();
