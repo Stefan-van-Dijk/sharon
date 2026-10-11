@@ -75,7 +75,10 @@ export function createEnvironmentHatchTile(kind, color = DEFAULT_HATCH_COLOR) {
 // Safe token is supplied from fixed ids and unique per preview occurrence.
 export function environmentHatchPreview(kind, token, color = DEFAULT_HATCH_COLOR) {
   if (kind === 'none' || !createEnvironmentHatchTile(kind)) {
-    return '<svg viewBox="0 0 64 30" aria-hidden="true"><rect x="1" y="1" width="62" height="28" fill="none" stroke="#b0b0b5" stroke-dasharray="3 3"/><path d="M6 26L58 4" stroke="#b5b5ba" stroke-width="1.2"/></svg>';
+    // The "Geen" symbol uses the full surface; no inset dashed rectangle.
+    return '<svg viewBox="0 0 64 30" preserveAspectRatio="none" aria-hidden="true">' +
+      '<rect width="64" height="30" fill="#f6f6f7"/>' +
+      '<path d="M0 30L64 0" stroke="#aeb0b5" stroke-width="1.7"/></svg>';
   }
   const { width, height, data } = createEnvironmentHatchTile(kind, color);
   let path = '';
@@ -86,7 +89,7 @@ export function environmentHatchPreview(kind, token, color = DEFAULT_HATCH_COLOR
   }
   const id = 'sharon-hatch-preview-' + token;
   const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_HATCH_COLOR;
-  return '<svg viewBox="0 0 64 30" aria-hidden="true"><defs><pattern id="' + id +
+  return '<svg viewBox="0 0 64 30" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="' + id +
     '" width="16" height="16" patternUnits="userSpaceOnUse"><path fill="' + safeColor + '" d="' +
     path + '"/></pattern></defs><rect width="64" height="30" fill="url(#' + id +
     ')"/></svg>';
