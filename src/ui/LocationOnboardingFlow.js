@@ -1,422 +1,347 @@
-import { focusTextField } from './TextInputFocus.js?v=0.1.96';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.96';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.96';
+import { focusTextField } from './TextInputFocus.js?v=0.1.97';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.97';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.97';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
   return Math.max(0, Math.round(layoutHeight - Number(viewport.offsetTop || 0) - Number(viewport.height || 0)));
 }
 
+// A proposal, not a forced hierarchy: nearby saved addresses are ranked
+// first and the user can always choose a different parent or a main location.
 export function nearbyKnownLocations(point, known = [], accuracy = 0) {
   if (!Number.isFinite(Number(point?.lat)) || !Number.isFinite(Number(point?.lng))) return [];
-  return known.filter(place => place.address && place.coordinates)
-    .map(place => ({
-      ...place,
-      meters: distanceBetween(point, place.coordinates)
-    }))
-    .filter(place => place.meters <= Math.max(75, Math.min(200, Number(place.radiusM || 100) + Number(accuracy || 0))))
+  return known.filter(item => item.address && item.coordinates)
+    .map(item => ({ ...item, meters: distanceBetween(point, item.coordinates) }))
+    .filter(item => item.meters <= Math.max(75, Math.min(200, Number(item.radiusM || 100) + Number(accuracy || 0))))
     .sort((a, b) => a.meters - b.meters);
 }
+export function suggestedParents(point, places = [], selectedId = '') {
+  const ranked = places.filter(place => place.address)
+    .map(place => ({
+      ...place,
+      meters: point && place.coordinates ? distanceBetween(point, place.coordinates) : Infinity
+    }))
+    .sort((a, b) => a.meters - b.meters || String(a.title).localeCompare(String(b.title), 'nl'));
+  const selected = ranked.find(item => item.id === selectedId);
+  return [selected, ...ranked].filter((item, index, list) =>
+    item && list.findIndex(other => other.id === item.id) === index).slice(0, 3);
+}
+const validPoint = point => {
+  const lat = Number(point?.lat), lng = Number(point?.lng);
+  return point?.lat != null && point?.lng != null &&
+    String(point.lat).trim() !== '' && String(point.lng).trim() !== '' &&
+    Number.isFinite(lat) && Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+};
 
-const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-})[c]);
-const clampRadius = n => Math.min(2000, Math.max(20, Math.round(Number(n) || 100) / 10 * 10));
-const finitePoint = point => point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng))
-  ? { lat: Number(point.lat), lng: Number(point.lng) } : null;
-
-/**
- * Short question / answer at the start, followed by one directly editable overview.
- * The existing form, its GPS tools and its save handler are not replaced.
- */
 export function enhanceLocationEditor(root, {
   isNew = false, location, geocoder, useGps = false,
-  knownLocations = [], initialParent = '', onModeChange = () => {},
-  saveInHeader = false
+  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false
 } = {}) {
   const page = root.querySelector('.location-editor-view');
   const form = page?.querySelector('[data-location-form]');
-  if (!page || !form || form.dataset.guided === '1') return () => {};
+  if (!form || form.dataset.guided === '1') return () => {};
   form.dataset.guided = '1';
-  page.classList.add('sh-location-dialog');
-  page.querySelector('.sh-location-editor-nav')?.classList.add('sh-location-dialog-nav');
+  page.classList.add('sh-location-reference');
+  const nav = page.querySelector('.sh-location-editor-nav');
+  nav?.classList.add('sh-location-reference-nav');
 
-  const field = name => form.elements[name]?.closest('label');
-  const nameField = field('title');
-  const parentField = field('parentId');
-  const addressField = form.querySelectorAll('.sh-location-group')[0];
-  const coordsField = form.querySelectorAll('.sh-location-group')[1];
-  const kindField = field('kind');
-  const rideField = field('shareRide');
-  const radiusField = field('radiusM');
-  const triggerField = form.querySelector('.clean-section');
-  const distanceField = form.querySelector('.location-check');
-  const statusField = form.querySelector('[data-editor-status]');
-  const saveButton = form.querySelector('[type="submit"]');
+  const nameLabel = form.elements.title.closest('label');
+  const parentLabel = form.elements.parentId.closest('label');
+  const typeLabel = form.elements.kind.closest('label');
+  const shareLabel = form.elements.shareRide.closest('label');
+  const radiusLabel = form.elements.radiusM.closest('label');
+  const addressGroup = form.querySelectorAll('.sh-location-group')[0];
+  const coordinatesGroup = form.querySelectorAll('.sh-location-group')[1];
+  const gpsButton = coordinatesGroup.querySelector('[data-current-gps]');
+  const triggerGroup = form.querySelector('.clean-section');
+  const distanceGroup = form.querySelector('.location-check');
+  const status = form.querySelector('[data-editor-status]');
+  const nativeSave = form.querySelector('[type="submit"]');
   const extras = page.querySelector('.sh-location-secondary-actions');
   const merge = page.querySelector('[data-merge-panel]');
+  const typeSelect = form.elements.kind;
+  const parentSelect = form.elements.parentId;
   const eligible = knownLocations.filter(item => item.address);
-  let mode = isNew ? 'start' : 'details';
-  let disposed = false;
-  let detecting = false;
-  let gpsAccuracy = 0;
-  let mapPreview = null;
-  let activeCandidates = [];
-  let chosenParentId = initialParent || '';
-  let addressTouched = false;
-  let nameTouched = false;
-  let programmaticChange = false;
+  const byId = new Map(eligible.map(item => [item.id, item]));
+  let disposed = false, mapView = null, accuracy = 0, geocodeRequest = 0;
+  let addressEditing = false, addressManuallyEdited = false;
 
-  const box = document.createElement('div');
-  box.className = 'sh-location-dialog-content';
-  box.innerHTML = '<section class="sh-location-question" data-question>' +
-    '<p class="sh-location-question-title" data-question-title></p>' +
-    '<div data-question-actions></div><p class="story-note" data-question-feedback role="status"></p>' +
-    '</section>' +
-    '<section class="sh-location-review" data-review hidden>' +
-      '<p class="sh-location-question-title">Klopt deze plek?</p>' +
-      '<div data-review-fields></div>' +
-      '<div class="sh-radius-editor" data-radius-editor>' +
-        '<label for="shLocationRadius">Herkenningsgebied <span data-radius-value></span></label>' +
-        '<input id="shLocationRadius" type="range" min="20" max="2000" step="10" data-radius-range aria-label="Herkenningsstraal in meter">' +
-        '<div class="sh-radius-map-host" data-radius-map></div>' +
-        '<p class="story-note">De rand vervaagt door GPS-onzekerheid. De ingestelde straal blijft de richtwaarde voor herkenning.</p>' +
-      '</div><div data-review-more></div>' +
-    '</section>' +
-    '<nav class="sh-location-question-footer" data-footer>' +
-      '<button type="button" class="story-text-action" data-question-back>Terug</button>' +
-      '<button type="button" class="story-primary-action" data-question-next>Verder</button>' +
-    '</nav>';
-  form.prepend(box);
+  // The reference image is a single page, not an onboarding questionnaire.
+  const view = document.createElement('div');
+  view.className = 'sh-location-reference-page';
+  view.innerHTML = '<div class="sh-location-reference-heading">' +
+      '<h2>Is dit de plek?</h2>' +
+      '<p>Controleer of de locatie klopt en pas aan indien nodig.</p>' +
+    '</div>' +
+    '<div class="sh-location-reference-name" data-name-slot></div>' +
+    '<div class="sh-location-reference-place">' +
+      '<button type="button" class="sh-location-reference-address" data-address-toggle aria-expanded="false">' +
+        '<span class="sh-location-reference-marker" aria-hidden="true">⌖</span>' +
+        '<span class="sh-location-reference-place-copy"><strong data-address-text>Geen adres geselecteerd</strong>' +
+          '<small data-coordinates-text></small></span>' +
+        '<span class="sh-location-reference-chevron" aria-hidden="true">›</span>' +
+      '</button>' +
+      '<div class="sh-location-reference-address-fields" data-address-fields hidden></div>' +
+    '</div>' +
+    '<div class="sh-location-reference-map-panel">' +
+      '<div class="sh-radius-map-host sh-location-reference-map" data-radius-map></div>' +
+      '<div class="sh-location-reference-map-controls" data-map-controls></div>' +
+      '<span class="sh-location-reference-map-hint">Versleep de pin om de positie aan te passen</span>' +
+    '</div>' +
+    '<div class="sh-location-reference-radius">' +
+      '<label for="shReferenceRadius">Herkenningsstraal <strong data-radius-value>100 m</strong></label>' +
+      '<input type="range" id="shReferenceRadius" min="20" max="2000" step="10" data-radius-range>' +
+      '<div class="sh-location-reference-scale"><span>20 m</span><span>2.000 m</span></div>' +
+    '</div>' +
+    '<div class="sh-location-reference-section" data-parent-section>' +
+      '<h3>Onderdeel van <small data-parent-hint></small></h3>' +
+      '<div class="sh-location-reference-chips" data-parent-chips></div>' +
+      '<div class="sh-location-reference-parent-more" data-parent-more hidden></div>' +
+    '</div>' +
+    '<div class="sh-location-reference-section">' +
+      '<h3>Wat voor plek is dit?</h3>' +
+      '<div class="sh-location-reference-chips sh-location-reference-types" data-type-chips></div>' +
+    '</div>' +
+    '<details class="sh-location-reference-more" data-more>' +
+      '<summary>Meer instellingen</summary>' +
+      '<div data-more-fields></div>' +
+    '</details>' +
+    '<div class="sh-location-reference-status" data-status-slot></div>' +
+    '<div class="sh-location-reference-bottom-save" data-bottom-save></div>';
+  form.prepend(view);
 
-  const question = box.querySelector('[data-question]');
-  const title = box.querySelector('[data-question-title]');
-  const questionActions = box.querySelector('[data-question-actions]');
-  const feedback = box.querySelector('[data-question-feedback]');
-  const review = box.querySelector('[data-review]');
-  const reviewFields = box.querySelector('[data-review-fields]');
-  const reviewMore = box.querySelector('[data-review-more]');
-  const footer = box.querySelector('[data-footer]');
-  const back = box.querySelector('[data-question-back]');
-  const next = box.querySelector('[data-question-next]');
-  const radiusRange = box.querySelector('[data-radius-range]');
-  const radiusValue = box.querySelector('[data-radius-value]');
-  const radiusHost = box.querySelector('[data-radius-map]');
+  view.querySelector('[data-name-slot]').append(nameLabel);
+  view.querySelector('[data-address-fields]').append(addressGroup);
+  const coordinateDetails = document.createElement('details');
+  coordinateDetails.className = 'sh-location-reference-coordinates-edit';
+  coordinateDetails.innerHTML = '<summary>GPS-coördinaten handmatig aanpassen</summary>';
+  coordinateDetails.append(coordinatesGroup);
+  view.querySelector('[data-address-fields]').append(coordinateDetails);
+  view.querySelector('[data-map-controls]').append(gpsButton);
+  gpsButton.textContent = '⌖ Mijn locatie';
+  view.querySelector('[data-parent-more]').append(parentLabel);
+  typeLabel.hidden = true;
+  view.querySelector('[data-more-fields]').append(
+    typeLabel, radiusLabel, shareLabel, triggerGroup, distanceGroup);
+  radiusLabel.hidden = true; // Original numeric value is still what gets saved.
+  if (extras) view.querySelector('[data-more-fields]').append(extras);
+  if (merge) view.querySelector('[data-more-fields]').append(merge);
+  view.querySelector('[data-status-slot]').append(status);
+  nativeSave.classList.add('sh-location-reference-save');
+  view.querySelector('[data-bottom-save]').append(nativeSave);
+  nativeSave.hidden = Boolean(saveInHeader);
 
-  // Same form controls and one source of truth, with address shown exactly once.
-  reviewFields.append(nameField, addressField, parentField, kindField, coordsField);
-  const gpsSummary = document.createElement('div');
-  gpsSummary.className = 'sh-location-gps-summary';
-  gpsSummary.setAttribute('data-gps-summary', '');
-  coordsField.before(gpsSummary);
-  const coordDetails = document.createElement('details');
-  coordDetails.className = 'sh-location-coordinate-details';
-  coordDetails.innerHTML = '<summary>GPS-coördinaten aanpassen</summary>';
-  coordsField.replaceWith(coordDetails);
-  coordDetails.append(coordsField);
-  // Native radius input stays in the form for existing persistence & trigger logic.
-  radiusField.classList.add('sh-radius-original-field');
-  reviewMore.append(radiusField, rideField, triggerField, distanceField);
-  if (extras) reviewMore.append(extras);
-  if (merge) reviewMore.append(merge);
-  if (statusField) reviewMore.append(statusField);
-  saveButton.classList.add('sh-location-dialog-native-save');
-  reviewMore.append(saveButton);
-
-  const knownById = new Map(eligible.map(x => [x.id, x]));
-  const validParent = id => Boolean(knownById.get(id));
-  // Creating a sublocation is only possible beneath an already selected
-  // saved address. Parent options without any known address are disabled.
-  if (isNew && !validParent(initialParent)) form.elements.parentId.value = '';
-  for (const option of Array.from(form.elements.parentId.options)) {
-    // Existing hierarchy must never be silently discarded during an edit.
-    const preserveExisting = !isNew && option.value === form.elements.parentId.value;
-    if (option.value && !validParent(option.value) && !preserveExisting) option.disabled = true;
+  // Prevent the visually hidden select from blocking its original selection.
+  const parentOptions = Array.from(parentSelect.options);
+  for (const option of parentOptions) {
+    const existingParent = !isNew && option.value === parentSelect.value;
+    if (option.value && !byId.has(option.value) && !existingParent) option.disabled = true;
   }
-  parentField.hidden = !eligible.length;
-  const change = (field, value) => {
-    if (String(field.value || '') !== String(value ?? '')) {
-      field.value = value ?? '';
-      programmaticChange = true;
-      try { field.dispatchEvent(new Event('input', { bubbles: true })); }
-      finally { programmaticChange = false; }
-    }
-  };
+  if (isNew && initialParent && byId.has(initialParent)) parentSelect.value = initialParent;
+
+  const addressText = view.querySelector('[data-address-text]');
+  const coordinatesText = view.querySelector('[data-coordinates-text]');
+  const addressFields = view.querySelector('[data-address-fields]');
+  const addressToggle = view.querySelector('[data-address-toggle]');
+  const typeChips = view.querySelector('[data-type-chips]');
+  const parentChips = view.querySelector('[data-parent-chips]');
+  const parentMore = view.querySelector('[data-parent-more]');
+  const radiusRange = view.querySelector('[data-radius-range]');
+  const radiusValue = view.querySelector('[data-radius-value]');
+  const mapHost = view.querySelector('[data-radius-map]');
+  const statusNode = status;
+
   function currentPoint() {
-    const own = finitePoint({ lat: form.elements.lat.value, lng: form.elements.lng.value });
-    // Blank fields must not silently resolve to [0,0].
-    if (String(form.elements.lat.value).trim() && String(form.elements.lng.value).trim()) return own;
-    const parent = knownById.get(form.elements.parentId.value);
-    return parent?.coordinates || null;
+    return validPoint({
+      lat: form.elements.lat.value,
+      lng: form.elements.lng.value
+    }) || byId.get(parentSelect.value)?.coordinates || null;
   }
-  function syncCoordinates() {
+  function syncText() {
+    const typed = String(form.elements.address.value || '').trim();
+    const parent = byId.get(parentSelect.value);
+    const text = typed || parent?.address || 'Tik om een adres in te voeren';
+    addressText.textContent = text;
     const point = currentPoint();
-    gpsSummary.textContent = point
-      ? point.lat.toFixed(5) + ', ' + point.lng.toFixed(5) +
-        (gpsAccuracy ? ' · GPS ±' + Math.round(gpsAccuracy) + ' m' : '')
-      : 'Geen GPS-positie gekozen';
-    // Keep the map panel visible even before a position is available.
-    // A helpful placeholder replaces an unexplained empty space.
-    radiusHost.hidden = false;
-    if (mode === 'details') {
-      if (!mapPreview) startMap();
-      else mapPreview.update();
-    }
+    coordinatesText.textContent = point ? point.lat.toFixed(5) + ', ' + point.lng.toFixed(5) : 'Nog geen GPS-positie';
   }
-  function setStatus(message) {
-    if (statusField) statusField.textContent = message || '';
+  function changeInput(field, value) {
+    field.value = String(value);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  function notify(modeValue) {
-    onModeChange(modeValue);
-  }
-
-  const questionButton = (text, dataset, subtle = false) =>
-    '<button type="button" class="sh-location-answer' + (subtle ? ' is-subtle' : '') +
-    '" data-answer="' + esc(dataset) + '">' + esc(text) + '<span aria-hidden="true">›</span></button>';
-
-  function showStart() {
+  function syncMap() {
     if (disposed) return;
-    mode = 'start';
-    notify(mode);
-    review.hidden = true; question.hidden = false;
-    footer.hidden = false; back.hidden = true; next.hidden = false;
-    title.textContent = 'Waar ligt deze plek?';
-    questionActions.replaceChildren();
-    questionActions.innerHTML =
-      questionButton('Gebruik huidige locatie', 'gps') +
-      '<div class="sh-location-or">of</div>' +
-      '<label class="clean-field sh-location-question-name"><span>Naam van de plek</span></label>' +
-      (eligible.length ? questionButton('Bestaande locatie kiezen', 'existing', true) : '');
-    questionActions.querySelector('.sh-location-question-name').append(nameField.querySelector('input'));
-    // Keep the label and its input in the original form, avoiding duplicate fields.
-    feedback.textContent = '';
-    next.textContent = 'Verder';
-    next.hidden = false;
-    form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
-  }
-
-  function showDecision(candidates) {
-    if (disposed) return;
-    mode = 'decision';
-    notify(mode);
-    activeCandidates = candidates?.length ? candidates.filter(x => validParent(x.id)) : eligible;
-    review.hidden = true; question.hidden = false;
-    footer.hidden = false; back.hidden = false; next.hidden = true;
-    // Move the live name input out of the previous question before replacing it.
-    // Otherwise replacing questionActions would destroy the form control and its value.
-    const typedName = questionActions.querySelector('.sh-location-question-name input');
-    if (typedName) nameField.append(typedName);
-    const first = activeCandidates[0];
-    title.textContent = first && activeCandidates.length === 1
-      ? 'Hoort deze plek bij ' + first.title + '?'
-      : 'Is dit een sublocatie?';
-    questionActions.innerHTML =
-      '<p class="story-note">Een sublocatie hoort bij een bestaande locatie met een adres.</p>' +
-      (activeCandidates.length ? '<div class="sh-location-known-list">' +
-        activeCandidates.map(x => questionButton('Sublocatie van ' + x.title, 'parent:' + x.id)).join('') +
-        '</div>' : '<p class="story-note">Er zijn nog geen locaties met een adres.</p>') +
-      questionButton('Nieuwe hoofdlocatie', 'main', true);
-    feedback.textContent = '';
-    form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
-  }
-
-  function setParent(id) {
-    const validId = validParent(id) ? id : '';
-    chosenParentId = validId;
-    change(form.elements.parentId, validId);
-    parentField.hidden = !eligible.length;
-  }
-
-  function showDetails({ focusName = false } = {}) {
-    if (disposed) return;
-     if (!nameField.contains(form.elements.title)) nameField.append(form.elements.title);
-    mode = 'details';
-    notify(mode);
-    question.hidden = true; review.hidden = false; footer.hidden = true;
-    radiusRange.value = String(form.elements.radiusM.value || 100);
-    radiusValue.textContent = radiusRange.value + ' m';
-    syncCoordinates();
-    // Existing locations with an address but no GPS should still show a map.
-    void resolveMissingCoordinates();
-    form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
-    if (focusName) focusTextField(form.elements.title);
-    else if (form.contains(document.activeElement)) document.activeElement.blur();
-  }
-
-  async function startMap() {
-    if (disposed || mapPreview) return;
-    mapPreview = mountLocationArea(radiusHost, {
-      getPoint: currentPoint,
-      getRadius: () => Number(form.elements.radiusM.value),
-      getAccuracy: () => gpsAccuracy
-    });
-    await mapPreview.update();
-  }
-
-  let addressLookupInProgress = false;
-  let lastAutoLookup = '';
-  async function resolveMissingCoordinates() {
-    if (disposed || currentPoint() || addressLookupInProgress || !geocoder?.search) return;
-    const query = String(form.elements.address.value || '').trim();
-    if (!query || query === lastAutoLookup) return;
-    addressLookupInProgress = true;
-    lastAutoLookup = query;
-    const status = box.querySelector('[data-radius-map] .sh-radius-map-placeholder');
-    if (status) status.textContent = 'Positie bij adres zoeken…';
-    try {
-      const matches = await geocoder.search(query);
-      if (disposed || !form.isConnected || currentPoint() ||
-          String(form.elements.address.value || '').trim() !== query) return;
-      const found = matches?.find(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)));
-      if (!found) return;
-      change(form.elements.lat, found.lat);
-      change(form.elements.lng, found.lng);
-      syncCoordinates();
-    } catch {
-      // The regular address/GPS lookup controls remain available.
-    } finally {
-      addressLookupInProgress = false;
-      if (!currentPoint()) mapPreview?.refresh();
-    }
-  }
-
-  function handleAnswer(answer) {
-    if (answer === 'gps') { useCurrentPosition(); return; }
-    if (answer === 'existing') { showDecision(eligible); return; }
-    if (answer === 'main') { setParent(''); showDetails({ focusName: !form.elements.title.value.trim() }); return; }
-    if (answer.startsWith('parent:')) {
-      const parentId = answer.slice(7);
-      if (!validParent(parentId)) { feedback.textContent = 'Kies een bestaande locatie met adres.'; return; }
-      setParent(parentId);
-      // Child shares the selected address unless the user explicitly enters its own.
-      if (!nameTouched && form.elements.title.value === 'Huidige locatie') {
-        change(form.elements.title, '');
-      }
-      showDetails({ focusName: !form.elements.title.value.trim() });
-    }
-  }
-
-  async function useCurrentPosition() {
-    if (detecting || disposed) return;
-    detecting = true;
-    feedback.textContent = 'Locatie bepalen…';
-    const pressed = question.querySelector('[data-answer="gps"]');
-    if (pressed) pressed.disabled = true;
-    form.elements.title.blur();
-    try {
-      const point = await location.checkNow({
-        reason: 'location-editor', maxAgeMs: 0, highAccuracy: true,
-        browserMaxAgeMs: 0, timeoutMs: 10_000
+    syncText();
+    if (!mapView) {
+      mapView = mountLocationArea(mapHost, {
+        getPoint: currentPoint,
+        getRadius: () => Number(form.elements.radiusM.value),
+        getAccuracy: () => accuracy,
+        onPointChange: point => {
+          if (!point || disposed) return;
+          changeInput(form.elements.lat, point.lat.toFixed(7));
+          changeInput(form.elements.lng, point.lng.toFixed(7));
+          accuracy = 0; // A manually positioned pin is not an accuracy measurement.
+          syncText();
+          renderParents();
+          void reversePoint(point);
+        }
       });
-      if (disposed || !form.isConnected) return;
-      gpsAccuracy = Number(point.accuracy) || 0;
-      change(form.elements.lat, point.lat);
-      change(form.elements.lng, point.lng);
-      if (!nameTouched && !form.elements.title.value.trim()) change(form.elements.title, 'Huidige locatie');
-      // Contextual sublocation prompt only when a known addressed place is nearby.
-      const near = nearbyKnownLocations(point, eligible, gpsAccuracy);
-      if (near.length) showDecision(near);
-      else showDetails();
-      if (geocoder?.reverse) {
-        // Do not hold the UI while the address service is responding.
-        try {
-          const result = await geocoder.reverse(point);
-          if (disposed || !form.isConnected || !result) return;
-          const line1 = result.line1 || [result.street, result.number].filter(Boolean).join(' ');
-          const line2 = result.line2 || [result.postcode, result.city].filter(Boolean).join(' ');
-          const full = [line1, line2].filter(Boolean).join(', ');
-          if (full && !form.elements.parentId.value && !addressTouched && !form.elements.address.value.trim()) {
-            change(form.elements.address, full);
-          }
-          if (!form.elements.parentId.value && !nameTouched && form.elements.title.value === 'Huidige locatie') {
-            change(form.elements.title, String(line1 || result.city || 'Huidige locatie').slice(0, 80));
-          }
-          syncCoordinates();
-        } catch {}
+    }
+    void mapView.update();
+  }
+  function setAddressEditing(editing, focus = false) {
+    addressEditing = editing;
+    addressFields.hidden = !editing;
+    addressToggle.setAttribute('aria-expanded', String(editing));
+    addressToggle.querySelector('.sh-location-reference-chevron').textContent = editing ? '⌃' : '›';
+    if (focus) focusTextField(form.elements.address);
+    if (!editing) void lookupAddress();
+  }
+  async function lookupAddress() {
+    const text = String(form.elements.address.value || '').trim();
+    if (!text || !geocoder?.search || disposed) return;
+    const myRequest = ++geocodeRequest;
+    try {
+      const results = await geocoder.search(text);
+      if (disposed || myRequest !== geocodeRequest || !form.isConnected) return;
+      const first = results?.find(p => validPoint(p));
+      if (!first) return;
+      changeInput(form.elements.lat, first.lat);
+      changeInput(form.elements.lng, first.lng);
+      syncMap();
+      renderParents();
+    } catch { /* Existing name/address remains editable offline. */ }
+  }
+  async function reversePoint(point) {
+    if (!geocoder?.reverse || disposed) return;
+    const request = ++geocodeRequest;
+    try {
+      const result = await geocoder.reverse(point);
+      if (disposed || request !== geocodeRequest || !form.isConnected) return;
+      const a = [result?.street, result?.number].filter(Boolean).join(' ');
+      const b = [result?.postcode, result?.city].filter(Boolean).join(' ');
+      const text = [a || result?.line1, b || result?.line2].filter(Boolean).join(', ');
+      if (text && !addressManuallyEdited) {
+        changeInput(form.elements.address, text);
+        syncText();
       }
-    } catch (error) {
-      if (!disposed) feedback.textContent = error.message || 'De locatie kon niet worden bepaald.';
-    } finally {
-      detecting = false;
-      if (pressed?.isConnected) pressed.disabled = false;
+    } catch { /* Map point is still valid without reverse geocoding. */ }
+  }
+  function createChip(value, label, selected, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sh-location-reference-chip';
+    button.textContent = label;
+    button.value = value;
+    button.setAttribute('aria-pressed', String(selected));
+    button.addEventListener('click', onClick);
+    return button;
+  }
+  function renderTypes() {
+    typeChips.replaceChildren();
+    for (const option of typeSelect.options) {
+      typeChips.append(createChip(option.value, option.textContent,
+        typeSelect.value === option.value, () => {
+          typeSelect.value = option.value;
+          renderTypes();
+        }));
+    }
+  }
+  function renderParents() {
+    const chosen = parentSelect.value;
+    const suggestions = suggestedParents(currentPoint(), eligible, chosen);
+    const hint = view.querySelector('[data-parent-hint]');
+    hint.textContent = suggestions[0]?.meters < 300
+      ? '· in de buurt' : '';
+    parentChips.replaceChildren();
+    parentChips.append(createChip('', 'Hoofdlocatie', !chosen, () => {
+      parentSelect.value = '';
+      renderParents();
+      syncMap();
+    }));
+    for (const entry of suggestions.slice(0, 2)) {
+      parentChips.append(createChip(entry.id, entry.title,
+        chosen === entry.id, () => {
+          parentSelect.value = entry.id;
+          renderParents();
+          syncMap();
+        }));
+    }
+    const remaining = eligible.length > 2;
+    parentMore.hidden = !remaining && !chosen;
+    if (remaining) {
+      parentChips.append(createChip('other', 'Andere…', false, () => {
+        parentMore.hidden = !parentMore.hidden;
+        if (!parentMore.hidden) parentSelect.focus();
+      }));
+    }
+    const nativeChoice = parentSelect.selectedOptions[0];
+    if (chosen && !suggestions.slice(0, 2).some(x => x.id === chosen)) {
+      parentMore.hidden = false;
+      if (!remaining && nativeChoice) {
+        parentChips.append(createChip(chosen, nativeChoice.textContent, true, () => {
+          parentMore.hidden = !parentMore.hidden;
+        }));
+      }
     }
   }
 
-  function continueManual() {
-    if (!String(form.elements.title.value || '').trim()) {
-      feedback.textContent = 'Hoe noem je deze plek?';
-      focusTextField(form.elements.title);
-      return;
-    }
-    setParent(validParent(chosenParentId) ? chosenParentId : '');
-    showDetails();
-  }
-
-  // Enter on the first question moves to editing, not to premature saving.
-  form.addEventListener('submit', event => {
-    if (mode === 'details') return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (mode === 'start') continueManual();
-  }, true);
-  form.elements.title.addEventListener('keydown', event => {
-    if (event.key === 'Enter' && mode === 'start') {
-      event.preventDefault();
-      continueManual();
-    }
-  });
-  question.addEventListener('click', event => {
-    const target = event.target.closest('[data-answer]');
-    if (target) handleAnswer(target.dataset.answer);
-  });
-  next.addEventListener('click', continueManual);
-  back.addEventListener('click', showStart);
-  form.elements.title.addEventListener('input', () => { if (!programmaticChange) nameTouched = true; });
-  form.elements.address.addEventListener('input', () => { if (!programmaticChange) addressTouched = true; });
-  form.elements.address.addEventListener('blur', () => {
-    if (mode === 'details' && !currentPoint()) void resolveMissingCoordinates();
-  });
-  ['lat','lng','parentId'].forEach(field =>
-    form.elements[field]?.addEventListener('input', () => { syncCoordinates(); mapPreview?.update(); }));
+  radiusRange.value = form.elements.radiusM.value || '100';
+  radiusValue.textContent = radiusRange.value + ' m';
   radiusRange.addEventListener('input', () => {
-    change(form.elements.radiusM, radiusRange.value);
+    changeInput(form.elements.radiusM, radiusRange.value);
     radiusValue.textContent = radiusRange.value + ' m';
-    mapPreview?.update();
+    syncMap();
   });
   form.elements.radiusM.addEventListener('input', () => {
-    radiusRange.value = String(clampRadius(form.elements.radiusM.value));
+    radiusRange.value = form.elements.radiusM.value;
     radiusValue.textContent = radiusRange.value + ' m';
-    mapPreview?.update();
+    syncMap();
   });
-  const triggerSwitch = triggerField?.querySelector('[name="triggerEnabled"]');
+  form.elements.address.addEventListener('input', () => {
+    if (addressEditing) addressManuallyEdited = true;
+    syncText();
+  });
+  form.elements.address.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && addressEditing) {
+      event.preventDefault();
+      form.elements.address.blur();
+      setAddressEditing(false);
+    }
+  });
+  addressToggle.addEventListener('click', () => setAddressEditing(!addressEditing, !addressEditing));
+  parentSelect.addEventListener('change', () => { renderParents(); syncMap(); });
+  [form.elements.lat, form.elements.lng].forEach(field =>
+    field.addEventListener('input', () => { syncMap(); renderParents(); }));
+  gpsButton.addEventListener('click', () => {
+    // Existing LocationsView handler performs the actual GPS check.
+    addressManuallyEdited = false;
+  });
+  form.addEventListener('sh-location-accuracy', event => {
+    accuracy = Number(event.detail?.accuracy) || 0;
+    mapView?.refresh();
+  });
+  const triggerSwitch = triggerGroup?.querySelector('[name="triggerEnabled"]');
   triggerSwitch?.addEventListener('change', event => {
     if (event.currentTarget.checked) focusTextField(form.elements.triggerMessage);
   });
-  // The top-right button becomes the sole save action when available.
-  if (saveInHeader) saveButton.hidden = true;
 
-  const viewport = window.visualViewport;
-  const resize = () => {
-    if (disposed || !footer.isConnected) return;
-    footer.style.setProperty('--sh-keyboard-inset', keyboardInset(viewport, window.innerHeight) + 'px');
-  };
-  viewport?.addEventListener('resize', resize);
-  viewport?.addEventListener('scroll', resize);
-  window.addEventListener('resize', resize);
-  resize();
+  // Retain all existing handlers, IDs, nested-location relationships and saving.
+  onModeChange('details');
+  renderTypes();
+  renderParents();
+  syncText();
+  syncMap();
+  if (useGps) gpsButton.click();
 
   function cleanup() {
     disposed = true;
-    viewport?.removeEventListener('resize', resize);
-    viewport?.removeEventListener('scroll', resize);
-    window.removeEventListener('resize', resize);
-    mapPreview?.dispose();
-    mapPreview = null;
+    ++geocodeRequest;
+    mapView?.dispose();
+    mapView = null;
   }
-  if (!isNew) showDetails();
-  else if (initialParent && validParent(initialParent)) showDecision([knownById.get(initialParent)]);
-  else if (useGps) { showStart(); useCurrentPosition(); }
-  else showStart();
-
   return cleanup;
 }
