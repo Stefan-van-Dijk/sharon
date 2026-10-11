@@ -1211,6 +1211,39 @@
       .sh-location-guided-progress span{transition:none}
     }
 
+    /* Locations: two choices, editable details, sticky keyboard actions. */
+    .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
+    .sh-locations-toolbar{justify-content:space-between}
+    .sh-locations-toolbar button{min-width:44px;min-height:44px;font-size:26px}
+    .app-stage[data-view="detail"] .app-view>.module-view.sh-location-simple{max-width:none;padding-bottom:130px;background:#fff}
+    .sh-location-simple [hidden]{display:none!important}
+    .sh-location-simple-nav{width:min(620px,100%);margin:auto;border:0}
+    .sh-location-simple-nav>span{display:none}
+    .sh-location-simple .location-form{width:min(620px,100%);margin:auto}
+    .sh-location-simple-start{min-height:calc(100dvh - 240px);display:flex;flex-direction:column;justify-content:center;padding:38px 0 60px}
+    .sh-location-simple-question p{margin:0;font-size:clamp(24px,5.5vw,30px);font-weight:300;letter-spacing:-.03em}
+    .sh-location-simple-start>.story-note{margin:13px 0 28px;color:#888;font-size:14px}
+    .sh-location-simple-current{width:100%;min-height:60px;display:flex;align-items:center;gap:15px;padding:8px 0;background:transparent;border:0;border-top:1px solid #ececef;border-bottom:1px solid #ececef;text-align:left;font-size:16px}
+    .sh-location-simple-current span:nth-child(2){flex:1}
+    .sh-location-simple-current span:last-child{font-size:24px;color:#a5a5aa}
+    .sh-location-simple-position-symbol{font-size:27px}
+    .sh-location-simple-or{align-self:center;margin:18px 0;color:#999;font-size:12px}
+    .sh-location-simple-start .clean-field{padding:8px 0;border-bottom:1px solid #ececef}
+    .sh-location-simple-start .clean-field input{width:100%;height:45px;border:0;font-size:21px}
+    .sh-location-simple-detect-status{min-height:18px;color:#777;font-size:12px}
+    .sh-location-simple-details{padding:30px 0 45px}
+    .sh-location-simple-details .sh-location-simple-question{margin-bottom:22px}
+    .sh-location-simple-preview{padding:9px 0 23px;border-bottom:1px solid #ececef}
+    .sh-location-simple-preview .place-address{font-size:21px;font-weight:320;margin-top:12px;overflow-wrap:anywhere}
+    .sh-location-simple-details .clean-field{padding:14px 0}
+    .sh-location-simple-details .clean-field input{font-size:17px}
+    .sh-location-simple-details .sh-location-group>.clean-field{border:0;padding:6px 0}
+    .sh-location-simple-details .sh-location-secondary-actions{margin-top:20px}
+    .sh-location-simple-footer{position:fixed;z-index:30;left:0;right:0;bottom:var(--sh-keyboard-inset,0px);padding:12px max(22px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));background:rgba(255,255,255,.96);border-top:1px solid #ececef;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+    .sh-location-simple-footer-inner{width:min(620px,100%);margin:auto;display:flex;align-items:center;justify-content:flex-end;gap:18px}
+    .sh-location-simple-footer .story-primary-action,.sh-location-simple-submit{min-width:105px;height:44px;margin:0;padding:0 18px;border:0;background:#111;color:#fff;font-size:14px;font-weight:550}
+    .sh-location-simple-footer .story-text-action{min-height:44px}
+    @media(max-width:480px){.sh-location-simple-start{min-height:calc(100dvh - 195px)}.sh-location-simple-footer{padding-top:10px;padding-bottom:max(8px,env(safe-area-inset-bottom))}}
   </style>
 </head>
 <body>
