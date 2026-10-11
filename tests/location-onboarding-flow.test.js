@@ -8,12 +8,12 @@ test('the preferred reference uses one editable screen, not three onboarding ste
   const flow = await read('../src/ui/LocationOnboardingFlow.js');
   const css = await read('../index.html');
   assert.equal(typeof enhanceLocationEditor, 'function');
-  assert.ok(flow.includes('Is dit de plek?'));
-  assert.ok(flow.includes('Controleer of de locatie klopt'));
+  assert.ok(flow.includes('data-location-conclusion'));
+  assert.ok(flow.includes('locationConclusion('));
   assert.ok(flow.includes('sh-location-reference-address'));
   assert.ok(flow.includes('data-coordinates-text'));
   assert.ok(flow.includes('data-radius-map'));
-  assert.ok(flow.includes('Herkenningsafstand aanpassen'));
+  assert.ok(!flow.includes('data-zoom-in'));
   assert.ok(flow.includes('Wat voor plek is dit?'));
   assert.ok(flow.includes('Meer instellingen'));
   assert.ok(css.includes('.sh-location-reference-page'));
@@ -67,13 +67,13 @@ test('map zoom sets recognition radius; changing GPS requires explicit action', 
   assert.ok(flow.includes("onRadiusChange: radius =>"));
   assert.ok(flow.includes("form.elements.radiusM.value = String(radius)"));
   assert.ok(flow.includes("mapView?.setPositionEditable(positionEditing)"));
-  assert.ok(flow.includes("view.querySelector('[data-zoom-in]')"));
-  assert.ok(flow.includes("view.querySelector('[data-zoom-out]')"));
+  assert.ok(flow.includes('gpsButton.hidden = !positionEditing'));
+  assert.ok(!flow.includes('data-zoom-out'));
   assert.ok(flow.includes('typeSelect.value = option.value'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));
   assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.99"));
-  assert.ok(worker.includes("const BUILD = '0.1.99'"));
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.100"));
+  assert.ok(worker.includes("const BUILD = '0.1.100'"));
 });
 
 test('isolated locations show no unnecessary main-location choices', async () => {

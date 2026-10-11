@@ -1,10 +1,10 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.99';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.100';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.99';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.100';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.1.99';
+} from '../core/location/LocationHierarchy.js?v=0.1.100';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -349,7 +349,7 @@ export async function openLocationsView(root, {
         };
       });
     releaseEditor = enhanceLocationEditor(root, {
-      isNew, useGps, location, geocoder, knownLocations, initialParent,
+      isNew, useGps, location, geocoder, events, knownLocations, initialParent,
       saveInHeader: false
     });
   }
@@ -416,7 +416,13 @@ function readNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 function locationIcon(type) {
-  return ({ home: '⌂', work: '▣', business: '◇', private: '○', other: '·' })[type] || '·';
+  return ({
+    home:'⌂', work:'▣', customer:'▣', business:'◇', private:'○',
+    parking:'P', fuel:'◈', shop:'▤', supermarket:'▤',
+    restaurant:'◒', hospitality:'◒', family:'⌂', sport:'◉',
+    school:'▱', healthcare:'+', hotel:'⌂', construction:'△',
+    public:'◎', other:'·'
+  })[type] || '·';
 }
 function formatCoordinates(point) {
   return Number.isFinite(point?.lat) && Number.isFinite(point?.lng)

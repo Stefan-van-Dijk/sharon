@@ -1,6 +1,7 @@
-import { focusTextField } from './TextInputFocus.js?v=0.1.99';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.99';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.99';
+import { focusTextField } from './TextInputFocus.js?v=0.1.100';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.100';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.100';
+import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.1.100';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
@@ -37,7 +38,8 @@ const validPoint = point => {
 
 export function enhanceLocationEditor(root, {
   isNew = false, location, geocoder, useGps = false,
-  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false
+  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
+  events = null
 } = {}) {
   const page = root.querySelector('.location-editor-view');
   const form = page?.querySelector('[data-location-form]');
@@ -67,13 +69,14 @@ export function enhanceLocationEditor(root, {
   const byId = new Map(eligible.map(item => [item.id, item]));
   let disposed = false, mapView = null, accuracy = 0, geocodeRequest = 0;
   let addressEditing = false, addressManuallyEdited = false;
+  let stopTyping = () => {};
+  let previousConclusion = '';
 
   // The reference image is a single page, not an onboarding questionnaire.
   const view = document.createElement('div');
   view.className = 'sh-location-reference-page';
   view.innerHTML = '<div class="sh-location-reference-heading">' +
-      '<h2>Is dit de plek?</h2>' +
-      '<p>Controleer of de locatie klopt en pas aan indien nodig.</p>' +
+      '<h2 data-location-conclusion aria-live="off"></h2>' +
     '</div>' +
     '<div class="sh-location-reference-name" data-name-slot></div>' +
     '<div class="sh-location-reference-place">' +
@@ -88,10 +91,6 @@ export function enhanceLocationEditor(root, {
     '<div class="sh-location-reference-map-panel">' +
       '<div class="sh-radius-map-host sh-location-reference-map" data-radius-map></div>' +
       '<div class="sh-location-reference-map-controls" data-map-controls></div>' +
-      '<div class="sh-location-reference-zoom" aria-label="Herkenningsafstand aanpassen">' +
-        '<button type="button" data-zoom-in aria-label="Kleinere herkenningsstraal">+</button>' +
-        '<button type="button" data-zoom-out aria-label="Grotere herkenningsstraal">−</button>' +
-      '</div>' +
       '<span class="sh-location-reference-map-hint" data-map-hint hidden>Sleep de pin of tik op de kaart.</span>' +
     '</div>' +
     '<div class="sh-location-reference-section" data-parent-section>' +
@@ -127,6 +126,7 @@ export function enhanceLocationEditor(root, {
   mapControls.append(positionButton);
   mapControls.append(gpsButton);
   gpsButton.textContent = '⌖ Mijn locatie';
+  gpsButton.hidden = true;
   // The complete hierarchy picker stays available under the secondary details.
   view.querySelector('[data-more-fields]').prepend(parentLabel);
   typeLabel.hidden = true;
@@ -157,7 +157,22 @@ export function enhanceLocationEditor(root, {
   const parentSection = view.querySelector('[data-parent-section]');
   const moreSettings = view.querySelector('[data-more]');
   const mapHint = view.querySelector('[data-map-hint]');
+  const conclusionElement = view.querySelector('[data-location-conclusion]');
+  const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   let positionEditing = false;
+
+  function updateConclusion(animate = false) {
+    const value = locationConclusion(
+      form.elements.title.value, currentPoint(), location?.latest, form.elements.radiusM.value
+    );
+    if (value === previousConclusion) return;
+    previousConclusion = value;
+    stopTyping();
+    conclusionElement.setAttribute('aria-label', value);
+    stopTyping = typeLocationConclusion(conclusionElement, value, {
+      reducedMotion: !animate || reducedMotion
+    });
+  }
   const mapHost = view.querySelector('[data-radius-map]');
   const statusNode = status;
 
@@ -174,6 +189,7 @@ export function enhanceLocationEditor(root, {
     addressText.textContent = text;
     const point = currentPoint();
     coordinatesText.textContent = point ? point.lat.toFixed(5) + ', ' + point.lng.toFixed(5) : 'Nog geen GPS-positie';
+    updateConclusion();
   }
   function changeInput(field, value) {
     field.value = String(value);
@@ -254,14 +270,22 @@ export function enhanceLocationEditor(root, {
     return button;
   }
   function renderTypes() {
+    const previousScroll = typeChips.scrollLeft;
     typeChips.replaceChildren();
+    typeChips.setAttribute('role', 'group');
+    typeChips.setAttribute('aria-label', 'Locatietype, veeg horizontaal voor meer opties');
     for (const option of typeSelect.options) {
-      typeChips.append(createChip(option.value, option.textContent,
+      const chip = createChip(option.value, option.textContent,
         typeSelect.value === option.value, () => {
           typeSelect.value = option.value;
           renderTypes();
-        }));
+          const selected = Array.from(typeChips.children)
+            .find(item => item.value === option.value);
+          selected?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+      typeChips.append(chip);
     }
+    typeChips.scrollLeft = previousScroll;
   }
   function renderParents() {
     const chosen = parentSelect.value;
@@ -304,12 +328,12 @@ export function enhanceLocationEditor(root, {
   positionButton.addEventListener('click', () => {
     positionEditing = !positionEditing;
     mapView?.setPositionEditable(positionEditing);
+    gpsButton.hidden = !positionEditing;
     positionButton.textContent = positionEditing ? 'Gereed' : 'Positie wijzigen';
     positionButton.setAttribute('aria-pressed', String(positionEditing));
     mapHint.hidden = !positionEditing;
   });
-  view.querySelector('[data-zoom-in]').addEventListener('click', () => mapView?.zoom(0.5));
-  view.querySelector('[data-zoom-out]').addEventListener('click', () => mapView?.zoom(-0.5));
+  form.elements.title.addEventListener('input', () => updateConclusion());
   form.elements.address.addEventListener('input', () => {
     if (addressEditing) addressManuallyEdited = true;
     syncText();
@@ -329,8 +353,10 @@ export function enhanceLocationEditor(root, {
     // Existing LocationsView handler performs the actual GPS check.
     addressManuallyEdited = false;
   });
+  const unsubscribeLocation = events?.on?.('location.changed', () => updateConclusion());
   form.addEventListener('sh-location-accuracy', event => {
     accuracy = Number(event.detail?.accuracy) || 0;
+    updateConclusion();
     mapView?.refresh();
     if (event.detail?.point && !addressManuallyEdited) void reversePoint(event.detail.point);
   });
@@ -343,12 +369,16 @@ export function enhanceLocationEditor(root, {
   onModeChange('details');
   renderTypes();
   renderParents();
+  // The first sentence types like the original Sharon introduction.
+  updateConclusion(true);
   syncText();
   syncMap();
   if (useGps) gpsButton.click();
 
   function cleanup() {
     disposed = true;
+    stopTyping();
+    if (typeof unsubscribeLocation === 'function') unsubscribeLocation();
     ++geocodeRequest;
     mapView?.dispose();
     mapView = null;

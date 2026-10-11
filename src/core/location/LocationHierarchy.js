@@ -1,6 +1,26 @@
+// Existing identifiers (home/work/business/private/other) remain stable.
+// Practical destinations appear first; less frequently used types are further
+// along the horizontally scrolling category strip.
 export const LOCATION_TYPES = Object.freeze([
-  ['home', 'Thuis'], ['work', 'Werk'], ['business', 'Zakelijk'],
-  ['private', 'Privé'], ['other', 'Overig']
+  ['work', 'Werk'],
+  ['customer', 'Klant'],
+  ['parking', 'Parkeren'],
+  ['fuel', 'Tankstation'],
+  ['supermarket', 'Supermarkt'],
+  ['shop', 'Winkel'],
+  ['restaurant', 'Restaurant'],
+  ['hospitality', 'Horeca'],
+  ['family', 'Familie'],
+  ['sport', 'Sport'],
+  ['school', 'School'],
+  ['healthcare', 'Zorg'],
+  ['hotel', 'Overnachten'],
+  ['construction', 'Bouwplaats'],
+  ['public', 'Openbaar'],
+  ['home', 'Thuis'],
+  ['business', 'Zakelijk'],
+  ['private', 'Privé'],
+  ['other', 'Overig']
 ]);
 
 export function ownCoordinates(item) {

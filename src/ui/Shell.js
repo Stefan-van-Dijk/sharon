@@ -1,10 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.1.99';
+import { openLocationsView } from './LocationsView.js?v=0.1.100';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.90';
 import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.1.90';
 
-const APP_VERSION = '0.1.99';
+const APP_VERSION = '0.1.100';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -309,7 +309,15 @@ export function createShell(root, {
   });
 
   bindSwipeHome(stage, () => {
-    if (currentView === 'detail') return showHome();
+    if (currentView !== 'detail') return;
+    // A rightward edge swipe from an open location edits back to its module
+    // list, not all the way to Sharon's home screen.
+    const backToLocations = outlet.querySelector('.location-editor-view [data-back]');
+    if (backToLocations) {
+      backToLocations.click();
+      return;
+    }
+    return showHome();
   }, {
     isEnabled: () => currentView === 'detail'
   });
