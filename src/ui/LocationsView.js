@@ -1,5 +1,6 @@
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.91';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.92';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -336,6 +337,7 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
+    enhanceLocationEditor(root, { isNew });
     if (useGps) root.querySelector('[data-current-gps]').click();
   }
 
