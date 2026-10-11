@@ -190,7 +190,7 @@ export function mountLocationArea(host, {
         const pin = document.createElement('div');
         pin.className = 'sh-location-map-pin';
         pin.setAttribute('aria-label', 'Versleep om de GPS-positie te wijzigen');
-        marker = new lib.Marker({ element: pin, draggable: false, anchor: 'bottom' })
+        marker = new lib.Marker({ element: pin, draggable: positionEditable, anchor: 'bottom' })
           .setLngLat([center.lng, center.lat]).addTo(map);
         marker.on('drag', () => {
           if (!positionEditable) return;
