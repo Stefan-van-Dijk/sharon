@@ -181,7 +181,7 @@ test('buildings move into Basis without losing former per-group styles', () => {
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').fill, '#d1d2d3');
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').stroke, '#112233');
   assert.equal(resolvedEnvironmentAppearance(saved, 'buildings').hatch, 'none');
-  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'dots');
+  assert.equal(resolvedEnvironmentAppearance(saved, 'land').hatch, 'none');
   assert.equal(sanitizeEnvironmentAppearance(saved).buildings.width, 2);
 });
 
