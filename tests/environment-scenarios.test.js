@@ -34,7 +34,7 @@ test('scenario swiping and independent edits persist across reloads',()=>{
  assert.deepEqual(restored.slots[1],{land:{fill:'#aabbcc'}});
  assert.deepEqual(changeEnvironmentScenario(restored,-1).slots[0],original.slots[0]);
  assert.equal(changeEnvironmentScenario(restored,-2).active,STYLE_SCENARIOS.length-1);
- assert.equal(changeEnvironmentScenario(restored,4).active,1);
+ assert.equal(changeEnvironmentScenario(restored,STYLE_SCENARIOS.length).active,1);
 });
 test('invalid persisted scenario data is safely sanitized',()=>{
  const restored=createEnvironmentScenarioDeck({land:{fill:'#ffffff'}},{
