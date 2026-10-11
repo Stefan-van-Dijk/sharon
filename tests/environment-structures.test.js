@@ -9,7 +9,7 @@ import { environmentHatchPreview } from '../src/ui/EnvironmentHatch.js';
 
 test('engineering objects form a separate horizontally scrollable group', () => {
   const section = APPEARANCE_SECTIONS.find(item => item.id === 'structures');
-  assert.equal(section.label, 'Kunstwerken');
+  assert.equal(section.label, 'Objecten');
   assert.deepEqual(section.items, [
     'bridges','tunnels','piers','dams','fords','pumpingStations','locks','weirs'
   ]);
