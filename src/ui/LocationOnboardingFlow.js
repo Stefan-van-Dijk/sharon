@@ -88,12 +88,11 @@ export function enhanceLocationEditor(root, {
     '<div class="sh-location-reference-map-panel">' +
       '<div class="sh-radius-map-host sh-location-reference-map" data-radius-map></div>' +
       '<div class="sh-location-reference-map-controls" data-map-controls></div>' +
-      '<span class="sh-location-reference-map-hint">Versleep de pin om de positie aan te passen</span>' +
-    '</div>' +
-    '<div class="sh-location-reference-radius">' +
-      '<label for="shReferenceRadius">Herkenningsstraal <strong data-radius-value>100 m</strong></label>' +
-      '<input type="range" id="shReferenceRadius" min="20" max="2000" step="10" data-radius-range>' +
-      '<div class="sh-location-reference-scale"><span>20 m</span><span>2.000 m</span></div>' +
+      '<div class="sh-location-reference-zoom" aria-label="Herkenningsafstand aanpassen">' +
+        '<button type="button" data-zoom-in aria-label="Kleinere herkenningsstraal">+</button>' +
+        '<button type="button" data-zoom-out aria-label="Grotere herkenningsstraal">−</button>' +
+      '</div>' +
+      '<span class="sh-location-reference-map-hint" data-map-hint hidden>Sleep de pin of tik op de kaart.</span>' +
     '</div>' +
     '<div class="sh-location-reference-section" data-parent-section>' +
       '<h3>Onderdeel van <small data-parent-hint></small></h3>' +
@@ -119,9 +118,17 @@ export function enhanceLocationEditor(root, {
   coordinateDetails.innerHTML = '<summary>GPS-coördinaten handmatig aanpassen</summary>';
   coordinateDetails.append(coordinatesGroup);
   view.querySelector('[data-address-fields]').append(coordinateDetails);
-  view.querySelector('[data-map-controls]').append(gpsButton);
+  const mapControls = view.querySelector('[data-map-controls]');
+  const positionButton = document.createElement('button');
+  positionButton.type = 'button';
+  positionButton.className = 'sh-location-reference-position-toggle';
+  positionButton.textContent = 'Positie wijzigen';
+  positionButton.setAttribute('aria-pressed', 'false');
+  mapControls.append(positionButton);
+  mapControls.append(gpsButton);
   gpsButton.textContent = '⌖ Mijn locatie';
-  view.querySelector('[data-parent-more]').append(parentLabel);
+  // The complete hierarchy picker stays available under the secondary details.
+  view.querySelector('[data-more-fields]').prepend(parentLabel);
   typeLabel.hidden = true;
   view.querySelector('[data-more-fields]').append(
     typeLabel, radiusLabel, shareLabel, triggerGroup, distanceGroup);
@@ -147,9 +154,10 @@ export function enhanceLocationEditor(root, {
   const addressToggle = view.querySelector('[data-address-toggle]');
   const typeChips = view.querySelector('[data-type-chips]');
   const parentChips = view.querySelector('[data-parent-chips]');
-  const parentMore = view.querySelector('[data-parent-more]');
-  const radiusRange = view.querySelector('[data-radius-range]');
-  const radiusValue = view.querySelector('[data-radius-value]');
+  const parentSection = view.querySelector('[data-parent-section]');
+  const moreSettings = view.querySelector('[data-more]');
+  const mapHint = view.querySelector('[data-map-hint]');
+  let positionEditing = false;
   const mapHost = view.querySelector('[data-radius-map]');
   const statusNode = status;
 
@@ -179,6 +187,10 @@ export function enhanceLocationEditor(root, {
         getPoint: currentPoint,
         getRadius: () => Number(form.elements.radiusM.value),
         getAccuracy: () => accuracy,
+        onRadiusChange: radius => {
+          // Map zoom, not a separate slider, controls the stored radius.
+          form.elements.radiusM.value = String(radius);
+        },
         onPointChange: point => {
           if (!point || disposed) return;
           changeInput(form.elements.lat, point.lat.toFixed(7));
@@ -253,17 +265,24 @@ export function enhanceLocationEditor(root, {
   }
   function renderParents() {
     const chosen = parentSelect.value;
-    const suggestions = suggestedParents(currentPoint(), eligible, chosen);
+    const point = currentPoint();
+    const near = nearbyKnownLocations(point, eligible, accuracy);
+    const selected = eligible.find(item => item.id === chosen);
+    const suggestions = [selected, ...near].filter((item, index, list) =>
+      item && list.findIndex(other => other?.id === item.id) === index).slice(0, 2);
+    // For an isolated location we do not expose an unnecessary 'Hoofdlocatie'
+    // choice. A parent can still be selected under 'Meer instellingen'.
+    parentSection.hidden = suggestions.length === 0 && !chosen;
     const hint = view.querySelector('[data-parent-hint]');
-    hint.textContent = suggestions[0]?.meters < 300
-      ? '· in de buurt' : '';
+    hint.textContent = near.length ? '· in de buurt' : '';
     parentChips.replaceChildren();
+    if (parentSection.hidden) return;
     parentChips.append(createChip('', 'Hoofdlocatie', !chosen, () => {
       parentSelect.value = '';
       renderParents();
       syncMap();
     }));
-    for (const entry of suggestions.slice(0, 2)) {
+    for (const entry of suggestions) {
       parentChips.append(createChip(entry.id, entry.title,
         chosen === entry.id, () => {
           parentSelect.value = entry.id;
@@ -271,37 +290,26 @@ export function enhanceLocationEditor(root, {
           syncMap();
         }));
     }
-    const remaining = eligible.length > 2;
-    parentMore.hidden = !remaining && !chosen;
-    if (remaining) {
+    if (eligible.length > suggestions.length) {
       parentChips.append(createChip('other', 'Andere…', false, () => {
-        parentMore.hidden = !parentMore.hidden;
-        if (!parentMore.hidden) parentSelect.focus();
+        moreSettings.open = true;
+        parentLabel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+        parentSelect.focus();
       }));
-    }
-    const nativeChoice = parentSelect.selectedOptions[0];
-    if (chosen && !suggestions.slice(0, 2).some(x => x.id === chosen)) {
-      parentMore.hidden = false;
-      if (nativeChoice) {
-        parentChips.append(createChip(chosen, nativeChoice.textContent, true, () => {
-          parentMore.hidden = !parentMore.hidden;
-        }));
-      }
     }
   }
 
-  radiusRange.value = form.elements.radiusM.value || '100';
-  radiusValue.textContent = radiusRange.value + ' m';
-  radiusRange.addEventListener('input', () => {
-    changeInput(form.elements.radiusM, radiusRange.value);
-    radiusValue.textContent = radiusRange.value + ' m';
-    syncMap();
+  // Default map interaction is navigation/zoom only. The saved GPS point is
+  // protected until the user explicitly opts into editing.
+  positionButton.addEventListener('click', () => {
+    positionEditing = !positionEditing;
+    mapView?.setPositionEditable(positionEditing);
+    positionButton.textContent = positionEditing ? 'Gereed' : 'Positie wijzigen';
+    positionButton.setAttribute('aria-pressed', String(positionEditing));
+    mapHint.hidden = !positionEditing;
   });
-  form.elements.radiusM.addEventListener('input', () => {
-    radiusRange.value = form.elements.radiusM.value;
-    radiusValue.textContent = radiusRange.value + ' m';
-    syncMap();
-  });
+  view.querySelector('[data-zoom-in]').addEventListener('click', () => mapView?.zoom(0.5));
+  view.querySelector('[data-zoom-out]').addEventListener('click', () => mapView?.zoom(-0.5));
   form.elements.address.addEventListener('input', () => {
     if (addressEditing) addressManuallyEdited = true;
     syncText();
