@@ -1,4 +1,4 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.96';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.97';
 
 const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
 const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
