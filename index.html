@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.97">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.97">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.98">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.98">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1343,7 +1343,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.1.97 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.1.98 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1388,7 +1388,13 @@
       position:relative;width:100%;overflow:hidden;border-radius:16px;background:#f4f5f5;
       height:clamp(235px,38vh,310px);
     }
-    .sh-location-reference-map-panel .sh-radius-map-host{height:100%;border-radius:inherit}
+    .sh-location-reference-map-panel .sh-radius-map-host{height:100%;min-height:220px;border-radius:inherit}
+    .sh-location-reference-map-panel .sh-radius-map.maplibregl-map{
+      display:block;width:100%;height:100%;position:absolute;inset:0;background:#fff;
+    }
+    .sh-location-reference-map-panel .maplibregl-canvas-container,
+    .sh-location-reference-map-panel .maplibregl-canvas{width:100%;height:100%}
+
     .sh-location-reference-map-panel .sh-radius-map-note{font-size:10px;color:#777}
     .sh-location-reference-map-panel .sh-radius-overlay{
       position:absolute;inset:auto;left:50%;top:50%;width:0;height:0;
@@ -1465,16 +1471,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.97#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.97#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.97#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.97#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.97#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.98#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.98#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.98#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.98#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.98#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.97"></script>
+  <script type="module" src="./src/main.js?v=0.1.98"></script>
 </body>
 </html>

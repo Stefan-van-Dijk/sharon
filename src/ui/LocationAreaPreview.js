@@ -1,8 +1,5 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.97';
-
-const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
-const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
-const MAPLIBRE_WORKER = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl-worker.mjs';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.98';
+import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.1.98';
 export const AREA_RADIUS_PX = 72;
 
 const radiusMeters = value => Math.max(20, Math.min(2000, Number(value) || 100));
@@ -51,6 +48,9 @@ export function mountLocationArea(host, {
   let alive = true;
   let loading = false;
   let ready = false;
+  let tileError = false;
+  let resizeObserver = null;
+  let pendingUpdate = false;
   host.innerHTML = '<div class="sh-radius-map" data-map aria-label="Kaart van de herkenningszone"></div>' +
     '<div class="sh-radius-overlay" data-area-overlay aria-hidden="true"><span class="sh-radius-fade"></span><span class="sh-radius-center"></span></div>' +
     '<div class="sh-radius-map-placeholder" data-map-placeholder role="status">Kaart voorbereiden…</div>' +
@@ -60,6 +60,29 @@ export function mountLocationArea(host, {
   const ring = host.querySelector('.sh-radius-fade');
   const placeholder = host.querySelector('[data-map-placeholder]');
   const note = host.querySelector('[data-map-note]');
+  const dimensions = () => {
+    if (typeof element.getBoundingClientRect !== 'function') return { width: 300, height: 245 };
+    return element.getBoundingClientRect();
+  };
+  const canRender = () => {
+    const { width, height } = dimensions();
+    return width >= 16 && height >= 16;
+  };
+  const resize = () => {
+    if (!alive || !canRender()) return;
+    if (map) {
+      map.resize();
+      placeOverlay();
+    } else if (pendingUpdate) {
+      pendingUpdate = false;
+      void update();
+    }
+  };
+  if (typeof ResizeObserver !== 'undefined' && typeof element.getBoundingClientRect === 'function') {
+    resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(element);
+  }
+
   const placeOverlay = () => {
     const point = validPoint(getPoint?.());
     if (!map || !point || typeof map.project !== 'function') return;
@@ -96,7 +119,7 @@ export function mountLocationArea(host, {
     note.textContent = accuracy > 0
       ? 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · GPS ±' + Math.round(accuracy) + ' m'
       : 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · zachte grens';
-    placeholder.hidden = ready;
+    placeholder.hidden = ready && !tileError;
     placeOverlay();
   }
 
@@ -105,6 +128,12 @@ export function mountLocationArea(host, {
     const position = validPoint(getPoint?.());
     refresh();
     if (!position) return;
+    if (!canRender()) {
+      pendingUpdate = true;
+      placeholder.hidden = false;
+      placeholder.textContent = 'Kaart wordt zichtbaar zodra het scherm is opgebouwd…';
+      return;
+    }
     if (map) {
       marker?.setLngLat([position.lng, position.lat]);
       map.jumpTo({
@@ -119,21 +148,11 @@ export function mountLocationArea(host, {
     placeholder.hidden = false;
     placeholder.textContent = 'Kaart laden…';
     try {
-      if (!document.querySelector('link[data-sh-location-map-css]')) {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = MAPLIBRE_CSS;
-        css.dataset.shLocationMapCss = '';
-        document.head.append(css);
-      }
-      const lib = await loadRenderer();
+      // Exact same stylesheet/module/worker settings as Omgeving.
+      const lib = await loadSharonRenderer(loadRenderer);
       if (!alive || !element.isConnected) return;
-      if (typeof lib?.Map !== 'function') throw new Error('Kaartbibliotheek ontbreekt.');
-      // Same explicit module worker used in Omgeving. Required for MapLibre 6 ESM.
-      lib.setWorkerUrl?.(MAPLIBRE_WORKER);
-      lib.setWorkerCount?.(1);
       const center = validPoint(getPoint?.()) || position;
-      map = new lib.Map({
+      map = createSharonMap(lib, {
         container: element,
         style: environmentStyle,
         center: [center.lng, center.lat],
@@ -176,14 +195,23 @@ export function mountLocationArea(host, {
       map.on('load', () => {
         if (!alive) return;
         ready = true;
-        map.resize();
+        resize();
         refresh();
       });
       map.on('zoom', refresh);
-      map.on('error', () => {
-        if (!alive || ready) return;
+      map.on('error', event => {
+        if (!alive) return;
+        tileError = true;
         placeholder.hidden = false;
-        placeholder.textContent = 'Kaart tijdelijk niet beschikbaar. Controleer je verbinding.';
+        placeholder.textContent = 'Kaartgegevens niet beschikbaar. Controleer de verbinding.';
+        // Diagnostic details are useful when debugging the device but never block saving.
+        console.warn('Sharon locatiekaart', event?.error?.message || 'Kaartfout');
+      });
+      map.on('idle', () => {
+        if (!alive || !ready || !tileError) return;
+        // Do not mask the basemap if the error was intermittent.
+        tileError = false;
+        refresh();
       });
       refresh();
     } catch {
@@ -198,6 +226,8 @@ export function mountLocationArea(host, {
 
   function dispose() {
     alive = false;
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     if (marker) {
       marker.remove();
       marker = null;

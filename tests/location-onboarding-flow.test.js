@@ -68,6 +68,6 @@ test('range changes map zoom, category chips write to original select, map has c
   assert.ok(flow.includes('mapView.update()'));
   assert.ok(flow.includes('typeSelect.value = option.value'));
   assert.ok(flow.includes("view.querySelector('[data-map-controls]').append(gpsButton)"));
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.97"));
-  assert.ok(worker.includes("const BUILD = '0.1.97'"));
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.98"));
+  assert.ok(worker.includes("const BUILD = '0.1.98'"));
 });

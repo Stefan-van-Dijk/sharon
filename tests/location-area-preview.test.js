@@ -33,6 +33,9 @@ test('location preview reuses existing Sharon basemap, no GPS watcher', async ()
   assert.ok(file.includes("marker.on('dragend'"));
   assert.ok(file.includes("radial") === false, 'soft edge should be CSS driven');
   assert.ok(file.includes("map.remove()"));
+  assert.ok(file.includes("loadSharonRenderer(loadRenderer)"));
+  assert.ok(file.includes("createSharonMap(lib"));
+  assert.ok(file.includes("new ResizeObserver(resize)"));
   assert.ok(!file.includes("navigator.geolocation"));
 });
 
@@ -77,7 +80,7 @@ test('map initialization configures the MapLibre ESM worker and slider zoom chan
     });
     await view.update();
     assert.match(workerUrl, /maplibre-gl-worker\.mjs$/);
-    assert.equal(workerCount, 1);
+    assert.equal(workerCount, 2);
     assert.equal(savedMap.options.interactive, true);
     assert.equal(savedMap.options.center[0], 5);
     const firstZoom = savedMap.options.zoom;
@@ -94,5 +97,58 @@ test('map initialization configures the MapLibre ESM worker and slider zoom chan
     assert.equal(savedMap.removed, true);
   } finally {
     globalThis.document = oldDocument;
+  }
+});
+
+
+test('location card waits for visible dimensions and initializes after ResizeObserver', async () => {
+  const previousDocument = globalThis.document;
+  const previousObserver = globalThis.ResizeObserver;
+  const box = { width: 0, height: 0 };
+  let onResize = null, disconnected = false, instances = 0;
+  const makeElement = () => ({
+    hidden: false, textContent: '', isConnected: true,
+    style: { setProperty() {} }
+  });
+  const elements = {
+    '[data-map]': { ...makeElement(), getBoundingClientRect() { return box; } },
+    '[data-area-overlay]': makeElement(),
+    '.sh-radius-fade': makeElement(),
+    '[data-map-placeholder]': makeElement(),
+    '[data-map-note]': makeElement()
+  };
+  const host = { innerHTML: '', querySelector(key) { return elements[key]; }, replaceChildren() {} };
+  class FakeMap {
+    constructor() { instances++; }
+    on() {}
+    resize() {}
+    remove() {}
+  }
+  globalThis.document = { querySelector() { return {}; } };
+  globalThis.ResizeObserver = class {
+    constructor(fn) { onResize = fn; }
+    observe() {}
+    disconnect() { disconnected = true; }
+  };
+  try {
+    const view = mountLocationArea(host, {
+      getPoint: () => ({ lat: 52, lng: 6 }),
+      getRadius: () => 100,
+      loadRenderer: async () => ({ Map: FakeMap })
+    });
+    await view.update();
+    assert.equal(instances, 0);
+    assert.match(elements['[data-map-placeholder]'].textContent, /scherm/i);
+    box.width = 280;
+    box.height = 240;
+    onResize();
+    // Deferred load is asynchronous. It must not need a second user tap.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(instances, 1);
+    view.dispose();
+    assert.equal(disconnected, true);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.ResizeObserver = previousObserver;
   }
 });

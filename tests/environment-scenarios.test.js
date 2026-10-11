@@ -67,7 +67,7 @@ test('swipe gestures, handle, centering, attribution and service-worker asset ar
  assert.ok(css.includes('.app-stage.is-environment .environment-style-flyout{'));
  assert.ok(css.includes('.environment-style-flyout{transition:none!important}'));
  assert.ok(css.includes('.app-stage.is-environment.is-map-clean .environment-maplibre .maplibregl-ctrl-bottom-right{'));
- assert.ok(sw.includes("EnvironmentScenarios.js?v=0.1.97"));
+ assert.ok(sw.includes("EnvironmentScenarios.js?v=0.1.98"));
 });
 
 test('Standaard remains native map style and cannot be overwritten',()=>{
