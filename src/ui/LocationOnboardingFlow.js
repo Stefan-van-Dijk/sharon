@@ -127,10 +127,12 @@ export function enhanceLocationEditor(root, {
   const validParent = id => Boolean(knownById.get(id));
   // Creating a sublocation is only possible beneath an already selected
   // saved address. Parent options without any known address are disabled.
-  for (const option of Array.from(form.elements.parentId.options)) {
-    if (option.value && !validParent(option.value)) option.disabled = true;
-  }
   if (isNew && !validParent(initialParent)) form.elements.parentId.value = '';
+  for (const option of Array.from(form.elements.parentId.options)) {
+    // Existing hierarchy must never be silently discarded during an edit.
+    const preserveExisting = !isNew && option.value === form.elements.parentId.value;
+    if (option.value && !validParent(option.value) && !preserveExisting) option.disabled = true;
+  }
   parentField.hidden = !eligible.length;
   const change = (field, value) => {
     if (String(field.value || '') !== String(value ?? '')) {
