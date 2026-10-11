@@ -1,5 +1,5 @@
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.78';
-import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch } from './EnvironmentHatch.js?v=0.1.78';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch, applyEnvironmentColoredHatch, DEFAULT_HATCH_COLOR } from './EnvironmentHatch.js?v=0.1.78';
 import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.78';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
   from './EnvironmentScale.js?v=0.1.78';
@@ -97,6 +97,7 @@ export function appearanceDefaults(group) {
     width: 1,
     dash: 'default',
     hatch: 'none',
+    hatchColor: DEFAULT_HATCH_COLOR,
     from: '',
     to: ''
   };
@@ -107,6 +108,7 @@ export function appearanceSectionProperties(section) {
   return {
     fill: children.some(group => group.fill || group.background),
     hatch: children.some(group => !!(group.fill || group.background)),
+    hatchColor: children.some(group => !!(group.fill || group.background)),
     stroke: children.some(group => group.lines?.length),
     scale: children.some(group => !group.background),
     width: children.some(group => group.lines?.length),
@@ -120,7 +122,7 @@ export function appearanceSectionDefaults(section) {
   return {
     fill: fillGroup ? appearanceDefaults(fillGroup).fill : null,
     stroke: lineGroup ? appearanceDefaults(lineGroup).stroke : null,
-    width: 1, dash: 'default', hatch: 'none', from: '', to: ''
+    width: 1, dash: 'default', hatch: 'none', hatchColor: DEFAULT_HATCH_COLOR, from: '', to: ''
   };
 }
 
@@ -133,6 +135,7 @@ function sanitizeEntry(entry, caps) {
     if (name === 'width' && caps.width && validWidth(value)) clean.width = value;
     if (name === 'dash' && caps.dash && validDash(value)) clean.dash = value;
     if (name === 'hatch' && caps.hatch && validHatch(value)) clean.hatch = value;
+    if (name === 'hatchColor' && caps.hatchColor && validColor(value)) clean.hatchColor = value.toLowerCase();
     if ((name === 'from' || name === 'to') && caps.scale &&
         typeof value === 'string' && (scaleIndex(value) >= 0 || value === 'all')) clean[name] = value;
   }
@@ -158,6 +161,7 @@ export function sanitizeEnvironmentAppearance(data) {
     const caps = {
       fill: !!(group.fill || group.background),
       hatch: !!(group.fill || group.background),
+      hatchColor: !!(group.fill || group.background),
       stroke: !!group.lines?.length,
       width: !!group.lines?.length,
       dash: !!group.lines?.length,
@@ -246,7 +250,7 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
       map.setPaintProperty(group.background, 'background-color', color);
       // The background image must include the user's color: MapLibre
       // disables background-color as soon as background-pattern is used.
-      applyEnvironmentLandHatch(map, color, override.hatch || 'none');
+      applyEnvironmentLandHatch(map, color, override.hatch || 'none', override.hatchColor || DEFAULT_HATCH_COLOR);
     }
     if (group.fill && map.getLayer(group.fill)) {
       const base = layers.get(group.fill);
@@ -255,15 +259,22 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
     }
     // Independent transparent overlay: fill-color stays fully editable.
     const hatchId = group.fill ? group.fill + '-hatch' : null;
-    if (hatchId && map.getLayer(hatchId) && override.hatch &&
-        override.hatch !== 'none' && typeof map.setPaintProperty === 'function') {
-      map.setPaintProperty(hatchId, 'fill-pattern', environmentHatchImageId(override.hatch));
-    }
-    if (hatchId && map.getLayer(hatchId) && bands?.cuts.length) {
+    if (hatchId && map.getLayer(hatchId) && typeof map.setPaintProperty === 'function') {
       const baseHatch = override.hatch || 'none';
-      map.setPaintProperty(hatchId, 'fill-pattern',
-        buildBuildingBandExpression(bands, 'hatch', ['image', environmentHatchImageId(baseHatch)],
-          style => ['image', environmentHatchImageId(style.hatch ?? baseHatch)]));
+      const baseColor = override.hatchColor || DEFAULT_HATCH_COLOR;
+      const basePattern = applyEnvironmentColoredHatch(map, group.id, baseHatch, baseColor);
+      if (bands?.cuts.length) {
+        const expression = buildBuildingBandExpression(
+          bands, 'hatch', ['image', basePattern], (style, index) =>
+            ['image', applyEnvironmentColoredHatch(
+              map, group.id, style.hatch ?? baseHatch,
+              style.hatchColor ?? baseColor, index
+            )]
+        );
+        map.setPaintProperty(hatchId, 'fill-pattern', expression);
+      } else if (baseHatch !== 'none') {
+        map.setPaintProperty(hatchId, 'fill-pattern', basePattern);
+      }
     }
     for (const id of group.lines || []) {
       if (!map.getLayer(id)) continue;
