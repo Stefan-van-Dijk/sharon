@@ -9,8 +9,8 @@ import { readFile } from 'node:fs/promises';
 test('Omgeving and Locaties use one shared MapLibre setup', async () => {
   const environment = await readFile(new URL('../src/ui/EnvironmentMapLibre.js',import.meta.url),'utf8');
   const location = await readFile(new URL('../src/ui/LocationAreaPreview.js',import.meta.url),'utf8');
-  assert.match(environment, /from '\.\/SharonMapRuntime\.js\?v=0\.1\.98'/);
-  assert.match(location, /from '\.\/SharonMapRuntime\.js\?v=0\.1\.98'/);
+  assert.match(environment, /from '\.\/SharonMapRuntime\.js\?v=0\.1\.99'/);
+  assert.match(location, /from '\.\/SharonMapRuntime\.js\?v=0\.1\.99'/);
   assert.match(environment, /createSharonMap\(library, options\)/);
   assert.match(location, /createSharonMap\(lib, \{/);
   assert.match(location, /loadSharonRenderer\(loadRenderer\)/);
