@@ -37,14 +37,27 @@ export function fadeStartPercent(radius, accuracy) {
   return Math.max(20, Math.min(94, percentage));
 }
 
+// The chosen recognition radius is the real-world distance represented by the
+// fixed on-screen circle. Zooming the map changes the radius, not the GPS point.
+export function radiusForZoom(zoom, latitude, screenRadius = AREA_RADIUS_PX) {
+  const metres = Math.max(1, Number(screenRadius) || AREA_RADIUS_PX) *
+    metersPerPixel(latitude, zoom);
+  const rounded = metres < 150 ? Math.round(metres / 5) * 5
+    : metres < 500 ? Math.round(metres / 10) * 10
+    : Math.round(metres / 25) * 25;
+  return radiusMeters(rounded);
+}
+
 // Non-interactive preview of a radius on Sharon's shared vector basemap.
 // No separate geolocation watches, map tiles or GPS checks are initiated.
 export function mountLocationArea(host, {
   getPoint, getRadius, getAccuracy = () => 0, onPointChange = () => {},
+  onRadiusChange = () => {},
   loadRenderer = () => import(MAPLIBRE_JS)
 } = {}) {
   let map = null;
   let marker = null;
+  let positionEditable = false;
   let alive = true;
   let loading = false;
   let ready = false;
@@ -92,6 +105,7 @@ export function mountLocationArea(host, {
     overlay.style.top = xy.y + 'px';
   };
   function updatePoint(next) {
+    if (!positionEditable) return;
     const point = validPoint(next);
     if (!point || !alive) return;
     marker?.setLngLat([point.lng, point.lat]);
@@ -116,9 +130,9 @@ export function mountLocationArea(host, {
     ring.style.setProperty('--sh-area-fade-start', start + '%');
     ring.style.setProperty('--sh-area-fade-middle', (start + 100) / 2 + '%');
     const accuracy = Number(getAccuracy?.()) || 0;
-    note.textContent = accuracy > 0
-      ? 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · GPS ±' + Math.round(accuracy) + ' m'
-      : 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · zachte grens';
+    note.textContent = radiusMeters(getRadius?.()) + ' m';
+    note.title = accuracy > 0 ? 'GPS-nauwkeurigheid ±' + Math.round(accuracy) + ' m' :
+      'Herkenningsstraal. Zoom om deze te wijzigen.';
     placeholder.hidden = ready && !tileError;
     placeOverlay();
   }
@@ -159,23 +173,27 @@ export function mountLocationArea(host, {
         zoom: zoomForArea(getRadius?.(), center.lat),
         interactive: true,
         dragPan: true,
-        scrollZoom: false,
+        scrollZoom: true,
         boxZoom: false,
-        doubleClickZoom: false,
-        touchZoomRotate: false,
+        doubleClickZoom: true,
+        touchZoomRotate: true,
+        minZoom: zoomForArea(2000, center.lat),
+        maxZoom: zoomForArea(20, center.lat),
         attributionControl: { compact: true },
         pitchWithRotate: false,
         dragRotate: false,
         maxPitch: 0,
         fadeDuration: 0
       });
+      map.touchZoomRotate?.disableRotation?.();
       if (typeof lib.Marker === 'function') {
         const pin = document.createElement('div');
         pin.className = 'sh-location-map-pin';
         pin.setAttribute('aria-label', 'Versleep om de GPS-positie te wijzigen');
-        marker = new lib.Marker({ element: pin, draggable: true, anchor: 'bottom' })
+        marker = new lib.Marker({ element: pin, draggable: false, anchor: 'bottom' })
           .setLngLat([center.lng, center.lat]).addTo(map);
         marker.on('drag', () => {
+          if (!positionEditable) return;
           const dragged = marker.getLngLat();
           const pixels = map.project?.([dragged.lng, dragged.lat]);
           if (pixels) {
@@ -184,12 +202,13 @@ export function mountLocationArea(host, {
           }
         });
         marker.on('dragend', () => {
+          if (!positionEditable) return;
           const point = marker.getLngLat();
           updatePoint({ lat: point.lat, lng: point.lng });
         });
       }
       map.on('click', event => {
-        if (event?.lngLat) updatePoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+        if (positionEditable && event?.lngLat) updatePoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
       });
       map.on('move', placeOverlay);
       map.on('load', () => {
@@ -198,7 +217,15 @@ export function mountLocationArea(host, {
         resize();
         refresh();
       });
-      map.on('zoom', refresh);
+      // A zoom gesture changes only the radius; no GPS coordinate mutation.
+      map.on('zoom', () => {
+        if (!alive) return;
+        const current = validPoint(getPoint?.());
+        if (!current) return;
+        const nextRadius = radiusForZoom(map.getZoom(), current.lat);
+        if (nextRadius !== radiusMeters(getRadius?.())) onRadiusChange(nextRadius);
+        refresh();
+      });
       map.on('error', event => {
         if (!alive) return;
         tileError = true;
@@ -224,6 +251,25 @@ export function mountLocationArea(host, {
     }
   }
 
+  function setPositionEditable(value) {
+    positionEditable = Boolean(value);
+    marker?.setDraggable?.(positionEditable);
+    const pinElement = marker?.getElement?.();
+    pinElement?.classList?.toggle?.('is-editable', positionEditable);
+    return positionEditable;
+  }
+
+  function zoom(delta) {
+    if (!map || !ready) return;
+    const current = map.getZoom?.();
+    if (!Number.isFinite(current)) return;
+    const position = validPoint(getPoint?.());
+    const low = position ? zoomForArea(2000, position.lat) : 1;
+    const high = position ? zoomForArea(20, position.lat) : 22;
+    const next = Math.max(low, Math.min(high, current + Number(delta || 0)));
+    map.easeTo?.({ zoom: next, duration: 180 });
+  }
+
   function dispose() {
     alive = false;
     resizeObserver?.disconnect();
@@ -239,5 +285,5 @@ export function mountLocationArea(host, {
     host.replaceChildren();
   }
   refresh();
-  return { update, refresh, dispose };
+  return { update, refresh, dispose, setPositionEditable, zoom };
 }
