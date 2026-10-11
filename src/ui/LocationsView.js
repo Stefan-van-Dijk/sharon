@@ -77,10 +77,6 @@ export async function openLocationsView(root, {
               </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
         </div>
-        <div class="sh-locations-transfer">
-          <button type="button" data-import-button>Importeer uit Log</button><input type="file" accept=".json,application/json" data-import hidden>
-          <button type="button" data-export>Exporteer</button>
-        </div>
         <p class="sh-location-feedback" role="status" data-list-status>${escapeHtml(status)}</p>
       </section>
     `;
@@ -112,19 +108,6 @@ export async function openLocationsView(root, {
       await savePrefs();
       list();
     }));
-    root.querySelector('[data-import]').addEventListener('change', async event => {
-      const file = event.currentTarget.files?.[0];
-      if (!file) return;
-      try {
-        const count = await importLogLocations(JSON.parse(await file.text()));
-        await reload();
-        list(count ? `${count} locaties geïmporteerd.` : 'Geen nieuwe locaties gevonden.');
-      } catch (error) {
-        root.querySelector('[data-list-status]').textContent = error.message;
-      }
-    });
-    root.querySelector('[data-import-button]').addEventListener('click', () => root.querySelector('[data-import]').click());
-    root.querySelector('[data-export]').addEventListener('click', () => exportLocations());
   }
 
   async function savePrefs() {
@@ -229,6 +212,25 @@ export async function openLocationsView(root, {
 
     const form = root.querySelector('[data-location-form]');
     const status = root.querySelector('[data-editor-status]');
+    let headerSave = null;
+    if (headerActions) {
+      headerSave = document.createElement('button');
+      headerSave.type = 'button';
+      headerSave.className = 'sh-location-header-save';
+      headerSave.setAttribute('aria-label', isNew ? 'Voeg locatie toe' : 'Wijzigingen opslaan');
+      headerSave.textContent = isNew ? 'Voeg toe' : 'Opslaan';
+      headerSave.hidden = true;
+      headerSave.addEventListener('click', () => {
+        const title = String(form.elements.title.value || '').trim();
+        if (!title) {
+          setStatus('Hoe noem je deze plek?');
+          form.elements.title.focus();
+          return;
+        }
+        form.requestSubmit();
+      });
+      headerActions.append(headerSave);
+    }
     const setStatus = msg => { status.textContent = msg; };
     root.querySelector('[data-back]').addEventListener('click', () => list());
     root.querySelector('[data-add-child]')?.addEventListener('click', () => edit(null, item.id));
@@ -353,7 +355,22 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
-    releaseEditor = enhanceLocationEditor(root, { isNew, useGps, location, geocoder });
+    const knownLocations = choices.filter(candidate => resolveLocation(candidate, byId).address)
+      .map(candidate => {
+        const effective = resolveLocation(candidate, byId);
+        return {
+          id: candidate.id, title: candidate.data?.title || 'Locatie',
+          address: effective.address, coordinates: effective.coordinates,
+          radiusM: radius(candidate.data?.radiusM)
+        };
+      });
+    releaseEditor = enhanceLocationEditor(root, {
+      isNew, useGps, location, geocoder, knownLocations, initialParent,
+      saveInHeader: Boolean(headerSave),
+      onModeChange: mode => {
+        if (headerSave) headerSave.hidden = mode !== 'details';
+      }
+    });
   }
 
 
@@ -401,69 +418,6 @@ export async function openLocationsView(root, {
     events.emit('location.deleted', { id: remove.id, mergedInto: keep.id });
     await reload();
     await list('Locaties samengevoegd.');
-  }
-
-  async function importLogLocations(bundle) {
-    const source = bundle?.locations ||
-      bundle?.kilometer?.locations ||
-      bundle?.data?.locations ||
-      bundle?.recovery?.sources?.kilometers?.data?.locations ||
-      bundle?.recovery?.sources?.kilometer?.data?.locations ||
-      bundle?.source_data?.kilometer?.data?.locations;
-    if (!Array.isArray(source)) throw Error('Geen Log-locaties aangetroffen in dit JSON-bestand.');
-    if (!source.length) return 0;
-    if (!confirm(`${source.length} locaties uit Log toevoegen? Bestaande locaties blijven behouden; eerder geïmporteerde worden overgeslagen.`)) return 0;
-    const ids = new Map();
-    const existing = new Map(locations.filter(x => x.data?.logSourceId || x.data?.importSourceId || (bundle.app === 'sharon' && x.id))
-      .map(x => [String(x.data?.logSourceId || x.data?.importSourceId || x.id), x.id]));
-    for (const row of source) {
-      if (!row || typeof row !== 'object') continue;
-      const sourceId = String(row.id || '');
-      if (sourceId) ids.set(sourceId, existing.get(sourceId) || crypto.randomUUID());
-    }
-    let count = 0;
-    for (const row of source) {
-      if (!row || typeof row !== 'object' || !row.id || existing.has(String(row.id))) continue;
-      const now = Date.now();
-      const lat = readNumber(row.lat), lng = readNumber(row.lng);
-      const coords = lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
-      const obj = {
-        id: ids.get(String(row.id)), externalId: null, type: 'location', schemaVersion: 1,
-        createdAt: now, updatedAt: now, deletedAt: null,
-        data: {
-          title: String(row.name || row.address || 'Locatie').slice(0, 80),
-          parentId: ids.get(String(row.parentId || '')) || '',
-          address: row.address ? { text: String(row.address) } : {},
-          coordinates: coords,
-          kind: TYPES.has(row.type) ? row.type : 'other',
-          shareRide: ['never', 'ask', 'always'].includes(row.shareRide) ? row.shareRide : 'never',
-          radiusM: DEFAULT_RADIUS,
-          importSourceId: String(row.id),
-          importApp: bundle.app === 'sharon' ? 'sharon' : 'log',
-          ...(bundle.app === 'sharon' ? {} : { logSourceId: String(row.id) })
-        }
-      };
-      await store.put('objects', obj);
-      count++;
-    }
-    if (count) events.emit('location.imported', { count });
-    return count;
-  }
-
-  function exportLocations() {
-    const data = locations.map(item => ({
-      id: item.id, name: item.data?.title || '', parentId: parentIdOf(item),
-      address: addressText(item.data?.address),
-      ...ownCoordinates(item), type: item.data?.kind || 'other',
-      shareRide: item.data?.shareRide || 'never'
-    }));
-    const blob = new Blob([JSON.stringify({ app: 'sharon', locations: data }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'sharon-locaties.json';
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   if (initialLocationId && byId.has(initialLocationId)) await edit(byId.get(initialLocationId));
