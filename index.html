@@ -1342,6 +1342,116 @@
       .sh-location-question-title{font-size:25px}
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
+
+    /* Sharon locations 0.1.97 — single light reference screen, minimal edits. */
+    .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
+      max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
+    }
+    .sh-location-reference [hidden]{display:none!important}
+    .sh-location-reference-nav{width:min(620px,100%);margin:0 auto;padding:6px 0 7px;border:0}
+    .sh-location-reference-nav>span{display:none}
+    .sh-location-reference .location-form{width:min(620px,100%);margin:0 auto}
+    .sh-location-reference-page{width:100%;padding:14px 0 32px}
+    .sh-location-reference-heading h2{
+      margin:0;font-size:clamp(25px,5.9vw,32px);font-weight:330;line-height:1.35;letter-spacing:-.036em;
+    }
+    .sh-location-reference-heading p{margin:8px 0 25px;font-size:14px;line-height:1.5;color:#88888d}
+    .sh-location-reference-name{border:1px solid #f0f0f2;border-radius:13px;background:#f7f7f8;padding:9px 18px 11px}
+    .sh-location-reference-name .clean-field{border:0;padding:0}
+    .sh-location-reference-name .clean-field>span{font-size:12px;color:#88888d;letter-spacing:0}
+    .sh-location-reference-name .clean-field input{
+      height:40px;padding:3px 0;border:0;background:transparent;color:#111;
+      font-size:21px;font-weight:360;outline:none;width:100%;
+    }
+    .sh-location-reference-place{margin:14px 0 16px}
+    .sh-location-reference-address{
+      display:flex;align-items:flex-start;gap:12px;width:100%;min-height:65px;padding:8px 2px;
+      border:0;background:transparent;color:#111;text-align:left;cursor:pointer;
+    }
+    .sh-location-reference-marker{font-size:22px;color:#77777c;line-height:1.2;flex:none}
+    .sh-location-reference-place-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:7px}
+    .sh-location-reference-place-copy strong{
+      white-space:pre-line;font-size:18px;line-height:1.4;font-weight:380;overflow-wrap:anywhere;
+    }
+    .sh-location-reference-place-copy small{font-size:12px;letter-spacing:.005em;color:#9999a0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .sh-location-reference-chevron{color:#a8a8ae;font-size:22px;font-weight:300}
+    .sh-location-reference-address-fields{padding:5px 0 16px;border-bottom:1px solid #eee}
+    .sh-location-reference-address-fields>.sh-location-group{padding:0 0 9px;border:0}
+    .sh-location-reference-address-fields>.sh-location-group>.clean-field{padding:6px 0;border:0}
+    .sh-location-reference-address-fields .clean-field input{font-size:17px}
+    .sh-location-reference-address-fields .sh-location-tools{display:none}
+    .sh-location-reference-coordinates-edit{margin-top:9px;border-top:1px solid #eee;padding:11px 0}
+    .sh-location-reference-coordinates-edit>summary{color:#77777c;font-size:12px;cursor:pointer;min-height:32px}
+    .sh-location-reference-coordinates-edit .sh-location-inline-header{display:none}
+    .sh-location-reference-coordinates-edit .sh-location-group{border:0;padding:0}
+    .sh-location-reference-map-panel{
+      position:relative;width:100%;overflow:hidden;border-radius:16px;background:#f4f5f5;
+      height:clamp(235px,38vh,310px);
+    }
+    .sh-location-reference-map-panel .sh-radius-map-host{height:100%;border-radius:inherit}
+    .sh-location-reference-map-panel .sh-radius-map-note{font-size:10px;color:#777}
+    .sh-location-reference-map-panel .sh-radius-overlay{
+      position:absolute;inset:auto;left:50%;top:50%;width:0;height:0;
+      transform:translate(-50%,-50%);display:block;z-index:3;
+    }
+    .sh-location-reference-map-panel .sh-radius-fade{
+      position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;
+      background:radial-gradient(circle,rgba(45,106,214,.19) 0%,rgba(45,106,214,.17) var(--sh-area-fade-start,78%),
+        rgba(45,106,214,.06) var(--sh-area-fade-middle,89%),rgba(45,106,214,0) 100%);
+    }
+    .sh-location-reference-map-panel .sh-radius-center{display:none}
+    .sh-location-map-pin{
+      position:relative;width:21px;height:21px;background:#276cdd;border-radius:50%;
+      border:3px solid #fff;box-shadow:0 2px 7px #0005;cursor:grab;
+      touch-action:none;
+    }
+    .sh-location-map-pin:active{cursor:grabbing}
+    .sh-location-map-pin::after{content:"";position:absolute;left:6px;top:14px;width:3px;height:15px;background:#276cdd;border:1px solid #fff;border-radius:2px}
+    .sh-location-reference-map-controls{position:absolute;right:12px;top:12px;z-index:5}
+    .sh-location-reference-map-controls button{
+      min-height:38px;padding:5px 12px;background:#fff;border:0;border-radius:22px;
+      color:#222;font-size:12px;box-shadow:0 2px 8px #0002;cursor:pointer;
+    }
+    .sh-location-reference-map-hint{
+      position:absolute;bottom:14px;left:12px;z-index:4;
+      max-width:calc(100% - 80px);padding:8px 11px;background:#fffc;border-radius:12px;
+      color:#77777c;font-size:11px;pointer-events:none;
+    }
+    .sh-location-reference-radius{padding:18px 5px 18px;margin:13px 0 18px;background:#f7f7f8;border-radius:14px}
+    .sh-location-reference-radius label{display:flex;justify-content:space-between;align-items:center;padding:0 12px;color:#555;font-size:14px}
+    .sh-location-reference-radius label strong{font-weight:480;color:#77777c;font-variant-numeric:tabular-nums}
+    .sh-location-reference-radius input[type=range]{
+      display:block;width:calc(100% - 24px);margin:19px 12px 12px;accent-color:#111;cursor:pointer;
+    }
+    .sh-location-reference-scale{display:flex;justify-content:space-between;padding:0 12px;color:#aaa;font-size:11px}
+    .sh-location-reference-section{margin:26px 0 24px}
+    .sh-location-reference-section h3{font-size:18px;font-weight:380;letter-spacing:-.018em;margin:0 0 12px;color:#111}
+    .sh-location-reference-section h3 small{font-size:11px;color:#999;font-weight:400;white-space:nowrap}
+    .sh-location-reference-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .sh-location-reference-chip{
+      padding:9px 13px;min-height:38px;border:1px solid #e6e6e9;border-radius:14px;
+      color:#77777c;background:#fff;font-size:13px;font-weight:400;cursor:pointer;
+    }
+    .sh-location-reference-chip[aria-pressed=true]{color:#fff;background:#111;border-color:#111}
+    .sh-location-reference-parent-more{margin-top:12px}
+    .sh-location-reference-parent-more .clean-field{border:0;padding:6px 0}
+    .sh-location-reference-parent-more select{font-size:15px}
+    .sh-location-reference-more{margin-top:27px;border-top:1px solid #eee;padding:14px 0}
+    .sh-location-reference-more>summary{font-size:13px;color:#888;cursor:pointer}
+    .sh-location-reference-more .clean-field{padding:12px 0}
+    .sh-location-reference-more .sh-radius-original-field,.sh-location-reference-more .radius-field{display:none!important}
+    .sh-location-reference-status .sh-location-feedback{margin:12px 0;color:#7f7f83;font-size:12px}
+    .sh-location-reference-bottom-save{margin:20px 0}
+    .sh-location-reference-bottom-save button:not([hidden]){
+      display:block;width:100%;min-height:49px;background:#111;color:#fff;border:0;border-radius:11px;font-size:15px;
+    }
+    @media(max-width:480px){
+      .sh-location-reference-page{padding-top:8px}
+      .sh-location-reference-map-panel{height:260px}
+      .sh-location-reference-section{margin:23px 0}
+      .sh-location-reference-chip{font-size:12px;padding:8px 11px}
+    }
+
   </style>
 </head>
 <body>
