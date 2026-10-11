@@ -19,6 +19,6 @@ test('Sharon beheert sublocaties zonder module-import/export', async () => {
 
 test('service worker cachet de hiërarchiemodule met dezelfde buildversie', async () => {
   const sw = await readFile(new URL('../service-worker.js', import.meta.url), 'utf8');
-  assert.ok(sw.includes('LocationHierarchy.js?v=0.1.95'));
-  assert.ok(sw.includes("const BUILD = '0.1.95'"));
+  assert.ok(sw.includes('LocationHierarchy.js?v=0.1.96'));
+  assert.ok(sw.includes("const BUILD = '0.1.96'"));
 });
