@@ -1,5 +1,6 @@
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.77';
 import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.77';
+import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.78';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
   from './EnvironmentScale.js?v=0.1.77';
 
@@ -172,6 +173,8 @@ export function sanitizeEnvironmentAppearance(data) {
     if (Object.keys(clean).length) sectionStyles[section.id] = clean;
   }
   if (Object.keys(sectionStyles).length) result.groupStyles = sectionStyles;
+  const heightBands = sanitizeHeightBands(data.heightBands);
+  if (Object.keys(heightBands).length) result.heightBands = heightBands;
   return result;
 }
 // The native/default values differ between individual layers. Never replace a
@@ -200,12 +203,43 @@ function affectedByCategory(group, category) {
 function groupLayerIds(group) {
   return [...(group.fill ? [group.fill, group.fill + '-hatch'] : []), ...(group.lines || [])];
 }
+const RELIEF_SOURCE = 'sharon-height-dem';
+const RELIEF_LAYER = 'sharon-height-relief';
+function syncLandHeightRelief(map, clean) {
+  if (typeof map.getSource !== 'function' || typeof map.getLayer !== 'function') return;
+  const bands = clean.heightBands?.land;
+  if (!bands?.cuts?.length) {
+    if (map.getLayer(RELIEF_LAYER) && map.removeLayer) map.removeLayer(RELIEF_LAYER);
+    if (map.getSource(RELIEF_SOURCE) && map.removeSource) map.removeSource(RELIEF_SOURCE);
+    return;
+  }
+  if (!map.addSource || !map.addLayer || !map.setPaintProperty) return;
+  if (!map.getSource(RELIEF_SOURCE)) map.addSource(RELIEF_SOURCE, {
+    type: 'raster-dem', url: 'https://tiles.mapterhorn.com/tilejson.json',
+    tileSize: 512, encoding: 'terrarium',
+    attribution: '<a href="https://mapterhorn.com/attribution/" target="_blank" rel="noopener">© Mapterhorn</a>'
+  });
+  const base = resolvedEnvironmentAppearance(clean, 'land')?.fill || '#ffffff';
+  const expression = buildLandReliefExpression(bands, base, style => style.fill || base);
+  if (!map.getLayer(RELIEF_LAYER)) {
+    // Under vector water/roads/landcover: altitude colors the land surface only.
+    map.addLayer({
+      id: RELIEF_LAYER, type: 'color-relief', source: RELIEF_SOURCE,
+      paint: { 'color-relief-color': expression }
+    }, map.getLayer('forest') ? 'forest' : 'water');
+  } else map.setPaintProperty(RELIEF_LAYER, 'color-relief-color', expression);
+}
 export function applyEnvironmentAppearance(map, appearance, category = null) {
   const clean = sanitizeEnvironmentAppearance(appearance);
   for (const group of APPEARANCE_GROUPS) {
     if (!affectedByCategory(group, category)) continue;
     const section = appearanceSectionFor(group.id);
     const override = { ...(clean.groupStyles?.[section.id] || {}), ...(clean[group.id] || {}) };
+    const bands = group.id === 'buildings' ? clean.heightBands?.buildings : null;
+    const bandValue = (style, field, base) => style[field] ?? base;
+    const expression = (field, base) => bands?.cuts.length
+      ? buildBuildingBandExpression(bands, field, base,
+        style => bandValue(style, field, base)) : base;
     if (group.background && map.getLayer(group.background)) {
       const base = layers.get(group.background);
       map.setPaintProperty(group.background, 'background-color',
@@ -214,7 +248,7 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
     if (group.fill && map.getLayer(group.fill)) {
       const base = layers.get(group.fill);
       map.setPaintProperty(group.fill, 'fill-color',
-        override.fill ?? base.paint['fill-color']);
+        expression('fill', override.fill ?? base.paint['fill-color']));
     }
     // Independent transparent overlay: fill-color stays fully editable.
     const hatchId = group.fill ? group.fill + '-hatch' : null;
@@ -222,10 +256,17 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
         override.hatch !== 'none' && typeof map.setPaintProperty === 'function') {
       map.setPaintProperty(hatchId, 'fill-pattern', environmentHatchImageId(override.hatch));
     }
+    if (hatchId && map.getLayer(hatchId) && bands?.cuts.length) {
+      const baseHatch = override.hatch || 'none';
+      map.setPaintProperty(hatchId, 'fill-pattern',
+        buildBuildingBandExpression(bands, 'hatch', ['image', environmentHatchImageId(baseHatch)],
+          style => ['image', environmentHatchImageId(style.hatch ?? baseHatch)]));
+    }
     for (const id of group.lines || []) {
       if (!map.getLayer(id)) continue;
       const base = layers.get(id);
-      map.setPaintProperty(id, 'line-color', override.stroke ?? base.paint['line-color']);
+      map.setPaintProperty(id, 'line-color',
+        expression('stroke', override.stroke ?? base.paint['line-color']));
       map.setPaintProperty(id, 'line-width',
         widthPaint(base.paint['line-width'] ?? 1, override.width ?? 1));
       map.setPaintProperty(id, 'line-dasharray', override.dash ?
@@ -241,6 +282,7 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
       }
     }
   }
+  syncLandHeightRelief(map, clean);
   applyEnvironmentVisibility(map, clean);
 }
 export function applyEnvironmentVisibility(map, appearance) {
@@ -259,7 +301,10 @@ export function applyEnvironmentVisibility(map, appearance) {
     for (const id of groupLayerIds(group)) {
       if (!map.getLayer(id)) continue;
       const isHatch = group.fill && id === group.fill + '-hatch';
-      const allowed = !isHatch || (!!override.hatch && override.hatch !== 'none');
+      const heightBand = group.id === 'buildings' ? clean.heightBands?.buildings : null;
+      const hasHeightHatch = heightBand?.styles.some(style =>
+        (style.hatch ?? override.hatch ?? 'none') !== 'none');
+      const allowed = !isHatch || (!!override.hatch && override.hatch !== 'none') || !!hasHeightHatch;
       const value = visible && allowed ? 'visible' : 'none';
       const defaultVisibility = layers.get(id)?.layout?.visibility || 'visible';
       if ((map.getLayoutProperty(id, 'visibility') || defaultVisibility) !== value) {
