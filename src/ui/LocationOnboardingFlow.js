@@ -257,5 +257,13 @@ export function enhanceLocationEditor(root, { isNew = false, skipInitialFocus = 
     }
   });
 
+  // If a notification is enabled, activating it is itself a tap gesture.
+  // Put the cursor directly in its text field.
+  trigger?.querySelector('[name="triggerEnabled"]')?.addEventListener('change', event => {
+    if (event.currentTarget.checked) {
+      focusTextField(trigger.querySelector('[name="triggerMessage"]'));
+    }
+  });
+
   show(0, { focus: !skipInitialFocus });
 }
