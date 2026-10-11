@@ -2,12 +2,12 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.83';
+} from './EnvironmentAppearance.js?v=0.1.84';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.1.83';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.83';
+} from './EnvironmentHeight.js?v=0.1.84';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.84';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [

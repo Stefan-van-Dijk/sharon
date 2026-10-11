@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.83">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.83">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.84">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.84">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -845,16 +845,8 @@
       width:100%;max-width:none;height:100%;min-height:0;
       margin:0;padding:0;overflow:hidden;
     }
-    /* A 10px dot with a 44px target on all pointer types; mobile placement
-       avoids the readout and attribution while respecting iOS safe areas. */
-    .app-stage.is-environment .environment-desktop-style-toggle{
-      display:grid;place-items:center;position:absolute;
-      left:max(12px,env(safe-area-inset-left));
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 108px);
-      z-index:25;width:44px;min-width:44px;height:44px;min-height:44px;
-      padding:0;border:0;border-radius:50%;background:transparent;
-      box-shadow:none;cursor:pointer;pointer-events:auto;touch-action:manipulation;
-    }
+    /* Narrow screens use the existing readout swipe; no dot or hit area. */
+    .app-stage.is-environment .environment-desktop-style-toggle{display:none}
     .environment-desktop-style-toggle span{
       display:block;width:10px;height:10px;border-radius:50%;
       background:#111;box-shadow:0 0 0 1px rgba(255,255,255,.8);
@@ -866,19 +858,17 @@
     .environment-desktop-style-toggle:focus-visible{
       outline:2px solid #111;outline-offset:2px;
     }
-    @media (max-width:899px){
-      /* The editor occupies this corner when open: return via its rail. */
-      .app-stage.is-environment .environment-desktop-style-toggle[aria-pressed="true"]{
-        display:none;
-      }
-    }
     @media (min-width:900px){
       .app-stage.is-environment .app-view>.environment-view{
         width:100%;max-width:none;min-height:0;margin:0;padding:0;
       }
       .app-stage.is-environment .environment-desktop-style-toggle{
+        display:grid;place-items:center;position:absolute;
         left:max(16px,env(safe-area-inset-left));
         bottom:max(16px,env(safe-area-inset-bottom));
+        z-index:25;width:44px;min-width:44px;height:44px;min-height:44px;
+        padding:0;border:0;border-radius:50%;background:transparent;
+        box-shadow:none;cursor:pointer;pointer-events:auto;touch-action:manipulation;
       }
       .environment-desktop-style-toggle:hover span{
         transform:scale(1.2);box-shadow:0 0 0 4px rgba(17,17,17,.11);
@@ -927,16 +917,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.83#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.83#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.83#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.83#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.83#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.84#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.84#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.84#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.84#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.84#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.83"></script>
+  <script type="module" src="./src/main.js?v=0.1.84"></script>
 </body>
 </html>
