@@ -1,59 +1,81 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { enhanceLocationEditor, keyboardInset } from '../src/ui/LocationOnboardingFlow.js';
+import {
+  enhanceLocationEditor, keyboardInset, nearbyKnownLocations
+} from '../src/ui/LocationOnboardingFlow.js';
 
 const read = name => readFile(new URL(name, import.meta.url), 'utf8');
 
-test('new locations offer current GPS and manual name side by side', async () => {
-  const locations = await read('../src/ui/LocationsView.js');
-  const guided = await read('../src/ui/LocationOnboardingFlow.js');
+test('new location starts with a short question and offers GPS, name, or a known address', async () => {
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
   assert.equal(typeof enhanceLocationEditor, 'function');
-  assert.ok(guided.includes('Welke plek?'));
-  assert.ok(guided.includes('Gebruik huidige locatie'));
-  assert.ok(guided.includes('Kies je huidige locatie of geef zelf een naam op.'));
-  assert.ok(guided.includes('Controleer deze plek.'));
-  assert.ok(locations.includes('releaseEditor = enhanceLocationEditor(root, { isNew, useGps, location, geocoder })'));
+  assert.ok(flow.includes('Waar ligt deze plek?'));
+  assert.ok(flow.includes('Gebruik huidige locatie'));
+  assert.ok(flow.includes('Naam van de plek'));
+  assert.ok(flow.includes('Bestaande locatie kiezen'));
+  assert.ok(flow.includes('Hoort deze plek bij '));
+  assert.ok(flow.includes('Nieuwe hoofdlocatie'));
+  assert.ok(flow.includes("questionButton('Sublocatie van '"));
 });
 
-test('one editable overview reuses all original data fields and save handler', async () => {
-  const guided = await read('../src/ui/LocationOnboardingFlow.js');
+test('the module has no import/export and saves in the top right', async () => {
   const locations = await read('../src/ui/LocationsView.js');
-  for (const field of ['fields.parent', 'fields.address', 'fields.gps', 'fields.kind', 'fields.share',
-    'fields.radius', 'fields.trigger', 'fields.distance']) {
-    assert.ok(guided.includes(field));
-  }
-  assert.ok(guided.includes('save.classList.add'));
-  assert.ok(guided.includes('form.addEventListener(\'submit\''));
-  assert.ok(guided.includes('showDetails();'));
-  assert.ok(guided.includes('if (extra) detailExtra.append(extra)'));
-  assert.ok(guided.includes('if (merge) detailExtra.append(merge)'));
-  assert.ok(locations.includes('await store.put(\'objects\', saved)'));
   assert.ok(locations.includes('headerActions.append(add)'));
-  assert.ok(!locations.includes('data-create-current'));
+  assert.ok(locations.includes('headerActions.append(headerSave)'));
+  assert.ok(locations.includes("headerSave.textContent = isNew ? 'Voeg toe' : 'Opslaan'"));
+  assert.ok(locations.includes('form.requestSubmit()'));
+  assert.ok(!locations.includes('data-import'));
+  assert.ok(!locations.includes('data-export'));
+  assert.ok(!locations.includes('importLogLocations'));
+  assert.ok(!locations.includes('exportLocations'));
+  assert.ok(locations.includes("await store.put('objects', saved)"));
 });
 
-test('GPS is visible while reverse geocoding runs and fields remain editable', async () => {
-  const code = await read('../src/ui/LocationOnboardingFlow.js');
-  assert.ok(code.includes("form.elements.lat.value = point.lat"));
-  assert.ok(code.includes("form.elements.lng.value = point.lng"));
-  assert.ok(code.indexOf('showDetails();\n      setStatus(') < code.indexOf('const addr = await geocoder.reverse(point)'));
-  assert.ok(code.includes('updatePreview()'));
-  assert.ok(code.includes("focusTextField(form.elements.title)"));
+test('only stored addressed locations can become parents, with unlimited nesting', async () => {
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  const locations = await read('../src/ui/LocationsView.js');
+  assert.ok(flow.includes('knownLocations.filter(item => item.address)'));
+  assert.ok(flow.includes('option.disabled = true'));
+  assert.ok(flow.includes("showDecision([knownById.get(initialParent)])"));
+  assert.ok(locations.includes('isDescendant(parentId, item.id, byId)'));
+  assert.ok(locations.includes('resolveLocation(candidate, byId).address'));
 });
 
-test('keyboard footer uses visual viewport and reclaims space when dismissed', async () => {
+test('nearby-address recognition is bounded by GPS accuracy and location radius', () => {
+  const known = [
+    { id: 'a', address: 'Dorpsstraat', radiusM: 100, coordinates: { lat: 52, lng: 5 } },
+    { id: 'b', address: 'Nabij', radiusM: 100, coordinates: { lat: 52.0005, lng: 5 } },
+    { id: 'c', address: '', coordinates: { lat: 52, lng: 5 } },
+    { id: 'd', address: 'Ver', coordinates: { lat: 53, lng: 5 } }
+  ];
+  const result = nearbyKnownLocations({ lat: 52, lng: 5 }, known, 12);
+  assert.deepEqual(result.map(x => x.id), ['a', 'b']);
+  assert.deepEqual(nearbyKnownLocations(null, known), []);
+});
+
+test('review reuses original address field, uses soft map and accuracy-aware slider', async () => {
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  const html = await read('../index.html');
+  const sw = await read('../service-worker.js');
+  assert.ok(flow.includes('reviewFields.append(nameField, addressField, parentField'));
+  assert.ok(flow.includes('mountLocationArea(radiusHost'));
+  assert.ok(flow.includes('form.elements.radiusM'));
+  assert.ok(flow.includes('input type="range"'));
+  assert.ok(flow.includes('saveButton.hidden = true'));
+  assert.ok(html.includes('sh-radius-fade'));
+  assert.ok(html.includes('radial-gradient(circle'));
+  assert.ok(sw.includes('LocationAreaPreview.js?v=0.1.95'));
+  assert.ok(sw.includes("const BUILD = '0.1.95'"));
+});
+
+test('question navigation remains above iPhone keyboard', async () => {
   assert.equal(keyboardInset({ height: 500, offsetTop: 0 }, 850), 350);
   assert.equal(keyboardInset({ height: 820, offsetTop: 10 }, 830), 0);
-  assert.equal(keyboardInset({ height: 800, offsetTop: 0 }, 800), 0);
-  const html = await read('../index.html');
-  const guided = await read('../src/ui/LocationOnboardingFlow.js');
-  const sw = await read('../service-worker.js');
-  assert.ok(html.includes('.sh-location-simple-footer{position:fixed'));
-  assert.ok(html.includes('bottom:var(--sh-keyboard-inset,0px)'));
-  assert.ok(guided.includes("viewport?.addEventListener('resize', adjustFooter)"));
-  assert.ok(guided.includes("viewport?.addEventListener('scroll', adjustFooter)"));
-  assert.ok(guided.includes("viewport?.removeEventListener('resize', adjustFooter)"));
-  assert.ok(sw.includes("LocationOnboardingFlow.js?v=0.1.94"));
-  assert.ok(sw.includes("const BUILD = '0.1.94'"));
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  const css = await read('../index.html');
+  assert.ok(flow.includes("viewport?.addEventListener('resize', resize)"));
+  assert.ok(flow.includes("viewport?.removeEventListener('scroll', resize)"));
+  assert.ok(css.includes('.sh-location-question-footer{'));
+  assert.ok(css.includes('bottom:var(--sh-keyboard-inset,0px)'));
 });
