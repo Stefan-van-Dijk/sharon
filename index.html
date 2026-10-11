@@ -1451,6 +1451,42 @@
     .sh-location-reference-bottom-save button:not([hidden]){
       display:block;width:100%;min-height:49px;background:#111;color:#fff;border:0;border-radius:11px;font-size:15px;
     }
+    /* Location card: zoom changes recognition area; the GPS point edits only on request. */
+    .sh-location-reference-map-panel .sh-radius-map-note{
+      left:12px;right:auto;bottom:auto;top:12px;width:auto;
+      max-width:120px;padding:8px 11px;border-radius:20px;
+      font-size:12px;font-weight:550;color:#333;
+      background:rgba(255,255,255,.94);
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+      pointer-events:none;
+    }
+    .sh-location-reference-map-controls{
+      display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+      max-width:58%;
+    }
+    .sh-location-reference-map-controls button{
+      min-height:35px;font-size:11px;padding:5px 10px;white-space:nowrap;
+    }
+    .sh-location-reference-map-controls .sh-location-reference-position-toggle[aria-pressed=true]{
+      background:#111;color:#fff;
+    }
+    .sh-location-reference-zoom{
+      position:absolute;right:12px;bottom:45px;z-index:5;
+      display:flex;flex-direction:column;gap:1px;
+      border-radius:13px;overflow:hidden;
+      background:rgba(255,255,255,.94);
+      box-shadow:0 2px 9px rgba(0,0,0,.12);
+    }
+    .sh-location-reference-zoom button{
+      width:39px;height:40px;border:0;background:transparent;
+      color:#222;font-size:22px;font-weight:350;cursor:pointer;
+      touch-action:manipulation;
+    }
+    .sh-location-reference-zoom button+button{border-top:1px solid #e5e5e8}
+    .sh-location-reference-map-hint[hidden]{display:none!important}
+    .sh-location-map-pin{cursor:default;touch-action:auto}
+    .sh-location-map-pin.is-editable{cursor:grab;touch-action:none}
+    .sh-location-map-pin.is-editable:active{cursor:grabbing}
     @media(max-width:480px){
       .sh-location-reference-page{padding-top:8px}
       .sh-location-reference-map-panel{height:260px}
