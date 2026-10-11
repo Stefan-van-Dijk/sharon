@@ -1056,6 +1056,47 @@
       .app-stage.is-home-swipe-animating,.app-header,.persistent-brand-button,.app-view-title,.app-view{transition:none}
     }
     @media (min-width:640px){body:not(.sharon-shell-active){padding-top:42px}.sharon-shell-active .app-stage:not(.is-environment){padding-top:42px}.sharon-shell-active .app-stage.is-environment{padding-top:0}.brand{padding-top:22px}}
+
+    /* Locaties — Sharon minimal, one consistent hierarchy on every screen. */
+    .sh-locations-toolbar{display:flex;align-items:center;gap:22px;padding:12px 1px 18px;border-bottom:1px solid #ececef}
+    .sh-locations-toolbar button,.sh-locations-transfer button,.sh-location-file,.sh-location-editor-nav button,.sh-location-tools button,.sh-location-inline-header button,.sh-location-add-child{padding:4px 0;border:0;background:transparent;color:#222;font-size:13px;font-weight:480;cursor:pointer}
+    .sh-locations-toolbar button:first-child{font-weight:620}
+    .sh-locations-sort{display:flex;gap:23px;padding:15px 1px 9px;align-items:center}
+    .sh-locations-sort button{border:0;border-bottom:1px solid transparent;padding:0 0 7px;background:transparent;color:#8a8a90;font-size:12px}
+    .sh-locations-sort button[aria-pressed=true]{color:#111;border-bottom-color:#111}
+    .sh-locations-list{padding-bottom:12px}
+    .sh-location-node{position:relative;margin-left:calc(var(--nest,0) * 14px);border-left:calc(min(var(--nest,0),1) * 1px) solid #e9e9ec}
+    .sh-location-node .swipe-row{border-bottom:1px solid #ececef}
+    .sh-location-row{min-height:63px;gap:12px;padding-left:calc(var(--nest,0) * 0px + 8px);padding-right:4px;display:flex;align-items:center}
+    .sh-location-row>span{display:block}
+    .sh-location-kind{flex:0 0 22px;width:22px;text-align:center;color:#66666b;font-size:20px;font-weight:300}
+    .sh-location-copy{min-width:0;flex:1;display:flex!important;flex-direction:column;gap:4px}
+    .sh-location-copy strong{font-size:15px;font-weight:450;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sh-location-copy small{color:#9a9a9f;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sh-location-chevron{color:#b9b9bf;font-size:22px;font-weight:260}
+    .sh-location-order{display:flex;justify-content:flex-end;gap:12px;padding:1px 6px 8px}
+    .sh-location-order button{border:0;background:transparent;color:#777;font-size:18px;padding:4px 10px}
+    .sh-locations-transfer{margin-top:24px;padding:14px 1px;border-top:1px solid #ececef;display:flex;gap:22px}
+    .sh-locations-transfer button,.sh-location-file{color:#77777c;font-size:12px}
+    .sh-location-feedback{margin:12px 1px 0;color:#6f6f74;font-size:12px;line-height:1.45;min-height:18px}
+    .sh-location-editor-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 1px;border-bottom:1px solid #ececef}
+    .sh-location-editor-nav span{min-width:0;color:#9a9a9f;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sh-location-editor-nav button{flex-shrink:0}
+    .location-form .clean-field select{width:100%;min-height:40px;padding:5px 0;border:0;outline:none;background:#fff;color:#111;font-size:16px;font-weight:360}
+    .location-form .clean-field select:focus-visible{outline:1px solid #111}
+    .sh-location-group{padding:10px 0 18px;border-bottom:1px solid #ececef}
+    .sh-location-group>.clean-field{border-bottom:0;padding-bottom:8px}
+    .sh-location-tools{display:flex;gap:20px;padding:7px 1px}
+    .sh-location-tools button,.sh-location-inline-header button{font-size:12px;color:#66666b}
+    .sh-location-note{display:block;margin-top:5px;color:#a1a1a5;font-size:11px;line-height:1.45}
+    .sh-location-inline-header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 1px 0;color:#8a8a8f;font-size:12px}
+    .sh-location-coordinates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+    .sh-location-coordinates .clean-field{border-bottom:0;padding:11px 1px 3px}
+    .sh-location-coordinates .clean-field input{font-size:15px}
+    .sh-location-add-child{width:100%;padding:13px 1px 24px;border-top:1px solid #ececef;text-align:left;color:#111}
+    .location-form button:disabled{opacity:.5}
+    @media(max-width:360px){.sh-locations-toolbar{gap:11px}.sh-locations-sort{gap:14px}.sh-location-node{margin-left:calc(var(--nest,0) * 10px)}}
+
   </style>
 </head>
 <body>
