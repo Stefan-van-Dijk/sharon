@@ -23,6 +23,8 @@ test('the guided editor keeps the original fields, actions and one save form', a
   assert.ok(guided.includes("form.querySelector('[data-editor-status]')"));
   assert.ok(guided.includes("form.querySelector('[type=\"submit\"]')"));
   assert.ok(guided.includes('save.classList.add'));
+  assert.ok(guided.includes('focusTextField(target)'));
+  assert.ok(guided.includes('focusTextField(trigger.querySelector'));
   assert.ok(guided.includes("event.stopImmediatePropagation()"));
   assert.ok(guided.includes("step === QUESTIONS.length - 1"));
   assert.ok(guided.includes("root.querySelector('[data-lookup]')?.click()"));
@@ -39,6 +41,6 @@ test('Sharon shares onboarding typography and preserves reduced-motion support',
   assert.ok(html.includes('.sh-location-guided [hidden]{display:none!important}'));
   assert.ok(html.includes('.sh-location-guided-flow{'));
   assert.ok(html.includes('@media (prefers-reduced-motion:reduce)'));
-  assert.ok(sw.includes("LocationOnboardingFlow.js?v=0.1.92"));
-  assert.ok(sw.includes("const BUILD = '0.1.92'"));
+  assert.ok(sw.includes("LocationOnboardingFlow.js?v=0.1.93"));
+  assert.ok(sw.includes("const BUILD = '0.1.93'"));
 });
