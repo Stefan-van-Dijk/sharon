@@ -1,8 +1,8 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.79';
-import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch, applyEnvironmentColoredHatch, DEFAULT_HATCH_COLOR } from './EnvironmentHatch.js?v=0.1.79';
-import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.79';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.80';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch, applyEnvironmentColoredHatch, DEFAULT_HATCH_COLOR } from './EnvironmentHatch.js?v=0.1.80';
+import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.80';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.79';
+  from './EnvironmentScale.js?v=0.1.80';
 
 // Keep v1: all individual customizations made in previous Sharon versions survive.
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
@@ -23,6 +23,13 @@ export const APPEARANCE_GROUPS = Object.freeze([
   { id: 'runways', label: 'Startbanen', lines: ['aeroway-runway'] },
   { id: 'taxiways', label: 'Taxibanen', lines: ['aeroway-taxiway'] },
   { id: 'piers', label: 'Pieren', lines: ['road_pier'] },
+  { id: 'bridges', label: 'Bruggen', lines: ['structure_bridge'] },
+  { id: 'tunnels', label: 'Tunnels', lines: ['structure_tunnel'] },
+  { id: 'fords', label: 'Doorwaadbaar', lines: ['structure_ford'] },
+  { id: 'dams', label: 'Dammen', fill: 'structure_dam', lines: ['structure_dam-outline'] },
+  { id: 'pumpingStations', label: 'Gemalen', unavailable: true },
+  { id: 'locks', label: 'Sluizen', unavailable: true },
+  { id: 'weirs', label: 'Stuwen', unavailable: true },
   { id: 'buildings', label: 'Gebouwen', fill: 'building', lines: ['building-outline'] },
   { id: 'green', label: 'Groen', fill: 'green', lines: ['green-outline'] },
   { id: 'forest', label: 'Bos', fill: 'forest', lines: ['forest-outline'] },
@@ -54,7 +61,11 @@ export const APPEARANCE_SECTIONS = Object.freeze([
   { id: 'basis', label: 'Basis', items: ['land', 'borders', 'buildings'] },
   { id: 'water', label: 'Water', items: ['water', 'waterways'] },
   { id: 'roads', label: 'Wegen', items: ['minor', 'major', 'motorway', 'paths'] },
-  { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways', 'piers'] },
+  { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways'] },
+  { id: 'structures', label: 'Objecten', items: [
+    'bridges', 'tunnels', 'piers', 'dams', 'fords',
+    'pumpingStations', 'locks', 'weirs'
+  ] },
   { id: 'green', label: 'Groen', items: ['green', 'forest', 'grassland', 'heath', 'scrub', 'meadow', 'tundra'] },
   { id: 'coast', label: 'Zand & kust', items: ['beach', 'dunes', 'sand'] },
   { id: 'wetlands', label: 'Natte natuur', items: ['wetland', 'bog', 'marsh', 'reedbed', 'tidalflat', 'mangrove'] },

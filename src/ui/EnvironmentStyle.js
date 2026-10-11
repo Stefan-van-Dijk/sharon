@@ -1116,6 +1116,42 @@ export const environmentStyle = {
       }
     },
     {
+      "id": "structure_dam",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landuse",
+      "minzoom": 9,
+      "filter": ["==", ["get", "class"], "dam"],
+      "paint": { "fill-color": "#e9ebea", "fill-opacity": 1 }
+    },
+    {
+      "id": "structure_bridge",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 9,
+      "filter": ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "brunnel"], "bridge"]],
+      "paint": { "line-color": "#9ca2a7", "line-width": 1.2 }
+    },
+    {
+      "id": "structure_tunnel",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 9,
+      "filter": ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "brunnel"], "tunnel"]],
+      "paint": { "line-color": "#9ca2a7", "line-width": 1.1, "line-dasharray": [3, 2] }
+    },
+    {
+      "id": "structure_ford",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 12,
+      "filter": ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "brunnel"], "ford"]],
+      "paint": { "line-color": "#a9adaf", "line-width": 1.25, "line-dasharray": [1, 2] }
+    },
+    {
       "id": "boundary_2",
       "type": "line",
       "source": "openmaptiles",
@@ -1205,7 +1241,7 @@ export const environmentStyle = {
 
 // Every geographic polygon has three independent renderers:
 // fill color, optional translucent hatch overlay, and editable outline.
-// Background/land is not a polygon and intentionally has no border or hatch.
+// Land/background is separate from vector polygons. Dam polygons receive the same editable contour and hatch overlays.
 for (let index = 0; index < environmentStyle.layers.length; index++) {
   const fill = environmentStyle.layers[index];
   if (fill.type !== 'fill') continue;

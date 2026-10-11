@@ -117,7 +117,7 @@ test('height classes extend the existing horizontal subgroup row, even after edi
   assert.ok(css.includes('grid-auto-columns:calc(100%/4)'));
   assert.ok(css.includes('.environment-style-group.is-height-band'));
   assert.ok(editor.includes('data-style-hatch-color'));
-  assert.ok(editor.includes('hatchColorRow.hidden = !caps.hatchColor'));
+  assert.ok(editor.includes('hatchColorRow.hidden = !showHatchColor'));
   assert.ok(editor.includes("listen(hatchColorInput, 'input'"));
   assert.ok(heightBandLabel({buildings:{cuts:[20],styles:[{},{}]}},'buildings',1)
     .includes('20 m'));
