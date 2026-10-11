@@ -50,11 +50,10 @@ export const APPEARANCE_GROUPS = Object.freeze([
 ]);
 
 export const APPEARANCE_SECTIONS = Object.freeze([
-  { id: 'basis', label: 'Basis', items: ['land', 'borders'] },
+  { id: 'basis', label: 'Basis', items: ['land', 'borders', 'buildings'] },
   { id: 'water', label: 'Water', items: ['water', 'waterways'] },
   { id: 'roads', label: 'Wegen', items: ['minor', 'major', 'motorway', 'paths'] },
   { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways', 'piers'] },
-  { id: 'buildings', label: 'Gebouwen', items: ['buildings'] },
   { id: 'green', label: 'Groen', items: ['green', 'forest', 'grassland', 'heath', 'scrub', 'meadow', 'tundra'] },
   { id: 'coast', label: 'Zand & kust', items: ['beach', 'dunes', 'sand'] },
   { id: 'wetlands', label: 'Natte natuur', items: ['wetland', 'bog', 'marsh', 'reedbed', 'tidalflat', 'mangrove'] },
@@ -146,8 +145,15 @@ export function sanitizeEnvironmentAppearance(data) {
   const result = {};
   if (!data || typeof data !== 'object' || Array.isArray(data)) return result;
   for (const group of APPEARANCE_GROUPS) {
-    const entry = data[group.id] ||
-      ((group.id === 'runways' || group.id === 'taxiways') ? data.airfields : null);
+    // Legacy "Gebouwen" main-group style becomes the child's own style when
+    // buildings move to Basis, so old colors/width/hatch preferences survive.
+    const entry = group.id === 'buildings'
+      ? {
+          ...(data.groupStyles?.buildings || {}),
+          ...(data.buildings || {})
+        }
+      : data[group.id] ||
+        ((group.id === 'runways' || group.id === 'taxiways') ? data.airfields : null);
     const caps = {
       fill: !!(group.fill || group.background),
       hatch: !!group.fill,
