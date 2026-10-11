@@ -195,6 +195,10 @@ export function enhanceLocationEditor(root, {
     activeCandidates = candidates?.length ? candidates.filter(x => validParent(x.id)) : eligible;
     review.hidden = true; question.hidden = false;
     footer.hidden = false; back.hidden = false; next.hidden = true;
+    // Move the live name input out of the previous question before replacing it.
+    // Otherwise replacing questionActions would destroy the form control and its value.
+    const typedName = questionActions.querySelector('.sh-location-question-name input');
+    if (typedName) nameField.append(typedName);
     const first = activeCandidates[0];
     title.textContent = first && activeCandidates.length === 1
       ? 'Hoort deze plek bij ' + first.title + '?'
@@ -218,11 +222,7 @@ export function enhanceLocationEditor(root, {
 
   function showDetails({ focusName = false } = {}) {
     if (disposed) return;
-    if (mode === 'start') {
-      const typedName = questionActions.querySelector('.sh-location-question-name input');
-      if (typedName && typedName !== form.elements.title) return;
-    }
-    if (!nameField.contains(form.elements.title)) nameField.append(form.elements.title);
+     if (!nameField.contains(form.elements.title)) nameField.append(form.elements.title);
     mode = 'details';
     notify(mode);
     question.hidden = true; review.hidden = false; footer.hidden = true;
