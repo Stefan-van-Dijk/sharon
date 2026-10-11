@@ -8,8 +8,8 @@ test('the preferred reference uses one editable screen, not three onboarding ste
   const flow = await read('../src/ui/LocationOnboardingFlow.js');
   const css = await read('../index.html');
   assert.equal(typeof enhanceLocationEditor, 'function');
-  assert.ok(flow.includes('Is dit de plek?'));
-  assert.ok(flow.includes('Controleer of de locatie klopt'));
+  assert.ok(flow.includes('data-location-conclusion'));
+  assert.ok(flow.includes('locationConclusion('));
   assert.ok(flow.includes('sh-location-reference-address'));
   assert.ok(flow.includes('data-coordinates-text'));
   assert.ok(flow.includes('data-radius-map'));
@@ -72,8 +72,8 @@ test('map zoom sets recognition radius; changing GPS requires explicit action', 
   assert.ok(flow.includes('typeSelect.value = option.value'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));
   assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.99"));
-  assert.ok(worker.includes("const BUILD = '0.1.99'"));
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.100"));
+  assert.ok(worker.includes("const BUILD = '0.1.100'"));
 });
 
 test('isolated locations show no unnecessary main-location choices', async () => {
