@@ -256,6 +256,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
   };
   // No miniature maps: one fill patch or a single line, with current effective style.
   const preview = (group, bandIndex = null) => {
+    if (group.unavailable)
+      return '<svg viewBox="0 0 72 25" aria-hidden="true"><path d="M14 13H58" stroke="#aaaab2" stroke-width="1.5" stroke-dasharray="2 4"/></svg>';
     const base = resolvedEnvironmentAppearance(overrides, group.id) || appearanceDefaults(group);
     const v = bandIndex === null ? base : {
       ...base, ...(overrides.heightBands?.[group.id]?.styles?.[bandIndex] || {})
@@ -304,7 +306,12 @@ export function createEnvironmentAppearanceEditor(root, store, {
         const label = document.createElement('span');
         if (entry.bandIndex === null) {
           button.dataset.styleGroup = entry.groupId;
-          button.setAttribute('aria-label', group.label);
+          if (group.unavailable) {
+            wrapper.classList.add('is-source-unavailable');
+            button.disabled = true;
+            button.title = group.label + ' — extra objectgegevens nodig';
+            button.setAttribute('aria-label', group.label + ': nog geen kaartgegevens');
+          } else button.setAttribute('aria-label', group.label);
           label.textContent = group.label;
         } else {
           wrapper.classList.add('is-height-band');
@@ -431,20 +438,24 @@ export function createEnvironmentAppearanceEditor(root, store, {
     // Only the applicable color properties appear in this specific row.
     fillRow.hidden = !caps.fill;
     hatchRow.hidden = !caps.hatch;
-    hatchColorRow.hidden = !caps.hatchColor;
+    // A pigment has no meaning while the current hatch is "Geen".
+    // Keep the saved hatchColor intact so it comes back with the next motif.
+    const hasHatch = caps.hatch && values.hatch && values.hatch !== 'none';
+    const showHatchColor = !!caps.hatchColor && !!hasHatch;
+    hatchColorRow.hidden = !showHatchColor;
     strokeRow.hidden = !caps.stroke;
     strokeLabel.textContent = selectedId && child()?.fill ? 'Rand' :
       !selectedId && section().items.some(id =>
         APPEARANCE_GROUPS.find(group => group.id === id)?.fill) ? 'Rand/lijn' : 'Lijn';
     const colorCount = Number(caps.fill) + Number(caps.hatch) +
-      Number(caps.hatchColor) + Number(caps.stroke);
+      Number(showHatchColor) + Number(caps.stroke);
     const colorGrid = get('.environment-style-colors');
     colorGrid.style.gridTemplateColumns =
       'repeat(' + Math.max(1, colorCount) + ', minmax(0,1fr))';
     colorGrid.classList.toggle('is-four-col', colorCount === 4);
     fillInput.disabled = !caps.fill;
     hatchInput.disabled = !caps.hatch;
-    hatchColorInput.disabled = !caps.hatchColor;
+    hatchColorInput.disabled = !showHatchColor;
     strokeInput.disabled = !caps.stroke;
     widthInput.disabled = !caps.width;
     for (const button of dashButtons) button.disabled = !caps.dash;
