@@ -1,6 +1,6 @@
-import { focusTextField } from './TextInputFocus.js?v=0.1.95';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.95';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.95';
+import { focusTextField } from './TextInputFocus.js?v=0.1.96';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.96';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.96';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
@@ -155,8 +155,13 @@ export function enhanceLocationEditor(root, {
       ? point.lat.toFixed(5) + ', ' + point.lng.toFixed(5) +
         (gpsAccuracy ? ' · GPS ±' + Math.round(gpsAccuracy) + ' m' : '')
       : 'Geen GPS-positie gekozen';
-    radiusHost.hidden = !point;
-    if (point && mode === 'details') startMap();
+    // Keep the map panel visible even before a position is available.
+    // A helpful placeholder replaces an unexplained empty space.
+    radiusHost.hidden = false;
+    if (mode === 'details') {
+      if (!mapPreview) startMap();
+      else mapPreview.update();
+    }
   }
   function setStatus(message) {
     if (statusField) statusField.textContent = message || '';
@@ -231,19 +236,48 @@ export function enhanceLocationEditor(root, {
     radiusRange.value = String(form.elements.radiusM.value || 100);
     radiusValue.textContent = radiusRange.value + ' m';
     syncCoordinates();
+    // Existing locations with an address but no GPS should still show a map.
+    void resolveMissingCoordinates();
     form.closest('.app-view')?.scrollTo({ top: 0, behavior: 'auto' });
     if (focusName) focusTextField(form.elements.title);
     else if (form.contains(document.activeElement)) document.activeElement.blur();
   }
 
   async function startMap() {
-    if (disposed || mapPreview || !currentPoint()) return;
+    if (disposed || mapPreview) return;
     mapPreview = mountLocationArea(radiusHost, {
       getPoint: currentPoint,
       getRadius: () => Number(form.elements.radiusM.value),
       getAccuracy: () => gpsAccuracy
     });
     await mapPreview.update();
+  }
+
+  let addressLookupInProgress = false;
+  let lastAutoLookup = '';
+  async function resolveMissingCoordinates() {
+    if (disposed || currentPoint() || addressLookupInProgress || !geocoder?.search) return;
+    const query = String(form.elements.address.value || '').trim();
+    if (!query || query === lastAutoLookup) return;
+    addressLookupInProgress = true;
+    lastAutoLookup = query;
+    const status = box.querySelector('[data-radius-map] .sh-radius-map-placeholder');
+    if (status) status.textContent = 'Positie bij adres zoeken…';
+    try {
+      const matches = await geocoder.search(query);
+      if (disposed || !form.isConnected || currentPoint() ||
+          String(form.elements.address.value || '').trim() !== query) return;
+      const found = matches?.find(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)));
+      if (!found) return;
+      change(form.elements.lat, found.lat);
+      change(form.elements.lng, found.lng);
+      syncCoordinates();
+    } catch {
+      // The regular address/GPS lookup controls remain available.
+    } finally {
+      addressLookupInProgress = false;
+      if (!currentPoint()) mapPreview?.refresh();
+    }
   }
 
   function handleAnswer(answer) {
@@ -339,17 +373,20 @@ export function enhanceLocationEditor(root, {
   back.addEventListener('click', showStart);
   form.elements.title.addEventListener('input', () => { if (!programmaticChange) nameTouched = true; });
   form.elements.address.addEventListener('input', () => { if (!programmaticChange) addressTouched = true; });
+  form.elements.address.addEventListener('blur', () => {
+    if (mode === 'details' && !currentPoint()) void resolveMissingCoordinates();
+  });
   ['lat','lng','parentId'].forEach(field =>
     form.elements[field]?.addEventListener('input', () => { syncCoordinates(); mapPreview?.update(); }));
   radiusRange.addEventListener('input', () => {
     change(form.elements.radiusM, radiusRange.value);
     radiusValue.textContent = radiusRange.value + ' m';
-    mapPreview?.refresh();
+    mapPreview?.update();
   });
   form.elements.radiusM.addEventListener('input', () => {
     radiusRange.value = String(clampRadius(form.elements.radiusM.value));
     radiusValue.textContent = radiusRange.value + ' m';
-    mapPreview?.refresh();
+    mapPreview?.update();
   });
   const triggerSwitch = triggerField?.querySelector('[name="triggerEnabled"]');
   triggerSwitch?.addEventListener('change', event => {

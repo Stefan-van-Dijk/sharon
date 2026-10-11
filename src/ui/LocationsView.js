@@ -1,10 +1,10 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.95';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.96';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.95';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.96';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.1.95';
+} from '../core/location/LocationHierarchy.js?v=0.1.96';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
