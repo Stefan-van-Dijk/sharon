@@ -191,6 +191,10 @@ export function openEnvironmentView(root, {
           <button type="button" class="environment-scale-chip" data-map-scale
                   aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
         </div>
+        <button type="button" class="environment-desktop-style-toggle"
+                data-desktop-style-toggle aria-label="Kaartstijl aanpassen"
+                aria-pressed="false" aria-expanded="false"
+                title="Kaartstijl aanpassen"><span aria-hidden="true"></span></button>
         <div class="environment-readout" data-map-readout>
           <div class="environment-readout-track" data-readout-track>
             <div class="environment-readout-position" data-readout-position></div>
