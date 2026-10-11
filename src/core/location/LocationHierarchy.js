@@ -14,7 +14,8 @@ export function ownCoordinates(item) {
 export function addressText(value) {
   if (typeof value === 'string') return value.trim();
   if (!value) return '';
-  return [value.text, [value.street, value.number].filter(Boolean).join(' '), [value.postcode, value.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  if (String(value.text || '').trim()) return String(value.text).trim();
+  return [[value.street, value.number].filter(Boolean).join(' '), [value.postcode, value.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 }
 
 export function parentIdOf(item) {
