@@ -64,6 +64,21 @@ export function removeHeightCut(model, target, index) {
   styles.splice(index + 1, 1);
   return { ...current, [target]: { cuts, styles } };
 }
+export function moveHeightCut(model, target, index, height) {
+  const current = sanitizeHeightBands(model);
+  const band = current[target], limits = HEIGHT_TARGETS[target];
+  if (!band || !limits || !Number.isInteger(index) ||
+      index < 0 || index >= band.cuts.length ||
+      height <= limits.min || height >= limits.max ||
+      (height - limits.min) % limits.step !== 0 ||
+      (index > 0 && height <= band.cuts[index - 1]) ||
+      (index < band.cuts.length - 1 && height >= band.cuts[index + 1]))
+    return current;
+  return { ...current, [target]: {
+    cuts: band.cuts.map((cut, i) => i === index ? height : cut),
+    styles: band.styles
+  }};
+}
 export function editHeightBand(model, target, index, field, value) {
   const current = sanitizeHeightBands(model);
   const band = current[target];
