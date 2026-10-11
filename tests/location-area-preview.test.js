@@ -28,7 +28,9 @@ test('map fade scales in real meters without a sharp edge', () => {
 test('location preview reuses existing Sharon basemap, no GPS watcher', async () => {
   const file = await readFile(new URL('../src/ui/LocationAreaPreview.js', import.meta.url), 'utf8');
   assert.ok(file.includes("environmentStyle"));
-  assert.ok(file.includes("interactive: false"));
+  assert.ok(file.includes("interactive: true"));
+  assert.ok(file.includes("map.on('click'"));
+  assert.ok(file.includes("marker.on('dragend'"));
   assert.ok(file.includes("radial") === false, 'soft edge should be CSS driven');
   assert.ok(file.includes("map.remove()"));
   assert.ok(!file.includes("navigator.geolocation"));
@@ -76,7 +78,7 @@ test('map initialization configures the MapLibre ESM worker and slider zoom chan
     await view.update();
     assert.match(workerUrl, /maplibre-gl-worker\.mjs$/);
     assert.equal(workerCount, 1);
-    assert.equal(savedMap.options.interactive, false);
+    assert.equal(savedMap.options.interactive, true);
     assert.equal(savedMap.options.center[0], 5);
     const firstZoom = savedMap.options.zoom;
     savedMap.listeners.load();
