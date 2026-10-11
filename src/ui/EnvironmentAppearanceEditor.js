@@ -2,12 +2,12 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.1.82';
+} from './EnvironmentAppearance.js?v=0.1.83';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.1.82';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.82';
+} from './EnvironmentHeight.js?v=0.1.83';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.1.83';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
@@ -22,7 +22,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const controlsRoot = floating ? root.querySelector('[data-map-controls]') : null;
   if (floating && !controlsRoot) return () => {};
   if (floating) controlsRoot.insertAdjacentHTML('beforeend',
-    '<section class="environment-style-flyout" data-map-style-settings aria-label="Kaartstijl aanpassen" hidden></section>');
+    '<section id="environment-style-editor" class="environment-style-flyout" data-map-style-settings aria-label="Kaartstijl aanpassen" hidden></section>');
   const host = root.querySelector('[data-map-style-settings]');
   if (!host) return () => {};
 
@@ -601,6 +601,8 @@ export function createEnvironmentAppearanceEditor(root, store, {
     host.hidden = !active;
     desktopStyleToggle?.setAttribute('aria-pressed', String(active));
     desktopStyleToggle?.setAttribute('aria-expanded', String(active));
+    desktopStyleToggle?.setAttribute('aria-label', active ?
+      'Kaartstijl sluiten' : 'Kaartstijl aanpassen');
     if (desktopStyleToggle) desktopStyleToggle.title = active ?
       'Kaartstijl sluiten' : 'Kaartstijl aanpassen';
     styleSide.setAttribute('aria-hidden', String(!active));
