@@ -18,6 +18,6 @@ test('Sharon opent Log-invoer en stelt een ouder bij elke locatie in', async () 
 
 test('service worker cachet de hiërarchiemodule met dezelfde buildversie', async () => {
   const sw = await readFile(new URL('../service-worker.js', import.meta.url), 'utf8');
-  assert.ok(sw.includes('LocationHierarchy.js?v=0.1.91'));
-  assert.ok(sw.includes("const BUILD = '0.1.91'"));
+  assert.ok(sw.includes('LocationHierarchy.js?v=0.1.92'));
+  assert.ok(sw.includes("const BUILD = '0.1.92'"));
 });
