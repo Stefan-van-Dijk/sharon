@@ -1,4 +1,4 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.96';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.97';
 
 const MAPLIBRE_JS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
 const MAPLIBRE_CSS = 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css';
@@ -43,10 +43,11 @@ export function fadeStartPercent(radius, accuracy) {
 // Non-interactive preview of a radius on Sharon's shared vector basemap.
 // No separate geolocation watches, map tiles or GPS checks are initiated.
 export function mountLocationArea(host, {
-  getPoint, getRadius, getAccuracy = () => 0,
+  getPoint, getRadius, getAccuracy = () => 0, onPointChange = () => {},
   loadRenderer = () => import(MAPLIBRE_JS)
 } = {}) {
   let map = null;
+  let marker = null;
   let alive = true;
   let loading = false;
   let ready = false;
@@ -59,6 +60,22 @@ export function mountLocationArea(host, {
   const ring = host.querySelector('.sh-radius-fade');
   const placeholder = host.querySelector('[data-map-placeholder]');
   const note = host.querySelector('[data-map-note]');
+  const placeOverlay = () => {
+    const point = validPoint(getPoint?.());
+    if (!map || !point || typeof map.project !== 'function') return;
+    const xy = map.project([point.lng, point.lat]);
+    if (!xy || !Number.isFinite(xy.x) || !Number.isFinite(xy.y)) return;
+    overlay.style.left = xy.x + 'px';
+    overlay.style.top = xy.y + 'px';
+  };
+  function updatePoint(next) {
+    const point = validPoint(next);
+    if (!point || !alive) return;
+    marker?.setLngLat([point.lng, point.lat]);
+    onPointChange(point);
+    map?.easeTo?.({ center: [point.lng, point.lat], duration: 250 });
+    placeOverlay();
+  }
 
   function refresh() {
     const position = validPoint(getPoint?.());
@@ -80,6 +97,7 @@ export function mountLocationArea(host, {
       ? 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · GPS ±' + Math.round(accuracy) + ' m'
       : 'Herkenningsafstand ' + radiusMeters(getRadius?.()) + ' m · zachte grens';
     placeholder.hidden = ready;
+    placeOverlay();
   }
 
   async function update() {
@@ -88,6 +106,7 @@ export function mountLocationArea(host, {
     refresh();
     if (!position) return;
     if (map) {
+      marker?.setLngLat([position.lng, position.lat]);
       map.jumpTo({
         center: [position.lng, position.lat],
         zoom: zoomForArea(getRadius?.(), position.lat)
@@ -119,13 +138,41 @@ export function mountLocationArea(host, {
         style: environmentStyle,
         center: [center.lng, center.lat],
         zoom: zoomForArea(getRadius?.(), center.lat),
-        interactive: false,
+        interactive: true,
+        dragPan: true,
+        scrollZoom: false,
+        boxZoom: false,
+        doubleClickZoom: false,
+        touchZoomRotate: false,
         attributionControl: { compact: true },
         pitchWithRotate: false,
         dragRotate: false,
         maxPitch: 0,
         fadeDuration: 0
       });
+      if (typeof lib.Marker === 'function') {
+        const pin = document.createElement('div');
+        pin.className = 'sh-location-map-pin';
+        pin.setAttribute('aria-label', 'Versleep om de GPS-positie te wijzigen');
+        marker = new lib.Marker({ element: pin, draggable: true, anchor: 'bottom' })
+          .setLngLat([center.lng, center.lat]).addTo(map);
+        marker.on('drag', () => {
+          const dragged = marker.getLngLat();
+          const pixels = map.project?.([dragged.lng, dragged.lat]);
+          if (pixels) {
+            overlay.style.left = pixels.x + 'px';
+            overlay.style.top = pixels.y + 'px';
+          }
+        });
+        marker.on('dragend', () => {
+          const point = marker.getLngLat();
+          updatePoint({ lat: point.lat, lng: point.lng });
+        });
+      }
+      map.on('click', event => {
+        if (event?.lngLat) updatePoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      });
+      map.on('move', placeOverlay);
       map.on('load', () => {
         if (!alive) return;
         ready = true;
@@ -151,6 +198,10 @@ export function mountLocationArea(host, {
 
   function dispose() {
     alive = false;
+    if (marker) {
+      marker.remove();
+      marker = null;
+    }
     if (map) {
       map.remove();
       map = null;

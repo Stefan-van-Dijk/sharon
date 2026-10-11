@@ -1,10 +1,10 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.96';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.97';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.96';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.1.97';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.1.96';
+} from '../core/location/LocationHierarchy.js?v=0.1.97';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -212,25 +212,6 @@ export async function openLocationsView(root, {
 
     const form = root.querySelector('[data-location-form]');
     const status = root.querySelector('[data-editor-status]');
-    let headerSave = null;
-    if (headerActions) {
-      headerSave = document.createElement('button');
-      headerSave.type = 'button';
-      headerSave.className = 'sh-location-header-save';
-      headerSave.setAttribute('aria-label', isNew ? 'Voeg locatie toe' : 'Wijzigingen opslaan');
-      headerSave.textContent = isNew ? 'Voeg toe' : 'Opslaan';
-      headerSave.hidden = true;
-      headerSave.addEventListener('click', () => {
-        const title = String(form.elements.title.value || '').trim();
-        if (!title) {
-          setStatus('Hoe noem je deze plek?');
-          form.elements.title.focus();
-          return;
-        }
-        form.requestSubmit();
-      });
-      headerActions.append(headerSave);
-    }
     const setStatus = msg => { status.textContent = msg; };
     root.querySelector('[data-back]').addEventListener('click', () => list());
     root.querySelector('[data-add-child]')?.addEventListener('click', () => edit(null, item.id));
@@ -256,6 +237,9 @@ export async function openLocationsView(root, {
         form.elements.lat.value = pos.lat;
         form.elements.lng.value = pos.lng;
         form.elements.lat.dispatchEvent(new Event('input', { bubbles: true }));
+        form.dispatchEvent(new CustomEvent('sh-location-accuracy', {
+          detail: { accuracy: pos.accuracy, point: { lat: pos.lat, lng: pos.lng } }
+        }));
         setStatus(`GPS ingesteld · nauwkeurigheid ±${Math.round(pos.accuracy)} m`);
       } catch (error) { setStatus(error.message); }
       finally { button.disabled = false; }
@@ -366,10 +350,7 @@ export async function openLocationsView(root, {
       });
     releaseEditor = enhanceLocationEditor(root, {
       isNew, useGps, location, geocoder, knownLocations, initialParent,
-      saveInHeader: Boolean(headerSave),
-      onModeChange: mode => {
-        if (headerSave) headerSave.hidden = mode !== 'details';
-      }
+      saveInHeader: false
     });
   }
 
