@@ -84,6 +84,40 @@ export function environmentHatchPreview(kind, token) {
     ')"/></svg>';
 }
 
+// background-pattern replaces background-color in MapLibre. Build an opaque
+// color+lines sprite instead of a transparent one so the user's land color
+// remains visible below the chosen hatch.
+export const LAND_HATCH_IMAGE_ID = 'sharon-land-hatch-current';
+export function createEnvironmentLandHatchTile(color, hatch) {
+  const rgb = /^#[0-9a-f]{6}$/i.test(color) ? [1,3,5].map(i =>
+    parseInt(color.slice(i, i + 2), 16)) : [255, 255, 255];
+  const hatchTile = createEnvironmentHatchTile(hatch);
+  if (!hatchTile) return null;
+  const pixels = new Uint8Array(16 * 16 * 4);
+  for (let i = 0; i < pixels.length; i += 4) {
+    const alpha = hatchTile.data[i + 3] / 255;
+    for (let c = 0; c < 3; c++) {
+      pixels[i + c] = Math.round(rgb[c] * (1 - alpha) + hatchTile.data[i + c] * alpha);
+    }
+    pixels[i + 3] = 255;
+  }
+  return { width: 16, height: 16, data: pixels };
+}
+export function applyEnvironmentLandHatch(map, color, hatch) {
+  if (typeof map.getLayer !== 'function' || !map.getLayer('background') ||
+      typeof map.setPaintProperty !== 'function') return;
+  const tile = createEnvironmentLandHatchTile(color, hatch);
+  if (!tile) {
+    map.setPaintProperty('background', 'background-pattern', null);
+    return;
+  }
+  if (typeof map.addImage !== 'function') return;
+  if (map.hasImage?.(LAND_HATCH_IMAGE_ID)) {
+    if (typeof map.updateImage !== 'function') return;
+    map.updateImage(LAND_HATCH_IMAGE_ID, tile);
+  } else map.addImage(LAND_HATCH_IMAGE_ID, tile);
+  map.setPaintProperty('background', 'background-pattern', LAND_HATCH_IMAGE_ID);
+}
 export function registerEnvironmentHatches(map) {
   if (typeof map.addImage !== 'function') return;
   // An explicit fully transparent sprite allows feature-driven fill-patterns
