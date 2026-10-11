@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.89">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.89">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.90">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.90">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -476,6 +476,8 @@
     .environment-style-bar-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
     .environment-style-bar-actions button{min-width:0;min-height:32px!important;height:32px!important;padding:3px 4px;border:1px solid #e5e5e9;border-radius:10px;background:#f8f8f9;color:#4c4c52;font-size:10px;white-space:nowrap}
     .environment-style-bar-actions button:disabled{opacity:.45}
+    .environment-style-bar-actions input[type="file"][hidden]{display:none!important}
+    .environment-style-panel.is-standard-scenario input{cursor:default}
     .environment-style-bar-content>small{display:block;color:#99999e;font-size:9px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .environment-maplibre .maplibregl-ctrl-bottom-right{right:max(10px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 75px)}
     .environment-maplibre .maplibregl-ctrl-attrib{font-size:9px;line-height:1.15}
@@ -961,6 +963,9 @@
       padding-top:7px;padding-bottom:7px;
     }
     .environment-style-bar-content{gap:3px}
+    .environment-style-flyout.is-standard-scenario .environment-style-panel{
+      opacity:.77;
+    }
     .environment-scenario-switcher{
       display:grid;grid-template-columns:38px minmax(0,1fr) 38px;
       align-items:center;min-height:25px;max-height:25px;touch-action:pan-y;
@@ -984,7 +989,7 @@
     .environment-maplibre .maplibregl-ctrl-bottom-right{
       left:max(12px,env(safe-area-inset-left));
       right:max(12px,env(safe-area-inset-right));
-      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 67px);
+      bottom:calc(max(12px,env(safe-area-inset-bottom)) + 79px);
       display:grid;grid-template-columns:44px minmax(0,max-content) 44px;
       align-items:center;justify-content:center;gap:0;pointer-events:none;
     }
@@ -1027,7 +1032,7 @@
         width:min(780px,calc(100vw - 32px));transform:translateX(-50%);
       }
       .environment-maplibre .maplibregl-ctrl-bottom-right{
-        bottom:calc(max(12px,env(safe-area-inset-bottom)) + 67px);
+        bottom:calc(max(12px,env(safe-area-inset-bottom)) + 79px);
       }
     }
     .app-stage.is-environment.is-map-clean .environment-maplibre .maplibregl-ctrl-bottom-right{
@@ -1064,16 +1069,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.89#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.89#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.89#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.89#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.89#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.90#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.90#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.90#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.90#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.90#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.89"></script>
+  <script type="module" src="./src/main.js?v=0.1.90"></script>
 </body>
 </html>

@@ -1,18 +1,18 @@
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.1.89';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.89';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.89';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.89';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.89';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.1.89';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.89';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.89';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.89';
+} from '../core/location/EnvironmentIdentifier.js?v=0.1.90';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.1.90';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.1.90';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.1.90';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.1.90';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.1.90';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.90';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.1.90';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.1.90';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.1.89';
+} from './EnvironmentScale.js?v=0.1.90';
 
 // World geography stays with a vector tile provider; Sharon saves only its own objects.
 // Pin the renderer version instead of relying on a moving CDN "latest".
@@ -212,12 +212,13 @@ export function openEnvironmentView(root, {
               <div class="environment-style-bar-content">
                 <div class="environment-scenario-switcher" data-style-scenarios role="group" aria-label="Stijlscenario kiezen">
                   <button type="button" data-style-scenario-prev aria-label="Vorig stijlscenario">‹</button>
-                  <span data-style-scenario-label aria-live="polite">Eigen · 1/4</span>
+                  <span data-style-scenario-label aria-live="polite">Eigen · 1/9</span>
                   <button type="button" data-style-scenario-next aria-label="Volgend stijlscenario">›</button>
                 </div>
                 <div class="environment-style-bar-actions">
-                  <button type="button" data-style-reset-one>Herstel onderdeel</button>
-                  <button type="button" data-style-reset-all>Alles standaard</button>
+                  <button type="button" data-style-export title="Gekozen kaartstijl exporteren als JSON">Exporteer</button>
+                  <button type="button" data-style-import title="JSON-kaartstijl importeren in het huidige scenario">Importeer</button>
+                  <input type="file" data-style-import-file accept=".json,application/json" aria-label="Sharon kaartstijl JSON kiezen" hidden>
                 </div>
                 <small data-style-status aria-live="polite">Direct zichtbaar op de kaart · lokaal opgeslagen</small>
               </div>
@@ -265,7 +266,7 @@ export function openEnvironmentView(root, {
     const formatZoom = value => Number.isFinite(value) ? value.toFixed(2) : 'onbekend';
     const renderDiagnostic = () => {
       output.textContent = [
-        'Kaartcontrole 0.1.89 · ' + input + ' · ' + action,
+        'Kaartcontrole 0.1.90 · ' + input + ' · ' + action,
         cameraNote,
         statusNote,
         'Events: zoomstart ' + counts.zoomstart + ' / zoom ' + counts.zoom +
