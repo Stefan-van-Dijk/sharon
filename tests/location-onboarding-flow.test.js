@@ -65,8 +65,8 @@ test('review reuses original address field, uses soft map and accuracy-aware sli
   assert.ok(flow.includes('saveButton.hidden = true'));
   assert.ok(html.includes('sh-radius-fade'));
   assert.ok(html.includes('radial-gradient(circle'));
-  assert.ok(sw.includes('LocationAreaPreview.js?v=0.1.95'));
-  assert.ok(sw.includes("const BUILD = '0.1.95'"));
+  assert.ok(sw.includes('LocationAreaPreview.js?v=0.1.96'));
+  assert.ok(sw.includes("const BUILD = '0.1.96'"));
 });
 
 test('question navigation remains above iPhone keyboard', async () => {
