@@ -15,8 +15,6 @@ export async function openLocationsView(root, {
   let objects = [], locations = [], byId = new Map();
   let prefs = (await store.get('meta', PREF_KEY))?.value || { sort: 'alpha', order: [] };
   let unbindSwipes = null;
-  let currentEditor = '';
-  let editingNew = false;
 
   async function reload() {
     objects = await store.getAll('objects');
@@ -26,8 +24,6 @@ export async function openLocationsView(root, {
   await reload();
 
   async function list(status = '') {
-    currentEditor = '';
-    editingNew = false;
     setTitle('Locaties');
     unbindSwipes?.();
     const rows = orderedLocations(locations, prefs.sort, prefs.order);
@@ -117,10 +113,6 @@ export async function openLocationsView(root, {
       }
     });
     root.querySelector('[data-export]').addEventListener('click', () => exportLocations());
-    root.querySelector('.sh-location-file').addEventListener('click', event => {
-      if (event.target.matches('input')) return;
-      root.querySelector('[data-import]').click();
-    });
   }
 
   async function savePrefs() {
@@ -149,8 +141,6 @@ export async function openLocationsView(root, {
     unbindSwipes?.();
     unbindSwipes = null;
     const isNew = !item;
-    currentEditor = item?.id || '';
-    editingNew = isNew;
     const original = item?.data || {};
     const initialParent = isNew ? selectedParent : parentIdOf(item);
     const excluded = new Set(locations.filter(candidate => item && isDescendant(candidate.id, item.id, byId)).map(x => x.id));
@@ -193,6 +183,7 @@ export async function openLocationsView(root, {
               <option value="ask" ${original.shareRide === 'ask' ? 'selected' : ''}>Vraag mij</option>
               <option value="always" ${original.shareRide === 'always' ? 'selected' : ''}>Altijd</option>
             </select>
+            <small class="sh-location-note">Wordt benut zodra de rittenmodule in Sharon actief is.</small>
           </label>
           <label class="clean-field radius-field"><span>Herkenningsstraal</span><div><input name="radiusM" type="number" min="20" max="2000" step="10" value="${radius(original.radiusM)}"><em>meter</em></div></label>
           <section class="clean-section">
@@ -204,7 +195,20 @@ export async function openLocationsView(root, {
           <p class="sh-location-feedback" data-editor-status role="status"></p>
           <button type="submit" class="primary-line-action">${isNew ? 'Voeg locatie toe' : 'Bewaar locatie'}</button>
         </form>
-        ${item ? '<button type="button" class="sh-location-add-child" data-add-child>+ Sublocatie toevoegen</button>' : ''}
+        ${item ? `<div class="sh-location-secondary-actions">
+          <button type="button" class="sh-location-add-child" data-add-child>+ Sublocatie toevoegen</button>
+          <button type="button" class="sh-location-merge-button" data-open-merge>Samenvoegen…</button>
+        </div>
+        <div class="sh-location-merge" data-merge-panel hidden>
+          <label class="clean-field"><span>Samenvoegen met</span><select data-merge-other>
+            ${locations.filter(x => x.id !== item.id).map(x => `<option value="${escapeAttribute(x.id)}">${escapeHtml(pathForLocation(x, byId))}</option>`).join('')}
+          </select></label>
+          <label class="clean-field"><span>Welke locatie blijft bestaan?</span><select data-merge-keep>
+            <option value="current">Deze locatie</option><option value="other">De geselecteerde locatie</option>
+          </select></label>
+          <p class="clean-help">Onderliggende locaties en verwijzingen gaan mee. Samenvoegen van een locatie met haar eigen (sub)locatie is niet mogelijk.</p>
+          <button type="button" class="primary-line-action" data-merge-confirm>Samenvoegen</button>
+        </div>` : ''}
       </section>
     `;
 
@@ -213,6 +217,18 @@ export async function openLocationsView(root, {
     const setStatus = msg => { status.textContent = msg; };
     root.querySelector('[data-back]').addEventListener('click', () => list());
     root.querySelector('[data-add-child]')?.addEventListener('click', () => edit(null, item.id));
+    root.querySelector('[data-open-merge]')?.addEventListener('click', () => {
+      const panel = root.querySelector('[data-merge-panel]');
+      panel.hidden = !panel.hidden;
+    });
+    root.querySelector('[data-merge-confirm]')?.addEventListener('click', async () => {
+      const otherId = root.querySelector('[data-merge-other]').value;
+      const keepOther = root.querySelector('[data-merge-keep]').value === 'other';
+      try {
+        if (!otherId) throw Error('Geen tweede locatie beschikbaar.');
+        await mergeLocations(item.id, otherId, keepOther);
+      } catch (error) { setStatus(error.message); }
+    });
     root.querySelector('[data-current-gps]').addEventListener('click', async () => {
       const button = root.querySelector('[data-current-gps]');
       button.disabled = true;
@@ -307,7 +323,7 @@ export async function openLocationsView(root, {
             data: {
               ...(locationAction?.data || {}), locationId: savedId, event: 'enter', enabled,
               message: String(values.get('triggerMessage') || '').trim() || `Je bent bij ${title}.`,
-              state: locationAction?.data?.state || null
+              state: null
             }
           });
           events.emit('location-action.updated', { locationId: savedId, enabled });
@@ -322,6 +338,53 @@ export async function openLocationsView(root, {
     if (useGps) root.querySelector('[data-current-gps]').click();
   }
 
+
+  async function mergeLocations(currentId, otherId, keepOther) {
+    const current = byId.get(currentId), other = byId.get(otherId);
+    if (!current || !other || current.id === other.id) throw Error('Kies twee verschillende locaties.');
+    if (isDescendant(current.id, other.id, byId) || isDescendant(other.id, current.id, byId)) {
+      throw Error('Verplaats de locaties eerst: een locatie kan niet met haar eigen sublocatie worden samengevoegd.');
+    }
+    const keep = keepOther ? other : current;
+    const remove = keepOther ? current : other;
+    if (!confirm(`“${remove.data.title}” samenvoegen met “${keep.data.title}”? Alle onderliggende locaties worden behouden.`)) return;
+    const now = Date.now();
+    const ownKeep = ownCoordinates(keep), ownRemove = ownCoordinates(remove);
+    const updatedKeep = {
+      ...keep, updatedAt: now,
+      data: {
+        ...keep.data,
+        address: addressText(keep.data.address) ? keep.data.address : (remove.data.address || {}),
+        coordinates: ownKeep || ownRemove,
+        kind: (keep.data.kind || 'other') !== 'other' ? keep.data.kind : (remove.data.kind || 'other'),
+        shareRide: (keep.data.shareRide || 'never') !== 'never' ? keep.data.shareRide : (remove.data.shareRide || 'never')
+      }
+    };
+    await store.put('objects', updatedKeep);
+    const hasKeepAction = objects.some(x => x.type === 'location-action' && !x.deletedAt && x.data?.locationId === keep.id);
+    for (const record of objects) {
+      if (record.deletedAt || record.id === remove.id || record.id === keep.id) continue;
+      const data = record.data || {};
+      let next = data;
+      if (record.type === 'location' && parentIdOf(record) === remove.id) {
+        next = { ...next, parentId: keep.id };
+      }
+      if (data.locationId === remove.id) {
+        if (record.type === 'location-action' && hasKeepAction) {
+          await store.put('objects', { ...record, updatedAt: now, deletedAt: now, data: { ...data, enabled: false } });
+          continue;
+        }
+        next = { ...next, locationId: keep.id, ...(record.type === 'location-action' ? { state: null } : {}) };
+      }
+      if (next !== data) await store.put('objects', { ...record, updatedAt: now, data: next });
+    }
+    await store.put('objects', { ...remove, updatedAt: now, deletedAt: now });
+    events.emit('location.updated', { id: keep.id });
+    events.emit('location.deleted', { id: remove.id, mergedInto: keep.id });
+    await reload();
+    await list('Locaties samengevoegd.');
+  }
+
   async function importLogLocations(bundle) {
     const source = bundle?.locations ||
       bundle?.kilometer?.locations ||
@@ -333,7 +396,8 @@ export async function openLocationsView(root, {
     if (!source.length) return 0;
     if (!confirm(`${source.length} locaties uit Log toevoegen? Bestaande locaties blijven behouden; eerder geïmporteerde worden overgeslagen.`)) return 0;
     const ids = new Map();
-    const existing = new Map(locations.filter(x => x.data?.logSourceId).map(x => [String(x.data.logSourceId), x.id]));
+    const existing = new Map(locations.filter(x => x.data?.logSourceId || x.data?.importSourceId || (bundle.app === 'sharon' && x.id))
+      .map(x => [String(x.data?.logSourceId || x.data?.importSourceId || x.id), x.id]));
     for (const row of source) {
       if (!row || typeof row !== 'object') continue;
       const sourceId = String(row.id || '');
@@ -356,7 +420,9 @@ export async function openLocationsView(root, {
           kind: TYPES.has(row.type) ? row.type : 'other',
           shareRide: ['never', 'ask', 'always'].includes(row.shareRide) ? row.shareRide : 'never',
           radiusM: DEFAULT_RADIUS,
-          logSourceId: String(row.id)
+          importSourceId: String(row.id),
+          importApp: bundle.app === 'sharon' ? 'sharon' : 'log',
+          ...(bundle.app === 'sharon' ? {} : { logSourceId: String(row.id) })
         }
       };
       await store.put('objects', obj);
