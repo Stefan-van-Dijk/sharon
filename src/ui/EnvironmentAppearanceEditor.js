@@ -172,6 +172,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
     { ...appearanceSectionDefaults(section()), ...(overrides.groupStyles?.[sectionId] || {}) };
   const currentCaps = () => selectedId ? {
     fill: !!(child().fill || child().background),
+    hatch: !!child().fill,
     stroke: !!child().lines?.length,
     width: !!child().lines?.length,
     dash: !!child().lines?.length,
