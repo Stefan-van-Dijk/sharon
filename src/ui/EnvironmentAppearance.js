@@ -1,6 +1,7 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.75';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.76';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.76';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
-  from './EnvironmentScale.js?v=0.1.75';
+  from './EnvironmentScale.js?v=0.1.76';
 
 // Keep v1: all individual customizations made in previous Sharon versions survive.
 export const ENVIRONMENT_APPEARANCE_KEY = 'environment-appearance:v1';
@@ -22,30 +23,30 @@ export const APPEARANCE_GROUPS = Object.freeze([
   { id: 'taxiways', label: 'Taxibanen', lines: ['aeroway-taxiway'] },
   { id: 'piers', label: 'Pieren', lines: ['road_pier'] },
   { id: 'buildings', label: 'Gebouwen', fill: 'building', lines: ['building-outline'] },
-  { id: 'green', label: 'Groen', fill: 'green' },
-  { id: 'forest', label: 'Bos', fill: 'forest' },
-  { id: 'grassland', label: 'Grasland', fill: 'grassland' },
-  { id: 'heath', label: 'Heide', fill: 'heath' },
-  { id: 'scrub', label: 'Struikgewas', fill: 'scrub' },
-  { id: 'meadow', label: 'Weiland', fill: 'meadow' },
-  { id: 'tundra', label: 'Toendra', fill: 'tundra' },
-  { id: 'beach', label: 'Strand', fill: 'beach' },
-  { id: 'dunes', label: 'Duinen', fill: 'dunes' },
-  { id: 'sand', label: 'Zandvlaktes', fill: 'sand' },
-  { id: 'wetland', label: 'Nat grasland', fill: 'wetland' },
-  { id: 'bog', label: 'Veen', fill: 'bog' },
-  { id: 'marsh', label: 'Moeras', fill: 'marsh' },
-  { id: 'reedbed', label: 'Rietland', fill: 'reedbed' },
-  { id: 'tidalflat', label: 'Slikken', fill: 'tidalflat' },
-  { id: 'mangrove', label: 'Mangrove', fill: 'mangrove' },
-  { id: 'farmland', label: 'Akkerland', fill: 'farmland' },
-  { id: 'orchard', label: 'Boomgaarden', fill: 'orchard' },
-  { id: 'vineyard', label: 'Wijngaarden', fill: 'vineyard' },
-  { id: 'allotments', label: 'Volkstuinen', fill: 'allotments' },
-  { id: 'nursery', label: 'Kwekerijen', fill: 'nursery' },
-  { id: 'rock', label: 'Rotsen', fill: 'rock' },
-  { id: 'scree', label: 'Puinhellingen', fill: 'scree' },
-  { id: 'glacier', label: 'Gletsjers', fill: 'glacier' }
+  { id: 'green', label: 'Groen', fill: 'green', lines: ['green-outline'] },
+  { id: 'forest', label: 'Bos', fill: 'forest', lines: ['forest-outline'] },
+  { id: 'grassland', label: 'Grasland', fill: 'grassland', lines: ['grassland-outline'] },
+  { id: 'heath', label: 'Heide', fill: 'heath', lines: ['heath-outline'] },
+  { id: 'scrub', label: 'Struikgewas', fill: 'scrub', lines: ['scrub-outline'] },
+  { id: 'meadow', label: 'Weiland', fill: 'meadow', lines: ['meadow-outline'] },
+  { id: 'tundra', label: 'Toendra', fill: 'tundra', lines: ['tundra-outline'] },
+  { id: 'beach', label: 'Strand', fill: 'beach', lines: ['beach-outline'] },
+  { id: 'dunes', label: 'Duinen', fill: 'dunes', lines: ['dunes-outline'] },
+  { id: 'sand', label: 'Zandvlaktes', fill: 'sand', lines: ['sand-outline'] },
+  { id: 'wetland', label: 'Nat grasland', fill: 'wetland', lines: ['wetland-outline'] },
+  { id: 'bog', label: 'Veen', fill: 'bog', lines: ['bog-outline'] },
+  { id: 'marsh', label: 'Moeras', fill: 'marsh', lines: ['marsh-outline'] },
+  { id: 'reedbed', label: 'Rietland', fill: 'reedbed', lines: ['reedbed-outline'] },
+  { id: 'tidalflat', label: 'Slikken', fill: 'tidalflat', lines: ['tidalflat-outline'] },
+  { id: 'mangrove', label: 'Mangrove', fill: 'mangrove', lines: ['mangrove-outline'] },
+  { id: 'farmland', label: 'Akkerland', fill: 'farmland', lines: ['farmland-outline'] },
+  { id: 'orchard', label: 'Boomgaarden', fill: 'orchard', lines: ['orchard-outline'] },
+  { id: 'vineyard', label: 'Wijngaarden', fill: 'vineyard', lines: ['vineyard-outline'] },
+  { id: 'allotments', label: 'Volkstuinen', fill: 'allotments', lines: ['allotments-outline'] },
+  { id: 'nursery', label: 'Kwekerijen', fill: 'nursery', lines: ['nursery-outline'] },
+  { id: 'rock', label: 'Rotsen', fill: 'rock', lines: ['rock-outline'] },
+  { id: 'scree', label: 'Puinhellingen', fill: 'scree', lines: ['scree-outline'] },
+  { id: 'glacier', label: 'Gletsjers', fill: 'glacier', lines: ['glacier-outline'] }
 ]);
 
 export const APPEARANCE_SECTIONS = Object.freeze([
@@ -72,6 +73,7 @@ const validColor = value => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.tes
 const validWidth = value => typeof value === 'number' && Number.isFinite(value) &&
   value >= 0.25 && value <= 4;
 const validDash = value => ['solid', 'dotted', 'dashed'].includes(value);
+const validHatch = value => HATCH_OPTIONS.some(option => option.id === value);
 
 export function appearanceSectionFor(groupId) {
   return APPEARANCE_SECTIONS.find(section => section.items.includes(groupId)) || null;
@@ -94,6 +96,7 @@ export function appearanceDefaults(group) {
     stroke: lineLayer?.paint?.['line-color'] || null,
     width: 1,
     dash: 'default',
+    hatch: 'none',
     from: '',
     to: ''
   };
@@ -103,6 +106,7 @@ export function appearanceSectionProperties(section) {
   const children = section.items.map(id => groupsById.get(id));
   return {
     fill: children.some(group => group.fill || group.background),
+    hatch: children.some(group => !!group.fill),
     stroke: children.some(group => group.lines?.length),
     scale: children.some(group => !group.background),
     width: children.some(group => group.lines?.length),
@@ -116,7 +120,7 @@ export function appearanceSectionDefaults(section) {
   return {
     fill: fillGroup ? appearanceDefaults(fillGroup).fill : null,
     stroke: lineGroup ? appearanceDefaults(lineGroup).stroke : null,
-    width: 1, dash: 'default', from: '', to: ''
+    width: 1, dash: 'default', hatch: 'none', from: '', to: ''
   };
 }
 
@@ -128,6 +132,7 @@ function sanitizeEntry(entry, caps) {
     if (name === 'stroke' && caps.stroke && validColor(value)) clean.stroke = value.toLowerCase();
     if (name === 'width' && caps.width && validWidth(value)) clean.width = value;
     if (name === 'dash' && caps.dash && validDash(value)) clean.dash = value;
+    if (name === 'hatch' && caps.hatch && validHatch(value)) clean.hatch = value;
     if ((name === 'from' || name === 'to') && caps.scale &&
         typeof value === 'string' && (scaleIndex(value) >= 0 || value === 'all')) clean[name] = value;
   }
@@ -145,6 +150,7 @@ export function sanitizeEnvironmentAppearance(data) {
       ((group.id === 'runways' || group.id === 'taxiways') ? data.airfields : null);
     const caps = {
       fill: !!(group.fill || group.background),
+      hatch: !!group.fill,
       stroke: !!group.lines?.length,
       width: !!group.lines?.length,
       dash: !!group.lines?.length,
@@ -186,7 +192,7 @@ function affectedByCategory(group, category) {
     (category.startsWith('group:') && sectionsById.get(category.slice(6))?.items.includes(group.id));
 }
 function groupLayerIds(group) {
-  return [...(group.fill ? [group.fill] : []), ...(group.lines || [])];
+  return [...(group.fill ? [group.fill, group.fill + '-hatch'] : []), ...(group.lines || [])];
 }
 export function applyEnvironmentAppearance(map, appearance, category = null) {
   const clean = sanitizeEnvironmentAppearance(appearance);
@@ -203,6 +209,12 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
       const base = layers.get(group.fill);
       map.setPaintProperty(group.fill, 'fill-color',
         override.fill ?? base.paint['fill-color']);
+    }
+    // Independent transparent overlay: fill-color stays fully editable.
+    const hatchId = group.fill ? group.fill + '-hatch' : null;
+    if (hatchId && map.getLayer(hatchId) && override.hatch &&
+        override.hatch !== 'none' && typeof map.setPaintProperty === 'function') {
+      map.setPaintProperty(hatchId, 'fill-pattern', environmentHatchImageId(override.hatch));
     }
     for (const id of group.lines || []) {
       if (!map.getLayer(id)) continue;
@@ -238,10 +250,13 @@ export function applyEnvironmentVisibility(map, appearance) {
     const override = { ...(clean.groupStyles?.[section.id] || {}), ...(clean[group.id] || {}) };
     const visible = (!override.from || override.from === 'all' || current <= scaleIndex(override.from)) &&
       (!override.to || override.to === 'all' || current >= scaleIndex(override.to));
-    const value = visible ? 'visible' : 'none';
     for (const id of groupLayerIds(group)) {
       if (!map.getLayer(id)) continue;
-      if ((map.getLayoutProperty(id, 'visibility') || 'visible') !== value) {
+      const isHatch = group.fill && id === group.fill + '-hatch';
+      const allowed = !isHatch || (!!override.hatch && override.hatch !== 'none');
+      const value = visible && allowed ? 'visible' : 'none';
+      const defaultVisibility = layers.get(id)?.layout?.visibility || 'visible';
+      if ((map.getLayoutProperty(id, 'visibility') || defaultVisibility) !== value) {
         map.setLayoutProperty(id, 'visibility', value);
       }
     }
@@ -250,6 +265,7 @@ export function applyEnvironmentVisibility(map, appearance) {
 // Attach only after the map's load event. An asynchronous IndexedDB load can
 // never overwrite an edit made in the active editor session.
 export function bindEnvironmentAppearance(map, store) {
+  registerEnvironmentHatches(map);
   let disposed = false, changedInSession = false;
   let appearance = {}, lastScaleId = null;
   const currentScale = () => environmentScaleForSpan(environmentSpanForZoom(

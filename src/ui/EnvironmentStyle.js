@@ -1203,20 +1203,35 @@ export const environmentStyle = {
   ]
 };
 
-// Dedicated polygon outlines allow editable width and dotted/dashed strokes.
-for (const [fillId, outlineId, color] of [
-  ['water', 'water-outline', '#dce3e8'],
-  ['building', 'building-outline', '#dddddf']
-]) {
-  const index = environmentStyle.layers.findIndex(layer => layer.id === fillId);
+// Every geographic polygon has three independent renderers:
+// fill color, optional translucent hatch overlay, and editable outline.
+// Background/land is not a polygon and intentionally has no border or hatch.
+for (let index = 0; index < environmentStyle.layers.length; index++) {
   const fill = environmentStyle.layers[index];
-  environmentStyle.layers.splice(index + 1, 0, {
-    id: outlineId,
-    type: 'line',
+  if (fill.type !== 'fill') continue;
+  const outlineColor = fill.id === 'water' ? '#dce3e8' :
+    fill.id === 'building' ? '#dddddf' : '#c6c9c6';
+  // Do not use fill-outline-color: a dedicated line layer also supports
+  // editable thickness and dashes, and draws over the hatch.
+  fill.paint['fill-outline-color'] = 'rgba(0,0,0,0)';
+  const shared = {
     source: fill.source,
     'source-layer': fill['source-layer'],
     ...(fill.filter ? { filter: fill.filter } : {}),
     ...(fill.minzoom !== undefined ? { minzoom: fill.minzoom } : {}),
-    paint: { 'line-color': color, 'line-width': 1 }
-  });
+    ...(fill.maxzoom !== undefined ? { maxzoom: fill.maxzoom } : {})
+  };
+  environmentStyle.layers.splice(index + 1, 0,
+    {
+      id: fill.id + '-hatch', type: 'fill', ...shared,
+      layout: { visibility: 'none' },
+      paint: { 'fill-opacity': 0.55, 'fill-outline-color': 'rgba(0,0,0,0)' }
+    },
+    {
+      id: fill.id + '-outline', type: 'line', ...shared,
+      paint: { 'line-color': outlineColor,
+        'line-width': fill.id === 'water' || fill.id === 'building' ? 1 : 0.85 }
+    }
+  );
+  index += 2;
 }

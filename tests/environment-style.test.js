@@ -270,7 +270,7 @@ test('grouped technical raster displays real fill and stroke samples without col
   const css = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(editor.includes('rect x="12" y="3" width="48" height="19"'));
   assert.ok(editor.includes('line x1="10" y1="13" x2="62" y2="13"'));
-  assert.ok(css.includes('grid-auto-columns:calc((100% - 3px)/4)'));
+  assert.ok(css.includes('grid-auto-columns:calc(100%/4)'));
   assert.ok(css.includes('grid-auto-flow:column;'));
   assert.ok(css.includes('backdrop-filter:blur(18px) saturate(145%)'));
   assert.ok(!css.includes('environment-style-fill-dot'));

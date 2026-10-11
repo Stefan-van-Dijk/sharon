@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.1.75">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.75">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.1.76">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.1.76">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -488,7 +488,7 @@
       bottom:calc(max(12px,env(safe-area-inset-bottom)) + 103px);
       width:auto;
       /* Same height for every category: no jumping top edge while editing. */
-      height:min(366px,65dvh,calc(100dvh - env(safe-area-inset-top) - 178px));
+      height:min(378px,65dvh,calc(100dvh - env(safe-area-inset-top) - 178px));
       max-height:min(65dvh,calc(100dvh - env(safe-area-inset-top) - 178px));
       padding:10px 10px 12px;
       border:1px solid rgba(125,125,135,.16);
@@ -503,7 +503,7 @@
     .environment-style-flyout[hidden]{display:none!important}
     .environment-style-panel{
       display:grid;gap:7px;width:100%;max-width:none;
-      grid-template-rows:35px 29px 54px 33px 30px 43px 69px;
+      grid-template-rows:35px 29px 54px 44px 30px 43px 69px;
       align-content:start;
     }
     .environment-style-panel [hidden]{display:none!important}
@@ -541,27 +541,35 @@
       border:0;background:none;color:#52525a;font-size:10px;white-space:nowrap;
     }
     .environment-style-scope [data-style-inherit]:disabled{color:#b3b3b9;opacity:.55}
-    /* A single horizontal track with exactly four equally-sized visible cells.
-       Extra types extend sideways instead of creating new vertical rows. */
+    /* No card outlines: only vertical hairline separators between real items.
+       Four full items remain visible; a small +N indicator announces overflow. */
+    .environment-style-subgroup-rail{position:relative;height:54px;min-width:0}
     .environment-style-groups{
       display:grid;grid-auto-flow:column;
-      grid-auto-columns:calc((100% - 3px)/4);grid-template-rows:54px;gap:1px;
+      grid-auto-columns:calc(100%/4);grid-template-rows:54px;gap:0;
       overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
       -webkit-overflow-scrolling:touch;touch-action:pan-x;
       overscroll-behavior-x:contain;scroll-snap-type:x proximity;
-      border:1px solid rgba(70,70,80,.13);border-radius:7px;
-      background:rgba(70,70,80,.13);
+      border:0;border-radius:0;background:transparent;
     }
     .environment-style-groups::-webkit-scrollbar{display:none}
     .environment-style-group{
       position:relative;min-width:0;height:54px;overflow:hidden;scroll-snap-align:start;
-      border:0;border-radius:0;background:rgba(255,255,255,.78);
+      border:0;background:transparent;
     }
+    .environment-style-group:not(:last-child){border-right:1px solid rgba(70,70,80,.2)}
     .environment-style-group.is-selected{background:rgba(65,65,75,.11)}
-    .environment-style-group.is-unavailable{background:rgba(215,215,220,.2)}
-    .environment-style-group.is-unavailable .environment-style-group-main{
-      color:#c1c1c7;cursor:not-allowed;font-size:15px;
+    .environment-style-more{
+      position:absolute;z-index:3;top:13px;height:29px!important;min-height:29px!important;
+      width:42px;min-width:42px!important;padding:0 3px;
+      border:1px solid rgba(70,70,80,.17);border-radius:7px;
+      background:rgba(255,255,255,.93);color:#33333a;
+      font-size:11px;font-weight:650;backdrop-filter:blur(9px);
+      pointer-events:auto;touch-action:manipulation;
     }
+    .environment-style-more-prev{left:0}
+    .environment-style-more-next{right:0}
+    .environment-style-more:disabled{opacity:0!important;pointer-events:none}
     .environment-style-group-main{
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       gap:0;width:100%;height:100%;min-width:0!important;min-height:54px!important;
@@ -578,29 +586,47 @@
       height:5px;width:5px;border-radius:50%;background:#55555c;
     }
     .environment-style-group.has-deviation .environment-style-deviation{display:block}
-    .environment-style-colors{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-    .environment-style-color-row{
-      display:flex;min-width:0;align-items:center;gap:5px;min-height:33px;
-      color:#63636b;font-size:11px;
+    .environment-style-colors{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+      align-items:stretch;gap:4px;min-width:0;
     }
-    .environment-style-color-row>.environment-color-edit{margin-left:auto}
-    .environment-color-edit{display:flex;align-items:center;min-width:0;gap:5px}
+    .environment-style-color-row{
+      position:relative;display:grid;grid-template-rows:12px 27px;
+      min-width:0;min-height:43px;align-content:center;
+      gap:0;padding:0 18px 0 2px;color:#63636b;
+    }
+    .environment-style-color-row>span:first-child{
+      font-size:9px;line-height:12px;white-space:nowrap;
+      text-overflow:ellipsis;overflow:hidden;
+    }
+    .environment-style-color-row>.environment-color-edit{min-width:0}
+    .environment-color-edit{display:flex;align-items:center;min-width:0;gap:4px}
     .environment-color-swatch{
-      position:relative;display:block;width:31px;height:27px;flex:0 0 31px;
-      border:1px solid rgba(50,50,60,.22);border-radius:5px;
+      position:relative;display:block;width:25px;height:24px;flex:0 0 25px;
+      border:1px solid rgba(50,50,60,.22);border-radius:4px;
       background:var(--style-color,#d0d0d5);overflow:hidden;
+    }
+    .environment-style-color-row select{
+      display:block;width:100%;height:27px;min-height:27px;min-width:0;
+      border:1px solid rgba(60,60,65,.2);border-radius:5px;
+      padding:1px 2px;background:rgba(255,255,255,.63);font-size:10px;
+      color:#45454c;touch-action:manipulation;
     }
     .environment-color-swatch input[type=color]{
       position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;
       border:0;opacity:0;cursor:pointer;touch-action:manipulation;
     }
-    .environment-color-edit output{font-size:10px;color:#606068;white-space:nowrap}
+    .environment-color-edit output{min-width:0;font-size:9px;color:#606068;white-space:nowrap}
     .environment-style-panel button[data-inherit-field]{
       flex:0 0 24px;min-width:24px!important;width:24px;min-height:28px!important;
       height:28px;padding:0;border:0;background:none;color:#77777e;font-size:19px;
     }
     .environment-style-panel button[data-inherit-field]:disabled{
       color:#b7b7bd;opacity:.35;cursor:not-allowed;
+    }
+    .environment-style-panel .environment-style-color-row button[data-inherit-field]{
+      position:absolute;right:0;bottom:0;min-width:18px!important;width:18px;
+      min-height:27px!important;height:27px;font-size:14px;
     }
     .environment-style-color-row.is-unavailable,
     .environment-style-width.is-unavailable,
@@ -669,7 +695,7 @@
     @media(max-width:360px){
       .environment-style-flyout{padding:9px 7px}
       .environment-style-tabs button{padding-left:5px;padding-right:5px;font-size:10px}
-      .environment-color-edit output{font-size:9px}
+      .environment-color-edit output{font-size:8px}
       .environment-style-color-row{gap:3px}
     }
 
@@ -732,16 +758,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.75#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.75#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.75#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.75#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.75#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.1.76#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.1.76#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.1.76#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.1.76#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.1.76#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.1.75"></script>
+  <script type="module" src="./src/main.js?v=0.1.76"></script>
 </body>
 </html>

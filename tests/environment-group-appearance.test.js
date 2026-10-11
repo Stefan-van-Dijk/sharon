@@ -113,7 +113,7 @@ test('editor includes per-property reversion and edits group separately from chi
   assert.ok(editor.includes('data-style-fill-hex'));
   assert.ok(editor.includes('dx >= 58'));
   assert.ok(editor.includes('ENVIRONMENT_APPEARANCE_KEY'));
-  assert.ok(css.includes('grid-auto-columns:calc((100% - 3px)/4)'));
+  assert.ok(css.includes('grid-auto-columns:calc(100%/4)'));
   assert.ok(css.includes('backdrop-filter:blur(18px) saturate(145%)'));
 });
 
@@ -197,11 +197,13 @@ test('main and subcategory swipes do not change panel height or old gesture inte
   assert.ok(css.includes('.environment-style-tabs'));
   assert.ok(css.includes('flex:0 0 auto;min-width:0!important;min-height:35px!important;'));
   assert.ok(css.includes('grid-auto-flow:column;'));
-  assert.ok(css.includes('grid-auto-columns:calc((100% - 3px)/4)'));
+  assert.ok(css.includes('grid-auto-columns:calc(100%/4)'));
   assert.ok(css.includes('overflow-x:auto;overflow-y:hidden;scrollbar-width:none;'));
-  assert.ok(css.includes('height:min(366px,65dvh'));
-  assert.ok(css.includes('grid-template-rows:35px 29px 54px 33px 30px 43px 69px'));
+  assert.ok(css.includes('height:min(378px,65dvh'));
+  assert.ok(css.includes('grid-template-rows:35px 29px 54px 44px 30px 43px 69px'));
   assert.ok(editor.includes('groups.scrollLeft = 0'));
-  assert.ok(editor.includes('for (let index = section().items.length; index < 4; index++)'));
+  assert.ok(!editor.includes('for (let index = section().items.length; index < 4; index++)'));
+  assert.ok(css.includes('.environment-style-group:not(:last-child)'));
+  assert.ok(editor.includes('data-style-more-next'));
   assert.ok(editor.includes('dx >= 58'));
 });
