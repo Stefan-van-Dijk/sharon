@@ -1,4 +1,4 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.1.97';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.1.98';
 import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.1.98';
 export const AREA_RADIUS_PX = 72;
 
