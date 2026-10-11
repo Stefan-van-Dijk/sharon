@@ -157,6 +157,7 @@ export function createEnvironmentAppearanceEditor(root, store, {
   const track = floating ? root.querySelector('[data-readout-track]') : null;
   const positionSide = floating ? root.querySelector('[data-readout-position]') : null;
   const styleSide = floating ? root.querySelector('[data-readout-style]') : null;
+  const desktopStyleToggle = floating ? root.querySelector('[data-desktop-style-toggle]') : null;
 
   for (const item of APPEARANCE_SECTIONS) {
     const button = document.createElement('button');
@@ -605,6 +606,10 @@ export function createEnvironmentAppearanceEditor(root, store, {
     if (!floating || disposed) return;
     readout.classList.toggle('is-style-active', active);
     host.hidden = !active;
+    desktopStyleToggle?.setAttribute('aria-pressed', String(active));
+    desktopStyleToggle?.setAttribute('aria-expanded', String(active));
+    if (desktopStyleToggle) desktopStyleToggle.title = active ?
+      'Kaartstijl sluiten' : 'Kaartstijl aanpassen';
     styleSide.setAttribute('aria-hidden', String(!active));
     positionSide.setAttribute('aria-hidden', String(active));
     returnButton.tabIndex = active ? 0 : -1;
@@ -772,6 +777,18 @@ export function createEnvironmentAppearanceEditor(root, store, {
     closeHeightPicker(); saveChanges();
   });
   listen(returnButton, 'click', () => setStyleMode(false));
+  // The desktop dot is an alternative entry point; the swipe on the position
+  // bar remains unchanged for phone users.
+  listen(desktopStyleToggle, 'click', () => {
+    setStyleMode(host.hidden);
+  });
+  listen(host, 'keydown', event => {
+    if (event.key === 'Escape' && !host.hidden &&
+        hatchPicker.hidden && heightPicker.hidden) {
+      setStyleMode(false);
+      desktopStyleToggle?.focus();
+    }
+  });
 
   // Only a deliberate rightward gesture starting at the left 50 px of the
   // *position bar* activates the editor. This never starts on the map.
