@@ -72,8 +72,8 @@ test('map zoom sets recognition radius; changing GPS requires explicit action', 
   assert.ok(flow.includes('typeSelect.value = option.value'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));
   assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.1.100"));
-  assert.ok(worker.includes("const BUILD = '0.1.100'"));
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.2.00"));
+  assert.ok(worker.includes("const BUILD = '0.2.00'"));
 });
 
 test('isolated locations show no unnecessary main-location choices', async () => {
