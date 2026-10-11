@@ -1,5 +1,5 @@
 import { environmentStyle } from './EnvironmentStyle.js?v=0.1.78';
-import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS } from './EnvironmentHatch.js?v=0.1.78';
+import { registerEnvironmentHatches, environmentHatchImageId, HATCH_OPTIONS, applyEnvironmentLandHatch } from './EnvironmentHatch.js?v=0.1.78';
 import { sanitizeHeightBands, buildBuildingBandExpression, buildLandReliefExpression } from './EnvironmentHeight.js?v=0.1.78';
 import { ENVIRONMENT_SCALES, environmentScaleForSpan, environmentSpanForZoom }
   from './EnvironmentScale.js?v=0.1.78';
@@ -106,7 +106,7 @@ export function appearanceSectionProperties(section) {
   const children = section.items.map(id => groupsById.get(id));
   return {
     fill: children.some(group => group.fill || group.background),
-    hatch: children.some(group => !!group.fill),
+    hatch: children.some(group => !!(group.fill || group.background)),
     stroke: children.some(group => group.lines?.length),
     scale: children.some(group => !group.background),
     width: children.some(group => group.lines?.length),
@@ -157,7 +157,7 @@ export function sanitizeEnvironmentAppearance(data) {
         ((group.id === 'runways' || group.id === 'taxiways') ? data.airfields : null);
     const caps = {
       fill: !!(group.fill || group.background),
-      hatch: !!group.fill,
+      hatch: !!(group.fill || group.background),
       stroke: !!group.lines?.length,
       width: !!group.lines?.length,
       dash: !!group.lines?.length,
@@ -242,8 +242,11 @@ export function applyEnvironmentAppearance(map, appearance, category = null) {
         style => bandValue(style, field, base)) : base;
     if (group.background && map.getLayer(group.background)) {
       const base = layers.get(group.background);
-      map.setPaintProperty(group.background, 'background-color',
-        override.fill ?? base.paint['background-color']);
+      const color = override.fill ?? base.paint['background-color'];
+      map.setPaintProperty(group.background, 'background-color', color);
+      // The background image must include the user's color: MapLibre
+      // disables background-color as soon as background-pattern is used.
+      applyEnvironmentLandHatch(map, color, override.hatch || 'none');
     }
     if (group.fill && map.getLayer(group.fill)) {
       const base = layers.get(group.fill);
