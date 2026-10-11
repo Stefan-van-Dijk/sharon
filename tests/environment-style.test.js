@@ -47,7 +47,7 @@ test('map appearance changes fill, line paint, thickness and dots then resets co
 });
 
 test('stored appearance rejects arbitrary paint expressions and unknown categories', () => {
-  assert.equal(APPEARANCE_GROUPS.length, 37);
+  assert.equal(APPEARANCE_GROUPS.length, 44);
   assert.deepEqual(sanitizeEnvironmentAppearance({
     invented: { fill: '#abcdef' },
     water: { fill: '#AaBBcc', stroke: ['!', 'danger'], width: 900, dash: 'INVALID' },
