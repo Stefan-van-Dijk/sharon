@@ -62,7 +62,7 @@ export const APPEARANCE_SECTIONS = Object.freeze([
   { id: 'water', label: 'Water', items: ['water', 'waterways'] },
   { id: 'roads', label: 'Wegen', items: ['minor', 'major', 'motorway', 'paths'] },
   { id: 'transport', label: 'Transport', items: ['rail', 'runways', 'taxiways'] },
-  { id: 'structures', label: 'Kunstwerken', items: [
+  { id: 'structures', label: 'Objecten', items: [
     'bridges', 'tunnels', 'piers', 'dams', 'fords',
     'pumpingStations', 'locks', 'weirs'
   ] },
