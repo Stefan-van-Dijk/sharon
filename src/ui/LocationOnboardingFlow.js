@@ -1,6 +1,6 @@
-import { focusTextField } from './TextInputFocus.js?v=0.1.97';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.97';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.97';
+import { focusTextField } from './TextInputFocus.js?v=0.1.98';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.1.98';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.1.98';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
