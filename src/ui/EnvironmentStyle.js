@@ -1229,7 +1229,8 @@ for (let index = 0; index < environmentStyle.layers.length; index++) {
     },
     {
       id: fill.id + '-outline', type: 'line', ...shared,
-      paint: { 'line-color': outlineColor, 'line-width': 0.85 }
+      paint: { 'line-color': outlineColor,
+        'line-width': fill.id === 'water' || fill.id === 'building' ? 1 : 0.85 }
     }
   );
   index += 2;
