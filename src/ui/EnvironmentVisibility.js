@@ -1,7 +1,8 @@
 /**
  * Sharon Omgeving: hide or restore UI chrome without changing the map.
  * A MapLibre IControl keeps its small button immediately beside attribution.
- * Provider links remain expanded and visible in either mode.
+ * Provider credits start expanded; a deliberate user action may collapse
+ * them, while this persistent control restores the full attribution links.
  */
 export function createEnvironmentVisibilityControl(stage) {
   let wrapper = null;
@@ -15,9 +16,9 @@ export function createEnvironmentVisibilityControl(stage) {
       button = document.createElement('button');
       button.type = 'button';
       button.className = 'environment-visibility-toggle';
-      button.setAttribute('aria-label', 'Kaartbediening verbergen');
+      button.setAttribute('aria-label', 'Kaartbediening en bronvermelding verbergen');
       button.setAttribute('aria-pressed', 'false');
-      button.title = 'Kaartbediening verbergen';
+      button.title = 'Kaartbediening en bronvermelding verbergen';
       button.innerHTML = `
         <svg class="visibility-eye" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/>
@@ -33,7 +34,8 @@ export function createEnvironmentVisibilityControl(stage) {
         event.stopPropagation();
         const hidden = stage?.classList.toggle('is-map-clean') ?? false;
         button.setAttribute('aria-pressed', String(hidden));
-        const label = hidden ? 'Kaartbediening tonen' : 'Kaartbediening verbergen';
+        const label = hidden ? 'Kaartbediening en bronvermelding tonen' :
+          'Kaartbediening en bronvermelding verbergen';
         button.setAttribute('aria-label', label);
         button.title = label;
       };

@@ -37,12 +37,12 @@ test('attribution-adjacent button toggles a single scoped clean-map state and cl
     const button = wrapper.child;
     assert.equal(wrapper.className, 'maplibregl-ctrl environment-visibility-control');
     assert.equal(button.attributes.get('aria-pressed'), 'false');
-    assert.equal(button.attributes.get('aria-label'), 'Kaartbediening verbergen');
+    assert.equal(button.attributes.get('aria-label'), 'Kaartbediening en bronvermelding verbergen');
     let stopped = 0;
     button.listeners.get('click')({ stopPropagation: () => stopped++ });
     assert.equal(stage.classList.contains('is-map-clean'), true);
     assert.equal(button.attributes.get('aria-pressed'), 'true');
-    assert.equal(button.attributes.get('aria-label'), 'Kaartbediening tonen');
+    assert.equal(button.attributes.get('aria-label'), 'Kaartbediening en bronvermelding tonen');
     button.listeners.get('click')({ stopPropagation: () => stopped++ });
     assert.equal(stage.classList.contains('is-map-clean'), false);
     assert.equal(stopped, 2);
@@ -56,7 +56,7 @@ test('attribution-adjacent button toggles a single scoped clean-map state and cl
   }
 });
 
-test('clean-map mode leaves MapLibre attribution visible and preserves mobile style swipe', async () => {
+test('credits start expanded, collapse on explicit hide, and remain recoverable through the eye', async () => {
   const [html,map,editor,worker] = await Promise.all([
     readFile(new URL('../index.html', import.meta.url),'utf8'),
     readFile(new URL('../src/ui/EnvironmentMapLibre.js', import.meta.url),'utf8'),
@@ -69,10 +69,11 @@ test('clean-map mode leaves MapLibre attribution visible and preserves mobile st
   assert.ok(html.includes('.app-stage.is-environment.is-map-clean .environment-style-flyout,'));
   assert.ok(html.includes('.app-stage.is-environment.is-map-clean .environment-desktop-style-toggle{'));
   assert.ok(html.includes('.app-stage.is-environment.is-map-clean .environment-maplibre .maplibregl-ctrl-bottom-right{'));
-  assert.ok(!html.includes('.is-map-clean .maplibregl-ctrl-attrib{display:none'));
+  assert.ok(html.includes('.app-stage.is-environment.is-map-clean .environment-maplibre .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{'));
+  assert.ok(html.includes('.environment-maplibre .environment-visibility-toggle{'));
   assert.ok(html.includes('.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib{'));
   assert.ok(map.includes('attributionControl: { compact: false }'));
   assert.ok(editor.includes("listen(positionSide, 'touchstart', beginSwipe"));
   assert.ok(editor.includes("if (horizontal && dx >= 58) setStyleMode(true)"));
-  assert.ok(worker.includes("EnvironmentVisibility.js?v=0.1.85"));
+  assert.ok(worker.includes("EnvironmentVisibility.js?v=0.1.86"));
 });
