@@ -37,8 +37,8 @@ export function bindSwipeRows(container, {
       row.classList.toggle('is-actions-open', currentX < -1);
       row.classList.toggle('is-actions-expanded', currentX < -firstWidth() - 8);
 
-      if (currentX === 0 && openRow === row) openRow = null;
-      if (currentX === -actionWidth()) openRow = row;
+      if (currentX >= -1 && openRow === row) openRow = null;
+      else if (currentX < -1) openRow = row;
     };
 
     const close = (animate = true) => setX(0, animate);
