@@ -107,3 +107,20 @@ test('isolated locations show no unnecessary main-location choices', async () =>
   assert.ok(flow.includes("view.querySelector('[data-more-fields]').prepend(parentLabel)"));
   assert.ok(flow.includes("moreSettings.open = true"));
 });
+
+test('nieuw en bewerken gebruiken dezelfde cirkelvormige typekeuze als onboarding', async () => {
+  const [flow,story,sphere,worker] = await Promise.all([
+    read('../src/ui/LocationOnboardingFlow.js'),
+    read('../src/ui/Story.js'),
+    read('../src/ui/LocationTypeSphere.js'),
+    read('../service-worker.js')
+  ]);
+  assert.ok(flow.includes("mountLocationTypeSphere(typeChips"));
+  assert.ok(flow.includes("selectedType: typeSelect.value"));
+  assert.ok(flow.includes("typeSelect.value = id"));
+  assert.ok(flow.includes("typeSphere?.refresh()"));
+  assert.ok(story.includes("mountLocationTypeSphere(graph"));
+  assert.ok(sphere.includes("export function mountLocationTypeSphere"));
+  const version = worker.match(/const BUILD = ['"]([^'"]+)['"]/)?.[1];
+  assert.ok(worker.includes('LocationTypeSphere.js?v=' + version));
+});

@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.2.42">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.42">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.2.43">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.43">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1473,7 +1473,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.2.42 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.2.43 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1626,7 +1626,7 @@
       .sh-location-reference-chip{font-size:12px;padding:8px 11px}
     }
 
-    /* Location 0.2.42: contextual typewriter and compact swipe categories. */
+    /* Location 0.2.43: contextual typewriter and compact swipe categories. */
     .sh-location-reference-heading h2{min-height:1.45em;overflow-wrap:anywhere}
     .sh-location-reference-heading h2.is-typing::after{
       content:'|';display:inline-block;margin-left:2px;color:#9b9ba0;
@@ -1844,6 +1844,14 @@
 }
 .sh-sentence-editor.is-editing [data-sentence-add] .primary-line-action{margin-top:12px}
 .sh-sentence-editor.is-editing [data-sentence-add] button:not(.primary-line-action){margin-top:7px}
+
+/* Use the same spherical type selector in onboarding and editing. */
+.sh-location-reference-types.story-sphere.story-location-graph{
+  display:block;width:100%;height:auto;max-width:min(100%,390px);
+  aspect-ratio:1/1;min-height:0;margin:4px auto 16px;
+  overflow:hidden;touch-action:none;border:0;padding:0;
+}
+.sh-location-reference-types.story-sphere .story-sphere-surface{height:100%;width:100%}
 </style>
 </head>
 <body>
@@ -1857,16 +1865,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.42#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.42#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.42#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.42#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.42#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.43#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.43#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.43#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.43#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.43#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.2.42"></script>
+  <script type="module" src="./src/main.js?v=0.2.43"></script>
 </body>
 </html>

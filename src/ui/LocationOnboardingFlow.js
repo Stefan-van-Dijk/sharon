@@ -1,3 +1,4 @@
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.43';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
@@ -322,23 +323,19 @@ export function enhanceLocationEditor(root, {
     button.addEventListener('click', onClick);
     return button;
   }
+  let typeSphere = null;
   function renderTypes() {
-    const previousScroll = typeChips.scrollLeft;
-    typeChips.replaceChildren();
-    typeChips.setAttribute('role', 'group');
-    typeChips.setAttribute('aria-label', 'Locatietype, veeg horizontaal voor meer opties');
-    for (const option of typeSelect.options) {
-      const chip = createChip(option.value, option.textContent,
-        typeSelect.value === option.value, () => {
-          typeSelect.value = option.value;
-          renderTypes();
-          const selected = Array.from(typeChips.children)
-            .find(item => item.value === option.value);
-          selected?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        });
-      typeChips.append(chip);
-    }
-    typeChips.scrollLeft = previousScroll;
+    if (typeSphere) return;
+    typeChips.classList.add('story-location-graph', 'story-sphere');
+    typeChips.setAttribute('aria-label', 'Draaibare cirkel voor locatietypen');
+    typeSphere = mountLocationTypeSphere(typeChips, {
+      selectedType: typeSelect.value,
+      onSelect: id => {
+        if (!id) return;
+        typeSelect.value = id;
+        typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
   }
   function renderParents() {
     const chosen = parentSelect.value;
@@ -461,6 +458,7 @@ export function enhanceLocationEditor(root, {
     const placeReady = Boolean(currentPoint());
     nameSlot.hidden = stage !== 'name' && stage !== 'type';
     typeSection.hidden = stage !== 'type';
+    if (stage === 'type') requestAnimationFrame(() => typeSphere?.refresh());
     parentSection.hidden = true;
     moreSettings.hidden = stage !== 'type';
     nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
