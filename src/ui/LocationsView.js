@@ -212,9 +212,9 @@ export async function openLocationsView(root, {
       <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locatie</button><span>${escapeHtml(name)}</span></div>
       <h2 data-sentence-intro aria-live="off"></h2>
       <div data-sentence-reveal hidden><p>Gebruik [Naam], [Type] en [Afstand] om een zin passend te maken.</p>
-      <label class="clean-field"><span>Afstandssituatie</span><select data-sentence-state>
-        ${Object.entries(stateNames).map(([key, label]) => `<option value="${key}" ${state === key ? 'selected' : ''}>${label}</option>`).join('')}
-      </select></label>
+      <div class="sh-sentence-distance-tabs" role="tablist" aria-label="Afstandssituatie" data-sentence-tabs>
+        ${Object.entries(stateNames).map(([key, label]) => `<button type="button" role="tab" data-sentence-tab="${key}" aria-selected="${state === key}" tabindex="${state === key ? '0' : '-1'}">${label}</button>`).join('')}
+      </div>
       <div data-sentence-variants></div>
       <form data-sentence-add>
         <label class="clean-field"><span>Nieuwe zin</span><textarea name="template" rows="3" maxlength="300" required placeholder="Je bent bij [Naam] — [Type]."></textarea></label>
@@ -242,7 +242,31 @@ export async function openLocationsView(root, {
         });
       }, estimatedMs);
     }
-    const stateInput = root.querySelector('[data-sentence-state]');
+    let selectedSituation = state;
+    const stateInput = { get value() { return selectedSituation; } };
+    const tabs = [...root.querySelectorAll('[data-sentence-tab]')];
+    const selectSituation = next => {
+      if (!stateNames[next] || next === selectedSituation) return;
+      selectedSituation = next;
+      tabs.forEach(tab => {
+        const active = tab.dataset.sentenceTab === next;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+      resetForm();
+      draw();
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => selectSituation(tab.dataset.sentenceTab));
+      tab.addEventListener('keydown', event => {
+        if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 :
+          (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        selectSituation(tabs[nextIndex].dataset.sentenceTab);
+        tabs[nextIndex].focus();
+      });
+    });
     const variantsHost = root.querySelector('[data-sentence-variants]');
     root.querySelector('[data-back]').addEventListener('click', () => detail(item));
     const form = root.querySelector('[data-sentence-add]');
@@ -423,7 +447,7 @@ export async function openLocationsView(root, {
         }
       });
     };
-    stateInput.addEventListener('change', () => { resetForm(); draw(); });
+
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const template=textarea.value.trim();
