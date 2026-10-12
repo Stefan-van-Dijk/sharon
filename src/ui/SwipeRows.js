@@ -19,8 +19,8 @@ export function bindSwipeRows(container, {
     const doubleSwipe = row.hasAttribute('data-double-swipe');
     if (!surface) continue;
 
-    const actionWidth = () => doubleSwipe ? 240 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
-    const firstWidth = () => doubleSwipe ? 120 : actionWidth();
+    const actionWidth = () => doubleSwipe ? 176 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
+    const firstWidth = () => doubleSwipe ? 88 : actionWidth();
     let pointerId = null;
     let startX = 0;
     let startY = 0;
@@ -34,6 +34,7 @@ export function bindSwipeRows(container, {
       surface.classList.toggle('is-animating', animate);
       surface.style.transform = `translate3d(${currentX}px,0,0)`;
       row.classList.toggle('is-actions-open', currentX < -1);
+      row.classList.toggle('is-actions-expanded', currentX < -firstWidth() - 8);
 
       if (currentX === 0 && openRow === row) openRow = null;
       if (currentX === -actionWidth()) openRow = row;
@@ -147,6 +148,7 @@ export function bindSwipeRows(container, {
     });
 
     row.addEventListener('swipe.close', () => close(true));
+    row.addEventListener('swipe.reset', () => close(true));
   }
 
   const closeAll = event => {
