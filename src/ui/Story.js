@@ -66,7 +66,7 @@ export async function runStory(root, {
   caret.hidden = true;
 
   stage.innerHTML = `
-    <button type="button" class="story-continue" data-story-continue>Verder</button>
+    <button type="button" class="story-continue" data-story-continue>Opslaan</button>
   `;
 
   await waitForClick(stage, '[data-story-continue]');
@@ -202,7 +202,7 @@ async function mountSuggestedPlaceMap(stage, initial) {
     if (lib.Marker) {
       const pin = document.createElement('div');
       pin.className = 'sh-location-map-pin';
-      marker = new lib.Marker({ element: pin, anchor: 'bottom', draggable: false })
+      marker = new lib.Marker({ element: pin, anchor: 'center', draggable: false })
         .setLngLat([point.lng, point.lat]).addTo(map);
     }
     map.on('click', event => {
@@ -237,9 +237,9 @@ function renderPlace(stage, place, { showQuestion = false } = {}) {
 
     ${showQuestion ? `
       <div class="place-confirm">
-        <p>Is dit de plek?</p>
+        <p>Klopt deze positie?</p>
         <div class="story-actions">
-          <button type="button" class="story-primary-action" data-use-current>Ja</button>
+          <button type="button" class="story-primary-action" data-use-current>Deze positie gebruiken</button>
           <button type="button" class="story-text-action" data-other-place>Andere plek kiezen</button>
         </div>
       </div>
