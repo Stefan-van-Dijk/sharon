@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.2.13">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.13">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.2.14">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.14">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -445,6 +445,18 @@
     .story-sphere-node.is-active,.story-sphere-node.is-selected{background:#222;color:#fff;border-color:#222}
     .story-sphere-node.is-focused{border-width:1.5px}
     @media(prefers-reduced-motion:reduce){.story-sphere-node{transition:none}}
+
+    /* Compact square globe: never stretch the spherical projection into an oval. */
+    .story-location-graph.story-sphere{width:100%;height:auto;min-height:0;aspect-ratio:1/1;max-width:min(100%,390px);margin:8px auto 0;overflow:hidden}
+    .story-sphere-surface{width:100%;height:100%;aspect-ratio:1/1;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(230,230,235,.17),rgba(245,245,248,.10) 48%,rgba(220,220,225,.13) 78%,transparent 82%)}
+    .story-sphere-child{width:66px;height:48px;padding:3px;display:flex;flex-direction:column;gap:2px}
+    .story-sphere-icon{font-size:17px;line-height:1}
+    .story-sphere-label{font-size:9px;line-height:1.1;text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis}
+    .story-sphere-group{width:76px;height:44px}
+    .story-graph-confirm{position:relative;margin:8px auto 12px;min-height:48px;z-index:10}
+    .story-layer:has(.story-sphere) .story-content{overflow-y:auto;max-height:calc(100dvh - 110px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+    .story-layer:has(.story-sphere) .story-stage{margin-top:8px}
+    @media(max-height:760px){.story-location-graph.story-sphere{max-width:min(100%,310px)}.story-layer:has(.story-sphere) .story-content{padding-top:8px}}
     .place-type-options{border-top:1px solid #ececef}
     .place-type-options button{width:100%;min-height:54px;padding:0 1px;border:0;border-bottom:1px solid #ececef;background:transparent;color:#151515;text-align:left;font-size:16px;font-weight:400}
     .place-type-options button:active,.place-result:active{opacity:.45}
@@ -1445,7 +1457,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.2.13 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.2.14 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1598,7 +1610,7 @@
       .sh-location-reference-chip{font-size:12px;padding:8px 11px}
     }
 
-    /* Location 0.2.13: contextual typewriter and compact swipe categories. */
+    /* Location 0.2.14: contextual typewriter and compact swipe categories. */
     .sh-location-reference-heading h2{min-height:1.45em;overflow-wrap:anywhere}
     .sh-location-reference-heading h2.is-typing::after{
       content:'|';display:inline-block;margin-left:2px;color:#9b9ba0;
@@ -1644,16 +1656,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.13#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.13#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.13#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.13#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.13#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.14#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.14#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.14#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.14#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.14#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.2.13"></script>
+  <script type="module" src="./src/main.js?v=0.2.14"></script>
 </body>
 </html>
