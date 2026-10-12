@@ -159,8 +159,8 @@ export async function openLocationsView(root, {
       <section class="module-view sh-location-detail-view sh-location-reference">
         <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
         <div class="swipe-list sh-location-detail-swipes sh-location-reference-page" data-detail-swipes>
-          <div class="swipe-row" data-swipe-row="identity">
-            <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk informatie</button></div>
+          <div class="swipe-row" data-swipe-row="identity" data-double-swipe>
+            <div class="swipe-actions sh-location-double-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk</button><button type="button" class="swipe-action-secondary" data-swipe-secondary>Zinnenbibliotheek</button></div>
             <button type="button" class="swipe-surface sh-location-detail-identity sh-location-reference-heading" data-swipe-surface aria-label="Naam en type bewerken door te vegen">
               <h2 data-detail-conclusion></h2>
             </button>
@@ -194,9 +194,94 @@ export async function openLocationsView(root, {
     }
     unbindSwipes = bindSwipeRows(root.querySelector('[data-detail-swipes]'), {
       onOpen: id => edit(item, '', false, id),
-      onEdit: id => edit(item, '', false, id)
+      onEdit: id => edit(item, '', false, id),
+      onSecondary: id => { if (id === 'identity') void sentenceEditor(item); }
     });
     releaseEditor = () => detailMap?.destroy?.();
+  }
+
+  async function sentenceEditor(item) {
+    releaseEditor?.(); releaseEditor = null;
+    unbindSwipes?.(); unbindSwipes = null;
+    headerActions?.replaceChildren();
+    setTitle('Zinnenbibliotheek');
+    const kind = item.data?.kind || 'other';
+    const name = item.data?.title || 'Locatie';
+    const effective = resolveLocation(item, byId);
+    let state = distanceSituation(effective.coordinates, location?.latest, radius(item.data?.radiusM)).state;
+    if (state === 'unknown') state = 'here';
+    const stateNames = { here: 'Op de locatie', near: 'In de buurt', away: 'Verder weg' };
+    root.innerHTML = `<section class="module-view sh-sentence-editor">
+      <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locatie</button><span>${escapeHtml(name)}</span></div>
+      <h2>Zinnenbibliotheek</h2>
+      <p>Kies welke zinnen Sharon bij deze plek mag gebruiken. [Naam], [Type] en [Afstand] worden automatisch ingevuld.</p>
+      <label class="clean-field"><span>Afstandssituatie</span><select data-sentence-state>
+        ${Object.entries(stateNames).map(([key, label]) => `<option value="${key}" ${state === key ? 'selected' : ''}>${label}</option>`).join('')}
+      </select></label>
+      <div data-sentence-variants></div>
+      <form data-sentence-add>
+        <label class="clean-field"><span>Nieuwe zin</span><textarea name="template" rows="3" maxlength="300" required placeholder="Je bent bij [Naam] — [Type]."></textarea></label>
+        <label class="clean-field"><span>Toepassen op</span><select name="scope"><option value="location">Alleen deze locatie</option><option value="group">Alle locaties van dit type</option></select></label>
+        <button class="primary-line-action" type="submit">Zin toevoegen</button>
+      </form>
+      <p role="status" data-sentence-status></p>
+    </section>`;
+    const stateInput = root.querySelector('[data-sentence-state]');
+    const variantsHost = root.querySelector('[data-sentence-variants]');
+    root.querySelector('[data-back]').addEventListener('click', () => detail(item));
+    const persist = async () => {
+      await store.put('meta', { key: 'locations.sentenceLibrary', value: sentenceLibrary });
+    };
+    const draw = () => {
+      const situation = stateInput.value;
+      const templates = resolveSentenceVariants({ state: situation, typeId: kind, locationId: item.id, library: sentenceLibrary });
+      variantsHost.replaceChildren();
+      for (const template of templates) {
+        const line = document.createElement('div');
+        line.className = 'sh-sentence-variant';
+        const copy = document.createElement('span');
+        copy.textContent = template;
+        const exclude = document.createElement('button');
+        exclude.type = 'button';
+        exclude.textContent = 'Niet voor deze plek';
+        exclude.addEventListener('click', async () => {
+          sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
+          await persist(); draw();
+        });
+        line.append(copy, exclude);
+        variantsHost.append(line);
+      }
+      const excluded = sentenceLibrary.locations?.[item.id]?.excluded?.[situation] || [];
+      for (const template of excluded) {
+        const line = document.createElement('div');
+        line.className = 'sh-sentence-variant sh-sentence-excluded';
+        const copy = document.createElement('span');
+        copy.textContent = template;
+        const restore = document.createElement('button');
+        restore.type = 'button';
+        restore.textContent = 'Weer toestaan';
+        restore.addEventListener('click', async () => {
+          sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, false);
+          await persist(); draw();
+        });
+        line.append(copy, restore);
+        variantsHost.append(line);
+      }
+    };
+    stateInput.addEventListener('change', draw);
+    root.querySelector('[data-sentence-add]').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const template = form.elements.template.value.trim();
+      if (!template) return;
+      if (form.elements.scope.value === 'group') sentenceLibrary = updateGroupVariant(sentenceLibrary, kind, stateInput.value, template);
+      else sentenceLibrary = addLocationVariant(sentenceLibrary, item.id, stateInput.value, template);
+      await persist();
+      form.elements.template.value = '';
+      root.querySelector('[data-sentence-status]').textContent = 'Zin toegevoegd.';
+      draw();
+    });
+    draw();
   }
 
   async function edit(item = null, selectedParent = '', useGps = false, editMode = '') {
