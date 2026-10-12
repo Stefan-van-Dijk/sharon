@@ -132,6 +132,7 @@ async function choosePlace(stage, { detected, geocoder, location }) {
   const save = stage.closest('.story-layer')?.querySelector('[data-use-current]');
   if (save) save.hidden = false;
   const preview = await mountSuggestedPlaceMap(stage, selected, { geocoder, location });
+  const confirm = stage.querySelector('[data-confirm-position]');
   return new Promise(resolve => {
     const finish = async () => {
       if (save) save.hidden = true;
@@ -140,6 +141,7 @@ async function choosePlace(stage, { detected, geocoder, location }) {
       resolve(result);
     };
     save?.addEventListener('click', finish, { once: true });
+    confirm?.addEventListener('click', finish, { once: true });
   });
 }
 
@@ -155,6 +157,7 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
   let point = { lat: Number(initial.lat), lng: Number(initial.lng) };
   let disposed = false, requestId = 0, map = null, marker = null, lookupTimer = null, pendingLookup = null;
   const setStatus = message => { if (status) status.textContent = message; };
+  let fetchingAddress = false;
   const display = () => {
     const coordinates = stage.querySelector('.place-coordinates');
     if (coordinates) coordinates.textContent = formatCoordinates(point);
@@ -166,7 +169,11 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
         div.textContent = line;
         address.append(div);
       }
-      if (!address.childElementCount) address.textContent = 'Adres onbekend';
+      if (!address.childElementCount) {
+        address.textContent = fetchingAddress ? 'Locatie wordt opgehaald' : 'Adres onbekend';
+        if (fetchingAddress) address.classList.add('is-loading');
+      }
+      address.classList.toggle('is-loading', fetchingAddress);
     }
     marker?.setLngLat([point.lng, point.lat]);
     map?.easeTo({ center: [point.lng, point.lat], duration: 160 });
@@ -174,19 +181,23 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
   const lookupAddress = async token => {
     if (!geocoder?.reverse || disposed || token !== requestId) return;
     const lookupPoint = { ...point };
-    setStatus('Adres bepalen…');
+    fetchingAddress = true;
+    display();
+    setStatus('Locatie wordt opgehaald…');
     try {
       const result = await geocoder.reverse(lookupPoint);
       if (disposed || token !== requestId) return;
+      fetchingAddress = false;
       if (result?.line1 || result?.line2) {
         selected = { ...selected, ...result, ...lookupPoint };
         display();
         setStatus('');
       } else {
+        display();
         setStatus('Geen adres gevonden voor deze positie. Coördinaten zijn wel bijgewerkt.');
       }
     } catch {
-      if (token === requestId) setStatus('Adres ophalen mislukt. Probeer de positie opnieuw te selecteren.');
+      if (token === requestId) { fetchingAddress = false; display(); setStatus('Adres ophalen mislukt. Probeer de positie opnieuw te selecteren.'); }
     }
   };
   const updatePoint = async (next, address = null) => {
@@ -194,16 +205,18 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
     const token = ++requestId;
     clearTimeout(lookupTimer);
     point = { lat: Number(next.lat), lng: Number(next.lng) };
+    fetchingAddress = !address;
     selected = { ...selected, ...point, accuracy: 0,
       line1: address?.line1 || '', line2: address?.line2 || '' };
     display();
     if (address) {
+      fetchingAddress = false;
       selected = { ...selected, ...address, ...point };
       display();
       setStatus('');
       return;
     }
-    setStatus('Adres bepalen…');
+    setStatus('Locatie wordt opgehaald…');
     pendingLookup = new Promise(resolve => {
       lookupTimer = setTimeout(() => {
         const work = lookupAddress(token);
@@ -320,6 +333,7 @@ function renderPlace(stage, place, { showQuestion = false } = {}) {
         <button type="button" data-move="east" aria-label="2 meter oost">→</button>
       </div>
       <p class="story-location-tip">Tik op de kaart of verplaats de positie met 2 meter per stap.</p>
+      <button type="button" class="story-confirm-position" data-confirm-position>Bevestig locatie</button>
       <p class="story-map-status" data-story-map-status role="status"></p>
     ` : ''}
   `;
