@@ -24,7 +24,7 @@
     body.sharon-shell-active{padding:0;background:#f7f7f8}
 
     .sharon-boot{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff;z-index:10}
-    .sharon-intro-stage{width:min(390px,100%);text-align:center}
+    .sharon-intro-stage{width:min(390px,100%);text-align:center;position:absolute;top:clamp(80px,19vh,210px);left:50%;transform:translateX(-50%)}
     .brand-motion{position:relative;width:100%;height:52px;margin:0 auto;color:#111}
     .brand-phrase,.brand-final{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(50px,14vw,64px);line-height:1;font-weight:300;letter-spacing:-.035em;white-space:nowrap}
     .brand-phrase{gap:.30em;opacity:1;transition:opacity .48s cubic-bezier(.22,.61,.36,1)}
@@ -335,6 +335,10 @@
     .story-copy p{margin:0 0 9px;color:#111;font-size:clamp(21px,5.2vw,27px);line-height:1.45;font-weight:300;letter-spacing:-.025em}
     .type-caret{display:block;width:1.5px;height:1.25em;margin-top:2px;background:#111;animation:typeCaret .82s steps(1,end) infinite}
     .story-stage{margin-top:30px}
+    .story-location-map{width:100%;height:clamp(220px,35vh,340px);border-radius:12px;overflow:hidden;background:#f3f3f3;position:relative}
+    .story-location-arrows{display:flex;justify-content:center;gap:10px;margin-top:12px}
+    .story-location-arrows button{width:44px;height:44px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#111;font-size:22px;touch-action:manipulation}
+    .story-location-tip{margin:9px 0 14px;color:#777;font-size:12px;line-height:1.4}
     .place-detecting{display:flex;align-items:center;gap:10px;color:#77777c;font-size:14px}
     .place-pulse{position:relative;width:7px;height:7px;border-radius:50%;background:#c7c7cb}
     .place-pulse::after{content:"";position:absolute;inset:-5px;border:1px solid #c7c7cb;border-radius:50%;animation:locationPulse 1.45s ease-out infinite}
