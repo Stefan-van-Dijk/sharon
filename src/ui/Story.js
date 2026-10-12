@@ -405,7 +405,7 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 }
 
 async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Draai de bol met je vinger. Tik op een thema of locatie en bevestig je keuze.</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
   const sphere = document.createElement('div');
@@ -443,6 +443,7 @@ async function choosePlaceType(stage, place) {
     const entry={group,point:p,children:[]};
     entry.node=makeNode(group.label,'group',p,()=>{
       active=active===group.id?null:group.id;
+      if(!active){selected=null;confirm.disabled=true;confirm.textContent='Bevestigen';}
       if(active)orientTo(p);
       render();
     });
@@ -452,10 +453,12 @@ async function choosePlaceType(stage, place) {
       const spread=types.length===1?.32:.44;
       const childPoint=normalize(p.map((v,k)=>v*Math.cos(spread)+Math.sin(spread)*(tangent[k]*Math.cos(theta)+up[k]*Math.sin(theta))));
       const node=makeNode(locationIcon(type.id),'child',childPoint,()=>{
-        active=group.id;selected=type.id;
-        confirm.disabled=false;
-        confirm.textContent=type.label+' bevestigen';
-        orientTo(p);
+        const deselect=selected===type.id;
+        active=deselect?null:group.id;
+        selected=deselect?null:type.id;
+        confirm.disabled=!selected;
+        confirm.textContent=selected?type.label+' bevestigen':'Bevestigen';
+        if(!deselect)orientTo(p);
         render();
       });
       node.type=type;
@@ -492,7 +495,7 @@ async function choosePlaceType(stage, place) {
       for(const node of [entry.node,...entry.children]){
         const p=project(node.point);
         const isFocus=entry===focused;
-        const size=node.kind==='group'? (isFocus?1.30:focused?.84:1) : (isFocus?1.24:focused?.78:.90);
+        const size=node.kind==='group'? (isFocus?1.48:focused?.98:1.22) : (isFocus?1.10:focused?.76:.80);
         const depthSize=.78+.22*(p.depth+1)/2;
         const scale=size*depthSize;
         coords.set(node,{x:w/2+p.x*radius,y:h/2-p.y*radius,scale,depth:p.depth,focus:isFocus});
@@ -503,7 +506,7 @@ async function choosePlaceType(stage, place) {
     for(let step=0;step<24;step++){
       for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){
         const [na,a]=all[i],[nb,b]=all[j];
-        const ra=(na.kind==='group'?38:31)*a.scale;
+        const ra=(na.kind==='group'?45:31)*a.scale;
         const rb=(nb.kind==='group'?38:31)*b.scale;
         const min=ra+rb+5;
         let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
@@ -536,6 +539,8 @@ async function choosePlaceType(stage, place) {
       node.button.classList.toggle('is-active',node.kind==='group'&&focused?.node===node);
       node.button.classList.toggle('is-selected',node.type?.id===selected);
       node.button.classList.toggle('is-focused',p.focus);
+      if(node.kind==='group')node.button.setAttribute('aria-pressed',String(focused?.node===node));
+      if(node.kind==='child')node.button.setAttribute('aria-pressed',String(node.type?.id===selected));
       if(node.kind==='child')node.button.title=node.type.label;
     }
   }
