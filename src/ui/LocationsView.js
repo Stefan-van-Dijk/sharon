@@ -3,7 +3,7 @@ import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.17';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.17';
-import { locationIdentityConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.17';
+import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.17';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -146,7 +146,8 @@ export async function openLocationsView(root, {
     const title = item.data?.title || 'Locatie';
     const kind = item.data?.kind || 'other';
     const kindLabel = TYPES.get(kind) || 'Andere plek';
-    const sentence = locationIdentityConclusion(title, kindLabel, point, location?.latest, radius(item.data?.radiusM));
+    const baseSentence = locationConclusion(title, point, location?.latest, radius(item.data?.radiusM));
+    const sentence = baseSentence.replace(/\.$/, '') + ' — ' + kindLabel + '.';
     root.innerHTML = `
       <section class="module-view sh-location-detail-view">
         <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
