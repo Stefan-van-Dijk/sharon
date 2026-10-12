@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js?v=0.2.33';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.33';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.33';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.33';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.33';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.33';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -265,11 +265,11 @@ export async function openLocationsView(root, {
     };
     cancel.addEventListener('click', resetForm);
     const beginEdit = (template, scope, situation) => {
-      editing = { template, scope, situation };
+      editing = { template, scope, situation, copy: scope === 'default' };
       textarea.value = template;
       scopeInput.value = scope === 'default' ? 'location' : scope;
-      label.textContent = scope === 'default' ? 'Eigen versie van standaardzin' : 'Zin aanpassen';
-      submitButton.textContent = 'Wijziging opslaan';
+      label.textContent = scope === 'default' ? 'Nieuwe zin op basis van standaardzin' : 'Zin aanpassen';
+      submitButton.textContent = scope === 'default' ? 'Nieuwe zin toevoegen' : 'Wijziging opslaan';
       cancel.hidden = false;
       form.scrollIntoView({ behavior: 'smooth', block: 'center' });
       textarea.focus({ preventScroll: true });
@@ -277,118 +277,123 @@ export async function openLocationsView(root, {
     const persist = async () => {
       await store.put('meta', { key: 'locations.sentenceLibrary', value: sentenceLibrary });
     };
+    let unbindSentenceSwipes = null;
     const iconButton = (symbol, text, handler) => {
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'sh-sentence-icon-action';
-      button.innerHTML = '<span aria-hidden="true">' + symbol + '</span><small>' + text + '</small>';
+      button.type = 'button';
+      button.className = 'sh-sentence-icon-action';
+      const graphic = document.createElement('span');
+      graphic.setAttribute('aria-hidden', 'true');
+      graphic.textContent = symbol;
+      const caption = document.createElement('small');
+      caption.textContent = text;
+      button.append(graphic, caption);
       button.setAttribute('aria-label', text);
-      button.addEventListener('click', handler);
+      button.title = text;
+      button.addEventListener('click', event => { event.stopPropagation(); handler(event); });
       return button;
     };
-    const deactivate = async (template, scope, situation) => {
-      const choices = scope === 'default' || scope === 'global'
-        ? [['location','Alleen hier'],['group','Deze groep'],['global','Overal']]
-        : scope === 'group'
-          ? [['location','Alleen hier'],['group','Deze groep']]
-          : [['location','Alleen hier']];
-      const selection = document.createElement('div');
-      selection.className = 'sh-sentence-deactivate-menu';
-      const explanation = document.createElement('span');
-      explanation.textContent = 'Deactiveren voor:';
-      selection.append(explanation);
-      const close = () => selection.remove();
-      for (const [value, text] of choices) {
-        selection.append(iconButton(value === 'location' ? '⌖' : value === 'group' ? '◫' : '◎', text, async () => {
-          if (value === 'location') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
-          else if (value === 'group') {
-            if (scope === 'group') sentenceLibrary = removeGroupVariant(sentenceLibrary, kind, situation, template);
-            else sentenceLibrary = setGroupVariantExcluded(sentenceLibrary, kind, situation, template, true);
-          } else if (scope === 'global') sentenceLibrary = removeGlobalVariant(sentenceLibrary, situation, template);
-          else if (scope === 'default') {
-            for (const type of LOCATION_TYPES) {
-              const typeId = Array.isArray(type) ? type[0] : type.id;
-              if (typeId) sentenceLibrary = setGroupVariantExcluded(sentenceLibrary, typeId, situation, template, true);
-            }
-          }
-          await persist(); draw();
-        }));
-      }
-      selection.append(iconButton('×','Sluiten',close));
-      return selection;
+    const scopes = {
+      global: ['◎','Overal van toepassing'],
+      group: ['▣','Voor deze groep'],
+      location: ['⌖','Voor deze locatie'],
+      excludedGroup: ['⊘','Uitgesloten voor deze groep'],
+      excludedLocation: ['⊖','Uitgesloten voor deze locatie'],
+      excludedGlobal: ['⊗','Overal uitgesloten']
     };
     const draw = () => {
+      unbindSentenceSwipes?.();
+      unbindSentenceSwipes = null;
       const situation = stateInput.value;
-      const templates = resolveSentenceVariants({ state:situation, typeId:kind, locationId:item.id, library:sentenceLibrary });
-      variantsHost.replaceChildren();
       const local = sentenceLibrary.locations?.[item.id]?.added?.[situation] || [];
       const group = sentenceLibrary.groups?.[kind]?.[situation] || [];
       const global = sentenceLibrary.global?.[situation] || [];
-      for (const template of templates) {
-        const scope = local.includes(template) ? 'location' : group.includes(template) ? 'group' : global.includes(template) ? 'global' : 'default';
-        const row = document.createElement('div'); row.className = 'sh-sentence-row';
-        const actions = document.createElement('div'); actions.className = 'sh-sentence-row-actions';
-        const surface = document.createElement('div'); surface.className = 'sh-sentence-row-surface';
-        const dot = document.createElement('i'); dot.className = 'sh-sentence-dot';
-        if (scope !== 'default') dot.classList.add('sh-sentence-cyan');
-        const text = document.createElement('span'); text.textContent = template;
-        const disable = iconButton('⊘','Deactiveer',async () => {
-          const old = row.querySelector('.sh-sentence-deactivate-menu');
-          if (old) { old.remove(); return; }
-          row.append(await deactivate(template,scope,situation));
-        });
-        surface.append(dot,text,disable); row.append(actions,surface);
-        if (scope === 'default') {
-          surface.addEventListener('click', event => {
-            if (event.target.closest('button')) return;
-            beginEdit(template,scope,situation);
+      const localExcluded = sentenceLibrary.locations?.[item.id]?.excluded?.[situation] || [];
+      const groupExcluded = sentenceLibrary.groupExcluded?.[kind]?.[situation] || [];
+      const globalExcluded = sentenceLibrary.globalExcluded?.[situation] || [];
+      const visible = resolveSentenceVariants({ state:situation, typeId:kind, locationId:item.id, library:sentenceLibrary });
+      const all = [...new Set([...visible,...localExcluded,...groupExcluded,...globalExcluded])];
+      variantsHost.replaceChildren();
+      const rows = new Map();
+      const persistAndDraw = async () => { await persist(); draw(); };
+      for (const [index,template] of all.entries()) {
+        const source = local.includes(template) ? 'location' : group.includes(template) ? 'group' : global.includes(template) ? 'global' : 'default';
+        const excludedStatus = globalExcluded.includes(template) ? 'excludedGlobal' : localExcluded.includes(template) ? 'excludedLocation' : groupExcluded.includes(template) ? 'excludedGroup' : '';
+        const statusKey = excludedStatus || (source === 'default' ? 'global' : source);
+        const row = document.createElement('div');
+        row.className = 'swipe-row sh-sentence-swipe-row';
+        if (excludedStatus) row.classList.add('sh-sentence-inactive');
+        row.dataset.swipeRow = String(index);
+        const actions = document.createElement('div');
+        actions.className = 'swipe-actions';
+        const editAction = iconButton('✎', source === 'default' ? 'Kopieer' : 'Bewerk', () => beginEdit(template,source,situation));
+        editAction.dataset.swipeEdit = '';
+        actions.append(editAction);
+        if (source !== 'default') {
+          const deleteAction = iconButton('⌫','Verwijder',async () => {
+            if (!window.confirm('Zelfgemaakte zin verwijderen?')) return;
+            if (source === 'location') sentenceLibrary = removeLocationVariant(sentenceLibrary,item.id,situation,template);
+            else if (source === 'group') sentenceLibrary = removeGroupVariant(sentenceLibrary,kind,situation,template);
+            else sentenceLibrary = removeGlobalVariant(sentenceLibrary,situation,template);
+            await persistAndDraw();
           });
-        } else {
-          actions.append(
-            iconButton('✎','Bewerk',() => { beginEdit(template,scope,situation); closeRows(); }),
-            iconButton('⌫','Verwijder',async () => {
-              if (!window.confirm('Deze zelfgemaakte zin verwijderen?')) return;
-              if (scope === 'location') sentenceLibrary = removeLocationVariant(sentenceLibrary,item.id,situation,template);
-              else if (scope === 'group') sentenceLibrary = removeGroupVariant(sentenceLibrary,kind,situation,template);
-              else sentenceLibrary = removeGlobalVariant(sentenceLibrary,situation,template);
-              await persist(); draw();
-            })
-          );
-          let startX=0,startY=0,locked=false;
-          const closeRows = () => row.classList.remove('is-actions-open');
-          surface.addEventListener('pointerdown',event => {
-            startX=event.clientX; startY=event.clientY; locked=false;
-          });
-          surface.addEventListener('pointerup',event => {
-            const dx=event.clientX-startX,dy=event.clientY-startY;
-            if(Math.abs(dx)>42 && Math.abs(dx)>Math.abs(dy)*1.3) {
-              if(dx<0) {
-                variantsHost.querySelectorAll('.is-actions-open').forEach(other=>other.classList.remove('is-actions-open'));
-                row.classList.add('is-actions-open');
-              } else closeRows();
-              locked=true;
-            }
-          });
+          deleteAction.dataset.swipeDelete = '';
+          actions.append(deleteAction);
         }
+        const surface = document.createElement('div');
+        surface.className = 'swipe-surface sh-sentence-row-surface';
+        surface.dataset.swipeSurface = '';
+        const dot = document.createElement('i');
+        dot.className = 'sh-sentence-dot';
+        if (source !== 'default') dot.classList.add('sh-sentence-cyan');
+        const sentenceText = document.createElement('span');
+        sentenceText.className = 'sh-sentence-text';
+        sentenceText.textContent = template;
+        const badge = iconButton(scopes[statusKey][0],scopes[statusKey][1],() => {
+          const open = surface.querySelector('.sh-sentence-scope-choices');
+          if (open) { open.remove(); return; }
+          variantsHost.querySelectorAll('.sh-sentence-scope-choices').forEach(el=>el.remove());
+          const menu = document.createElement('div');
+          menu.className = 'sh-sentence-scope-choices';
+          const choices = [
+            ['location','Voor deze locatie'],['group','Voor deze groep'],['global','Overal van toepassing'],
+            ['excludedLocation','Uitsluiten voor deze locatie'],['excludedGroup','Uitsluiten voor deze groep'],['excludedGlobal','Overal uitsluiten']
+          ];
+          for (const [key,text] of choices) {
+            menu.append(iconButton(scopes[key][0],text,async () => {
+              // Each choice defines exactly one effective status; no extra row.
+              sentenceLibrary = setLocationVariantExcluded(sentenceLibrary,item.id,situation,template,false);
+              sentenceLibrary = setGroupVariantExcluded(sentenceLibrary,kind,situation,template,false);
+              sentenceLibrary = setGlobalVariantExcluded(sentenceLibrary,situation,template,false);
+              if (key === 'excludedLocation') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary,item.id,situation,template,true);
+              if (key === 'excludedGroup') sentenceLibrary = setGroupVariantExcluded(sentenceLibrary,kind,situation,template,true);
+              if (key === 'excludedGlobal') sentenceLibrary = setGlobalVariantExcluded(sentenceLibrary,situation,template,true);
+              // For a custom group/global template, local visibility can be narrowed by copying.
+              if (key === 'location' && source !== 'location' && source !== 'default') sentenceLibrary = addLocationVariant(sentenceLibrary,item.id,situation,template);
+              if (key === 'group' && source === 'location') sentenceLibrary = updateGroupVariant(sentenceLibrary,kind,situation,template);
+              if (key === 'global' && source !== 'global' && source !== 'default') sentenceLibrary = addGlobalVariant(sentenceLibrary,situation,template);
+              await persistAndDraw();
+            }));
+          }
+          surface.append(menu);
+        });
+        badge.classList.add('sh-sentence-status-button');
+        badge.setAttribute('aria-expanded','false');
+        surface.append(dot,sentenceText,badge);
+        row.append(actions,surface);
         variantsHost.append(row);
+        rows.set(String(index),{template,source,situation});
       }
-      for (const template of sentenceLibrary.locations?.[item.id]?.excluded?.[situation] || []) {
-        const row=document.createElement('div'); row.className='sh-sentence-restore';
-        const text=document.createElement('span'); text.textContent=template;
-        row.append(text,iconButton('↺','Weer toestaan',async()=>{
-          sentenceLibrary=setLocationVariantExcluded(sentenceLibrary,item.id,situation,template,false);
-          await persist();draw();
-        }));
-        variantsHost.append(row);
-      }
-      for (const template of sentenceLibrary.groupExcluded?.[kind]?.[situation] || []) {
-        const row=document.createElement('div'); row.className='sh-sentence-restore';
-        const text=document.createElement('span'); text.textContent=template+' · uitgeschakeld voor deze groep';
-        row.append(text,iconButton('↺','Weer toestaan',async()=>{
-          sentenceLibrary=setGroupVariantExcluded(sentenceLibrary,kind,situation,template,false);
-          await persist();draw();
-        }));
-        variantsHost.append(row);
-      }
+      unbindSentenceSwipes = bindSwipeRows(variantsHost,{
+        onOpen:id => {
+          const data=rows.get(id);
+          if(data)beginEdit(data.template,'default',data.situation);
+        },
+        onEdit:id => {
+          const data=rows.get(id);
+          if(data)beginEdit(data.template,data.source,data.situation);
+        }
+      });
     };
     stateInput.addEventListener('change', () => { resetForm(); draw(); });
     form.addEventListener('submit', async event => {
@@ -402,7 +407,7 @@ export async function openLocationsView(root, {
         if(old.scope==='location') sentenceLibrary=removeLocationVariant(sentenceLibrary,item.id,situation,old.template);
         if(old.scope==='group') sentenceLibrary=removeGroupVariant(sentenceLibrary,kind,situation,old.template);
         if(old.scope==='global' && target==='global') sentenceLibrary=removeGlobalVariant(sentenceLibrary,situation,old.template);
-        if(old.scope==='default') sentenceLibrary=setLocationVariantExcluded(sentenceLibrary,item.id,situation,old.template,true);
+        // A standard sentence is a copy source, never deactivate it on edit.
         if(old.scope==='global' && target!=='global') {
           sentenceLibrary=setLocationVariantExcluded(sentenceLibrary,item.id,situation,old.template,true);
           if(target==='group') sentenceLibrary=setGroupVariantExcluded(sentenceLibrary,kind,situation,old.template,true);
@@ -412,7 +417,7 @@ export async function openLocationsView(root, {
       else if(target==='group') sentenceLibrary=updateGroupVariant(sentenceLibrary,kind,situation,template);
       else sentenceLibrary=addLocationVariant(sentenceLibrary,item.id,situation,template);
       await persist();
-      status.textContent=editing?'Zin aangepast.':'Zin toegevoegd.';
+      status.textContent=editing && !editing.copy?'Zin aangepast.':'Zin toegevoegd.';
       resetForm();draw();
     });
     draw();
