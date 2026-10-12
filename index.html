@@ -1826,6 +1826,24 @@
 .sh-sentence-distance-tabs button{appearance:none;background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;min-width:0;min-height:48px;padding:10px 5px 12px;color:#85818a;font:inherit;font-size:clamp(12px,3.4vw,15px);font-weight:450;white-space:normal;line-height:1.25;cursor:pointer}
 .sh-sentence-distance-tabs button[aria-selected="true"]{color:#623aa0;border-bottom-color:#7543b8;font-weight:600}
 .sh-sentence-distance-tabs button:focus-visible{outline:2px solid #7543b8;outline-offset:-3px}
+
+/* Editing sentences: keep input ahead of content, never chase the iOS keyboard. */
+.sh-sentence-editor.is-editing [data-sentence-intro],
+.sh-sentence-editor.is-editing [data-sentence-reveal]{display:none!important}
+.sh-sentence-editor.is-editing [data-sentence-add]{
+  padding:12px 0 24px;
+  margin:0;
+  min-height:0;
+  scroll-margin:0;
+}
+.sh-sentence-editor.is-editing textarea{
+  min-height:115px;
+  height:125px;
+  max-height:28dvh;
+  font-size:16px;
+}
+.sh-sentence-editor.is-editing [data-sentence-add] .primary-line-action{margin-top:12px}
+.sh-sentence-editor.is-editing [data-sentence-add] button:not(.primary-line-action){margin-top:7px}
 </style>
 </head>
 <body>
