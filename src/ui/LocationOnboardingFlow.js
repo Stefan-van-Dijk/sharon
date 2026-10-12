@@ -49,7 +49,7 @@ export function existingLocationAtGps(point, savedLocations = [], accuracy = 0) 
 }
 
 export function enhanceLocationEditor(root, {
-  isNew = false, location, geocoder, useGps = false,
+  isNew = false, editMode = '', location, geocoder, useGps = false,
   knownLocations = [], savedLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
   onOpenExisting = () => {}, events = null
 } = {}) {
@@ -181,13 +181,14 @@ export function enhanceLocationEditor(root, {
   const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   let positionEditing = false;
   const nameSlot = view.querySelector('[data-name-slot]');
+  const guided = isNew || editMode === 'identity' || editMode === 'place';
   const typeSection = typeChips.closest('.sh-location-reference-section');
 
   function updateConclusion(animate = false) {
     const value = locationConclusion(
       form.elements.title.value, currentPoint(), location?.latest, form.elements.radiusM.value
     );
-    if (isNew && view.dataset.stage) return;
+    if (guided && view.dataset.stage) return;
     if (value === previousConclusion) return;
     previousConclusion = value;
     stopTyping();
@@ -455,23 +456,23 @@ export function enhanceLocationEditor(root, {
   }
 
   function setNewLocationStage(stage, animate = true) {
-    if (!isNew) return;
+    if (!guided) return;
     view.dataset.stage = stage;
     const placeReady = Boolean(currentPoint());
-    nameSlot.hidden = stage !== 'name';
+    nameSlot.hidden = stage !== 'name' && stage !== 'type';
     typeSection.hidden = stage !== 'type';
     parentSection.hidden = true;
     moreSettings.hidden = stage !== 'type';
-    nativeSave.hidden = stage !== 'type' || Boolean(saveInHeader);
+    nativeSave.hidden = (isNew ? stage !== 'type' : false) || Boolean(saveInHeader);
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
     placeBlock.hidden = stage !== 'place';
     mapBlock.hidden = stage !== 'place';
     existingNotice.hidden = stage !== 'place' || !selectedExisting;
     const message = stage === 'place'
-      ? (placeReady ? 'Ik heb deze plek gevonden. Klopt de locatie?' : 'Waar wil je deze plek vastleggen?')
+      ? (isNew ? (placeReady ? 'Ik heb deze plek gevonden. Klopt de locatie?' : 'Waar wil je deze plek vastleggen?') : 'Welke positie wil je aanpassen?')
       : stage === 'name'
-        ? 'Hoe wil je deze plek noemen?'
+        ? (isNew ? 'Hoe wil je deze plek noemen?' : 'Hoe wil je deze plek voortaan noemen?')
         : 'Wat is ' + (form.elements.title.value.trim() || 'deze plek') + ' voor jou?';
     if (message !== stageMessage) {
       stageMessage = message;
@@ -480,11 +481,11 @@ export function enhanceLocationEditor(root, {
       stopTyping = typeLocationConclusion(conclusionElement, message, { reducedMotion: !animate || reducedMotion, speed: 30 });
     }
     if (stageButton) {
-      stageButton.hidden = stage === 'type';
+      stageButton.hidden = !isNew || stage === 'type';
       stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
       stageButton.textContent = stage === 'place' ? 'Bevestig locatie' : 'Verder';
     }
-    if (stage === 'name' && animate) focusTextField(form.elements.title);
+    if ((stage === 'name' || stage === 'type') && animate && stage === 'name') focusTextField(form.elements.title);
   }
   function advanceNewLocationStage() {
     if (!isNew) return;
@@ -517,8 +518,8 @@ export function enhanceLocationEditor(root, {
   updateConclusion(!isNew);
   syncText();
   syncMap();
-  if (isNew) setNewLocationStage('place');
-  if (useGps) gpsButton.click();
+  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : 'type');
+  if (useGps && !isNew) gpsButton.click();
   else if (isNew) void checkSavedPlaceOnStart();
 
   function cleanup() {
