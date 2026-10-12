@@ -44,3 +44,14 @@ test('zinnenbibliotheek wisselt afstandssituaties met drie tabs', async () => {
   assert.ok(editor.includes("selectSituation(tab.dataset.sentenceTab)"));
   assert.ok(!editor.includes('data-sentence-state'));
 });
+
+test('zinsbewerking voorkomt concurrerende scrollanimaties bij iOS-toetsenbord', async () => {
+  const source = await readFile(new URL('../src/ui/LocationsView.js', import.meta.url), 'utf8');
+  const editor = source.slice(source.indexOf('async function sentenceEditor(item)'), source.indexOf('async function edit(',source.indexOf('async function sentenceEditor(item)')));
+  assert.ok(editor.includes('textarea.focus({ preventScroll: true })'));
+  assert.ok(editor.includes('outlet.scrollTop ='));
+  assert.ok(editor.includes('keyboardScrollTimer = setTimeout('));
+  assert.ok(!editor.includes("visualViewport?.addEventListener('resize'"));
+  assert.ok(!editor.includes("visualViewport?.addEventListener('scroll'"));
+  assert.ok(!editor.includes("scrollIntoView({ behavior: 'smooth'"));
+});
