@@ -1761,6 +1761,22 @@
 .sh-sentence-deactivate-menu .sh-sentence-icon-action{background:#f3f0f8}
 .sh-sentence-restore{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;opacity:.65;border-bottom:1px solid #eee}
 @media(max-width:420px){.sh-sentence-row-surface>span{font-size:15px}.sh-sentence-row-surface{gap:10px}}
+
+/* Compact location action: sentence library uses a distinct darker purple. */
+.sh-location-detail-swipes [data-double-swipe] .swipe-actions{
+  width:176px!important;
+  flex-direction:row-reverse;
+}
+.sh-location-detail-swipes [data-double-swipe] .swipe-actions button{
+  width:88px!important;min-width:88px!important;
+  font-size:12px;padding:6px!important;
+}
+.sh-location-detail-swipes [data-double-swipe] .swipe-action-secondary{
+  background:#6b40ba!important;color:#fff!important;
+}
+.sh-location-detail-swipes [data-double-swipe] .swipe-action-edit{
+  background:#e7e5eb;color:#24202b;
+}
 </style>
 </head>
 <body>
