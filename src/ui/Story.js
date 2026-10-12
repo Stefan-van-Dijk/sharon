@@ -159,7 +159,7 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
   const status = stage.querySelector('[data-story-map-status]');
   let selected = { ...initial };
   let point = { lat: Number(initial.lat), lng: Number(initial.lng) };
-  let disposed = false, requestId = 0, map = null, marker = null;
+  let disposed = false, requestId = 0, map = null, marker = null, lookupTimer = null, pendingLookup = null;
   const setStatus = message => { if (status) status.textContent = message; };
   const display = () => {
     const coordinates = stage.querySelector('.place-coordinates');
@@ -177,22 +177,45 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
     marker?.setLngLat([point.lng, point.lat]);
     map?.easeTo({ center: [point.lng, point.lat], duration: 160 });
   };
+  const lookupAddress = async token => {
+    if (!geocoder?.reverse || disposed || token !== requestId) return;
+    const lookupPoint = { ...point };
+    setStatus('Adres bepalen…');
+    try {
+      const result = await geocoder.reverse(lookupPoint);
+      if (disposed || token !== requestId) return;
+      if (result?.line1 || result?.line2) {
+        selected = { ...selected, ...result, ...lookupPoint };
+        display();
+        setStatus('');
+      } else {
+        setStatus('Geen adres gevonden voor deze positie. Coördinaten zijn wel bijgewerkt.');
+      }
+    } catch {
+      if (token === requestId) setStatus('Adres ophalen mislukt. Probeer de positie opnieuw te selecteren.');
+    }
+  };
   const updatePoint = async (next, address = null) => {
     if (disposed || !Number.isFinite(Number(next?.lat)) || !Number.isFinite(Number(next?.lng))) return;
     const token = ++requestId;
+    clearTimeout(lookupTimer);
     point = { lat: Number(next.lat), lng: Number(next.lng) };
-    selected = { ...selected, ...point, accuracy: 0, line1: address?.line1 || '', line2: address?.line2 || '' };
+    selected = { ...selected, ...point, accuracy: 0,
+      line1: address?.line1 || '', line2: address?.line2 || '' };
     display();
-    if (address) { selected = { ...selected, ...address, ...point }; display(); return; }
-    if (!geocoder?.reverse) return;
-    setStatus('Adres bepalen…');
-    try {
-      const result = await geocoder.reverse(point);
-      if (disposed || token !== requestId) return;
-      selected = { ...selected, ...(result || {}), ...point };
+    if (address) {
+      selected = { ...selected, ...address, ...point };
       display();
       setStatus('');
-    } catch { if (token === requestId) setStatus('Adres niet beschikbaar; coördinaten blijven bewaard.'); }
+      return;
+    }
+    setStatus('Adres bepalen…');
+    pendingLookup = new Promise(resolve => {
+      lookupTimer = setTimeout(() => {
+        const work = lookupAddress(token);
+        Promise.resolve(work).finally(resolve);
+      }, 650);
+    });
   };
   arrows?.addEventListener('click', event => {
     const direction = event.target.closest('[data-move]')?.dataset.move;
@@ -265,8 +288,12 @@ async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
     }
   } catch { setStatus('Kaart tijdelijk niet beschikbaar. Gebruik de pijltjes of het adres.'); }
   return {
-    async getSelected() { return { ...selected, ...point }; },
-    dispose() { disposed = true; ++requestId; marker?.remove(); map?.remove(); }
+    async getSelected() {
+      clearTimeout(lookupTimer);
+      if (pendingLookup) await lookupAddress(requestId);
+      return { ...selected, ...point };
+    },
+    dispose() { disposed = true; ++requestId; clearTimeout(lookupTimer); marker?.remove(); map?.remove(); }
   };
 }
 
