@@ -5,7 +5,8 @@ const DIRECTION_LOCK = 7;
 export function bindSwipeRows(container, {
   onOpen,
   onEdit,
-  onDelete
+  onDelete,
+  onSecondary
 } = {}) {
   const rows = [...container.querySelectorAll('[data-swipe-row]')];
   let openRow = null;
@@ -14,9 +15,12 @@ export function bindSwipeRows(container, {
     const surface = row.querySelector('[data-swipe-surface]');
     const edit = row.querySelector('[data-swipe-edit]');
     const remove = row.querySelector('[data-swipe-delete]');
+    const secondary = row.querySelector('[data-swipe-secondary]');
+    const doubleSwipe = row.hasAttribute('data-double-swipe');
     if (!surface) continue;
 
-    const actionWidth = () => Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
+    const actionWidth = () => doubleSwipe ? 240 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
+    const firstWidth = () => doubleSwipe ? 120 : actionWidth();
     let pointerId = null;
     let startX = 0;
     let startY = 0;
@@ -36,7 +40,8 @@ export function bindSwipeRows(container, {
     };
 
     const close = (animate = true) => setX(0, animate);
-    const open = (animate = true) => setX(-actionWidth(), animate);
+    const open = (animate = true) => setX(-firstWidth(), animate);
+    const openSecond = (animate = true) => setX(-actionWidth(), animate);
 
     const pointerDown = event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -86,7 +91,10 @@ export function bindSwipeRows(container, {
         return;
       }
 
-      if (currentX <= -OPEN_THRESHOLD_X) {
+      const dx = event.clientX - startX;
+      if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1 || currentX < -(firstWidth() + 35))) {
+        openSecond(true);
+      } else if (currentX <= -OPEN_THRESHOLD_X) {
         open(true);
       } else {
         close(true);
@@ -125,6 +133,12 @@ export function bindSwipeRows(container, {
       const id = row.dataset.swipeRow;
       close(false);
       onEdit?.(id, row);
+    });
+
+    secondary?.addEventListener('click', () => {
+      const id = row.dataset.swipeRow;
+      close(false);
+      onSecondary?.(id, row);
     });
 
     remove?.addEventListener('click', () => {
