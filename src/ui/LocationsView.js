@@ -271,50 +271,41 @@ export async function openLocationsView(root, {
     root.querySelector('[data-back]').addEventListener('click', () => detail(item));
     const form = root.querySelector('[data-sentence-add]');
     const textarea = form.elements.template;
-    // Applicability is changed exclusively from the status control on each row.
     const submitButton = form.querySelector('[type="submit"]');
     const label = form.querySelector('label span');
     const status = root.querySelector('[data-sentence-status]');
+    const editorPage = root.querySelector('.sh-sentence-editor');
+    const formHome = form.parentNode;
     let editing = null;
     const cancel = document.createElement('button');
     cancel.type = 'button'; cancel.textContent = 'Annuleer'; cancel.hidden = true;
     submitButton.after(cancel);
     const resetForm = () => {
-      editing = null; textarea.value = '';
-      label.textContent = 'Nieuwe zin'; submitButton.textContent = 'Zin toevoegen';
+      // Remove the focused input from the keyboard before moving it back.
+      if (document.activeElement === textarea) textarea.blur();
+      editing = null;
+      textarea.value = '';
+      label.textContent = 'Nieuwe zin';
+      submitButton.textContent = 'Zin toevoegen';
       cancel.hidden = true;
+      editorPage.classList.remove('is-editing');
+      formHome.insertBefore(form, status);
     };
-    cancel.addEventListener('click', () => { if (keyboardScrollTimer !== null) clearTimeout(keyboardScrollTimer); resetForm(); });
-    let keyboardScrollTimer = null;
-    const showEditor = () => {
-      // Only the module outlet scrolls. Avoid smooth-scroll and repeated
-      // visualViewport callbacks while iOS animates its keyboard.
-      const outlet = root.closest('.app-view');
-      if (!outlet || !form.isConnected) return;
-      const top = form.getBoundingClientRect().top - outlet.getBoundingClientRect().top + outlet.scrollTop - 96;
-      outlet.scrollTop = Math.max(0, top);
-    };
+    cancel.addEventListener('click', resetForm);
     const beginEdit = (template, scope, situation) => {
-      if (keyboardScrollTimer !== null) clearTimeout(keyboardScrollTimer);
       editing = { template, scope, situation, copy: scope === 'default' };
       textarea.value = template;
       label.textContent = scope === 'default' ? 'Nieuwe zin op basis van standaardzin' : 'Zin aanpassen';
       submitButton.textContent = scope === 'default' ? 'Nieuwe zin toevoegen' : 'Wijziging opslaan';
       cancel.hidden = false;
-      showEditor();
+      // One layout transition, before focus: the field is now above the list.
+      // Do not scroll against Safari's animated virtual keyboard.
+      editorPage.insertBefore(form, intro);
+      editorPage.classList.add('is-editing');
+      const outlet = root.closest('.app-view');
+      if (outlet) outlet.scrollTop = 0;
       textarea.focus({ preventScroll: true });
-      // One immediate position correction after the keyboard finishes opening.
-      // Never schedule continuous scrolls from visualViewport resize/scroll.
-      keyboardScrollTimer = setTimeout(() => {
-        keyboardScrollTimer = null;
-        if (!textarea.isConnected || document.activeElement !== textarea) return;
-        const outlet = root.closest('.app-view');
-        const viewport = window.visualViewport;
-        if (!outlet || !viewport) return;
-        const bottom = viewport.offsetTop + viewport.height - 20;
-        const rect = textarea.getBoundingClientRect();
-        if (rect.bottom > bottom) outlet.scrollTop += rect.bottom - bottom;
-      }, 360);
+      textarea.setSelectionRange?.(textarea.value.length, textarea.value.length);
     };
     const persist = async () => {
       await store.put('meta', { key: 'locations.sentenceLibrary', value: sentenceLibrary });
