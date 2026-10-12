@@ -48,7 +48,8 @@ export async function runStory(root, {
     location
   });
 
-  const kind = await choosePlaceType(stage, place);
+  const placeName = await choosePlaceName(stage, place);
+  const kind = await choosePlaceType(stage, place, placeName);
 
   stage.innerHTML = '';
   copy.innerHTML = '';
@@ -67,6 +68,7 @@ export async function runStory(root, {
 
   return {
     place,
+    placeName,
     kind,
     kindLabel: locationType(kind)?.label || 'Plek'
   };
@@ -402,8 +404,25 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
   });
 }
 
-async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+async function choosePlaceName(stage, place) {
+  stage.innerHTML = `<form class="place-search story-name-form" data-story-name>
+    <label for="story-location-name">Hoe wil je deze plek noemen?</label>
+    <div class="place-search-line">
+      <input id="story-location-name" name="name" type="text" maxlength="80" autocomplete="off" required placeholder="Bijvoorbeeld: Werk, Thuis of Rollecate">
+      <button type="submit">Verder</button>
+    </div>
+  </form>`;
+  const form = stage.querySelector('[data-story-name]');
+  focusTextField(form.elements.name);
+  return new Promise(resolve => form.addEventListener('submit', event => {
+    event.preventDefault();
+    const value = form.elements.name.value.trim();
+    if (value) resolve(value);
+  }));
+}
+
+async function choosePlaceType(stage, place, placeName) {
+  stage.innerHTML = '<div class="place-type"><p>Wat is ' + escapeHtml(placeName) + ' voor jou?</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
   const sphere = document.createElement('div');
