@@ -463,7 +463,7 @@ export function enhanceLocationEditor(root, {
     typeSection.hidden = stage !== 'type';
     parentSection.hidden = true;
     moreSettings.hidden = stage !== 'type';
-    nativeSave.hidden = (isNew ? stage !== 'type' : false) || Boolean(saveInHeader);
+    nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
     placeBlock.hidden = stage !== 'place';
@@ -481,19 +481,19 @@ export function enhanceLocationEditor(root, {
       stopTyping = typeLocationConclusion(conclusionElement, message, { reducedMotion: !animate || reducedMotion, speed: 30 });
     }
     if (stageButton) {
-      stageButton.hidden = !isNew || stage === 'type';
+      stageButton.hidden = stage === 'type' || (!isNew && editMode !== 'identity');
       stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
       stageButton.textContent = stage === 'place' ? 'Bevestig locatie' : 'Verder';
     }
     if ((stage === 'name' || stage === 'type') && animate && stage === 'name') focusTextField(form.elements.title);
   }
   function advanceNewLocationStage() {
-    if (!isNew) return;
+    if (!isNew && editMode !== 'identity') return;
     const stage = view.dataset.stage || 'place';
     if (stage === 'place' && currentPoint()) setNewLocationStage('name');
     else if (stage === 'name' && form.elements.title.value.trim()) setNewLocationStage('type');
   }
-  if (isNew) {
+  if (isNew || editMode === 'identity') {
     stageButton = document.createElement('button');
     stageButton.type = 'button';
     stageButton.className = 'primary-line-action';
@@ -518,7 +518,7 @@ export function enhanceLocationEditor(root, {
   updateConclusion(!isNew);
   syncText();
   syncMap();
-  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : 'type');
+  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : 'name');
   if (useGps && !isNew) gpsButton.click();
   else if (isNew) void checkSavedPlaceOnStart();
 
