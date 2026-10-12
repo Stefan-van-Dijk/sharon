@@ -1,7 +1,9 @@
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.08';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.01';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.01';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.17';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.17';
+import { locationIdentityConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.17';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -84,7 +86,7 @@ export async function openLocationsView(root, {
 
     root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
-      onOpen: id => edit(byId.get(id)),
+      onOpen: id => detail(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
       onDelete: id => removeLocation(id)
     });
@@ -133,7 +135,63 @@ export async function openLocationsView(root, {
     list('Locatie verwijderd.');
   }
 
-  async function edit(item = null, selectedParent = '', useGps = false) {
+  async function detail(item) {
+    if (!item) return list();
+    releaseEditor?.(); releaseEditor = null;
+    headerActions?.replaceChildren();
+    unbindSwipes?.(); unbindSwipes = null;
+    setTitle('Locatie');
+    const effective = resolveLocation(item, byId);
+    const point = effective.coordinates;
+    const title = item.data?.title || 'Locatie';
+    const kind = item.data?.kind || 'other';
+    const kindLabel = TYPES.get(kind) || 'Andere plek';
+    const sentence = locationIdentityConclusion(title, kindLabel, point, location?.latest, radius(item.data?.radiusM));
+    root.innerHTML = `
+      <section class="module-view sh-location-detail-view">
+        <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
+        <div class="swipe-list sh-location-detail-swipes" data-detail-swipes>
+          <div class="swipe-row" data-swipe-row="identity">
+            <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk informatie</button></div>
+            <button type="button" class="swipe-surface sh-location-detail-identity" data-swipe-surface aria-label="Naam en type bewerken door te vegen">
+              <h2 data-detail-conclusion></h2>
+            </button>
+          </div>
+          <div class="swipe-row" data-swipe-row="place">
+            <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Locatie aanpassen</button></div>
+            <button type="button" class="swipe-surface sh-location-detail-place" data-swipe-surface aria-label="Locatiegegevens bewerken door te vegen">
+              <strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong>
+              <small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small>
+            </button>
+          </div>
+        </div>
+        <div class="sh-location-reference-map-panel sh-location-detail-map-panel">
+          <div class="sh-radius-map-host sh-location-reference-map" data-detail-map></div>
+        </div>
+      </section>`;
+    root.querySelector('[data-back]').addEventListener('click', () => list());
+    const heading = root.querySelector('[data-detail-conclusion]');
+    typeLocationConclusion(heading, sentence, {
+      reducedMotion: Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+    });
+    let detailMap = null;
+    if (point) {
+      detailMap = mountLocationArea(root.querySelector('[data-detail-map]'), {
+        getPoint: () => point,
+        getRadius: () => radius(item.data?.radiusM),
+        getAccuracy: () => 0
+      });
+      detailMap?.setPositionEditable?.(false);
+      void detailMap?.update?.();
+    }
+    unbindSwipes = bindSwipeRows(root.querySelector('[data-detail-swipes]'), {
+      onOpen: id => edit(item, '', false, id),
+      onEdit: id => edit(item, '', false, id)
+    });
+    releaseEditor = () => detailMap?.destroy?.();
+  }
+
+  async function edit(item = null, selectedParent = '', useGps = false, editMode = '') {
     releaseEditor?.();
     releaseEditor = null;
     headerActions?.replaceChildren();
@@ -149,7 +207,7 @@ export async function openLocationsView(root, {
     const locationAction = objects.find(x => x.type === 'location-action' && !x.deletedAt && x.data?.locationId === item?.id);
     const trigger = locationAction?.data || {};
     let pickedAddress = null;
-    setTitle(isNew ? 'Nieuwe locatie' : 'Locatie');
+    setTitle(isNew ? 'Nieuwe locatie' : (editMode === 'place' ? 'Plek aanpassen' : editMode === 'identity' ? 'Naam en type' : 'Locatie'));
     const coordinateInput = (coordinate) => coordinate == null ? '' : String(coordinate);
 
     root.innerHTML = `
@@ -358,8 +416,22 @@ export async function openLocationsView(root, {
     });
     releaseEditor = enhanceLocationEditor(root, {
       isNew, useGps, location, geocoder, events, knownLocations, savedLocations,
-      initialParent, onOpenExisting: id => edit(byId.get(id)), saveInHeader: false
+      initialParent, onOpenExisting: id => detail(byId.get(id)), saveInHeader: false
     });
+    if (!isNew && editMode) {
+      const ref = root.querySelector('.sh-location-reference-page');
+      const name = ref?.querySelector('[data-name-slot]');
+      const place = ref?.querySelector('.sh-location-reference-place');
+      const map = ref?.querySelector('.sh-location-reference-map-panel');
+      const typeSection = ref?.querySelector('[data-type-chips]')?.closest('.sh-location-reference-section');
+      const parentSection = ref?.querySelector('[data-parent-section]');
+      const more = ref?.querySelector('[data-more]');
+      if (editMode === 'identity') {
+        if (place) place.hidden = true; if (map) map.hidden = true; if (parentSection) parentSection.hidden = true; if (more) more.hidden = true;
+      } else if (editMode === 'place') {
+        if (name) name.hidden = true; if (typeSection) typeSection.hidden = true; if (parentSection) parentSection.hidden = true; if (more) more.hidden = true;
+      }
+    }
   }
 
 
