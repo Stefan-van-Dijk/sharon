@@ -220,7 +220,6 @@ export async function openLocationsView(root, {
       <div data-sentence-variants></div>
       <form data-sentence-add>
         <label class="clean-field"><span>Nieuwe zin</span><textarea name="template" rows="3" maxlength="300" required placeholder="Je bent bij [Naam] — [Type]."></textarea></label>
-        <label class="clean-field"><span>Toepassen op</span><select name="scope"><option value="location">Alleen deze locatie</option><option value="group">Alle locaties van dit type</option><option value="global">Alle groepen</option></select></label>
         <button class="primary-line-action" type="submit">Zin toevoegen</button>
       </form>
       <p role="status" data-sentence-status></p></div>
@@ -250,7 +249,7 @@ export async function openLocationsView(root, {
     root.querySelector('[data-back]').addEventListener('click', () => detail(item));
     const form = root.querySelector('[data-sentence-add]');
     const textarea = form.elements.template;
-    const scopeInput = form.elements.scope;
+    // Applicability is changed exclusively from the status control on each row.
     const submitButton = form.querySelector('[type="submit"]');
     const label = form.querySelector('label span');
     const status = root.querySelector('[data-sentence-status]');
@@ -259,7 +258,7 @@ export async function openLocationsView(root, {
     cancel.type = 'button'; cancel.textContent = 'Annuleer'; cancel.hidden = true;
     submitButton.after(cancel);
     const resetForm = () => {
-      editing = null; textarea.value = ''; scopeInput.value = 'location';
+      editing = null; textarea.value = '';
       label.textContent = 'Nieuwe zin'; submitButton.textContent = 'Zin toevoegen';
       cancel.hidden = true;
     };
@@ -267,13 +266,29 @@ export async function openLocationsView(root, {
     const beginEdit = (template, scope, situation) => {
       editing = { template, scope, situation, copy: scope === 'default' };
       textarea.value = template;
-      scopeInput.value = scope === 'default' ? 'location' : scope;
       label.textContent = scope === 'default' ? 'Nieuwe zin op basis van standaardzin' : 'Zin aanpassen';
       submitButton.textContent = scope === 'default' ? 'Nieuwe zin toevoegen' : 'Wijziging opslaan';
       cancel.hidden = false;
-      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
       textarea.focus({ preventScroll: true });
+      ensureInputVisible();
     };
+    const ensureInputVisible = () => {
+      if (!textarea.isConnected || document.activeElement !== textarea) return;
+      const viewport = window.visualViewport;
+      const viewportBottom = (viewport?.offsetTop || 0) + (viewport?.height || window.innerHeight);
+      const rect = textarea.getBoundingClientRect();
+      const availableBottom = viewportBottom - 24;
+      if (rect.bottom > availableBottom || rect.top < 90) {
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+    textarea.addEventListener('focus', () => {
+      requestAnimationFrame(ensureInputVisible);
+      setTimeout(ensureInputVisible, 280);
+    });
+    window.visualViewport?.addEventListener('resize', ensureInputVisible);
+    window.visualViewport?.addEventListener('scroll', ensureInputVisible);
     const persist = async () => {
       await store.put('meta', { key: 'locations.sentenceLibrary', value: sentenceLibrary });
     };
@@ -345,7 +360,7 @@ export async function openLocationsView(root, {
         surface.dataset.swipeSurface = '';
         const dot = document.createElement('i');
         dot.className = 'sh-sentence-dot';
-        if (source !== 'default') dot.classList.add('sh-sentence-cyan');
+        if (source !== 'default') dot.classList.add('sh-sentence-green');
         const sentenceText = document.createElement('span');
         sentenceText.className = 'sh-sentence-text';
         sentenceText.textContent = template;
@@ -395,10 +410,7 @@ export async function openLocationsView(root, {
         rows.set(String(index),{template,source,situation});
       }
       unbindSentenceSwipes = bindSwipeRows(variantsHost,{
-        onOpen:id => {
-          const data=rows.get(id);
-          if(data)beginEdit(data.template,'default',data.situation);
-        },
+        // A tap on the sentence is inert; only the revealed swipe action edits/copies.
         onEdit:id => {
           const data=rows.get(id);
           if(data)beginEdit(data.template,data.source,data.situation);
@@ -410,8 +422,12 @@ export async function openLocationsView(root, {
       event.preventDefault();
       const template=textarea.value.trim();
       if(!template)return;
-      const target=scopeInput.value;
+      const target=editing && editing.scope !== 'default' ? editing.scope : 'global';
       const situation=editing?.situation || stateInput.value;
+      if(editing && editing.template === template) {
+        status.textContent = 'Geen wijziging in de zin.';
+        return;
+      }
       if(editing) {
         const old=editing;
         if(old.scope==='location') sentenceLibrary=removeLocationVariant(sentenceLibrary,item.id,situation,old.template);
