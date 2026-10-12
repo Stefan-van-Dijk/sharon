@@ -405,60 +405,98 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 }
 
 async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Kies rechtstreeks in de graph en bevestig je keuze.</p><div class="story-location-graph" data-location-graph aria-label="Locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Tik op een thema om in te zoomen. Tik op een symbool om een plek te kiezen.</p><div class="story-location-graph" data-location-graph aria-label="Interactieve locatiegraph"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
-  let active = null, selected = null;
-  const render = () => {
-    graph.replaceChildren();
-    const board = document.createElement('div');
-    board.className = 'story-graph-board';
-    const center = document.createElement('div');
-    center.className = 'story-graph-center';
-    center.textContent = 'Mijn plek';
-    board.append(center);
-    const positions = [
-      [50,12],[82,28],[82,72],[50,88],[18,72],[18,28]
-    ];
-    LOCATION_GROUPS.forEach((group,i) => {
-      const [x,y] = positions[i];
-      const focused = active === group.id;
-      const muted = active !== null && !focused;
-      const node = document.createElement('button');
-      node.type = 'button';
-      node.className = 'story-graph-node story-graph-group' + (focused?' is-active':'') + (muted?' is-muted':'');
-      node.textContent = group.label;
-      node.style.left = x+'%'; node.style.top = y+'%';
-      node.setAttribute('aria-pressed',String(focused));
-      node.addEventListener('click',()=>{active=focused?null:group.id;render();});
-      board.append(node);
-      const members = group.types.map(locationType).filter(Boolean);
-      members.forEach((type,j) => {
-        const sub = document.createElement('button');
-        sub.type = 'button';
-        sub.className = 'story-graph-node story-graph-type' + (focused?' is-expanded':'') + (muted?' is-muted':'') + (selected===type.id?' is-selected':'');
-        const angle = -Math.PI/2 + 2*Math.PI*j/members.length;
-        const radiusX = focused?17:9, radiusY=focused?12:7;
-        sub.style.left = Math.max(7,Math.min(93,x+radiusX*Math.cos(angle)))+'%';
-        sub.style.top = Math.max(5,Math.min(95,y+radiusY*Math.sin(angle)))+'%';
-        sub.title = type.label;
-        sub.setAttribute('aria-label',type.label);
-        sub.setAttribute('aria-pressed',String(selected===type.id));
-        const symbol = document.createElement('span');
-        symbol.className='story-graph-symbol';
-        symbol.textContent=locationIcon(type.id);
-        const label = document.createElement('span');
-        label.className='story-graph-label';
-        label.textContent=type.label;
-        sub.append(symbol,label);
-        sub.addEventListener('click',()=>{selected=type.id;active=group.id;confirm.disabled=false;confirm.textContent=type.label+' bevestigen';render();});
-        board.append(sub);
+  const board = document.createElement('div');
+  board.className = 'story-network';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const edges = document.createElementNS(svgNS,'svg');
+  edges.setAttribute('viewBox','0 0 1000 1000');
+  edges.setAttribute('preserveAspectRatio','none');
+  edges.classList.add('story-network-edges');
+  board.append(edges);
+  graph.append(board);
+  const center = document.createElement('button');
+  center.type = 'button';
+  center.className = 'story-network-center';
+  center.textContent = 'Mijn plek';
+  center.addEventListener('click',()=>{active=null;layout();});
+  board.append(center);
+  const groups = LOCATION_GROUPS.map((group,index)=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='story-network-group';
+    button.textContent=group.label;
+    button.setAttribute('aria-label',group.label);
+    board.append(button);
+    const children=group.types.map(locationType).filter(Boolean).map(type=>{
+      const child=document.createElement('button');
+      child.type='button';
+      child.className='story-network-child';
+      child.title=type.label;
+      child.setAttribute('aria-label',type.label);
+      const icon=document.createElement('span');
+      icon.className='story-network-icon';
+      icon.textContent=locationIcon(type.id);
+      const label=document.createElement('span');
+      label.className='story-network-label';
+      label.textContent=type.label;
+      child.append(icon,label);
+      child.addEventListener('click',()=>{active=group.id;selected=type.id;confirm.disabled=false;confirm.textContent=type.label+' bevestigen';layout();});
+      board.append(child);
+      return {type,button:child,line:makeLine()};
+    });
+    button.addEventListener('click',()=>{active=active===group.id?null:group.id;layout();});
+    return {group,index,button,children,line:makeLine()};
+  });
+  function makeLine(){
+    const line=document.createElementNS(svgNS,'line');
+    line.classList.add('story-network-line');
+    edges.append(line);
+    return line;
+  }
+  let active=null,selected=null;
+  const placeNode=(node,x,y,scale=1)=>{
+    node.style.left=x+'%';node.style.top=y+'%';
+    node.style.setProperty('--node-scale',scale);
+  };
+  const connect=(line,a,b)=>{
+    line.setAttribute('x1',a[0]*10);line.setAttribute('y1',a[1]*10);
+    line.setAttribute('x2',b[0]*10);line.setAttribute('y2',b[1]*10);
+  };
+  const layout=()=>{
+    const focused=groups.find(g=>g.group.id===active);
+    const root=focused?[23,50]:[50,50];
+    placeNode(center,...root,focused?.8:1);
+    groups.forEach(({group,index,button,children,line})=>{
+      const angle=-Math.PI/2+index*Math.PI/3;
+      const isFocus=group.id===active;
+      const pos=focused
+        ? (isFocus?[56,50]:[23+19*Math.cos(angle),50+31*Math.sin(angle)])
+        : [50+29*Math.cos(angle),50+29*Math.sin(angle)];
+      placeNode(button,...pos,isFocus?1.4:focused?.68:1);
+      button.classList.toggle('is-active',isFocus);
+      button.classList.toggle('is-muted',!!focused&&!isFocus);
+      connect(line,root,pos);
+      line.classList.toggle('is-muted',!!focused&&!isFocus);
+      children.forEach(({type,button:child,line:childLine},j)=>{
+        const n=children.length;
+        const theta=-Math.PI/2+2*Math.PI*j/n;
+        const dx=isFocus?23:focused?5:8;
+        const dy=isFocus?30:focused?8:10;
+        const p=[Math.max(5,Math.min(95,pos[0]+dx*Math.cos(theta))),Math.max(5,Math.min(95,pos[1]+dy*Math.sin(theta)))];
+        placeNode(child,...p,isFocus?(selected===type.id?1.32:1.12):focused?.52:.74);
+        child.classList.toggle('is-focused',isFocus);
+        child.classList.toggle('is-muted',!!focused&&!isFocus);
+        child.classList.toggle('is-selected',selected===type.id);
+        connect(childLine,pos,p);
+        childLine.classList.toggle('is-muted',!!focused&&!isFocus);
       });
     });
-    graph.append(board);
   };
-  render();
-  return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);},{once:false}));
+  layout();
+  return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
 }
 
 async function typeParagraphs(container, lines, { reducedMotion = false } = {}) {
