@@ -1,4 +1,4 @@
-const OPEN_X = 176;
+const DEFAULT_OPEN_X = 176;
 const OPEN_THRESHOLD_X = 48;
 const DIRECTION_LOCK = 7;
 
@@ -16,6 +16,7 @@ export function bindSwipeRows(container, {
     const remove = row.querySelector('[data-swipe-delete]');
     if (!surface) continue;
 
+    const actionWidth = () => Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
     let pointerId = null;
     let startX = 0;
     let startY = 0;
@@ -25,17 +26,17 @@ export function bindSwipeRows(container, {
     let locked = '';
 
     const setX = (value, animate = false) => {
-      currentX = Math.max(-OPEN_X, Math.min(0, value));
+      currentX = Math.max(-actionWidth(), Math.min(0, value));
       surface.classList.toggle('is-animating', animate);
       surface.style.transform = `translate3d(${currentX}px,0,0)`;
       row.classList.toggle('is-actions-open', currentX < -1);
 
       if (currentX === 0 && openRow === row) openRow = null;
-      if (currentX === -OPEN_X) openRow = row;
+      if (currentX === -actionWidth()) openRow = row;
     };
 
     const close = (animate = true) => setX(0, animate);
-    const open = (animate = true) => setX(-OPEN_X, animate);
+    const open = (animate = true) => setX(-actionWidth(), animate);
 
     const pointerDown = event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
