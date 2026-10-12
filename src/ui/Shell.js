@@ -308,7 +308,7 @@ export function createShell(root, {
   // Keep one history entry for the shell and one for each opened module.
   const navigationKey = '__sharonNavigation';
   const homeState = () => ({ ...history.state, [navigationKey]: 'home' });
-  history.replaceState(homeState(), '');
+  if (!history.state?.[navigationKey]) history.replaceState(homeState(), '');
   const openHistoryModule = moduleId => {
     if (history.state?.[navigationKey] !== moduleId) {
       history.pushState({ ...history.state, [navigationKey]: moduleId }, '');
@@ -332,12 +332,6 @@ export function createShell(root, {
     if (target === 'settings') openSettingsView({ animate: false });
     else openModule(target, { animate: false });
   });
-  const oldOpenModule = openModule;
-  // The module-list click handlers below use the history-aware wrapper.
-  const openWithHistory = (moduleId, options = {}) => {
-    openHistoryModule(moduleId);
-    return oldOpenModule(moduleId, options);
-  };
   outlet.addEventListener('click', event => {
     const moduleButton = event.target.closest('[data-module]');
     if (moduleButton && currentView === 'home') {
