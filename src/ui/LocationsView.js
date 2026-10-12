@@ -156,20 +156,20 @@ export async function openLocationsView(root, {
     });
     lastSentence = sentence;
     root.innerHTML = `
-      <section class="module-view sh-location-detail-view">
+      <section class="module-view sh-location-detail-view sh-location-reference">
         <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
-        <div class="swipe-list sh-location-detail-swipes" data-detail-swipes>
+        <div class="swipe-list sh-location-detail-swipes sh-location-reference-page" data-detail-swipes>
           <div class="swipe-row" data-swipe-row="identity">
             <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk informatie</button></div>
-            <button type="button" class="swipe-surface sh-location-detail-identity" data-swipe-surface aria-label="Naam en type bewerken door te vegen">
+            <button type="button" class="swipe-surface sh-location-detail-identity sh-location-reference-heading" data-swipe-surface aria-label="Naam en type bewerken door te vegen">
               <h2 data-detail-conclusion></h2>
             </button>
           </div>
           <div class="swipe-row" data-swipe-row="place">
             <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Locatie aanpassen</button></div>
-            <button type="button" class="swipe-surface sh-location-detail-place" data-swipe-surface aria-label="Locatiegegevens bewerken door te vegen">
-              <strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong>
-              <small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small>
+            <button type="button" class="swipe-surface sh-location-detail-place sh-location-reference-address" data-swipe-surface aria-label="Locatiegegevens bewerken door te vegen">
+              <span class="sh-location-reference-marker" aria-hidden="true">⌖</span><span class="sh-location-reference-place-copy"><strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong>
+              <small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small></span>
             </button>
           </div>
         </div>
