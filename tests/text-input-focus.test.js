@@ -42,7 +42,7 @@ test('location editor, onboarding and other-place search all focus text inputs',
   ]);
   assert.match(guided, /focusTextField\(form\.elements\.address\)/);
   assert.match(guided, /focusTextField\(form\.elements\.triggerMessage\)/);
-  assert.match(locations, /isNew, useGps, location, geocoder/);
+  assert.match(locations, /isNew, editMode, useGps, location, geocoder/);
   assert.match(intro, /focusTextField\(input\)/);
   assert.match(story, /focusTextField\(form\.querySelector\('input\[name="query"\]'\)\)/);
 });
