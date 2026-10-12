@@ -84,7 +84,7 @@ export async function createApp() {
         });
 
         const firstPlaceId = await saveFirstPlace(store, result);
-        startModule = 'locations';
+        startModule = '';
 
         await settings.update({
           onboarding: {
@@ -151,7 +151,7 @@ async function saveFirstPlace(store, result) {
     updatedAt: now,
     deletedAt: null,
     data: {
-      title: result.kindLabel || 'Plek',
+      title: result.placeName || result.kindLabel || 'Plek',
       kind: result.kind || 'other',
       coordinates: {
         lat: Number(place.lat),
