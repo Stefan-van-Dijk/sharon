@@ -1,14 +1,14 @@
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.25';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.25';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.25';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.25';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.25';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.25';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.25';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.26';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.26';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.26';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.26';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.26';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.26';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.26';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.25';
+} from '../core/location/LocationHierarchy.js?v=0.2.26';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
