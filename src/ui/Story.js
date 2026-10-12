@@ -496,14 +496,14 @@ async function choosePlaceType(stage, place) {
     });
   };
   layout();
-  let offsetX=0, offsetY=0, scale=1, gesture=null;
+  let offsetX=0, offsetY=0, scale=1, gesture=null, ignoreTap=false;
   const contacts=new Map();
   const paint=()=>{board.style.transform='translate('+offsetX+'px,'+offsetY+'px) scale('+scale+')';};
   const distance=()=>{const [a,b]=[...contacts.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
   graph.addEventListener('pointerdown',event=>{
     contacts.set(event.pointerId,{x:event.clientX,y:event.clientY});
     graph.setPointerCapture(event.pointerId);
-    if(contacts.size===1)gesture={x:event.clientX,y:event.clientY,moved:false,kind:'pan'};
+    if(contacts.size===1)gesture={x:event.clientX,y:event.clientY,moved:false,kind:'pan',node:event.target.closest('.story-network-child,.story-network-group,.story-network-center')};
     if(contacts.size===2)gesture={kind:'pinch',distance:distance(),scale};
   });
   graph.addEventListener('pointermove',event=>{
@@ -513,19 +513,22 @@ async function choosePlaceType(stage, place) {
     if(contacts.size===2){
       if(gesture?.kind!=='pinch')gesture={kind:'pinch',distance:distance(),scale};
       scale=Math.max(.6,Math.min(2.5,gesture.scale*distance()/Math.max(1,gesture.distance)));
-      paint();return;
+      ignoreTap=true;paint();return;
     }
     if(!gesture||gesture.kind!=='pan')return;
     const dx=event.clientX-previous.x,dy=event.clientY-previous.y;
     if(Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>7)gesture.moved=true;
     if(gesture.moved){
+      ignoreTap=true;
+      if(gesture.node){gesture.node.style.translate=((event.clientX-gesture.x)*.55/scale)+'px '+((event.clientY-gesture.y)*.55/scale)+'px';return;}
       offsetX=Math.max(-graph.clientWidth,Math.min(graph.clientWidth,offsetX+dx));
       offsetY=Math.max(-graph.clientHeight,Math.min(graph.clientHeight,offsetY+dy));
       paint();
     }
   });
-  graph.addEventListener('pointerup',event=>{contacts.delete(event.pointerId);gesture=null;});
-  graph.addEventListener('pointercancel',event=>{contacts.delete(event.pointerId);gesture=null;});
+  graph.addEventListener('pointerup',event=>{contacts.delete(event.pointerId);if(gesture?.node){gesture.node.style.transition='translate .45s ease-out';gesture.node.style.translate='0px 0px';}gesture=null;setTimeout(()=>{ignoreTap=false;},100);});
+  graph.addEventListener('pointercancel',event=>{contacts.delete(event.pointerId);if(gesture?.node)gesture.node.style.translate='0px 0px';gesture=null;});
+  graph.addEventListener('click',event=>{if(ignoreTap){event.preventDefault();event.stopPropagation();}},true);
   return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
 }
 
