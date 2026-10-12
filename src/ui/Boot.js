@@ -13,6 +13,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function runFirstIntro(root, startedAt, { initialName = '' } = {}) {
   await waitUntil(startedAt, FIRST_RUN_PROMPT_MS);
+  await showFirstRunStory(root);
   const name = await askForName(root, { initialName });
   await mergeToSharon(root);
   return name;
@@ -31,6 +32,44 @@ async function waitUntil(startedAt, minimumMs) {
   if (elapsed < minimumMs) await sleep(minimumMs - elapsed);
 }
 
+async function showFirstRunStory(root) {
+  const panel = root.querySelector('[data-intro-copy]');
+  if (!panel) return;
+  const lines = [
+    'Van plek tot plek, van moment tot moment beweeg je door de wereld.',
+    'Een wereld vol informatie. En jij, met je eigen plekken, bezigheden en ervaringen.',
+    'Share on brengt die werelden samen. Zodat informatie betekenis krijgt, precies waar en wanneer jij die nodig hebt.',
+    'Jouw wereld. Jouw momenten. Jouw informatie.'
+  ];
+  panel.innerHTML = '';
+  panel.classList.add('is-visible');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const line of lines) {
+    const paragraph = document.createElement('p');
+    paragraph.className = 'sharon-welcome';
+    paragraph.style.marginBottom = '0.8em';
+    panel.append(paragraph);
+    if (reducedMotion) {
+      paragraph.textContent = line;
+    } else {
+      for (const char of line) {
+        paragraph.textContent += char;
+        await sleep(/[.,]/.test(char) ? 95 : 18);
+      }
+    }
+    await sleep(reducedMotion ? 0 : 220);
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'story-continue';
+  button.textContent = 'Zullen we kennismaken?';
+  panel.append(button);
+  await new Promise(resolve => button.addEventListener('click', resolve, { once: true }));
+  panel.classList.remove('is-visible');
+  await sleep(180);
+  panel.innerHTML = '';
+}
+
 function askForName(root, { initialName = '' } = {}) {
   const intro = root.querySelector('[data-intro]');
   if (!intro) return Promise.resolve('');
@@ -38,7 +77,7 @@ function askForName(root, { initialName = '' } = {}) {
   const panel = intro.querySelector('[data-intro-copy]');
   panel.innerHTML = `
     <form class="sharon-intro-form" data-sharon-intro-form>
-      <label for="sharonIntroName">Hoe mogen we je noemen?</label>
+      <label for="sharonIntroName">Mag ik je naam noteren?</label>
       <input
         id="sharonIntroName"
         name="name"
