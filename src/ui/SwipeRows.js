@@ -92,7 +92,7 @@ export function bindSwipeRows(container, {
       }
 
       const dx = event.clientX - startX;
-      if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1 || currentX < -(firstWidth() + 35))) {
+      if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1)) {
         openSecond(true);
       } else if (currentX <= -OPEN_THRESHOLD_X) {
         open(true);
