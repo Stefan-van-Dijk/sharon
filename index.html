@@ -1725,6 +1725,20 @@
 .sh-sentence-editor .sh-sentence-variant{flex-wrap:wrap}
 .sh-sentence-editor .sh-sentence-variant span{flex:1 1 100%;overflow-wrap:anywhere}
 .sh-sentence-editor .sh-sentence-variant button{flex:0 0 auto}
+
+.sh-sentence-editor [data-sentence-reveal][hidden]{display:none!important}
+@keyframes shSentenceSlide{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.sh-sentence-enter{animation:shSentenceSlide .48s ease both}
+.sh-sentence-editor .sh-sentence-variant{position:relative;display:flex;align-items:center;gap:12px;overflow:hidden;min-height:74px;touch-action:pan-y;flex-wrap:nowrap}
+.sh-sentence-editor .sh-sentence-variant span{flex:1 1 auto;font-size:16px;line-height:1.45}
+.sh-sentence-dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#a77ce6}
+.sh-sentence-custom .sh-sentence-dot{background:#16bed5}
+.sh-sentence-default{cursor:pointer}
+.sh-sentence-default:active{background:#f7f2ff}
+.sh-sentence-swipe-actions{display:flex;gap:6px;max-width:0;overflow:hidden;opacity:0;transition:max-width .25s ease,opacity .2s}
+.sh-sentence-variant.is-actions-open .sh-sentence-swipe-actions{max-width:220px;opacity:1}
+.sh-sentence-swipe-actions button{white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.sh-sentence-enter{animation:none}}
 </style>
 </head>
 <body>
