@@ -21,9 +21,10 @@ export function formatDistance(meters){
 export function resolveSentenceVariants({state,typeId,locationId,library={}}){
   const base=[...(defaults[state]||[])];
   const group=library.groups?.[typeId]?.[state]||[];
+  const global=(library.global?.[state]||[]).filter(v=>!(library.groupExcluded?.[typeId]?.[state]||[]).includes(v));
   const local=library.locations?.[locationId]||{};
   const excluded=new Set(local.excluded?.[state]||[]);
-  return [...base,...group,...(local.added?.[state]||[])].filter((v,i,a)=>v&&!excluded.has(v)&&a.indexOf(v)===i);
+  return [...base,...global,...group,...(local.added?.[state]||[])].filter((v,i,a)=>v&&!excluded.has(v)&&a.indexOf(v)===i);
 }
 export function renderLocationSentence({name,typeLabel,typeId,locationId,point,current,radiusM,library,lastSentence=''}) {
   const situation=distanceSituation(point,current,radiusM);
@@ -57,4 +58,20 @@ export function removeGroupVariant(library,typeId,state,template){
   const values=next.groups?.[typeId]?.[state];
   if(Array.isArray(values))next.groups[typeId][state]=values.filter(value=>value!==template);
   return next;
+}
+
+export function addGlobalVariant(library,state,template){
+  const next=structuredClone(library||{});next.global??={};next.global[state]??=[];
+  if(!next.global[state].includes(template))next.global[state].push(template);
+  return next;
+}
+export function removeGlobalVariant(library,state,template){
+  const next=structuredClone(library||{});
+  if(Array.isArray(next.global?.[state]))next.global[state]=next.global[state].filter(v=>v!==template);
+  return next;
+}
+export function setGroupVariantExcluded(library,typeId,state,template,excluded=true){
+  const next=structuredClone(library||{});next.groupExcluded??={};next.groupExcluded[typeId]??={};next.groupExcluded[typeId][state]??=[];
+  const set=new Set(next.groupExcluded[typeId][state]);excluded?set.add(template):set.delete(template);
+  next.groupExcluded[typeId][state]=[...set];return next;
 }
