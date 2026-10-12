@@ -1,7 +1,7 @@
-import { focusTextField } from './TextInputFocus.js?v=0.2.00';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.00';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.00';
-import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.00';
+import { focusTextField } from './TextInputFocus.js?v=0.2.01';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.01';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.01';
+import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.01';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
@@ -36,10 +36,22 @@ const validPoint = point => {
     Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
 };
 
+// A nearby match is a suggestion, never an automatic merge or replacement.
+export function existingLocationAtGps(point, savedLocations = [], accuracy = 0) {
+  const gps = validPoint(point);
+  if (!gps) return null;
+  const margin = Math.max(45, Math.min(90, (Number(accuracy) || 0) + 20));
+  return savedLocations
+    .filter(item => validPoint(item.coordinates))
+    .map(item => ({ ...item, meters: distanceBetween(gps, item.coordinates) }))
+    .filter(item => item.meters <= Math.min(Math.max(35, Number(item.radiusM) || 100), margin))
+    .sort((a, b) => a.meters - b.meters)[0] || null;
+}
+
 export function enhanceLocationEditor(root, {
   isNew = false, location, geocoder, useGps = false,
-  knownLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
-  events = null
+  knownLocations = [], savedLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
+  onOpenExisting = () => {}, events = null
 } = {}) {
   const page = root.querySelector('.location-editor-view');
   const form = page?.querySelector('[data-location-form]');
@@ -68,7 +80,8 @@ export function enhanceLocationEditor(root, {
   const eligible = knownLocations.filter(item => item.address);
   const byId = new Map(eligible.map(item => [item.id, item]));
   let disposed = false, mapView = null, accuracy = 0, geocodeRequest = 0;
-  let addressEditing = false, addressManuallyEdited = false;
+  let addressEditing = false, addressManuallyEdited = false, lastLookupAddress = '';
+  let selectedExisting = null;
   let stopTyping = () => {};
   let previousConclusion = '';
 
@@ -77,6 +90,9 @@ export function enhanceLocationEditor(root, {
   view.className = 'sh-location-reference-page';
   view.innerHTML = '<div class="sh-location-reference-heading">' +
       '<h2 data-location-conclusion aria-live="off"></h2>' +
+    '</div>' +
+    '<div class="sh-location-reference-existing" data-existing-location hidden>' +
+      '<span data-existing-copy></span><button type="button" data-open-existing>Open bestaande locatie</button>' +
     '</div>' +
     '<div class="sh-location-reference-name" data-name-slot></div>' +
     '<div class="sh-location-reference-place">' +
@@ -158,6 +174,8 @@ export function enhanceLocationEditor(root, {
   const moreSettings = view.querySelector('[data-more]');
   const mapHint = view.querySelector('[data-map-hint]');
   const conclusionElement = view.querySelector('[data-location-conclusion]');
+  const existingNotice = view.querySelector('[data-existing-location]');
+  const existingCopy = view.querySelector('[data-existing-copy]');
   const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   let positionEditing = false;
 
@@ -182,6 +200,19 @@ export function enhanceLocationEditor(root, {
       lng: form.elements.lng.value
     }) || byId.get(parentSelect.value)?.coordinates || null;
   }
+  function updateExistingNotice(point = validPoint({
+    lat: form.elements.lat.value, lng: form.elements.lng.value
+  })) {
+    selectedExisting = isNew ? existingLocationAtGps(point, savedLocations, accuracy) : null;
+    existingNotice.hidden = !selectedExisting;
+    if (selectedExisting) {
+      existingCopy.textContent = 'GPS-check: mogelijk al opgeslagen als “' +
+        selectedExisting.title + '” (' + Math.round(selectedExisting.meters) + ' m verder).';
+    }
+  }
+  view.querySelector('[data-open-existing]').addEventListener('click', () => {
+    if (selectedExisting) onOpenExisting(selectedExisting.id);
+  });
   function syncText() {
     const typed = String(form.elements.address.value || '').trim();
     const parent = byId.get(parentSelect.value);
@@ -198,6 +229,7 @@ export function enhanceLocationEditor(root, {
   function syncMap() {
     if (disposed) return;
     syncText();
+    updateExistingNotice();
     if (!mapView) {
       mapView = mountLocationArea(mapHost, {
         getPoint: currentPoint,
@@ -213,6 +245,8 @@ export function enhanceLocationEditor(root, {
           changeInput(form.elements.lng, point.lng.toFixed(7));
           accuracy = 0; // A manually positioned pin is not an accuracy measurement.
           addressManuallyEdited = false;
+          lastLookupAddress = '';
+          ++geocodeRequest;
           syncText();
           renderParents();
           void reversePoint(point);
@@ -231,18 +265,30 @@ export function enhanceLocationEditor(root, {
   }
   async function lookupAddress() {
     const text = String(form.elements.address.value || '').trim();
-    if (!text || !geocoder?.search || disposed) return;
+    if (!text || !geocoder?.search || disposed || text === lastLookupAddress) return;
+    lastLookupAddress = text;
     const myRequest = ++geocodeRequest;
+    statusNode.textContent = 'GPS bij adres zoeken…';
     try {
       const results = await geocoder.search(text);
       if (disposed || myRequest !== geocodeRequest || !form.isConnected) return;
       const first = results?.find(p => validPoint(p));
-      if (!first) return;
+      if (!first) {
+        statusNode.textContent = 'Geen GPS gevonden bij dit adres. Controleer het adres.';
+        return;
+      }
+      accuracy = 0;
       changeInput(form.elements.lat, first.lat);
       changeInput(form.elements.lng, first.lng);
       syncMap();
       renderParents();
-    } catch { /* Existing name/address remains editable offline. */ }
+      statusNode.textContent = 'GPS automatisch gevonden bij het adres. Controleer de positie.';
+    } catch {
+      if (!disposed && myRequest === geocodeRequest) {
+        lastLookupAddress = '';
+        statusNode.textContent = 'GPS bij adres niet beschikbaar. Probeer het opnieuw.';
+      }
+    }
   }
   async function reversePoint(point) {
     if (!geocoder?.reverse || disposed) return;
@@ -335,9 +381,16 @@ export function enhanceLocationEditor(root, {
   });
   form.elements.title.addEventListener('input', () => updateConclusion());
   form.elements.address.addEventListener('input', () => {
-    if (addressEditing) addressManuallyEdited = true;
+    if (addressEditing) {
+      addressManuallyEdited = true;
+      lastLookupAddress = '';
+      ++geocodeRequest; // An earlier result must never replace a newer typed address.
+    }
     syncText();
   });
+  // Search only after the user commits the address (blur, Enter, or closing the editor).
+  // The public Nominatim service forbids per-keystroke autocomplete.
+  form.elements.address.addEventListener('change', () => { void lookupAddress(); });
   form.elements.address.addEventListener('keydown', event => {
     if (event.key === 'Enter' && addressEditing) {
       event.preventDefault();
@@ -352,11 +405,13 @@ export function enhanceLocationEditor(root, {
   gpsButton.addEventListener('click', () => {
     // Existing LocationsView handler performs the actual GPS check.
     addressManuallyEdited = false;
+    ++geocodeRequest;
   });
   const unsubscribeLocation = events?.on?.('location.changed', () => updateConclusion());
   form.addEventListener('sh-location-accuracy', event => {
     accuracy = Number(event.detail?.accuracy) || 0;
     updateConclusion();
+    updateExistingNotice();
     mapView?.refresh();
     if (event.detail?.point && !addressManuallyEdited) void reversePoint(event.detail.point);
   });
@@ -364,6 +419,34 @@ export function enhanceLocationEditor(root, {
   triggerSwitch?.addEventListener('change', event => {
     if (event.currentTarget.checked) focusTextField(form.elements.triggerMessage);
   });
+
+  async function checkSavedPlaceOnStart() {
+    // Share the app-wide GPS reading rather than starting a second location watcher.
+    if (!isNew || !location?.checkNow) return;
+    try {
+      const point = await location.checkNow({
+        reason: 'new-location', maxAgeMs: 120_000, highAccuracy: true,
+        browserMaxAgeMs: 30_000, timeoutMs: 8_000
+      });
+      if (disposed || !form.isConnected || !validPoint(point)) return;
+      accuracy = Number(point.accuracy) || 0;
+      // A sublocation may intentionally inherit its parent's position.
+      // Never replace an address or GPS point already entered by the user.
+      if (!initialParent && !String(form.elements.address.value).trim() &&
+        !validPoint({ lat: form.elements.lat.value, lng: form.elements.lng.value }) &&
+        !positionEditing) {
+        changeInput(form.elements.lat, point.lat);
+        changeInput(form.elements.lng, point.lng);
+        form.dispatchEvent(new CustomEvent('sh-location-accuracy', {
+          detail: { accuracy, point: { lat: point.lat, lng: point.lng } }
+        }));
+        syncMap();
+      }
+      updateExistingNotice(validPoint({
+        lat: form.elements.lat.value, lng: form.elements.lng.value
+      }) || point);
+    } catch { /* GPS permission may be unavailable: address entry remains usable. */ }
+  }
 
   // Retain all existing handlers, IDs, nested-location relationships and saving.
   onModeChange('details');
@@ -374,6 +457,7 @@ export function enhanceLocationEditor(root, {
   syncText();
   syncMap();
   if (useGps) gpsButton.click();
+  else if (isNew) void checkSavedPlaceOnStart();
 
   function cleanup() {
     disposed = true;
