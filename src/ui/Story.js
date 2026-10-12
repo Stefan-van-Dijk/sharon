@@ -405,7 +405,7 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 }
 
 async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Tik op een thema om in te zoomen. Tik op een symbool om een plek te kiezen.</p><div class="story-location-graph" data-location-graph aria-label="Interactieve locatiegraph"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Sleep om de graph te bewegen; knijp met twee vingers om te zoomen. Tik om te kiezen.</p><div class="story-location-graph" data-location-graph aria-label="Interactieve locatiegraph"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
   const board = document.createElement('div');
@@ -496,6 +496,36 @@ async function choosePlaceType(stage, place) {
     });
   };
   layout();
+  let offsetX=0, offsetY=0, scale=1, gesture=null;
+  const contacts=new Map();
+  const paint=()=>{board.style.transform='translate('+offsetX+'px,'+offsetY+'px) scale('+scale+')';};
+  const distance=()=>{const [a,b]=[...contacts.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
+  graph.addEventListener('pointerdown',event=>{
+    contacts.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    graph.setPointerCapture(event.pointerId);
+    if(contacts.size===1)gesture={x:event.clientX,y:event.clientY,moved:false,kind:'pan'};
+    if(contacts.size===2)gesture={kind:'pinch',distance:distance(),scale};
+  });
+  graph.addEventListener('pointermove',event=>{
+    if(!contacts.has(event.pointerId))return;
+    const previous=contacts.get(event.pointerId);
+    contacts.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if(contacts.size===2){
+      if(gesture?.kind!=='pinch')gesture={kind:'pinch',distance:distance(),scale};
+      scale=Math.max(.6,Math.min(2.5,gesture.scale*distance()/Math.max(1,gesture.distance)));
+      paint();return;
+    }
+    if(!gesture||gesture.kind!=='pan')return;
+    const dx=event.clientX-previous.x,dy=event.clientY-previous.y;
+    if(Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>7)gesture.moved=true;
+    if(gesture.moved){
+      offsetX=Math.max(-graph.clientWidth,Math.min(graph.clientWidth,offsetX+dx));
+      offsetY=Math.max(-graph.clientHeight,Math.min(graph.clientHeight,offsetY+dy));
+      paint();
+    }
+  });
+  graph.addEventListener('pointerup',event=>{contacts.delete(event.pointerId);gesture=null;});
+  graph.addEventListener('pointercancel',event=>{contacts.delete(event.pointerId);gesture=null;});
   return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
 }
 
