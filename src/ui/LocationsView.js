@@ -1,14 +1,14 @@
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.19';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.19';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.19';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.19';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.19';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.19';
-import { renderLocationSentence } from './LocationSentenceLibrary.js?v=0.2.19';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.20';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.20';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.20';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.20';
+import { renderLocationSentence } from './LocationSentenceLibrary.js?v=0.2.20';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.19';
+} from '../core/location/LocationHierarchy.js?v=0.2.20';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
