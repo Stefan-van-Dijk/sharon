@@ -17,9 +17,10 @@ export function bindSwipeRows(container, {
     const remove = row.querySelector('[data-swipe-delete]');
     const secondary = row.querySelector('[data-swipe-secondary]');
     const doubleSwipe = row.hasAttribute('data-double-swipe');
+    const singleAction = row.hasAttribute('data-swipe-single');
     if (!surface) continue;
 
-    const actionWidth = () => doubleSwipe ? 176 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
+    const actionWidth = () => singleAction ? 88 : doubleSwipe ? 176 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
     const firstWidth = () => doubleSwipe ? 88 : actionWidth();
     let pointerId = null;
     let startX = 0;
@@ -93,9 +94,11 @@ export function bindSwipeRows(container, {
       }
 
       const dx = event.clientX - startX;
-      if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1)) {
+      if (startOffsetX < 0 && dx > OPEN_THRESHOLD_X * 0.7) {
+        close(true);
+      } else if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1)) {
         openSecond(true);
-      } else if (currentX <= -OPEN_THRESHOLD_X) {
+      } else if (currentX <= -Math.min(OPEN_THRESHOLD_X, actionWidth() * 0.38)) {
         open(true);
       } else {
         close(true);
