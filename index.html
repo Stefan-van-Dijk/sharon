@@ -1739,6 +1739,28 @@
 .sh-sentence-variant.is-actions-open .sh-sentence-swipe-actions{max-width:220px;opacity:1}
 .sh-sentence-swipe-actions button{white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.sh-sentence-enter{animation:none}}
+
+.sh-sentence-editor{padding-bottom:calc(140px + env(safe-area-inset-bottom,0px));min-height:100%;overflow:visible}
+.sh-sentence-editor [data-sentence-add]{scroll-margin-bottom:160px}
+.sh-sentence-editor textarea{min-height:155px;font-size:16px;resize:vertical}
+.sh-sentence-editor [data-sentence-add] button[hidden]{display:none}
+.sh-sentence-row{position:relative;overflow:hidden;border-bottom:1px solid #eee;min-height:82px}
+.sh-sentence-row-surface{position:relative;z-index:1;background:#fff;display:flex;align-items:center;gap:14px;padding:20px 0;min-height:82px;transition:transform .23s ease;touch-action:pan-y}
+.sh-sentence-row-surface>span{flex:1;line-height:1.45;font-size:16px;overflow-wrap:anywhere}
+.sh-sentence-row .sh-sentence-dot{flex:none}
+.sh-sentence-row .sh-sentence-cyan{background:#14bed2}
+.sh-sentence-row-actions{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:stretch;gap:4px}
+.sh-sentence-row.is-actions-open .sh-sentence-row-surface{transform:translateX(-164px)}
+.sh-sentence-row-actions .sh-sentence-icon-action{width:78px;background:#eeeaf6;border:0;border-radius:12px}
+.sh-sentence-row-actions .sh-sentence-icon-action:last-child{background:#fae8ea;color:#a82940}
+.sh-sentence-icon-action{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:12px;background:transparent;padding:7px 9px;min-width:52px;color:inherit}
+.sh-sentence-icon-action>span{font-size:21px;line-height:1}
+.sh-sentence-icon-action small{font-size:10px;line-height:1.2;white-space:nowrap}
+.sh-sentence-deactivate-menu{display:flex;align-items:center;gap:3px;flex-wrap:wrap;padding:8px 0 12px}
+.sh-sentence-deactivate-menu>span{width:100%;font-size:12px;color:#777}
+.sh-sentence-deactivate-menu .sh-sentence-icon-action{background:#f3f0f8}
+.sh-sentence-restore{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;opacity:.65;border-bottom:1px solid #eee}
+@media(max-width:420px){.sh-sentence-row-surface>span{font-size:15px}.sh-sentence-row-surface{gap:10px}}
 </style>
 </head>
 <body>
