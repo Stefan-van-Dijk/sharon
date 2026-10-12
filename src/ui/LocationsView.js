@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js?v=0.2.28';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.28';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.28';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.28';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant } from './LocationSentenceLibrary.js?v=0.2.28';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.28';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -220,7 +220,7 @@ export async function openLocationsView(root, {
       <div data-sentence-variants></div>
       <form data-sentence-add>
         <label class="clean-field"><span>Nieuwe zin</span><textarea name="template" rows="3" maxlength="300" required placeholder="Je bent bij [Naam] — [Type]."></textarea></label>
-        <label class="clean-field"><span>Toepassen op</span><select name="scope"><option value="location">Alleen deze locatie</option><option value="group">Alle locaties van dit type</option></select></label>
+        <label class="clean-field"><span>Toepassen op</span><select name="scope"><option value="location">Alleen deze locatie</option><option value="group">Alle locaties van dit type</option><option value="global">Alle groepen</option></select></label>
         <button class="primary-line-action" type="submit">Zin toevoegen</button>
       </form>
       <p role="status" data-sentence-status></p>
@@ -239,51 +239,105 @@ export async function openLocationsView(root, {
       const situation = stateInput.value;
       const templates = resolveSentenceVariants({ state: situation, typeId: kind, locationId: item.id, library: sentenceLibrary });
       variantsHost.replaceChildren();
+      const localAdded = sentenceLibrary.locations?.[item.id]?.added?.[situation] || [];
+      const groupAdded = sentenceLibrary.groups?.[kind]?.[situation] || [];
+      const globalAdded = sentenceLibrary.global?.[situation] || [];
+      const button = (label, action) => {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.textContent = label;
+        element.addEventListener('click', action);
+        return element;
+      };
       for (const template of templates) {
         const line = document.createElement('div');
         line.className = 'sh-sentence-variant';
         const copy = document.createElement('span');
         copy.textContent = template;
-        const exclude = document.createElement('button');
-        exclude.type = 'button';
-        exclude.textContent = 'Niet voor deze plek';
-        exclude.addEventListener('click', async () => {
+        const scope = localAdded.includes(template) ? 'location' : groupAdded.includes(template) ? 'group' : globalAdded.includes(template) ? 'global' : 'default';
+        const scopeLabel = document.createElement('small');
+        scopeLabel.textContent = scope === 'location' ? 'Alleen deze locatie' : scope === 'group' ? 'Deze typegroep' : scope === 'global' ? 'Alle groepen' : 'Standaardzin';
+        line.append(copy, scopeLabel);
+        const excludeHere = async () => {
           sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
           await persist(); draw();
-        });
-        const local = sentenceLibrary.locations?.[item.id]?.added?.[situation]?.includes(template);
-        const group = sentenceLibrary.groups?.[kind]?.[situation]?.includes(template);
-        if (local || group) {
-          const remove = document.createElement('button');
-          remove.type = 'button';
-          remove.textContent = 'Verwijder';
-          remove.setAttribute('aria-label', 'Verwijder aangemaakte zin: ' + template);
-          remove.addEventListener('click', async () => {
-            const scope = local ? 'deze locatie' : 'de hele typegroep';
-            if (!window.confirm('Deze zin verwijderen uit ' + scope + '?')) return;
-            sentenceLibrary = local
-              ? removeLocationVariant(sentenceLibrary, item.id, situation, template)
-              : removeGroupVariant(sentenceLibrary, kind, situation, template);
+        };
+        line.append(button('Niet voor deze plek', excludeHere));
+        const edit = button('Bewerk', () => {
+          line.replaceChildren();
+          const form = document.createElement('form');
+          const input = document.createElement('textarea');
+          input.rows = 3; input.maxLength = 300; input.required = true; input.value = template;
+          const scopeSelect = document.createElement('select');
+          for (const [value, label] of [['location','Alleen deze locatie'],['group','Deze typegroep'],['global','Alle groepen']]) {
+            const option = document.createElement('option'); option.value = value; option.textContent = label; scopeSelect.append(option);
+          }
+          scopeSelect.value = scope === 'default' ? 'location' : scope;
+          const save = document.createElement('button'); save.type = 'submit'; save.textContent = 'Bewaar';
+          form.append(input, scopeSelect, save, button('Annuleer', draw));
+          form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const value = input.value.trim();
+            if (!value) return;
+            const target = scopeSelect.value;
+            if (scope !== 'default' && scope !== target) {
+              if (!window.confirm('De oorspronkelijke zin wordt uit het oude toepassingsniveau verwijderd. Doorgaan?')) return;
+            }
+            if (scope === 'location') sentenceLibrary = removeLocationVariant(sentenceLibrary, item.id, situation, template);
+            else if (scope === 'group') sentenceLibrary = removeGroupVariant(sentenceLibrary, kind, situation, template);
+            else if (scope === 'global' && target === 'global') sentenceLibrary = removeGlobalVariant(sentenceLibrary, situation, template);
+            if (scope === 'global' && target !== 'global') {
+              // Preserve the global sentence; create a local/group variant instead.
+              sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
+              if (target === 'group') sentenceLibrary = setGroupVariantExcluded(sentenceLibrary, kind, situation, template, true);
+            }
+            if (scope === 'default') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
+            if (target === 'global') sentenceLibrary = addGlobalVariant(sentenceLibrary, situation, value);
+            else if (target === 'group') sentenceLibrary = updateGroupVariant(sentenceLibrary, kind, situation, value);
+            else sentenceLibrary = addLocationVariant(sentenceLibrary, item.id, situation, value);
             await persist(); draw();
           });
-          line.append(copy, exclude, remove);
-        } else line.append(copy, exclude);
+          line.append(form);
+          input.focus();
+        });
+        line.append(edit);
+        if (scope !== 'default') {
+          line.append(button('Verwijder', async () => {
+            const choice = scope === 'global'
+              ? window.prompt('Verwijderen: typ GROEP om deze groep uit te sluiten, of ALLES om de zin overal te verwijderen.', 'GROEP')
+              : scope === 'group'
+                ? window.prompt('Typ GROEP om de zin uit deze groep te verwijderen, of PLEK om deze locatie uit te sluiten.', 'GROEP')
+                : window.confirm('Deze zin verwijderen voor deze locatie?') ? 'PLEK' : '';
+            if (!choice) return;
+            if (scope === 'global' && choice.toUpperCase() === 'GROEP') sentenceLibrary = setGroupVariantExcluded(sentenceLibrary, kind, situation, template, true);
+            else if (scope === 'global' && choice.toUpperCase() === 'ALLES') sentenceLibrary = removeGlobalVariant(sentenceLibrary, situation, template);
+            else if (scope === 'group' && choice.toUpperCase() === 'GROEP') sentenceLibrary = removeGroupVariant(sentenceLibrary, kind, situation, template);
+            else if (scope === 'group' && choice.toUpperCase() === 'PLEK') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
+            else if (scope === 'location' && choice === 'PLEK') sentenceLibrary = removeLocationVariant(sentenceLibrary, item.id, situation, template);
+            else return;
+            await persist(); draw();
+          }));
+        }
         variantsHost.append(line);
       }
       const excluded = sentenceLibrary.locations?.[item.id]?.excluded?.[situation] || [];
       for (const template of excluded) {
-        const line = document.createElement('div');
-        line.className = 'sh-sentence-variant sh-sentence-excluded';
-        const copy = document.createElement('span');
-        copy.textContent = template;
-        const restore = document.createElement('button');
-        restore.type = 'button';
-        restore.textContent = 'Weer toestaan';
-        restore.addEventListener('click', async () => {
+        const line = document.createElement('div'); line.className = 'sh-sentence-variant sh-sentence-excluded';
+        const copy = document.createElement('span'); copy.textContent = template;
+        line.append(copy, button('Weer toestaan', async () => {
           sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, false);
           await persist(); draw();
-        });
-        line.append(copy, restore);
+        }));
+        variantsHost.append(line);
+      }
+      const groupExcluded = sentenceLibrary.groupExcluded?.[kind]?.[situation] || [];
+      for (const template of groupExcluded) {
+        const line = document.createElement('div'); line.className = 'sh-sentence-variant sh-sentence-excluded';
+        const copy = document.createElement('span'); copy.textContent = template + ' · Uitgesloten voor deze typegroep';
+        line.append(copy, button('Weer toestaan voor groep', async () => {
+          sentenceLibrary = setGroupVariantExcluded(sentenceLibrary, kind, situation, template, false);
+          await persist(); draw();
+        }));
         variantsHost.append(line);
       }
     };
@@ -293,7 +347,8 @@ export async function openLocationsView(root, {
       const form = event.currentTarget;
       const template = form.elements.template.value.trim();
       if (!template) return;
-      if (form.elements.scope.value === 'group') sentenceLibrary = updateGroupVariant(sentenceLibrary, kind, stateInput.value, template);
+      if (form.elements.scope.value === 'global') sentenceLibrary = addGlobalVariant(sentenceLibrary, stateInput.value, template);
+      else if (form.elements.scope.value === 'group') sentenceLibrary = updateGroupVariant(sentenceLibrary, kind, stateInput.value, template);
       else sentenceLibrary = addLocationVariant(sentenceLibrary, item.id, stateInput.value, template);
       await persist();
       form.elements.template.value = '';
