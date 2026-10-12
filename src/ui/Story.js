@@ -48,7 +48,13 @@ export async function runStory(root, {
     location
   });
 
+  copy.replaceChildren();
+  stage.replaceChildren();
+  await typeParagraphs(copy, ['Hoe wil je deze plek noemen?'], { reducedMotion });
   const placeName = await choosePlaceName(stage, place);
+  copy.replaceChildren();
+  stage.replaceChildren();
+  await typeParagraphs(copy, ['Wat is ' + placeName + ' voor jou?'], { reducedMotion });
   const kind = await choosePlaceType(stage, place, placeName);
 
   stage.innerHTML = '';
@@ -406,7 +412,7 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 
 async function choosePlaceName(stage, place) {
   stage.innerHTML = `<form class="place-search story-name-form" data-story-name>
-    <label for="story-location-name">Hoe wil je deze plek noemen?</label>
+    <label for="story-location-name" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Naam van de locatie</label>
     <div class="place-search-line">
       <input id="story-location-name" name="name" type="text" maxlength="80" autocomplete="off" required placeholder="Bijvoorbeeld: Werk, Thuis of Rollecate">
       <button type="submit">Verder</button>
@@ -422,7 +428,7 @@ async function choosePlaceName(stage, place) {
 }
 
 async function choosePlaceType(stage, place, placeName) {
-  stage.innerHTML = '<div class="place-type"><p>Wat is ' + escapeHtml(placeName) + ' voor jou?</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
   const sphere = document.createElement('div');
