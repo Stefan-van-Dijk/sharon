@@ -92,7 +92,7 @@ test('map zoom sets recognition radius; changing GPS requires explicit action', 
   assert.ok(flow.includes("mapView?.setPositionEditable(positionEditing)"));
   assert.ok(flow.includes('gpsButton.hidden = !positionEditing'));
   assert.ok(!flow.includes('data-zoom-out'));
-  assert.ok(flow.includes('typeSelect.value = option.value'));
+  assert.ok(flow.includes('typeSelect.value = id'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));
   assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
   const build = worker.match(/const BUILD = [\x27"]([^\x27"]+)[\x27"]/)?.[1];
