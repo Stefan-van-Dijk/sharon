@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js?v=0.2.27';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.27';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.27';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.27';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.27';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant } from './LocationSentenceLibrary.js?v=0.2.27';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -212,8 +212,8 @@ export async function openLocationsView(root, {
     const stateNames = { here: 'Op de locatie', near: 'In de buurt', away: 'Verder weg' };
     root.innerHTML = `<section class="module-view sh-sentence-editor">
       <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locatie</button><span>${escapeHtml(name)}</span></div>
-      <h2>Zinnenbibliotheek</h2>
-      <p>Kies welke zinnen Sharon bij deze plek mag gebruiken. [Naam], [Type] en [Afstand] worden automatisch ingevuld.</p>
+      <h2 data-sentence-intro aria-live="off"></h2>
+      <p>Gebruik [Naam], [Type] en [Afstand] om een zin passend te maken.</p>
       <label class="clean-field"><span>Afstandssituatie</span><select data-sentence-state>
         ${Object.entries(stateNames).map(([key, label]) => `<option value="${key}" ${state === key ? 'selected' : ''}>${label}</option>`).join('')}
       </select></label>
@@ -225,6 +225,10 @@ export async function openLocationsView(root, {
       </form>
       <p role="status" data-sentence-status></p>
     </section>`;
+    const intro = root.querySelector('[data-sentence-intro]');
+    const introText = 'Zo praat ik over ' + name + '. Hier kun je mijn zinnen aanpassen of me iets nieuws leren.';
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const stopIntro = typeLocationConclusion(intro, introText, { reducedMotion, speed: 32 });
     const stateInput = root.querySelector('[data-sentence-state]');
     const variantsHost = root.querySelector('[data-sentence-variants]');
     root.querySelector('[data-back]').addEventListener('click', () => detail(item));
@@ -247,7 +251,23 @@ export async function openLocationsView(root, {
           sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
           await persist(); draw();
         });
-        line.append(copy, exclude);
+        const local = sentenceLibrary.locations?.[item.id]?.added?.[situation]?.includes(template);
+        const group = sentenceLibrary.groups?.[kind]?.[situation]?.includes(template);
+        if (local || group) {
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = 'Verwijder';
+          remove.setAttribute('aria-label', 'Verwijder aangemaakte zin: ' + template);
+          remove.addEventListener('click', async () => {
+            const scope = local ? 'deze locatie' : 'de hele typegroep';
+            if (!window.confirm('Deze zin verwijderen uit ' + scope + '?')) return;
+            sentenceLibrary = local
+              ? removeLocationVariant(sentenceLibrary, item.id, situation, template)
+              : removeGroupVariant(sentenceLibrary, kind, situation, template);
+            await persist(); draw();
+          });
+          line.append(copy, exclude, remove);
+        } else line.append(copy, exclude);
         variantsHost.append(line);
       }
       const excluded = sentenceLibrary.locations?.[item.id]?.excluded?.[situation] || [];
