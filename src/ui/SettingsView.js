@@ -1,7 +1,8 @@
 export function openSettings(root, {
   settings,
   install,
-  events
+  events,
+  settingsStore = null
 }) {
   const state = settings.get();
   const installState = install.getState();
@@ -54,6 +55,19 @@ export function openSettings(root, {
       </section>
 
       <section class="settings-section">
+        <span class="settings-kicker">Testen / ontwikkeling</span>
+
+        <button type="button" class="settings-row" data-reset-onboarding>
+          <span><strong>Onboarding opnieuw starten</strong><small>Behoud locaties en overige gegevens.</small></span>
+          <span class="settings-arrow">›</span>
+        </button>
+        <button type="button" class="settings-row" data-reset-all>
+          <span><strong>Sharon volledig resetten</strong><small>Wis alle lokale gegevens en begin opnieuw.</small></span>
+          <span class="settings-arrow">›</span>
+        </button>
+      </section>
+
+      <section class="settings-section">
         <span class="settings-kicker">Webapp</span>
 
         <button type="button" class="settings-row" data-install-action ${installState.installed ? 'disabled' : ''}>
@@ -72,6 +86,8 @@ export function openSettings(root, {
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
+  const resetOnboarding = root.querySelector('[data-reset-onboarding]');
+  const resetAll = root.querySelector('[data-reset-all]');
 
   profileForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -84,6 +100,33 @@ export function openSettings(root, {
     setTimeout(() => {
       if (button.isConnected) button.textContent = 'Bewaar';
     }, 1200);
+  });
+
+  resetOnboarding?.addEventListener('click', async () => {
+    if (!confirm('Onboarding opnieuw starten? Je locaties en overige gegevens blijven bewaard.')) return;
+    await settings.update({ onboarding: { storySeen: false, firstModule: '', firstPlaceId: '' } });
+    window.location.reload();
+  });
+
+  resetAll?.addEventListener('click', async () => {
+    if (!confirm('Sharon volledig resetten? Alle lokaal opgeslagen gegevens op dit apparaat worden gewist.')) return;
+    if (!confirm('Weet je het zeker? Dit kan niet ongedaan worden gemaakt.')) return;
+    const databases = await indexedDB.databases?.();
+    if (databases?.length) {
+      await Promise.all(databases.filter(db => db.name === 'sharon').map(db => new Promise(resolve => {
+        const request = indexedDB.deleteDatabase(db.name);
+        request.onsuccess = request.onerror = request.onblocked = () => resolve();
+      })));
+    } else {
+      indexedDB.deleteDatabase('sharon');
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(key => key.startsWith('sharon-')).map(key => caches.delete(key)));
+    }
+    window.location.reload();
   });
 
   const unsubscribeAvailable = events.on('install.available', () => {
