@@ -405,130 +405,172 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 }
 
 async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Sleep om de graph te bewegen; knijp met twee vingers om te zoomen. Tik om te kiezen.</p><div class="story-location-graph" data-location-graph aria-label="Interactieve locatiegraph"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Draai de bol met je vinger. Tik op een thema of locatie en bevestig je keuze.</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
-  const board = document.createElement('div');
-  board.className = 'story-network';
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const edges = document.createElementNS(svgNS,'svg');
-  edges.setAttribute('viewBox','0 0 1000 1000');
-  edges.setAttribute('preserveAspectRatio','none');
-  edges.classList.add('story-network-edges');
-  board.append(edges);
-  graph.append(board);
-  const center = document.createElement('button');
-  center.type = 'button';
-  center.className = 'story-network-center';
-  center.textContent = 'Mijn plek';
-  center.addEventListener('click',()=>{active=null;layout();});
-  board.append(center);
-  const groups = LOCATION_GROUPS.map((group,index)=>{
-    const button=document.createElement('button');
+  const sphere = document.createElement('div');
+  sphere.className = 'story-sphere-surface';
+  const lines = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  lines.classList.add('story-sphere-lines');
+  lines.setAttribute('viewBox','0 0 1000 1000');
+  lines.setAttribute('preserveAspectRatio','none');
+  sphere.append(lines);
+  graph.append(sphere);
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  const normalize = p => { const n=Math.hypot(...p);return p.map(v=>v/n); };
+  const cross = (a,b) => [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const dot = (a,b) => a.reduce((v,x,i)=>v+x*b[i],0);
+  const nodes = [];
+  let active = null, selected = null, yaw = .15, pitch = -.12, zoom = 1;
+  const makeNode = (label,kind,point,onSelect) => {
+    const button = document.createElement('button');
     button.type='button';
-    button.className='story-network-group';
-    button.textContent=group.label;
-    button.setAttribute('aria-label',group.label);
-    board.append(button);
-    const children=group.types.map(locationType).filter(Boolean).map(type=>{
-      const child=document.createElement('button');
-      child.type='button';
-      child.className='story-network-child';
-      child.title=type.label;
-      child.setAttribute('aria-label',type.label);
-      const icon=document.createElement('span');
-      icon.className='story-network-icon';
-      icon.textContent=locationIcon(type.id);
-      const label=document.createElement('span');
-      label.className='story-network-label';
-      label.textContent=type.label;
-      child.append(icon,label);
-      child.addEventListener('click',()=>{active=group.id;selected=type.id;confirm.disabled=false;confirm.textContent=type.label+' bevestigen';layout();});
-      board.append(child);
-      return {type,button:child,line:makeLine()};
+    button.className='story-sphere-node story-sphere-'+kind;
+    button.textContent=label;
+    button.setAttribute('aria-label',label);
+    button.addEventListener('click',onSelect);
+    sphere.append(button);
+    const node={button,point,kind};
+    nodes.push(node);
+    return node;
+  };
+  const groups=LOCATION_GROUPS.map((group,i)=>{
+    const y=1-(i+.5)*2/LOCATION_GROUPS.length;
+    const r=Math.sqrt(1-y*y),a=phi*i*1.7;
+    const p=[r*Math.cos(a),y,r*Math.sin(a)];
+    const tangent=normalize(cross(p,[0,1,0]));
+    const up=normalize(cross(tangent,p));
+    const entry={group,point:p,children:[]};
+    entry.node=makeNode(group.label,'group',p,()=>{
+      active=active===group.id?null:group.id;
+      if(active)orientTo(p);
+      render();
     });
-    button.addEventListener('click',()=>{active=active===group.id?null:group.id;layout();});
-    return {group,index,button,children,line:makeLine()};
-  });
-  function makeLine(){
-    const line=document.createElementNS(svgNS,'line');
-    line.classList.add('story-network-line');
-    edges.append(line);
-    return line;
-  }
-  let active=null,selected=null;
-  const placeNode=(node,x,y,scale=1)=>{
-    node.style.left=x+'%';node.style.top=y+'%';
-    node.style.setProperty('--node-scale',scale);
-  };
-  const connect=(line,a,b)=>{
-    line.setAttribute('x1',a[0]*10);line.setAttribute('y1',a[1]*10);
-    line.setAttribute('x2',b[0]*10);line.setAttribute('y2',b[1]*10);
-  };
-  const layout=()=>{
-    const focused=groups.find(g=>g.group.id===active);
-    const root=focused?[23,50]:[50,50];
-    placeNode(center,...root,focused ? .8 : 1);
-    groups.forEach(({group,index,button,children,line})=>{
-      const angle=-Math.PI/2+index*Math.PI/3;
-      const isFocus=group.id===active;
-      const pos=focused
-        ? (isFocus?[56,50]:[23+19*Math.cos(angle),50+31*Math.sin(angle)])
-        : [50+29*Math.cos(angle),50+29*Math.sin(angle)];
-      placeNode(button,...pos,isFocus?1.4:focused ? .68 : 1);
-      button.classList.toggle('is-active',isFocus);
-      button.classList.toggle('is-muted',!!focused&&!isFocus);
-      connect(line,root,pos);
-      line.classList.toggle('is-muted',!!focused&&!isFocus);
-      children.forEach(({type,button:child,line:childLine},j)=>{
-        const n=children.length;
-        const theta=-Math.PI/2+2*Math.PI*j/n;
-        const dx=isFocus?23:focused?5:8;
-        const dy=isFocus?30:focused?8:10;
-        const p=[Math.max(5,Math.min(95,pos[0]+dx*Math.cos(theta))),Math.max(5,Math.min(95,pos[1]+dy*Math.sin(theta)))];
-        placeNode(child,...p,isFocus?(selected===type.id?1.32:1.12):focused ? .52 : .74);
-        child.classList.toggle('is-focused',isFocus);
-        child.classList.toggle('is-muted',!!focused&&!isFocus);
-        child.classList.toggle('is-selected',selected===type.id);
-        connect(childLine,pos,p);
-        childLine.classList.toggle('is-muted',!!focused&&!isFocus);
+    const types=group.types.map(locationType).filter(Boolean);
+    types.forEach((type,j)=>{
+      const theta=2*Math.PI*j/types.length+(i%2)*.4;
+      const spread=types.length===1?.32:.44;
+      const childPoint=normalize(p.map((v,k)=>v*Math.cos(spread)+Math.sin(spread)*(tangent[k]*Math.cos(theta)+up[k]*Math.sin(theta))));
+      const node=makeNode(locationIcon(type.id),'child',childPoint,()=>{
+        active=group.id;selected=type.id;
+        confirm.disabled=false;
+        confirm.textContent=type.label+' bevestigen';
+        orientTo(p);
+        render();
       });
+      node.type=type;
+      entry.children.push(node);
     });
-  };
-  layout();
-  let offsetX=0, offsetY=0, scale=1, gesture=null, ignoreTap=false;
+    return entry;
+  });
+  function orientTo(p) {
+    yaw=Math.atan2(-p[0],p[2]);
+    const z=p[2]*Math.cos(yaw)-p[0]*Math.sin(yaw);
+    pitch=Math.atan2(p[1],z);
+  }
+  function project(point) {
+    const [x,y,z]=point;
+    const xx=x*Math.cos(yaw)+z*Math.sin(yaw);
+    const zz=z*Math.cos(yaw)-x*Math.sin(yaw);
+    const yy=y*Math.cos(pitch)-zz*Math.sin(pitch);
+    const depth=y*Math.sin(pitch)+zz*Math.cos(pitch);
+    return {x:xx,y:yy,depth};
+  }
+  function render() {
+    const w=graph.clientWidth||340,h=graph.clientHeight||440;
+    const radius=Math.min(w*.40,h*.39)*zoom;
+    const coords=new Map();
+    const focused=groups.find(g=>g.group.id===active);
+    for(const entry of groups){
+      for(const node of [entry.node,...entry.children]){
+        const p=project(node.point);
+        const isFocus=entry===focused;
+        const size=node.kind==='group'? (isFocus?1.30:focused?.84:1) : (isFocus?1.24:focused?.78:.90);
+        const depthSize=.78+.22*(p.depth+1)/2;
+        const scale=size*depthSize;
+        coords.set(node,{x:w/2+p.x*radius,y:h/2-p.y*radius,scale,depth:p.depth,focus:isFocus});
+      }
+    }
+    // Separate projected points without changing their underlying spherical coordinates.
+    const all=[...coords.entries()];
+    for(let step=0;step<24;step++){
+      for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){
+        const [na,a]=all[i],[nb,b]=all[j];
+        const ra=(na.kind==='group'?38:20)*a.scale;
+        const rb=(nb.kind==='group'?38:20)*b.scale;
+        const min=ra+rb+8;
+        let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
+        if(dist>=min)continue;
+        if(dist<.001){dx=Math.cos(i*2.4+j);dy=Math.sin(i*2.4+j);dist=1;}
+        const move=(min-dist)*.52;
+        const ux=dx/dist,uy=dy/dist;
+        a.x-=ux*move;a.y-=uy*move;b.x+=ux*move;b.y+=uy*move;
+      }
+      for(const [,p] of all){p.x=Math.max(35,Math.min(w-35,p.x));p.y=Math.max(30,Math.min(h-30,p.y));}
+    }
+    lines.replaceChildren();
+    for(const entry of groups){
+      const a=coords.get(entry.node);
+      for(const child of entry.children){
+        const b=coords.get(child);
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',a.x/w*1000);line.setAttribute('y1',a.y/h*1000);
+        line.setAttribute('x2',b.x/w*1000);line.setAttribute('y2',b.y/h*1000);
+        line.setAttribute('stroke-opacity',entry===focused?.42:.15);
+        lines.append(line);
+      }
+    }
+    for(const [node,p] of all){
+      node.button.style.left=p.x+'px';
+      node.button.style.top=p.y+'px';
+      node.button.style.setProperty('--sphere-scale',p.scale.toFixed(3));
+      node.button.style.opacity=String(Math.max(.48,.83+p.depth*.16));
+      node.button.style.zIndex=String(Math.round(100+p.depth*20)+(p.focus?40:0));
+      node.button.classList.toggle('is-active',node.kind==='group'&&focused?.node===node);
+      node.button.classList.toggle('is-selected',node.type?.id===selected);
+      node.button.classList.toggle('is-focused',p.focus);
+      if(node.kind==='child')node.button.title=node.type.label;
+    }
+  }
   const contacts=new Map();
-  const paint=()=>{board.style.transform='translate('+offsetX+'px,'+offsetY+'px) scale('+scale+')';};
-  const distance=()=>{const [a,b]=[...contacts.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
-  graph.addEventListener('pointerdown',event=>{
-    contacts.set(event.pointerId,{x:event.clientX,y:event.clientY});
-    graph.setPointerCapture(event.pointerId);
-    if(contacts.size===1)gesture={x:event.clientX,y:event.clientY,moved:false,kind:'pan',node:event.target.closest('.story-network-child,.story-network-group,.story-network-center')};
-    if(contacts.size===2)gesture={kind:'pinch',distance:distance(),scale};
-  });
-  graph.addEventListener('pointermove',event=>{
-    if(!contacts.has(event.pointerId))return;
-    const previous=contacts.get(event.pointerId);
-    contacts.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  let gesture=null,ignoreClick=false;
+  graph.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    graph.setPointerCapture(e.pointerId);
+    if(contacts.size===1)gesture={x:e.clientX,y:e.clientY,moved:false};
     if(contacts.size===2){
-      if(gesture?.kind!=='pinch')gesture={kind:'pinch',distance:distance(),scale};
-      scale=Math.max(.6,Math.min(2.5,gesture.scale*distance()/Math.max(1,gesture.distance)));
-      ignoreTap=true;paint();return;
-    }
-    if(!gesture||gesture.kind!=='pan')return;
-    const dx=event.clientX-previous.x,dy=event.clientY-previous.y;
-    if(Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>7)gesture.moved=true;
-    if(gesture.moved){
-      ignoreTap=true;
-      if(gesture.node){gesture.node.style.translate=((event.clientX-gesture.x)*.55/scale)+'px '+((event.clientY-gesture.y)*.55/scale)+'px';return;}
-      offsetX=Math.max(-graph.clientWidth,Math.min(graph.clientWidth,offsetX+dx));
-      offsetY=Math.max(-graph.clientHeight,Math.min(graph.clientHeight,offsetY+dy));
-      paint();
+      const [a,b]=[...contacts.values()];
+      gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
     }
   });
-  graph.addEventListener('pointerup',event=>{contacts.delete(event.pointerId);if(gesture?.node){gesture.node.style.transition='translate .45s ease-out';gesture.node.style.translate='0px 0px';}gesture=null;setTimeout(()=>{ignoreTap=false;},100);});
-  graph.addEventListener('pointercancel',event=>{contacts.delete(event.pointerId);if(gesture?.node)gesture.node.style.translate='0px 0px';gesture=null;});
-  graph.addEventListener('click',event=>{if(ignoreTap){event.preventDefault();event.stopPropagation();}},true);
+  graph.addEventListener('pointermove',e=>{
+    if(!contacts.has(e.pointerId))return;
+    const prev=contacts.get(e.pointerId);
+    contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(contacts.size===2){
+      const [a,b]=[...contacts.values()];
+      if(!gesture?.pinch)gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
+      zoom=Math.max(.75,Math.min(1.25,gesture.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(1,gesture.distance)));
+      ignoreClick=true;render();return;
+    }
+    if(!gesture||gesture.pinch)return;
+    if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>7)gesture.moved=true;
+    if(!gesture.moved)return;
+    ignoreClick=true;
+    yaw+=(e.clientX-prev.x)*.008;
+    pitch=Math.max(-1.35,Math.min(1.35,pitch+(e.clientY-prev.y)*.008));
+    render();
+  });
+  const finish=e=>{
+    contacts.delete(e.pointerId);
+    if(contacts.size<2)gesture=null;
+    if(ignoreClick)setTimeout(()=>{ignoreClick=false;},120);
+  };
+  graph.addEventListener('pointerup',finish);
+  graph.addEventListener('pointercancel',finish);
+  graph.addEventListener('click',e=>{if(ignoreClick){e.preventDefault();e.stopPropagation();}},true);
+  render();
   return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
 }
 
