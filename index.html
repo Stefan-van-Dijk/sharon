@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.2.48">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.48">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.2.49">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.49">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1473,7 +1473,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.2.48 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.2.49 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1626,7 +1626,7 @@
       .sh-location-reference-chip{font-size:12px;padding:8px 11px}
     }
 
-    /* Location 0.2.48: contextual typewriter and compact swipe categories. */
+    /* Location 0.2.49: contextual typewriter and compact swipe categories. */
     .sh-location-reference-heading h2{min-height:1.45em;overflow-wrap:anywhere}
     .sh-location-reference-heading h2.is-typing::after{
       content:'|';display:inline-block;margin-left:2px;color:#9b9ba0;
@@ -1862,6 +1862,17 @@
 .sh-location-reference-step-back{appearance:none;border:0;background:none;color:#6d4c94;font:inherit;font-size:14px;padding:12px 0 3px;cursor:pointer}
 .sh-location-reference-step-back[hidden]{display:none!important}
 .sh-location-reference-page[data-stage="type"] .sh-location-reference-section{margin:5px 0 14px}
+
+.sh-location-parent-proposal[hidden]{display:none!important}
+.sh-location-parent-proposal{padding:8px 0 16px}
+.sh-location-parent-help{font-size:14px;line-height:1.5;color:#77727e}
+.sh-location-parent-choice{width:100%;min-height:65px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:5px;text-align:left;padding:12px 16px;margin:9px 0;border:1px solid #e5e1ec;border-radius:14px;background:#faf9fc;font:inherit}
+.sh-location-parent-choice strong{font-size:17px;font-weight:500;color:#25202c}
+.sh-location-parent-choice small{font-size:12px;color:#77717e}
+.sh-location-parent-choice[aria-pressed="true"]{border-color:#7448b1;background:#f3eefe}
+.sh-location-parent-other{background:none;border:0;padding:14px 0;color:#6840a4;font:inherit;font-size:14px}
+.sh-location-parent-proposal [data-parent-manual] .clean-field{padding:8px 0}
 </style>
 </head>
 <body>
@@ -1875,16 +1886,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.48#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.48#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.48#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.48#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.48#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.49#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.49#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.49#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.49#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.49#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.2.48"></script>
+  <script type="module" src="./src/main.js?v=0.2.49"></script>
 </body>
 </html>

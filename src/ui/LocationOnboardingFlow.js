@@ -1,4 +1,4 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.48';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.49';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
@@ -49,6 +49,20 @@ export function existingLocationAtGps(point, savedLocations = [], accuracy = 0) 
     .sort((a, b) => a.meters - b.meters)[0] || null;
 }
 
+// Match against actual recognition radii, without changing the chosen parent.
+export function parentCandidatesWithinRadius(point, places = []) {
+  const gps = validPoint(point);
+  if (!gps) return [];
+  return places.filter(place => place.id && validPoint(place.coordinates))
+    .map(place => {
+      const meters = distanceBetween(gps, place.coordinates);
+      const radiusM = Number(place.radiusM);
+      return { ...place, meters, radiusM: Number.isFinite(radiusM) && radiusM > 0 ? radiusM : 100 };
+    })
+    .filter(place => place.meters <= place.radiusM)
+    .sort((a,b) => a.radiusM - b.radiusM || a.meters - b.meters);
+}
+
 export function enhanceLocationEditor(root, {
   isNew = false, editMode = '', location, geocoder, useGps = false,
   knownLocations = [], savedLocations = [], initialParent = '', onModeChange = () => {}, saveInHeader = false,
@@ -78,7 +92,7 @@ export function enhanceLocationEditor(root, {
   const merge = page.querySelector('[data-merge-panel]');
   const typeSelect = form.elements.kind;
   const parentSelect = form.elements.parentId;
-  const eligible = knownLocations.filter(item => item.address);
+  const eligible = knownLocations;
   const byId = new Map(eligible.map(item => [item.id, item]));
   let disposed = false, mapView = null, accuracy = 0, geocodeRequest = 0;
   let addressEditing = false, addressManuallyEdited = false, lastLookupAddress = '';
@@ -97,6 +111,12 @@ export function enhanceLocationEditor(root, {
     '<div class="sh-location-reference-existing" data-existing-location hidden>' +
       '<span data-existing-copy></span><button type="button" data-open-existing>Open bestaande locatie</button>' +
     '</div>' +
+    '<section class="sh-location-parent-proposal" data-parent-proposal hidden>' +
+      '<p class="sh-location-parent-help">Hoort deze plek bij een bestaande locatie?</p>' +
+      '<div data-parent-proposal-options></div>' +
+      '<button type="button" data-parent-other class="sh-location-parent-other">Andere locatie kiezen</button>' +
+      '<div data-parent-manual hidden></div>' +
+    '</section>' +
     '<div class="sh-location-reference-name" data-name-slot></div>' +
     '<button type="button" class="sh-location-reference-step-back" data-type-back hidden>‹ Naam aanpassen</button>' +
     '<div class="sh-location-reference-place">' +
@@ -183,6 +203,10 @@ export function enhanceLocationEditor(root, {
   const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   let positionEditing = false;
   const nameSlot = view.querySelector('[data-name-slot]');
+  const hierarchyPanel = view.querySelector('[data-parent-proposal]');
+  const hierarchyOptions = view.querySelector('[data-parent-proposal-options]');
+  const manualParent = view.querySelector('[data-parent-manual]');
+  let manualParentOpen = false;
   const guided = isNew || editMode === 'identity' || editMode === 'place';
   const typeSection = typeChips.closest('.sh-location-reference-section');
 
@@ -453,10 +477,62 @@ export function enhanceLocationEditor(root, {
     } catch { /* GPS permission may be unavailable: address entry remains usable. */ }
   }
 
+  function matchingParentChoices() {
+    const matches = parentCandidatesWithinRadius(currentPoint(), eligible);
+    const current = parentSelect.value && byId.get(parentSelect.value);
+    return [current, ...matches].filter((place, i, all) =>
+      place && all.findIndex(other => other?.id === place.id) === i);
+  }
+  function needsHierarchyChoice() {
+    return matchingParentChoices().length > 0;
+  }
+  function renderHierarchyChoice() {
+    const choices = matchingParentChoices();
+    hierarchyOptions.replaceChildren();
+    const add = (value, title, help) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-location-parent-choice';
+      const strong = document.createElement('strong');
+      strong.textContent = title;
+      const small = document.createElement('small');
+      small.textContent = help;
+      button.append(strong, small);
+      button.setAttribute('aria-pressed', String(parentSelect.value === value));
+      button.addEventListener('click', () => {
+        parentSelect.value = value;
+        renderParents();
+        setNewLocationStage('name');
+      });
+      hierarchyOptions.append(button);
+    };
+    for (const place of choices.slice(0,4)) {
+      add(place.id, 'Onder ' + (place.title || 'deze locatie'),
+        'Binnen herkenningsstraal' + (Number.isFinite(place.meters) ? ' · ' + Math.round(place.meters) + ' m verder' : ''));
+    }
+    add('', 'Zelfstandige locatie', 'Niet onder een andere locatie');
+  }
+  view.querySelector('[data-parent-other]').addEventListener('click', () => {
+    manualParentOpen = !manualParentOpen;
+    manualParent.hidden = !manualParentOpen;
+    if (manualParentOpen) manualParent.append(parentLabel);
+    else view.querySelector('[data-more-fields]').prepend(parentLabel);
+    view.querySelector('[data-parent-other]').textContent = manualParentOpen
+      ? 'Verberg andere locaties' : 'Andere locatie kiezen';
+    if (view.dataset.stage === 'parent') setNewLocationStage('parent', false);
+  });
   function setNewLocationStage(stage, animate = true) {
     if (!guided) return;
     view.dataset.stage = stage;
     const placeReady = Boolean(currentPoint());
+    hierarchyPanel.hidden = stage !== 'parent';
+    if (stage === 'parent') renderHierarchyChoice();
+    if (stage !== 'parent' && manualParentOpen) {
+      manualParentOpen = false;
+      manualParent.hidden = true;
+      view.querySelector('[data-more-fields]').prepend(parentLabel);
+      view.querySelector('[data-parent-other]').textContent = 'Andere locatie kiezen';
+    }
     // Keep the name and the circular type picker on separate pages.
     nameSlot.hidden = stage !== 'name';
     const typeBack = view.querySelector('[data-type-back]');
@@ -472,7 +548,8 @@ export function enhanceLocationEditor(root, {
     placeBlock.hidden = stage !== 'place';
     mapBlock.hidden = stage !== 'place';
     existingNotice.hidden = stage !== 'place' || !selectedExisting;
-    const message = stage === 'place'
+    const message = stage === 'parent' ? 'Hoort deze plek bij een locatie die ik al ken?'
+      : stage === 'place'
       ? (isNew ? (placeReady ? 'Ik heb deze plek gevonden. Klopt de locatie?' : 'Waar wil je deze plek vastleggen?') : 'Welke positie wil je aanpassen?')
       : stage === 'name'
         ? (isNew ? 'Hoe wil je deze plek noemen?' : 'Hoe wil je deze plek voortaan noemen?')
@@ -484,7 +561,7 @@ export function enhanceLocationEditor(root, {
       stopTyping = typeLocationConclusion(conclusionElement, message, { reducedMotion: !animate || reducedMotion, speed: 30 });
     }
     if (stageButton) {
-      stageButton.hidden = stage === 'type' || (!isNew && editMode !== 'identity');
+      stageButton.hidden = stage === 'type' || (stage === 'parent' && !manualParentOpen) || (!isNew && editMode !== 'identity');
       stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
       stageButton.textContent = stage === 'place' ? 'Bevestig locatie' : 'Verder';
     }
@@ -493,7 +570,8 @@ export function enhanceLocationEditor(root, {
   function advanceNewLocationStage() {
     if (!isNew && editMode !== 'identity') return;
     const stage = view.dataset.stage || 'place';
-    if (stage === 'place' && currentPoint()) setNewLocationStage('name');
+    if (stage === 'place' && currentPoint()) setNewLocationStage(needsHierarchyChoice() ? 'parent' : 'name');
+    else if (stage === 'parent') setNewLocationStage('name');
     else if (stage === 'name' && form.elements.title.value.trim()) setNewLocationStage('type');
   }
   if (isNew || editMode === 'identity') {
@@ -522,7 +600,7 @@ export function enhanceLocationEditor(root, {
   updateConclusion(!isNew);
   syncText();
   syncMap();
-  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : 'name');
+  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : needsHierarchyChoice() ? 'parent' : 'name');
   if (useGps && !isNew) gpsButton.click();
   else if (isNew) void checkSavedPlaceOnStart();
 

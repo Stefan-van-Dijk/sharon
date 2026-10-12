@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { enhanceLocationEditor, suggestedParents, nearbyKnownLocations, existingLocationAtGps } from '../src/ui/LocationOnboardingFlow.js';
+import { enhanceLocationEditor, suggestedParents, nearbyKnownLocations, existingLocationAtGps, parentCandidatesWithinRadius } from '../src/ui/LocationOnboardingFlow.js';
 const read = file => readFile(new URL(file, import.meta.url), 'utf8');
 
 test('the preferred reference uses one editable screen, not three onboarding steps', async () => {
@@ -161,4 +161,29 @@ test('locatie toevoegen en naam/type wijzigen hebben aparte stappen met terugkno
  assert.ok(flow.includes("setNewLocationStage('name', false)"));
  assert.ok(flow.includes("setNewLocationStage('type')"));
  assert.ok(flow.includes("nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type'"));
+});
+
+test('bovenliggende locaties worden alleen binnen herkenningsstraal voorgesteld, meest specifiek eerst', () => {
+  const point = {lat:52,lng:5};
+  const options=[
+    {id:'thuis', title:'Thuis', coordinates:point, radiusM:150, address:''},
+    {id:'garage', title:'Garage', coordinates:{lat:52.00008,lng:5},radiusM:25,address:''},
+    {id:'straat', title:'Straat', coordinates:{lat:52.003,lng:5},radiusM:50},
+    {id:'ontbreekt', coordinates:null}
+  ];
+  assert.deepEqual(parentCandidatesWithinRadius(point, options).map(x=>x.id),['garage','thuis']);
+  assert.deepEqual(parentCandidatesWithinRadius(null, options),[]);
+});
+
+test('hiërarchie wordt alleen na bevestiging gewijzigd en opgeslagen met naam en type in afzonderlijke stappen', async () => {
+  const flow=await read('../src/ui/LocationOnboardingFlow.js');
+  const view=await read('../src/ui/LocationsView.js');
+  assert.ok(flow.includes("setNewLocationStage(needsHierarchyChoice() ? 'parent' : 'name')"));
+  assert.ok(flow.includes("parentSelect.value = value"));
+  assert.ok(flow.includes("setNewLocationStage('name')"));
+  assert.ok(flow.includes("setNewLocationStage('type')"));
+  assert.ok(flow.includes("add('', 'Zelfstandige locatie'"));
+  assert.ok(flow.includes("manualParent.append(parentLabel)"));
+  assert.ok(view.includes("const parentId = String(values.get('parentId') || '')"));
+  assert.ok(view.includes("...original, title, parentId, address"));
 });

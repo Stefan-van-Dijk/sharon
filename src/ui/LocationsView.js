@@ -1,14 +1,14 @@
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.48';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.48';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.48';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.48';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.48';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.48';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.48';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.49';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.49';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.49';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.49';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.49';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.49';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.49';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.48';
+} from '../core/location/LocationHierarchy.js?v=0.2.49';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -683,8 +683,7 @@ export async function openLocationsView(root, {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
     });
-    const knownLocations = choices.filter(candidate => resolveLocation(candidate, byId).address)
-      .map(candidate => {
+    const knownLocations = choices.map(candidate => {
         const effective = resolveLocation(candidate, byId);
         return {
           id: candidate.id, title: candidate.data?.title || 'Locatie',
