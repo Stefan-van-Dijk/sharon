@@ -152,3 +152,13 @@ test('afronden onboarding kan geselecteerd locatietype vertalen voor opslaan', a
   assert.ok(story.includes("kindLabel: locationType(kind)?.label"));
   assert.ok(registry.includes('export const locationType'));
 });
+
+test('locatie toevoegen en naam/type wijzigen hebben aparte stappen met terugknop', async () => {
+ const flow = await read('../src/ui/LocationOnboardingFlow.js');
+ assert.ok(flow.includes("nameSlot.hidden = stage !== 'name'"));
+ assert.ok(flow.includes("typeSection.hidden = stage !== 'type'"));
+ assert.ok(flow.includes("typeBack.hidden = stage !== 'type'"));
+ assert.ok(flow.includes("setNewLocationStage('name', false)"));
+ assert.ok(flow.includes("setNewLocationStage('type')"));
+ assert.ok(flow.includes("nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type'"));
+});

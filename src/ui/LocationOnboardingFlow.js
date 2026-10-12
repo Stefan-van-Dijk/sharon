@@ -1,4 +1,4 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.47';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.48';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
@@ -98,6 +98,7 @@ export function enhanceLocationEditor(root, {
       '<span data-existing-copy></span><button type="button" data-open-existing>Open bestaande locatie</button>' +
     '</div>' +
     '<div class="sh-location-reference-name" data-name-slot></div>' +
+    '<button type="button" class="sh-location-reference-step-back" data-type-back hidden>‹ Naam aanpassen</button>' +
     '<div class="sh-location-reference-place">' +
       '<button type="button" class="sh-location-reference-address" data-address-toggle aria-expanded="false">' +
         '<span class="sh-location-reference-marker" aria-hidden="true">⌖</span>' +
@@ -456,11 +457,15 @@ export function enhanceLocationEditor(root, {
     if (!guided) return;
     view.dataset.stage = stage;
     const placeReady = Boolean(currentPoint());
-    nameSlot.hidden = stage !== 'name' && stage !== 'type';
+    // Keep the name and the circular type picker on separate pages.
+    nameSlot.hidden = stage !== 'name';
+    const typeBack = view.querySelector('[data-type-back]');
+    typeBack.hidden = stage !== 'type';
     typeSection.hidden = stage !== 'type';
     if (stage === 'type') requestAnimationFrame(() => typeSphere?.refresh());
     parentSection.hidden = true;
-    moreSettings.hidden = stage !== 'type';
+    // Advanced settings are not part of the two-step identity editor.
+    moreSettings.hidden = stage !== 'type' || editMode === 'identity';
     nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
@@ -498,9 +503,10 @@ export function enhanceLocationEditor(root, {
     stageButton.dataset.locationNext = '';
     view.querySelector('[data-bottom-save]').prepend(stageButton);
     stageButton.addEventListener('click', advanceNewLocationStage);
+    view.querySelector('[data-type-back]').addEventListener('click', () => setNewLocationStage('name', false));
     form.elements.title.addEventListener('input', () => {
       if (view.dataset.stage === 'name') setNewLocationStage('name', false);
-      else if (view.dataset.stage === 'type') setNewLocationStage('type', false);
+      // Title is never edited on the type page.
     });
     form.elements.title.addEventListener('keydown', event => {
       if (event.key === 'Enter' && view.dataset.stage === 'name') {
