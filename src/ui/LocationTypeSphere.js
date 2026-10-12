@@ -1,4 +1,4 @@
-import { LOCATION_GROUPS, locationType, locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.45';
+import { LOCATION_GROUPS, locationType, locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.46';
 
 // Shared spherical taxonomy for first onboarding and location editing.
 export function mountLocationTypeSphere(graph, { selectedType = null, onSelect = () => {} } = {}) {
@@ -143,7 +143,9 @@ export function mountLocationTypeSphere(graph, { selectedType = null, onSelect =
   graph.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
     contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    graph.setPointerCapture(e.pointerId);
+    // Pointer capture on the parent steals the synthetic click from node buttons on iOS.
+    // Capture only a drag that starts on the empty sphere surface.
+    if (!e.target.closest('.story-sphere-node')) graph.setPointerCapture?.(e.pointerId);
     if(contacts.size===1)gesture={x:e.clientX,y:e.clientY,moved:false};
     if(contacts.size===2){
       const [a,b]=[...contacts.values()];

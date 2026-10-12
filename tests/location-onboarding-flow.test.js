@@ -135,3 +135,12 @@ test('typecirkel toont hoofdgroepen en subtypen in één draaibare weergave', as
   assert.ok(sphere.includes("const focused=groups.find"));
   assert.ok(flow.includes("typeChips.classList.add('story-location-graph', 'story-sphere')"));
 });
+
+test('sphere type buttons keep their click so onboarding confirm can enable', async () => {
+  const sphere = await read('../src/ui/LocationTypeSphere.js');
+  const story = await read('../src/ui/Story.js');
+  assert.ok(sphere.includes("!e.target.closest('.story-sphere-node')"));
+  assert.ok(sphere.includes("graph.setPointerCapture?.(e.pointerId)"));
+  assert.ok(story.includes("confirm.disabled = !id"));
+  assert.ok(story.includes("data-story-continue>Opslaan"));
+});

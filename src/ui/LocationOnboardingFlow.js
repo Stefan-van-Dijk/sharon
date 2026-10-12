@@ -1,4 +1,4 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.45';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.46';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
