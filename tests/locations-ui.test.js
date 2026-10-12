@@ -32,8 +32,8 @@ test('zinnenbibliotheek gebruikt uitsluitend swipe voor kopiëren en bewaart nie
   assert.ok(editor.includes('onEdit:id =>'));
   assert.ok(!editor.includes('onOpen:id =>'));
   assert.ok(editor.includes("dot.classList.add('sh-sentence-green')"));
-  assert.ok(editor.includes('showEditor()'));
-  assert.ok(editor.includes('keyboardScrollTimer = setTimeout('));
+  assert.ok(editor.includes('editorPage.insertBefore(form, intro)'));
+  assert.ok(editor.includes("editorPage.classList.add('is-editing')"));
 });
 
 test('zinnenbibliotheek wisselt afstandssituaties met drie tabs', async () => {
@@ -51,7 +51,10 @@ test('zinsbewerking voorkomt concurrerende scrollanimaties bij iOS-toetsenbord',
   const editor = source.slice(source.indexOf('async function sentenceEditor(item)'), source.indexOf('async function edit(',source.indexOf('async function sentenceEditor(item)')));
   assert.ok(editor.includes('textarea.focus({ preventScroll: true })'));
   assert.ok(editor.includes('outlet.scrollTop ='));
-  assert.ok(editor.includes('keyboardScrollTimer = setTimeout('));
+  assert.ok(editor.includes('formHome.insertBefore(form, status)'));
+  assert.ok(!editor.includes('keyboardScrollTimer'));
+  assert.ok(!editor.includes('setTimeout(ensureInputVisible'));
+  assert.ok(editor.includes('editorPage.insertBefore(form, intro)'));
   assert.ok(!editor.includes("visualViewport?.addEventListener('resize'"));
   assert.ok(!editor.includes("visualViewport?.addEventListener('scroll'"));
   assert.ok(!editor.includes("scrollIntoView({ behavior: 'smooth'"));
