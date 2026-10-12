@@ -1777,6 +1777,23 @@
 .sh-location-detail-swipes [data-double-swipe] .swipe-action-edit{
   background:#e7e5eb;color:#24202b;
 }
+
+/* Shared Sharon swipe-row movement and inline sentence availability. */
+.sh-sentence-editor .sh-sentence-swipe-row{position:relative;overflow:hidden;background:#fff;border-bottom:1px solid #ededf0}
+.sh-sentence-editor .sh-sentence-swipe-row .swipe-actions{width:176px;grid-template-columns:88px 88px;display:flex;justify-content:flex-end}
+.sh-sentence-editor .sh-sentence-swipe-row .swipe-actions .sh-sentence-icon-action{width:88px;min-width:88px;height:100%;border-radius:0;background:#eeeaf6;color:#4f347f}
+.sh-sentence-editor .sh-sentence-swipe-row .swipe-actions .sh-sentence-icon-action:last-child:not(:first-child){background:#f7e7eb;color:#9b283e}
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-row-surface{position:relative;z-index:2;box-sizing:border-box;width:100%;min-width:0;display:flex;gap:12px;align-items:center;min-height:88px;background:#fff;padding:13px 2px;touch-action:pan-y;will-change:transform;overflow:visible}
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-text{font-size:16px;line-height:1.45;flex:1;min-width:0;overflow-wrap:anywhere}
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-dot{flex:none}
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-status-button{width:92px;min-width:82px;flex:0 0 92px;padding:7px 0;gap:5px;color:#5b4676}
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-status-button small{font-size:10px;max-width:92px;white-space:normal}
+.sh-sentence-editor .sh-sentence-swipe-row.sh-sentence-inactive .sh-sentence-text{color:#929296}
+.sh-sentence-editor .sh-sentence-swipe-row.sh-sentence-inactive .sh-sentence-status-button{color:#7c6b87}
+.sh-sentence-editor .sh-sentence-scope-choices{position:absolute;z-index:5;top:100%;right:0;display:flex;max-width:100%;flex-wrap:wrap;gap:5px;padding:8px;background:#f5f1fa;border-radius:12px;box-shadow:0 3px 12px #0001}
+.sh-sentence-editor .sh-sentence-swipe-row:has(.sh-sentence-scope-choices){overflow:visible;margin-bottom:125px}
+.sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action{min-width:88px;max-width:110px;flex:1 1 28%;padding:7px 5px}
+.sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action small{font-size:10px;white-space:normal}
 </style>
 </head>
 <body>
