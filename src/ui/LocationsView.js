@@ -67,7 +67,6 @@ export async function openLocationsView(root, {
             return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}">
               <div class="swipe-row" data-swipe-row="${escapeAttribute(item.id)}">
                 <div class="swipe-actions">
-                  <button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk</button>
                   <button type="button" class="swipe-action-delete" data-swipe-delete>Verwijder</button>
                 </div>
                 <button type="button" class="clean-row swipe-surface sh-location-row" data-swipe-surface>
@@ -90,7 +89,6 @@ export async function openLocationsView(root, {
     root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
       onOpen: id => detail(byId.get(id)),
-      onEdit: id => edit(byId.get(id)),
       onDelete: id => removeLocation(id)
     });
     root.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', async () => {
