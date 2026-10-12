@@ -24,7 +24,9 @@ export function resolveSentenceVariants({state,typeId,locationId,library={}}){
   const global=(library.global?.[state]||[]).filter(v=>!(library.groupExcluded?.[typeId]?.[state]||[]).includes(v));
   const local=library.locations?.[locationId]||{};
   const excluded=new Set(local.excluded?.[state]||[]);
-  return [...base,...global,...group,...(local.added?.[state]||[])].filter((v,i,a)=>v&&!excluded.has(v)&&a.indexOf(v)===i);
+  const excludedEverywhere=new Set(library.globalExcluded?.[state]||[]);
+  const groupExcluded=new Set(library.groupExcluded?.[typeId]?.[state]||[]);
+  return [...base,...global,...group,...(local.added?.[state]||[])].filter((v,i,a)=>v&&!excluded.has(v)&&!excludedEverywhere.has(v)&&!groupExcluded.has(v)&&a.indexOf(v)===i);
 }
 export function renderLocationSentence({name,typeLabel,typeId,locationId,point,current,radiusM,library,lastSentence=''}) {
   const situation=distanceSituation(point,current,radiusM);
@@ -74,4 +76,10 @@ export function setGroupVariantExcluded(library,typeId,state,template,excluded=t
   const next=structuredClone(library||{});next.groupExcluded??={};next.groupExcluded[typeId]??={};next.groupExcluded[typeId][state]??=[];
   const set=new Set(next.groupExcluded[typeId][state]);excluded?set.add(template):set.delete(template);
   next.groupExcluded[typeId][state]=[...set];return next;
+}
+
+export function setGlobalVariantExcluded(library,state,template,excluded=true){
+ const next=structuredClone(library||{}); next.globalExcluded??={};next.globalExcluded[state]??=[];
+ const values=new Set(next.globalExcluded[state]);if(excluded)values.add(template);else values.delete(template);
+ next.globalExcluded[state]=[...values];return next;
 }
