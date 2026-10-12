@@ -3,7 +3,7 @@ import { focusTextField } from './TextInputFocus.js?v=0.1.93';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.2.02';
 import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.02';
 
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.43';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.44';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -428,7 +428,7 @@ async function choosePlaceName(stage, place) {
 }
 
 async function choosePlaceType(stage, place, placeName) {
-  stage.innerHTML = '<div class="place-type"><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  stage.innerHTML = '<div class="place-type"><div class="story-location-graph sh-type-picker-host" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
   const confirm = stage.querySelector('[data-graph-confirm]');
   let selected = null;

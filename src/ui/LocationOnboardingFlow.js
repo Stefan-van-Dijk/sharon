@@ -1,4 +1,4 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.43';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.44';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
@@ -326,7 +326,7 @@ export function enhanceLocationEditor(root, {
   let typeSphere = null;
   function renderTypes() {
     if (typeSphere) return;
-    typeChips.classList.add('story-location-graph', 'story-sphere');
+    typeChips.classList.add('sh-type-picker-host');
     typeChips.setAttribute('aria-label', 'Draaibare cirkel voor locatietypen');
     typeSphere = mountLocationTypeSphere(typeChips, {
       selectedType: typeSelect.value,
@@ -458,7 +458,7 @@ export function enhanceLocationEditor(root, {
     const placeReady = Boolean(currentPoint());
     nameSlot.hidden = stage !== 'name' && stage !== 'type';
     typeSection.hidden = stage !== 'type';
-    if (stage === 'type') requestAnimationFrame(() => typeSphere?.refresh());
+    if (stage === 'type') typeSphere?.refresh();
     parentSection.hidden = true;
     moreSettings.hidden = stage !== 'type';
     nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
