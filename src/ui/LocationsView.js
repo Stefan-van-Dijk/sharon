@@ -3,7 +3,8 @@ import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.17';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.17';
-import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.17';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.17';
+import { renderLocationSentence } from './LocationSentenceLibrary.js?v=0.2.18';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -18,6 +19,8 @@ export async function openLocationsView(root, {
 }) {
   let objects = [], locations = [], byId = new Map();
   let prefs = (await store.get('meta', PREF_KEY))?.value || { sort: 'alpha', order: [] };
+  let sentenceLibrary = (await store.get('meta', 'locations.sentenceLibrary'))?.value || {};
+  let lastSentence = '';
   let unbindSwipes = null;
   let releaseEditor = null;
 
@@ -146,8 +149,12 @@ export async function openLocationsView(root, {
     const title = item.data?.title || 'Locatie';
     const kind = item.data?.kind || 'other';
     const kindLabel = TYPES.get(kind) || 'Andere plek';
-    const baseSentence = locationConclusion(title, point, location?.latest, radius(item.data?.radiusM));
-    const sentence = baseSentence.replace(/\.$/, '') + ' — ' + kindLabel + '.';
+    const sentence = renderLocationSentence({
+      name: title, typeLabel: kindLabel, typeId: kind, locationId: item.id,
+      point, current: location?.latest, radiusM: radius(item.data?.radiusM),
+      library: sentenceLibrary, lastSentence
+    });
+    lastSentence = sentence;
     root.innerHTML = `
       <section class="module-view sh-location-detail-view">
         <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
