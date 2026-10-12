@@ -68,10 +68,8 @@ async function showFirstRunStory(root) {
     askForNamePrepared(root);
     resolve();
   }, { once: true }));
-  panel.classList.remove('is-visible');
-  await sleep(180);
-  panel.innerHTML = '';
   panel.classList.remove('is-story');
+  panel.classList.add('is-visible');
 }
 
 function askForNamePrepared(root) {
