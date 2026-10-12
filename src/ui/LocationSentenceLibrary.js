@@ -45,3 +45,16 @@ export function addLocationVariant(library,locationId,state,template){
   const next=structuredClone(library||{}); next.locations??={}; next.locations[locationId]??={}; next.locations[locationId].added??={}; next.locations[locationId].added[state]??=[];
   if(!next.locations[locationId].added[state].includes(template))next.locations[locationId].added[state].push(template); return next;
 }
+
+export function removeLocationVariant(library,locationId,state,template){
+  const next=structuredClone(library||{});
+  const values=next.locations?.[locationId]?.added?.[state];
+  if(Array.isArray(values))next.locations[locationId].added[state]=values.filter(value=>value!==template);
+  return next;
+}
+export function removeGroupVariant(library,typeId,state,template){
+  const next=structuredClone(library||{});
+  const values=next.groups?.[typeId]?.[state];
+  if(Array.isArray(values))next.groups[typeId][state]=values.filter(value=>value!==template);
+  return next;
+}
