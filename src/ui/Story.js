@@ -29,6 +29,7 @@ export async function runStory(root, {
 
   const copy = root.querySelector('[data-story-copy]');
   const caret = root.querySelector('[data-type-caret]');
+  caret.hidden = true;
   const stage = root.querySelector('[data-story-stage]');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -50,7 +51,6 @@ export async function runStory(root, {
   const kind = await choosePlaceType(stage, place);
 
   stage.innerHTML = '';
-  caret.hidden = false;
   copy.innerHTML = '';
 
   await typeParagraphs(copy, [
@@ -58,8 +58,6 @@ export async function runStory(root, {
     'Bij herkenning kunnen triggers worden geactiveerd.',
     'Daarbij kan Sharon het moment combineren met eerdere keuzes en vastleggingen.'
   ], { reducedMotion });
-
-  caret.hidden = true;
 
   stage.innerHTML = `
     <button type="button" class="story-continue" data-story-continue>Opslaan</button>
@@ -495,7 +493,7 @@ async function choosePlaceType(stage, place) {
       for(const node of [entry.node,...entry.children]){
         const p=project(node.point);
         const isFocus=entry===focused;
-        const size=node.kind==='group'? (isFocus?1.48:focused?.98:1.22) : (isFocus?1.10:focused?.76:.80);
+        const size=node.kind==='group'? (isFocus?1.18:focused?.80:1.00) : (isFocus?1.53:focused?.48:.78);
         const depthSize=.78+.22*(p.depth+1)/2;
         const scale=size*depthSize;
         coords.set(node,{x:w/2+p.x*radius,y:h/2-p.y*radius,scale,depth:p.depth,focus:isFocus});
@@ -508,7 +506,7 @@ async function choosePlaceType(stage, place) {
         const [na,a]=all[i],[nb,b]=all[j];
         const ra=(na.kind==='group'?45:31)*a.scale;
         const rb=(nb.kind==='group'?38:31)*b.scale;
-        const min=ra+rb+5;
+        const min=ra+rb+9;
         let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
         if(dist>=min)continue;
         if(dist<.001){dx=Math.cos(i*2.4+j);dy=Math.sin(i*2.4+j);dist=1;}
@@ -516,7 +514,7 @@ async function choosePlaceType(stage, place) {
         const ux=dx/dist,uy=dy/dist;
         a.x-=ux*move;a.y-=uy*move;b.x+=ux*move;b.y+=uy*move;
       }
-      for(const [,p] of all){p.x=Math.max(40,Math.min(w-40,p.x));p.y=Math.max(36,Math.min(h-36,p.y));}
+      for(const [,p] of all){p.x=Math.max(48,Math.min(w-48,p.x));p.y=Math.max(48,Math.min(h-48,p.y));}
     }
     lines.replaceChildren();
     for(const entry of groups){
@@ -601,17 +599,20 @@ async function typeParagraphs(container, lines, { reducedMotion = false } = {}) 
 }
 
 async function typeLine(element, text) {
+  const textNode = document.createTextNode('');
+  const caret = document.createElement('span');
+  caret.className = 'story-inline-caret';
+  caret.setAttribute('aria-hidden','true');
+  element.append(textNode,caret);
   for (let index = 0; index < text.length; index += 1) {
-    element.textContent += text[index];
-
+    textNode.textContent += text[index];
     const character = text[index];
     let delay = 27;
-
     if (character === '.' || character === ',' || character === ':') delay = 105;
     if (character === ' ') delay = 17;
-
     await sleep(delay);
   }
+  caret.remove();
 }
 
 function waitForClick(root, selector) {
