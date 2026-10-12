@@ -120,6 +120,11 @@
 
     .intro-copy{min-height:142px;margin-top:28px;opacity:0;transform:translateY(5px);transition:opacity .18s ease,transform .24s ease}
     .intro-copy.is-visible{opacity:1;transform:translateY(0)}
+    .intro-copy.is-story{text-align:left}
+    .intro-copy.is-story .sharon-story-line{margin:0 0 16px;color:#111;font-size:clamp(21px,5.2vw,27px);line-height:1.45;font-weight:300;letter-spacing:-.025em}
+    .intro-copy.is-story .sharon-story-line:last-of-type{margin-bottom:22px}
+    .intro-copy.is-story .sharon-story-line:last-of-type:not(:empty)::after{content:'';display:inline-block;width:1.5px;height:.95em;margin-left:3px;background:#111;vertical-align:-.1em;animation:typeCaret .82s steps(1,end) infinite}
+    .intro-copy.is-story .story-continue{display:block;margin-top:8px}
     .sharon-welcome{margin:18px 0 0;color:#6f6f74;font-size:15px;letter-spacing:-.01em}
     .sharon-intro-form{text-align:left}
     .sharon-intro-form label{display:block;margin-bottom:12px;color:#66666b;font-size:13px}
