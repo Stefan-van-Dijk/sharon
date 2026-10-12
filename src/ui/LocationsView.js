@@ -507,23 +507,10 @@ export async function openLocationsView(root, {
       };
     });
     releaseEditor = enhanceLocationEditor(root, {
-      isNew, useGps, location, geocoder, events, knownLocations, savedLocations,
+      isNew, editMode, useGps, location, geocoder, events, knownLocations, savedLocations,
       initialParent, onOpenExisting: id => detail(byId.get(id)), saveInHeader: false
     });
-    if (!isNew && editMode) {
-      const ref = root.querySelector('.sh-location-reference-page');
-      const name = ref?.querySelector('[data-name-slot]');
-      const place = ref?.querySelector('.sh-location-reference-place');
-      const map = ref?.querySelector('.sh-location-reference-map-panel');
-      const typeSection = ref?.querySelector('[data-type-chips]')?.closest('.sh-location-reference-section');
-      const parentSection = ref?.querySelector('[data-parent-section]');
-      const more = ref?.querySelector('[data-more]');
-      if (editMode === 'identity') {
-        if (place) place.hidden = true; if (map) map.hidden = true; if (parentSection) parentSection.hidden = true; if (more) more.hidden = true;
-      } else if (editMode === 'place') {
-        if (name) name.hidden = true; if (typeSection) typeSection.hidden = true; if (parentSection) parentSection.hidden = true; if (more) more.hidden = true;
-      }
-    }
+
   }
 
 
