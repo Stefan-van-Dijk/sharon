@@ -1,10 +1,10 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.00';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.01';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.00';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.01';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.00';
+} from '../core/location/LocationHierarchy.js?v=0.2.01';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -348,9 +348,16 @@ export async function openLocationsView(root, {
           radiusM: radius(candidate.data?.radiusM)
         };
       });
+    const savedLocations = choices.map(candidate => {
+      const effective = resolveLocation(candidate, byId);
+      return {
+        id: candidate.id, title: candidate.data?.title || 'Locatie',
+        coordinates: effective.coordinates, radiusM: radius(candidate.data?.radiusM)
+      };
+    });
     releaseEditor = enhanceLocationEditor(root, {
-      isNew, useGps, location, geocoder, events, knownLocations, initialParent,
-      saveInHeader: false
+      isNew, useGps, location, geocoder, events, knownLocations, savedLocations,
+      initialParent, onOpenExisting: id => edit(byId.get(id)), saveInHeader: false
     });
   }
 

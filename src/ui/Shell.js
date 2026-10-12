@@ -1,4 +1,4 @@
-import { openLocationsView } from './LocationsView.js?v=0.2.00';
+import { openLocationsView } from './LocationsView.js?v=0.2.01';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.90';
 import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';

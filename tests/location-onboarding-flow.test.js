@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { enhanceLocationEditor, suggestedParents, nearbyKnownLocations } from '../src/ui/LocationOnboardingFlow.js';
+import { enhanceLocationEditor, suggestedParents, nearbyKnownLocations, existingLocationAtGps } from '../src/ui/LocationOnboardingFlow.js';
 const read = file => readFile(new URL(file, import.meta.url), 'utf8');
 
 test('the preferred reference uses one editable screen, not three onboarding steps', async () => {
@@ -46,6 +46,29 @@ test('closest saved places are proposed, but user keeps control of hierarchy', (
   assert.deepEqual(nearbyKnownLocations({lat:52,lng:5},data).map(x=>x.id),['close']);
 });
 
+test('existing GPS places are suggested before creating a duplicate, including places without address', () => {
+  const saved = [
+    { id: 'here', title: 'Werk', coordinates: { lat: 52, lng: 5 }, radiusM: 100 },
+    { id: 'far', title: 'Andere plek', coordinates: { lat: 53, lng: 5 }, radiusM: 100 },
+    { id: 'empty', title: 'Geen GPS', coordinates: null }
+  ];
+  assert.equal(existingLocationAtGps({lat:52, lng:5}, saved)?.id, 'here');
+  assert.equal(existingLocationAtGps({lat:52.00016, lng:5}, saved)?.id, 'here');
+  assert.equal(existingLocationAtGps({lat:52.01, lng:5}, saved), null);
+  assert.equal(existingLocationAtGps({lat:null, lng:null}, saved), null);
+});
+
+test('GPS lookup happens on committed address, and a fresh GPS check is made when adding', async () => {
+  const source = await read('../src/ui/LocationOnboardingFlow.js');
+  assert.ok(source.includes("form.elements.address.addEventListener('change'"));
+  assert.ok(source.includes("void checkSavedPlaceOnStart()"));
+  assert.ok(source.includes("maxAgeMs: 120_000"));
+  assert.ok(source.includes('onOpenExisting(selectedExisting.id)'));
+  assert.ok(source.includes("lastLookupAddress = text;"));
+  assert.ok(source.includes("myRequest !== geocodeRequest"));
+  assert.ok(!source.includes("address.addEventListener('input', () => { void lookupAddress()"));
+});
+
 test('all existing data fields and actions remain saved once', async () => {
   const flow = await read('../src/ui/LocationOnboardingFlow.js');
   const locations = await read('../src/ui/LocationsView.js');
@@ -72,8 +95,8 @@ test('map zoom sets recognition radius; changing GPS requires explicit action', 
   assert.ok(flow.includes('typeSelect.value = option.value'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));
   assert.ok(!flow.includes('data-radius-range'), 'a separate slider is no longer present');
-  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.2.00"));
-  assert.ok(worker.includes("const BUILD = '0.2.00'"));
+  assert.ok(worker.includes("LocationOnboardingFlow.js?v=0.2.01"));
+  assert.ok(worker.includes("const BUILD = '0.2.01'"));
 });
 
 test('isolated locations show no unnecessary main-location choices', async () => {
