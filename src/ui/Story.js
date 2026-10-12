@@ -444,6 +444,7 @@ async function choosePlaceType(stage, place) {
       if(!active){selected=null;confirm.disabled=true;confirm.textContent='Bevestigen';}
       if(active)orientTo(p);
       render();
+    });
     const types=group.types.map(locationType).filter(Boolean);
     types.forEach((type,j)=>{
       const theta=2*Math.PI*j/types.length+(i%2)*.4;
@@ -453,7 +454,11 @@ async function choosePlaceType(stage, place) {
         const deselect=selected===type.id;
         active=deselect?null:group.id;
         selected=deselect?null:type.id;
+        confirm.disabled=!selected;
+        confirm.textContent=selected?type.label+' bevestigen':'Bevestigen';
         if(!deselect)orientTo(p);
+        render();
+      });
       node.type=type;
       const icon = document.createElement('span');
       icon.className='story-sphere-icon';
@@ -463,12 +468,14 @@ async function choosePlaceType(stage, place) {
       label.textContent=type.label;
       node.button.replaceChildren(icon,label);
       entry.children.push(node);
+    });
     return entry;
   });
   function orientTo(p) {
     yaw=Math.atan2(-p[0],p[2]);
     const z=p[2]*Math.cos(yaw)-p[0]*Math.sin(yaw);
     pitch=Math.atan2(p[1],z);
+  }
   function project(point) {
     const [x,y,z]=point;
     const xx=x*Math.cos(yaw)+z*Math.sin(yaw);
@@ -537,6 +544,8 @@ async function choosePlaceType(stage, place) {
   }
   const contacts=new Map();
   let gesture=null,ignoreClick=false;
+  graph.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
     contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     graph.setPointerCapture(e.pointerId);
     if(contacts.size===1)gesture={x:e.clientX,y:e.clientY,moved:false};
@@ -544,6 +553,7 @@ async function choosePlaceType(stage, place) {
       const [a,b]=[...contacts.values()];
       gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
     }
+  });
   graph.addEventListener('pointermove',e=>{
     if(!contacts.has(e.pointerId))return;
     const prev=contacts.get(e.pointerId);
@@ -553,6 +563,7 @@ async function choosePlaceType(stage, place) {
       if(!gesture?.pinch)gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
       zoom=Math.max(.75,Math.min(1.25,gesture.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(1,gesture.distance)));
       ignoreClick=true;render();return;
+    }
     if(!gesture||gesture.pinch)return;
     if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>7)gesture.moved=true;
     if(!gesture.moved)return;
@@ -560,6 +571,7 @@ async function choosePlaceType(stage, place) {
     yaw+=(e.clientX-prev.x)*.008;
     pitch=Math.max(-1.35,Math.min(1.35,pitch+(e.clientY-prev.y)*.008));
     render();
+  });
   const finish=e=>{
     contacts.delete(e.pointerId);
     if(contacts.size<2)gesture=null;
@@ -568,7 +580,9 @@ async function choosePlaceType(stage, place) {
   graph.addEventListener('pointerup',finish);
   graph.addEventListener('pointercancel',finish);
   graph.addEventListener('click',e=>{if(ignoreClick){e.preventDefault();e.stopPropagation();}},true);
+  render();
   return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
+}
 
 async function typeParagraphs(container, lines, { reducedMotion = false } = {}) {
   for (const line of lines) {
