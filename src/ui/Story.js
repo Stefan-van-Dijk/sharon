@@ -3,7 +3,7 @@ import { focusTextField } from './TextInputFocus.js?v=0.1.93';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.2.02';
 import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.02';
 
-import { LOCATION_GROUPS, LOCATION_TYPES, locationType } from '../core/location/LocationTypeRegistry.js?v=0.2.07';
+import { LOCATION_GROUPS, LOCATION_TYPES, locationType, locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.07';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -391,70 +391,60 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
 }
 
 async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Tik op een thema om de bijbehorende plekken te vergroten. Kies daarna rechtstreeks een plek.</p><div class="story-location-graph" data-location-graph aria-label="Interactieve locatiecategorieën"></div></div>';
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><p class="story-graph-hint">Kies rechtstreeks in de graph en bevestig je keuze.</p><div class="story-location-graph" data-location-graph aria-label="Locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
   const graph = stage.querySelector('[data-location-graph]');
-  let active = null;
+  const confirm = stage.querySelector('[data-graph-confirm]');
+  let active = null, selected = null;
   const render = () => {
-    graph.innerHTML = '';
+    graph.replaceChildren();
     const board = document.createElement('div');
     board.className = 'story-graph-board';
     const center = document.createElement('div');
     center.className = 'story-graph-center';
     center.textContent = 'Mijn plek';
     board.append(center);
-    const count = LOCATION_GROUPS.length;
-    LOCATION_GROUPS.forEach((group, i) => {
-      const angle = -Math.PI / 2 + 2 * Math.PI * i / count;
+    const positions = [
+      [50,12],[82,28],[82,72],[50,88],[18,72],[18,28]
+    ];
+    LOCATION_GROUPS.forEach((group,i) => {
+      const [x,y] = positions[i];
       const focused = active === group.id;
-      const muted = active && !focused;
-      const x = 50 + 32 * Math.cos(angle), y = 48 + 30 * Math.sin(angle);
+      const muted = active !== null && !focused;
       const node = document.createElement('button');
       node.type = 'button';
-      node.className = 'story-graph-node story-graph-group' + (focused ? ' is-active' : '') + (muted ? ' is-muted' : '');
+      node.className = 'story-graph-node story-graph-group' + (focused?' is-active':'') + (muted?' is-muted':'');
       node.textContent = group.label;
-      node.style.left = x + '%';
-      node.style.top = y + '%';
-      node.setAttribute('aria-pressed', String(focused));
-      node.addEventListener('click', () => { active = focused ? null : group.id; render(); });
+      node.style.left = x+'%'; node.style.top = y+'%';
+      node.setAttribute('aria-pressed',String(focused));
+      node.addEventListener('click',()=>{active=focused?null:group.id;render();});
       board.append(node);
-      const members = group.types.map(id => locationType(id)).filter(Boolean);
-      members.forEach((type, j) => {
+      const members = group.types.map(locationType).filter(Boolean);
+      members.forEach((type,j) => {
         const sub = document.createElement('button');
         sub.type = 'button';
-        sub.className = 'story-graph-node story-graph-type' + (focused ? ' is-expanded' : '') + (muted ? ' is-muted' : '');
+        sub.className = 'story-graph-node story-graph-type' + (focused?' is-expanded':'') + (muted?' is-muted':'') + (selected===type.id?' is-selected':'');
+        const angle = -Math.PI/2 + 2*Math.PI*j/members.length;
+        const radiusX = focused?17:9, radiusY=focused?12:7;
+        sub.style.left = Math.max(7,Math.min(93,x+radiusX*Math.cos(angle)))+'%';
+        sub.style.top = Math.max(5,Math.min(95,y+radiusY*Math.sin(angle)))+'%';
         sub.title = type.label;
-        sub.setAttribute('aria-label', type.label);
-        const radius = focused ? 17 : 9;
-        const spread = (j - (members.length - 1) / 2) * (focused ? .56 : .45);
-        const a = angle + spread;
-        const sx = x + radius * Math.cos(a);
-        const sy = y + radius * Math.sin(a);
-        sub.style.left = Math.max(8,Math.min(92,sx)) + '%';
-        sub.style.top = Math.max(6,Math.min(94,sy)) + '%';
+        sub.setAttribute('aria-label',type.label);
+        sub.setAttribute('aria-pressed',String(selected===type.id));
         const symbol = document.createElement('span');
-        symbol.className = 'story-graph-symbol';
-        symbol.textContent = locationGlyph(type.icon);
+        symbol.className='story-graph-symbol';
+        symbol.textContent=locationIcon(type.id);
         const label = document.createElement('span');
-        label.className = 'story-graph-label';
-        label.textContent = type.label;
+        label.className='story-graph-label';
+        label.textContent=type.label;
         sub.append(symbol,label);
-        sub.addEventListener('click', () => { graph.dispatchEvent(new CustomEvent('location-type-selected',{detail:type.id})); });
+        sub.addEventListener('click',()=>{selected=type.id;active=group.id;confirm.disabled=false;confirm.textContent=type.label+' bevestigen';render();});
         board.append(sub);
       });
     });
     graph.append(board);
   };
   render();
-  return new Promise(resolve => graph.addEventListener('location-type-selected', e => resolve(e.detail), { once: true }));
-}
-function locationGlyph(icon) {
-  return ({
-    house:'⌂', users:'♧', 'user-round':'◉', 'bed-double':'▤',
-    briefcase:'▣', handshake:'◇', 'hard-hat':'▰', 'building-2':'▥',
-    parking:'P', fuel:'⛽', 'train-front':'▦', basket:'▧',
-    'shopping-bag':'▢', utensils:'♨', coffee:'☕', activity:'◈',
-    'graduation-cap':'▱', 'heart-pulse':'♡', 'map-pin':'⌖'
-  })[icon] || '•';
+  return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);},{once:false}));
 }
 
 async function typeParagraphs(container, lines, { reducedMotion = false } = {}) {
