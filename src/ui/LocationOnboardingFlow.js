@@ -84,6 +84,8 @@ export function enhanceLocationEditor(root, {
   let selectedExisting = null;
   let stopTyping = () => {};
   let previousConclusion = '';
+  let stageMessage = '';
+  let stageButton = null;
 
   // The reference image is a single page, not an onboarding questionnaire.
   const view = document.createElement('div');
@@ -185,6 +187,7 @@ export function enhanceLocationEditor(root, {
     const value = locationConclusion(
       form.elements.title.value, currentPoint(), location?.latest, form.elements.radiusM.value
     );
+    if (isNew && view.dataset.stage) return;
     if (value === previousConclusion) return;
     previousConclusion = value;
     stopTyping();
@@ -222,7 +225,8 @@ export function enhanceLocationEditor(root, {
     addressText.textContent = text;
     const point = currentPoint();
     coordinatesText.textContent = point ? point.lat.toFixed(5) + ', ' + point.lng.toFixed(5) : 'Nog geen GPS-positie';
-    updateConclusion();
+    if (isNew && view.dataset.stage === 'place') setNewLocationStage('place', false);
+    else updateConclusion();
   }
   function changeInput(field, value) {
     field.value = String(value);
@@ -450,45 +454,59 @@ export function enhanceLocationEditor(root, {
     } catch { /* GPS permission may be unavailable: address entry remains usable. */ }
   }
 
-  function setNewLocationStage(stage) {
+  function setNewLocationStage(stage, animate = true) {
     if (!isNew) return;
+    view.dataset.stage = stage;
     const placeReady = Boolean(currentPoint());
-    nameSlot.hidden = stage === 'place';
+    nameSlot.hidden = stage !== 'name';
     typeSection.hidden = stage !== 'type';
-    parentSection.hidden = stage === 'place';
+    parentSection.hidden = true;
     moreSettings.hidden = stage !== 'type';
     nativeSave.hidden = stage !== 'type' || Boolean(saveInHeader);
-    if (stage === 'place') {
-      conclusionElement.textContent = placeReady ? 'Dit is de plek. Klopt de positie?' : 'Waar is deze plek?';
-    } else if (stage === 'name') {
-      conclusionElement.textContent = 'Hoe wil je deze plek noemen?';
-      nameSlot.hidden = false;
-      focusTextField(form.elements.title);
-    } else {
-      conclusionElement.textContent = 'Wat is ' + (form.elements.title.value.trim() || 'deze plek') + ' voor jou?';
-      nameSlot.hidden = false;
-      typeSection.hidden = false;
+    const placeBlock = view.querySelector('.sh-location-reference-place');
+    const mapBlock = view.querySelector('.sh-location-reference-map-panel');
+    placeBlock.hidden = stage !== 'place';
+    mapBlock.hidden = stage !== 'place';
+    existingNotice.hidden = stage !== 'place' || !selectedExisting;
+    const message = stage === 'place'
+      ? (placeReady ? 'Ik heb deze plek gevonden. Klopt de locatie?' : 'Waar wil je deze plek vastleggen?')
+      : stage === 'name'
+        ? 'Hoe wil je deze plek noemen?'
+        : 'Wat is ' + (form.elements.title.value.trim() || 'deze plek') + ' voor jou?';
+    if (message !== stageMessage) {
+      stageMessage = message;
+      stopTyping();
+      conclusionElement.setAttribute('aria-label', message);
+      stopTyping = typeLocationConclusion(conclusionElement, message, { reducedMotion: !animate || reducedMotion, speed: 30 });
     }
+    if (stageButton) {
+      stageButton.hidden = stage === 'type';
+      stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
+      stageButton.textContent = stage === 'place' ? 'Bevestig locatie' : 'Verder';
+    }
+    if (stage === 'name' && animate) focusTextField(form.elements.title);
   }
   function advanceNewLocationStage() {
     if (!isNew) return;
     const stage = view.dataset.stage || 'place';
-    if (stage === 'place' && currentPoint()) { view.dataset.stage = 'name'; setNewLocationStage('name'); }
-    else if (stage === 'name' && form.elements.title.value.trim()) { view.dataset.stage = 'type'; setNewLocationStage('type'); }
+    if (stage === 'place' && currentPoint()) setNewLocationStage('name');
+    else if (stage === 'name' && form.elements.title.value.trim()) setNewLocationStage('type');
   }
   if (isNew) {
-    view.dataset.stage = 'place';
-    const next = document.createElement('button');
-    next.type = 'button'; next.className = 'primary-line-action'; next.dataset.locationNext = '';
-    next.textContent = 'Verder';
-    view.querySelector('[data-bottom-save]').prepend(next);
-    next.addEventListener('click', () => {
-      advanceNewLocationStage();
-      next.hidden = view.dataset.stage === 'type';
+    stageButton = document.createElement('button');
+    stageButton.type = 'button';
+    stageButton.className = 'primary-line-action';
+    stageButton.dataset.locationNext = '';
+    view.querySelector('[data-bottom-save]').prepend(stageButton);
+    stageButton.addEventListener('click', advanceNewLocationStage);
+    form.elements.title.addEventListener('input', () => {
+      if (view.dataset.stage === 'name') setNewLocationStage('name', false);
+      else if (view.dataset.stage === 'type') setNewLocationStage('type', false);
     });
     form.elements.title.addEventListener('keydown', event => {
       if (event.key === 'Enter' && view.dataset.stage === 'name') {
-        event.preventDefault(); advanceNewLocationStage(); next.hidden = view.dataset.stage === 'type';
+        event.preventDefault();
+        advanceNewLocationStage();
       }
     });
   }
