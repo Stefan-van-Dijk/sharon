@@ -22,6 +22,7 @@ export async function runStory(root, {
     <section class="story-layer" aria-label="Start met Sharon">
       <header class="story-brand" aria-label="Sharon">
         ${sharonWordmark({ mode: 'sharon', className: 'story-brand-vector', label: 'Sharon' })}
+        <button type="button" class="story-save-position" data-use-current aria-label="Deze positie gebruiken" title="Deze positie gebruiken" hidden>✓</button>
       </header>
 
       <div class="story-content">
@@ -38,8 +39,8 @@ export async function runStory(root, {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const intro = name
-    ? [`Mag ik iets laten zien, ${name}?`, 'Ik begin met waar je nu bent.']
-    : ['Mag ik iets laten zien?', 'Ik begin met waar je nu bent.'];
+    ? [`Mag ik je iets laten zien, ${name}?`]
+    : ['Mag ik je iets laten zien?'];
 
   await typeParagraphs(copy, intro, { reducedMotion });
 
@@ -48,7 +49,8 @@ export async function runStory(root, {
 
   const place = await choosePlace(stage, {
     detected,
-    geocoder
+    geocoder,
+    location
   });
 
   const kind = await choosePlaceType(stage, place);
@@ -127,122 +129,177 @@ async function detectPlace(stage, { location, geocoder }) {
   };
 }
 
-async function choosePlace(stage, { detected, geocoder }) {
-  if (!detected) return searchOtherPlace(stage, geocoder);
+async function choosePlace(stage, { detected, geocoder, location }) {
+  let selected = detected;
+  if (!selected) selected = await searchOtherPlace(stage, geocoder);
+  if (!selected) return null;
 
-  renderPlace(stage, detected, { showQuestion: true });
-  const preview = await mountSuggestedPlaceMap(stage, detected);
-  const selectedPoint = () => ({ ...detected, ...preview.point });
-
+  renderPlace(stage, selected, { showQuestion: true });
+  const save = stage.closest('.story-layer')?.querySelector('[data-use-current]');
+  if (save) save.hidden = false;
+  const preview = await mountSuggestedPlaceMap(stage, selected, { geocoder, location });
   return new Promise(resolve => {
-    stage.addEventListener('click', async event => {
-      const current = event.target.closest('[data-use-current]');
-      if (current) {
-        preview.dispose();
-        const selected = selectedPoint();
-        if (preview.changed && geocoder?.reverse) {
-          try { Object.assign(selected, await geocoder.reverse(selected)); } catch {}
-        }
-        resolve(selected);
-        return;
-      }
-
-      const other = event.target.closest('[data-other-place]');
-      if (other) {
-        preview.dispose();
-        const selected = await searchOtherPlace(stage, geocoder, selectedPoint());
-        resolve(selected);
-      }
-    }, { once: false });
+    const finish = async () => {
+      if (save) save.hidden = true;
+      const result = await preview.getSelected();
+      preview.dispose();
+      resolve(result);
+    };
+    save?.addEventListener('click', finish, { once: true });
   });
 }
 
-async function mountSuggestedPlaceMap(stage, initial) {
+async function mountSuggestedPlaceMap(stage, initial, { geocoder, location }) {
   const host = stage.querySelector('[data-story-location-map]');
   const arrows = stage.querySelector('[data-story-location-arrows]');
+  const gpsButton = stage.querySelector('[data-story-gps]');
+  const editButton = stage.querySelector('[data-story-edit-address]');
+  const editor = stage.querySelector('[data-story-address-editor]');
+  const searchInput = editor?.querySelector('input');
+  const status = stage.querySelector('[data-story-map-status]');
+  let selected = { ...initial };
   let point = { lat: Number(initial.lat), lng: Number(initial.lng) };
-  let changed = false;
-  let disposed = false;
-  let map = null;
-  let marker = null;
-  const showPosition = () => {
+  let disposed = false, requestId = 0, map = null, marker = null;
+  const setStatus = message => { if (status) status.textContent = message; };
+  const display = () => {
     const coordinates = stage.querySelector('.place-coordinates');
     if (coordinates) coordinates.textContent = formatCoordinates(point);
+    const address = stage.querySelector('.place-address');
+    if (address) {
+      address.replaceChildren();
+      for (const line of [selected.line1, selected.line2].filter(Boolean)) {
+        const div = document.createElement('div');
+        div.textContent = line;
+        address.append(div);
+      }
+      if (!address.childElementCount) address.textContent = 'Adres onbekend';
+    }
     marker?.setLngLat([point.lng, point.lat]);
     map?.easeTo({ center: [point.lng, point.lat], duration: 160 });
   };
-  const setPoint = next => {
-    if (disposed || !Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
-    point = next;
-    changed = true;
-    showPosition();
+  const updatePoint = async (next, address = null) => {
+    if (disposed || !Number.isFinite(Number(next?.lat)) || !Number.isFinite(Number(next?.lng))) return;
+    const token = ++requestId;
+    point = { lat: Number(next.lat), lng: Number(next.lng) };
+    selected = { ...selected, ...point, accuracy: 0, line1: address?.line1 || '', line2: address?.line2 || '' };
+    display();
+    if (address) { selected = { ...selected, ...address, ...point }; display(); return; }
+    if (!geocoder?.reverse) return;
+    setStatus('Adres bepalen…');
+    try {
+      const result = await geocoder.reverse(point);
+      if (disposed || token !== requestId) return;
+      selected = { ...selected, ...(result || {}), ...point };
+      display();
+      setStatus('');
+    } catch { if (token === requestId) setStatus('Adres niet beschikbaar; coördinaten blijven bewaard.'); }
   };
   arrows?.addEventListener('click', event => {
     const direction = event.target.closest('[data-move]')?.dataset.move;
     if (!direction) return;
     const latStep = 2 / 111320;
     const lngStep = 2 / (111320 * Math.max(0.01, Math.cos(point.lat * Math.PI / 180)));
-    setPoint({
+    void updatePoint({
       lat: Math.max(-90, Math.min(90, point.lat + (direction === 'north' ? latStep : direction === 'south' ? -latStep : 0))),
       lng: Math.max(-180, Math.min(180, point.lng + (direction === 'east' ? lngStep : direction === 'west' ? -lngStep : 0)))
     });
   });
+  gpsButton?.addEventListener('click', async () => {
+    gpsButton.disabled = true;
+    setStatus('Huidige locatie bepalen…');
+    try {
+      const gps = await location.checkNow({
+        reason: 'onboarding-recenter', maxAgeMs: 0, highAccuracy: true,
+        browserMaxAgeMs: 0, timeoutMs: 10000
+      });
+      if (!disposed && gps) await updatePoint(gps);
+    } catch { if (!disposed) setStatus('Huidige locatie niet beschikbaar.'); }
+    finally { gpsButton.disabled = false; }
+  });
+  editButton?.addEventListener('click', () => {
+    editor.hidden = !editor.hidden;
+    editButton.setAttribute('aria-expanded', String(!editor.hidden));
+    if (!editor.hidden) {
+      searchInput.value = [selected.line1, selected.line2].filter(Boolean).join(', ');
+      focusTextField(searchInput);
+    }
+  });
+  editor?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const query = searchInput.value.trim();
+    if (!query) return;
+    const button = editor.querySelector('button');
+    button.disabled = true;
+    setStatus('Adres zoeken…');
+    try {
+      const results = await geocoder.search(query);
+      const match = results?.find(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)));
+      if (match) {
+        await updatePoint(match, match);
+        editor.hidden = true;
+        editButton.setAttribute('aria-expanded', 'false');
+        setStatus('');
+      } else setStatus('Adres niet gevonden. Probeer een vollediger adres.');
+    } catch { setStatus('Adres zoeken is tijdelijk niet beschikbaar.'); }
+    finally { button.disabled = false; }
+  });
   try {
     const lib = await loadSharonRenderer();
-    if (disposed || !host?.isConnected) return { get point() { return point; }, get changed() { return changed; }, dispose() {} };
-    map = createSharonMap(lib, {
-      container: host, style: environmentStyle,
-      center: [point.lng, point.lat], zoom: 18,
-      interactive: true, dragPan: true, scrollZoom: true,
-      touchZoomRotate: true, doubleClickZoom: true,
-      dragRotate: false, pitchWithRotate: false, maxPitch: 0,
-      attributionControl: { compact: true }
-    });
-    map.touchZoomRotate?.disableRotation?.();
-    if (lib.Marker) {
-      const pin = document.createElement('div');
-      pin.className = 'sh-location-map-pin';
-      marker = new lib.Marker({ element: pin, anchor: 'center', draggable: false })
-        .setLngLat([point.lng, point.lat]).addTo(map);
+    if (!disposed && host?.isConnected) {
+      map = createSharonMap(lib, {
+        container: host, style: environmentStyle, center: [point.lng, point.lat], zoom: 18,
+        interactive: true, dragPan: true, scrollZoom: true, touchZoomRotate: true,
+        doubleClickZoom: true, dragRotate: false, pitchWithRotate: false,
+        maxPitch: 0, attributionControl: { compact: true }
+      });
+      map.touchZoomRotate?.disableRotation?.();
+      if (lib.Marker) {
+        const pin = document.createElement('div');
+        pin.className = 'sh-location-map-pin';
+        marker = new lib.Marker({ element: pin, anchor: 'center', draggable: false })
+          .setLngLat([point.lng, point.lat]).addTo(map);
+      }
+      map.on('click', event => {
+        if (event.lngLat) void updatePoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      });
     }
-    map.on('click', event => {
-      if (event.lngLat) setPoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
-    });
-  } catch (error) {
-    if (host) host.textContent = 'Kaart tijdelijk niet beschikbaar. Gebruik de pijltjes.';
-  }
+  } catch { setStatus('Kaart tijdelijk niet beschikbaar. Gebruik de pijltjes of het adres.'); }
   return {
-    get point() { return point; },
-    get changed() { return changed; },
-    dispose() { disposed = true; marker?.remove(); map?.remove(); }
+    async getSelected() { return { ...selected, ...point }; },
+    dispose() { disposed = true; ++requestId; marker?.remove(); map?.remove(); }
   };
 }
 
 function renderPlace(stage, place, { showQuestion = false } = {}) {
-  const coordinates = formatCoordinates(place);
-  const hasAddress = Boolean(place.line1 || place.line2);
-
   stage.innerHTML = `
-    ${showQuestion ? '<div class="story-location-map" data-story-location-map aria-label="Locatie op de kaart"></div><div class="story-location-arrows" data-story-location-arrows aria-label="GPS-positie bijstellen"><button type="button" data-move="west" aria-label="2 meter west">←</button><button type="button" data-move="north" aria-label="2 meter noord">↑</button><button type="button" data-move="south" aria-label="2 meter zuid">↓</button><button type="button" data-move="east" aria-label="2 meter oost">→</button></div><p class="story-location-tip">Tik op de kaart voor een precieze plek, of gebruik de pijltjes (2 m per stap).</p>' : ''}
-    <div class="detected-place">
-      <div class="place-coordinates">${escapeHtml(coordinates)}</div>
-      ${hasAddress ? `
-        <div class="place-address">
-          ${place.line1 ? `<div>${escapeHtml(place.line1)}</div>` : ''}
-          ${place.line2 ? `<div>${escapeHtml(place.line2)}</div>` : ''}
+    <div class="detected-place story-address-block">
+      <div class="story-address-heading">
+        <div><div class="story-address-label">Je bent nu op:</div>
+          <div class="place-address">
+            ${place.line1 ? `<div>${escapeHtml(place.line1)}</div>` : ''}
+            ${place.line2 ? `<div>${escapeHtml(place.line2)}</div>` : ''}
+            ${!place.line1 && !place.line2 ? '<div>Adres onbekend</div>' : ''}
+          </div>
+          <div class="place-coordinates">${escapeHtml(formatCoordinates(place))}</div>
         </div>
-        <div class="place-source">Adres via OpenStreetMap</div>
-      ` : '<div class="story-note">Geen adres gevonden bij deze coördinaten.</div>'}
-    </div>
-
-    ${showQuestion ? `
-      <div class="place-confirm">
-        <p>Klopt deze positie?</p>
-        <div class="story-actions">
-          <button type="button" class="story-primary-action" data-use-current>Deze positie gebruiken</button>
-          <button type="button" class="story-text-action" data-other-place>Andere plek kiezen</button>
-        </div>
+        ${showQuestion ? '<button type="button" class="story-address-edit" data-story-edit-address aria-expanded="false" aria-label="Adres aanpassen" title="Adres aanpassen">✎</button>' : ''}
       </div>
+      ${showQuestion ? '<form class="story-address-editor" data-story-address-editor hidden><input type="search" aria-label="Adres invoeren" placeholder="Straat, huisnummer en plaats" required><button type="submit">Zoeken</button></form>' : ''}
+    </div>
+    ${showQuestion ? `
+      <p class="story-position-question">Klopt deze positie of wil je het aanpassen?</p>
+      <div class="story-location-map-wrap">
+        <div class="story-location-map" data-story-location-map aria-label="Locatie op de kaart"></div>
+        <button type="button" class="story-map-gps" data-story-gps aria-label="Huidige locatie" title="Huidige locatie">⌖</button>
+      </div>
+      <div class="story-location-arrows" data-story-location-arrows aria-label="GPS-positie bijstellen">
+        <button type="button" data-move="west" aria-label="2 meter west">←</button>
+        <button type="button" data-move="north" aria-label="2 meter noord">↑</button>
+        <button type="button" data-move="south" aria-label="2 meter zuid">↓</button>
+        <button type="button" data-move="east" aria-label="2 meter oost">→</button>
+      </div>
+      <p class="story-location-tip">Tik op de kaart of verplaats de positie met 2 meter per stap.</p>
+      <p class="story-map-status" data-story-map-status role="status"></p>
     ` : ''}
   `;
 }
