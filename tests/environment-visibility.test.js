@@ -93,5 +93,7 @@ test('credits start expanded, collapse on explicit hide, and remain recoverable 
   assert.ok(map.includes('attributionControl: { compact: false }'));
   assert.ok(editor.includes("listen(positionSide, 'touchstart', beginSwipe"));
   assert.ok(editor.includes("if (horizontal && dx >= 58) setStyleMode(true)"));
-  assert.ok(worker.includes("EnvironmentVisibility.js?v=0.2.01"));
+  const build = worker.match(/const BUILD = [\x27"]([^\x27"]+)[\x27"]/)?.[1];
+  assert.ok(build);
+  assert.ok(worker.includes(`EnvironmentVisibility.js?v=${build}`));
 });
