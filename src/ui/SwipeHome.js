@@ -1,7 +1,7 @@
 const HORIZONTAL_RATIO = 1.25;
-const SNAP_PROGRESS = 0.28;
-const FLING_VELOCITY = 0.45;
-const EDGE_PX = 104;
+const SNAP_PROGRESS = 0.52;
+const FLING_VELOCITY = 0.85;
+const EDGE_PX = 48;
 const DIRECTION_LOCK = 10;
 
 const clamp = (value, min = 0, max = 1) =>
@@ -24,9 +24,9 @@ export function bindSwipeHome(surface, onHome, {
     // Map and horizontally scrollable location types own their own gestures.
     if (target.closest('[data-maplibre-map],[data-environment-map],[data-map-readout],[data-radius-map],[data-type-chips]')) return true;
 
-    // A swipe row owns leftward gestures, but deliberately leaves
-    // rightward gestures available for home navigation.
-    if (target.closest('[data-swipe-surface]')) return false;
+    // A swipe row owns the full horizontal gesture. A right swipe must
+    // restore its position rather than navigate to another page.
+    if (target.closest('[data-swipe-row], .sh-sentence-row')) return true;
 
     return Boolean(target.closest(
       'input,textarea,select,a,button,[contenteditable="true"]'
@@ -108,6 +108,8 @@ export function bindSwipeHome(surface, onHome, {
     if (event.touches?.length !== 1) return;
     if (!surface.contains(event.target)) return;
     if (isInteractiveTarget(event.target)) return;
+    // Never navigate while a row action is expanded; restore that row first.
+    if (surface.querySelector('.swipe-row.is-actions-open, .sh-sentence-row.is-actions-open')) return;
 
     const point = touchPoint(event);
     if (!point) return;
