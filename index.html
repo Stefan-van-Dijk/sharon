@@ -1812,6 +1812,14 @@
 /* Location list: open on tap, delete on swipe; editing happens within location details. */
 .sh-locations-list .swipe-actions{width:92px;display:flex;grid-template-columns:none}
 .sh-locations-list .swipe-actions .swipe-action-delete{width:92px;min-width:92px}
+
+/* Standard sentence has one swipe action, never a blank second slot. */
+.sh-sentence-editor .sh-sentence-swipe-row[data-swipe-single] .swipe-actions{
+  width:88px!important;grid-template-columns:88px;justify-content:flex-end;
+}
+.sh-sentence-editor .sh-sentence-swipe-row[data-swipe-single] .swipe-actions .sh-sentence-icon-action{
+  width:88px;min-width:88px;
+}
 </style>
 </head>
 <body>
