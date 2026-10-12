@@ -63,11 +63,22 @@ async function showFirstRunStory(root) {
   button.className = 'story-continue';
   button.textContent = 'Zullen we kennismaken?';
   panel.append(button);
-  await new Promise(resolve => button.addEventListener('click', resolve, { once: true }));
+  await new Promise(resolve => button.addEventListener('click', () => {
+    // Build the name field inside the tap gesture so iOS can open its keyboard.
+    askForNamePrepared(root);
+    resolve();
+  }, { once: true }));
   panel.classList.remove('is-visible');
   await sleep(180);
   panel.innerHTML = '';
   panel.classList.remove('is-story');
+}
+
+function askForNamePrepared(root) {
+  const panel = root.querySelector('[data-intro-copy]');
+  if (!panel) return;
+  panel.innerHTML = '<form class="sharon-intro-form" data-sharon-intro-form><label for="sharonIntroName">Mag ik je naam noteren?</label><input id="sharonIntroName" name="name" type="text" maxlength="80" autocomplete="name" autocapitalize="words" enterkeyhint="done" required><button type="submit">Verder</button></form>';
+  focusTextField(panel.querySelector('input[name="name"]'));
 }
 
 function askForName(root, { initialName = '' } = {}) {
@@ -75,7 +86,7 @@ function askForName(root, { initialName = '' } = {}) {
   if (!intro) return Promise.resolve('');
 
   const panel = intro.querySelector('[data-intro-copy]');
-  panel.innerHTML = `
+  if (!panel.querySelector('[data-sharon-intro-form]')) panel.innerHTML = `
     <form class="sharon-intro-form" data-sharon-intro-form>
       <label for="sharonIntroName">Mag ik je naam noteren?</label>
       <input
@@ -96,6 +107,7 @@ function askForName(root, { initialName = '' } = {}) {
 
   const form = panel.querySelector('[data-sharon-intro-form]');
   const input = form.querySelector('input[name="name"]');
+  if (initialName && !input.value) input.value = initialName;
   focusTextField(input);
 
   return new Promise(resolve => {
