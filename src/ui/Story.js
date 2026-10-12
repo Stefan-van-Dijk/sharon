@@ -1,5 +1,7 @@
 import { sharonWordmark } from './Brand.js?v=0.1.42';
 import { focusTextField } from './TextInputFocus.js?v=0.1.93';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.2.02';
+import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.02';
 
 const PLACE_TYPES = [
   { id: 'home', label: 'Thuis' },
@@ -129,22 +131,91 @@ async function choosePlace(stage, { detected, geocoder }) {
   if (!detected) return searchOtherPlace(stage, geocoder);
 
   renderPlace(stage, detected, { showQuestion: true });
+  const preview = await mountSuggestedPlaceMap(stage, detected);
+  const selectedPoint = () => ({ ...detected, ...preview.point });
 
   return new Promise(resolve => {
     stage.addEventListener('click', async event => {
       const current = event.target.closest('[data-use-current]');
       if (current) {
-        resolve(detected);
+        preview.dispose();
+        const selected = selectedPoint();
+        if (preview.changed && geocoder?.reverse) {
+          try { Object.assign(selected, await geocoder.reverse(selected)); } catch {}
+        }
+        resolve(selected);
         return;
       }
 
       const other = event.target.closest('[data-other-place]');
       if (other) {
-        const selected = await searchOtherPlace(stage, geocoder, detected);
+        preview.dispose();
+        const selected = await searchOtherPlace(stage, geocoder, selectedPoint());
         resolve(selected);
       }
     }, { once: false });
   });
+}
+
+async function mountSuggestedPlaceMap(stage, initial) {
+  const host = stage.querySelector('[data-story-location-map]');
+  const arrows = stage.querySelector('[data-story-location-arrows]');
+  let point = { lat: Number(initial.lat), lng: Number(initial.lng) };
+  let changed = false;
+  let disposed = false;
+  let map = null;
+  let marker = null;
+  const showPosition = () => {
+    const coordinates = stage.querySelector('.place-coordinates');
+    if (coordinates) coordinates.textContent = formatCoordinates(point);
+    marker?.setLngLat([point.lng, point.lat]);
+    map?.easeTo({ center: [point.lng, point.lat], duration: 160 });
+  };
+  const setPoint = next => {
+    if (disposed || !Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
+    point = next;
+    changed = true;
+    showPosition();
+  };
+  arrows?.addEventListener('click', event => {
+    const direction = event.target.closest('[data-move]')?.dataset.move;
+    if (!direction) return;
+    const latStep = 2 / 111320;
+    const lngStep = 2 / (111320 * Math.max(0.01, Math.cos(point.lat * Math.PI / 180)));
+    setPoint({
+      lat: Math.max(-90, Math.min(90, point.lat + (direction === 'north' ? latStep : direction === 'south' ? -latStep : 0))),
+      lng: Math.max(-180, Math.min(180, point.lng + (direction === 'east' ? lngStep : direction === 'west' ? -lngStep : 0)))
+    });
+  });
+  try {
+    const lib = await loadSharonRenderer();
+    if (disposed || !host?.isConnected) return { get point() { return point; }, get changed() { return changed; }, dispose() {} };
+    map = createSharonMap(lib, {
+      container: host, style: environmentStyle,
+      center: [point.lng, point.lat], zoom: 18,
+      interactive: true, dragPan: true, scrollZoom: true,
+      touchZoomRotate: true, doubleClickZoom: true,
+      dragRotate: false, pitchWithRotate: false, maxPitch: 0,
+      attributionControl: { compact: true }
+    });
+    map.touchZoomRotate?.disableRotation?.();
+    if (lib.Marker) {
+      const pin = document.createElement('div');
+      pin.className = 'sh-location-map-pin';
+      marker = new lib.Marker({ element: pin, anchor: 'bottom', draggable: false })
+        .setLngLat([point.lng, point.lat]).addTo(map);
+    }
+    map.on('click', event => {
+      if (event.lngLat) setPoint({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+    });
+  } catch (error) {
+    if (host) host.textContent = 'Kaart tijdelijk niet beschikbaar. Gebruik de pijltjes.';
+  }
+  return {
+    get point() { return point; },
+    get changed() { return changed; },
+    dispose() { disposed = true; marker?.remove(); map?.remove(); }
+  };
 }
 
 function renderPlace(stage, place, { showQuestion = false } = {}) {
@@ -152,6 +223,7 @@ function renderPlace(stage, place, { showQuestion = false } = {}) {
   const hasAddress = Boolean(place.line1 || place.line2);
 
   stage.innerHTML = `
+    ${showQuestion ? '<div class="story-location-map" data-story-location-map aria-label="Locatie op de kaart"></div><div class="story-location-arrows" data-story-location-arrows aria-label="GPS-positie bijstellen"><button type="button" data-move="west" aria-label="2 meter west">←</button><button type="button" data-move="north" aria-label="2 meter noord">↑</button><button type="button" data-move="south" aria-label="2 meter zuid">↓</button><button type="button" data-move="east" aria-label="2 meter oost">→</button></div><p class="story-location-tip">Tik op de kaart voor een precieze plek, of gebruik de pijltjes (2 m per stap).</p>' : ''}
     <div class="detected-place">
       <div class="place-coordinates">${escapeHtml(coordinates)}</div>
       ${hasAddress ? `
