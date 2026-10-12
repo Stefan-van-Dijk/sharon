@@ -337,6 +337,7 @@ export async function openLocationsView(root, {
         row.className = 'swipe-row sh-sentence-swipe-row';
         if (excludedStatus) row.classList.add('sh-sentence-inactive');
         row.dataset.swipeRow = String(index);
+        if (source === 'default') row.setAttribute('data-swipe-single', '');
         const actions = document.createElement('div');
         actions.className = 'swipe-actions';
         const editAction = iconButton('✎', source === 'default' ? 'Kopieer' : 'Bewerk', () => beginEdit(template,source,situation));
@@ -368,10 +369,17 @@ export async function openLocationsView(root, {
           variantsHost.querySelectorAll('.sh-sentence-scope-choices').forEach(el=>el.remove());
           const menu = document.createElement('div');
           menu.className = 'sh-sentence-scope-choices';
-          const choices = [
-            ['location','Voor deze locatie'],['group','Voor deze groep'],['global','Overal van toepassing'],
-            ['excludedLocation','Uitsluiten voor deze locatie'],['excludedGroup','Uitsluiten voor deze groep'],['excludedGlobal','Overal uitsluiten']
-          ];
+          const choices = source === 'default'
+            ? [
+                ['global','Overal van toepassing'],
+                ['excludedLocation','Uitsluiten voor deze locatie'],
+                ['excludedGroup','Uitsluiten voor deze groep'],
+                ['excludedGlobal','Overal uitsluiten']
+              ]
+            : [
+                ['location','Voor deze locatie'],['group','Voor deze groep'],['global','Overal van toepassing'],
+                ['excludedLocation','Uitsluiten voor deze locatie'],['excludedGroup','Uitsluiten voor deze groep'],['excludedGlobal','Overal uitsluiten']
+              ];
           for (const [key,text] of choices) {
             menu.append(iconButton(scopes[key][0],text,async () => {
               // Each choice defines exactly one effective status; no extra row.
