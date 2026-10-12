@@ -560,7 +560,7 @@ export async function openLocationsView(root, {
     const form = root.querySelector('[data-location-form]');
     const status = root.querySelector('[data-editor-status]');
     const setStatus = msg => { status.textContent = msg; };
-    root.querySelector('[data-back]').addEventListener('click', () => list());
+    root.querySelector('[data-back]').addEventListener('click', () => item ? detail(item) : list());
     root.querySelector('[data-add-child]')?.addEventListener('click', () => edit(null, item.id));
     root.querySelector('[data-open-merge]')?.addEventListener('click', () => {
       const panel = root.querySelector('[data-merge-panel]');
@@ -681,7 +681,8 @@ export async function openLocationsView(root, {
         }
         events.emit(item ? 'location.updated' : 'location.created', { id: savedId });
         await reload();
-        await list('Locatie bewaard.');
+        if (item) await detail(byId.get(savedId));
+        else await list('Locatie bewaard.');
       } catch (error) {
         setStatus(error.message);
       } finally { saveButton.disabled = false; }
