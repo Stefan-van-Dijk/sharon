@@ -1794,6 +1794,20 @@
 .sh-sentence-editor .sh-sentence-swipe-row:has(.sh-sentence-scope-choices){overflow:visible;margin-bottom:125px;z-index:8}
 .sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action{min-width:88px;max-width:110px;flex:1 1 28%;padding:7px 5px}
 .sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action small{font-size:10px;white-space:normal}
+
+/* Sentence library: only swipe actions copy or edit, custom sentences are green. */
+.sh-sentence-editor .sh-sentence-swipe-row .sh-sentence-dot.sh-sentence-green{background:#39b879!important}
+.sh-sentence-editor [data-sentence-add]{
+  scroll-margin-top:110px;
+  scroll-margin-bottom:calc(200px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));
+}
+.sh-sentence-editor [data-sentence-add] textarea{
+  min-height:145px;
+  scroll-margin-top:120px;
+  scroll-margin-bottom:180px;
+}
+.sh-sentence-editor{padding-bottom:calc(240px + env(safe-area-inset-bottom,0px))}
 </style>
 </head>
 <body>
