@@ -144,3 +144,11 @@ test('sphere type buttons keep their click so onboarding confirm can enable', as
   assert.ok(story.includes("confirm.disabled = !id"));
   assert.ok(story.includes("data-story-continue>Opslaan"));
 });
+
+test('afronden onboarding kan geselecteerd locatietype vertalen voor opslaan', async () => {
+  const story = await read('../src/ui/Story.js');
+  const registry = await read('../src/core/location/LocationTypeRegistry.js');
+  assert.ok(story.includes("import { locationType } from '../core/location/LocationTypeRegistry.js"));
+  assert.ok(story.includes("kindLabel: locationType(kind)?.label"));
+  assert.ok(registry.includes('export const locationType'));
+});
