@@ -34,3 +34,13 @@ test('zinnenbibliotheek gebruikt uitsluitend swipe voor kopiëren en bewaart nie
   assert.ok(editor.includes("dot.classList.add('sh-sentence-green')"));
   assert.ok(editor.includes('ensureInputVisible()'));
 });
+
+test('zinnenbibliotheek wisselt afstandssituaties met drie tabs', async () => {
+  const source = await readFile(new URL('../src/ui/LocationsView.js', import.meta.url), 'utf8');
+  const editor = source.slice(source.indexOf('async function sentenceEditor(item)'), source.indexOf('async function edit(', source.indexOf('async function sentenceEditor(item)')));
+  assert.ok(editor.includes('role="tablist"'));
+  assert.ok(editor.includes('data-sentence-tab='));
+  assert.ok(editor.includes("selectedSituation = next"));
+  assert.ok(editor.includes("selectSituation(tab.dataset.sentenceTab)"));
+  assert.ok(!editor.includes('data-sentence-state'));
+});
