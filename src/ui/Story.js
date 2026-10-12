@@ -459,6 +459,13 @@ async function choosePlaceType(stage, place) {
         render();
       });
       node.type=type;
+      const icon = document.createElement('span');
+      icon.className='story-sphere-icon';
+      icon.textContent=locationIcon(type.id);
+      const label=document.createElement('span');
+      label.className='story-sphere-label';
+      label.textContent=type.label;
+      node.button.replaceChildren(icon,label);
       entry.children.push(node);
     });
     return entry;
@@ -477,8 +484,8 @@ async function choosePlaceType(stage, place) {
     return {x:xx,y:yy,depth};
   }
   function render() {
-    const w=graph.clientWidth||340,h=graph.clientHeight||440;
-    const radius=Math.min(w*.40,h*.39)*zoom;
+    const w=sphere.clientWidth||320,h=sphere.clientHeight||320;
+    const radius=Math.min(w,h)*.37*zoom;
     const coords=new Map();
     const focused=groups.find(g=>g.group.id===active);
     for(const entry of groups){
@@ -496,9 +503,9 @@ async function choosePlaceType(stage, place) {
     for(let step=0;step<24;step++){
       for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){
         const [na,a]=all[i],[nb,b]=all[j];
-        const ra=(na.kind==='group'?38:20)*a.scale;
-        const rb=(nb.kind==='group'?38:20)*b.scale;
-        const min=ra+rb+8;
+        const ra=(na.kind==='group'?38:31)*a.scale;
+        const rb=(nb.kind==='group'?38:31)*b.scale;
+        const min=ra+rb+5;
         let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
         if(dist>=min)continue;
         if(dist<.001){dx=Math.cos(i*2.4+j);dy=Math.sin(i*2.4+j);dist=1;}
@@ -506,7 +513,7 @@ async function choosePlaceType(stage, place) {
         const ux=dx/dist,uy=dy/dist;
         a.x-=ux*move;a.y-=uy*move;b.x+=ux*move;b.y+=uy*move;
       }
-      for(const [,p] of all){p.x=Math.max(35,Math.min(w-35,p.x));p.y=Math.max(30,Math.min(h-30,p.y));}
+      for(const [,p] of all){p.x=Math.max(40,Math.min(w-40,p.x));p.y=Math.max(36,Math.min(h-36,p.y));}
     }
     lines.replaceChildren();
     for(const entry of groups){
