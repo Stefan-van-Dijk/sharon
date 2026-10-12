@@ -1,10 +1,22 @@
 name: Sharon controles
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'service-worker.js'
+      - 'index.html'
+      - 'scripts/**'
+      - '.github/workflows/sharon-checks.yml'
+  pull_request:
+
+concurrency:
+  group: sharon-controles-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -13,19 +25,17 @@ jobs:
   controle:
     runs-on: ubuntu-latest
     steps:
-      - name: Code ophalen
-        uses: actions/checkout@v4
-      - name: Node.js installeren
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: JavaScript syntax controleren
+      - name: JavaScript syntax
         run: |
           find src -type f -name '*.js' -print0 | xargs -0 -n 1 node --check
           node --check service-worker.js
-      - name: Automatische tests
+      - name: Tests
         run: npm test
-      - name: Controle op lokale module-imports
+      - name: Moduleverwijzingen
         run: node scripts/check-imports.mjs
-      - name: Controle op versie en PWA-cache
+      - name: PWA-versie
         run: node scripts/check-version.mjs
