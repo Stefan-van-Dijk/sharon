@@ -402,186 +402,93 @@ async function searchOtherPlace(stage, geocoder, fallback = null) {
   });
 }
 
-async function choosePlaceType(stage, place) {
-  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><div class="story-location-graph story-sphere" data-location-graph aria-label="Draaibare bol met locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
-  const graph = stage.querySelector('[data-location-graph]');
-  const confirm = stage.querySelector('[data-graph-confirm]');
-  const sphere = document.createElement('div');
-  sphere.className = 'story-sphere-surface';
-  const lines = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  lines.classList.add('story-sphere-lines');
-  lines.setAttribute('viewBox','0 0 1000 1000');
-  lines.setAttribute('preserveAspectRatio','none');
-  sphere.append(lines);
-  graph.append(sphere);
-  const phi = Math.PI * (3 - Math.sqrt(5));
-  const normalize = p => { const n=Math.hypot(...p);return p.map(v=>v/n); };
-  const cross = (a,b) => [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
-  const dot = (a,b) => a.reduce((v,x,i)=>v+x*b[i],0);
-  const nodes = [];
-  let active = null, selected = null, yaw = .15, pitch = -.12, zoom = 1;
-  const makeNode = (label,kind,point,onSelect) => {
-    const button = document.createElement('button');
-    button.type='button';
-    button.className='story-sphere-node story-sphere-'+kind;
-    button.textContent=label;
-    button.setAttribute('aria-label',label);
-    button.addEventListener('click',onSelect);
-    sphere.append(button);
-    const node={button,point,kind};
-    nodes.push(node);
-    return node;
-  };
-  const groups=LOCATION_GROUPS.map((group,i)=>{
-    const y=1-(i+.5)*2/LOCATION_GROUPS.length;
-    const r=Math.sqrt(1-y*y),a=phi*i*1.7;
-    const p=[r*Math.cos(a),y,r*Math.sin(a)];
-    const tangent=normalize(cross(p,[0,1,0]));
-    const up=normalize(cross(tangent,p));
-    const entry={group,point:p,children:[]};
-    entry.node=makeNode(group.label,'group',p,()=>{
-      active=active===group.id?null:group.id;
-      if(!active){selected=null;confirm.disabled=true;confirm.textContent='Bevestigen';}
-      if(active)orientTo(p);
-      render();
+async function choosePlaceType(stage) {
+  stage.innerHTML = '<div class="place-type"><p>Wat voor plek is dit?</p><div class="story-location-graph story-wheel" data-location-graph aria-label="Draaischijf met hoofdthema’s en locatietypen"></div><button type="button" class="story-graph-confirm" data-graph-confirm disabled>Bevestigen</button></div>';
+  const graph=stage.querySelector('[data-location-graph]');
+  const confirm=stage.querySelector('[data-graph-confirm]');
+  const wheel=document.createElement('div');
+  wheel.className='story-wheel-disc';
+  graph.append(wheel);
+  const groups=LOCATION_GROUPS.map(group=>({group,types:group.types.map(locationType).filter(Boolean)}));
+  let active=0, selected=null, rotation=0, down=null, dragged=false, animating=false;
+  const outer=groups.map(({group},i)=>{
+    const button=document.createElement('button');
+    button.type='button';button.className='story-wheel-group';
+    button.textContent=group.label;button.setAttribute('aria-label',group.label);
+    button.addEventListener('click',()=>{if(dragged)return;activate(i);});
+    wheel.append(button);return button;
+  });
+  const inner=document.createElement('div');
+  inner.className='story-wheel-inner';wheel.append(inner);
+  const center=document.createElement('div');
+  center.className='story-wheel-center';center.setAttribute('aria-hidden','true');center.textContent='Sharon';wheel.append(center);
+  const angleFor=i=>-Math.PI/2+(i/groups.length)*Math.PI*2;
+  function activate(i){
+    active=(i+groups.length)%groups.length;
+    selected=null;confirm.disabled=true;confirm.textContent='Bevestigen';
+    const desired=-active*360/groups.length;
+    rotation+=((desired-rotation+540)%360)-180;
+    render();
+  }
+  function render(){
+    const size=graph.clientWidth||320;
+    const radius=Math.min(size*.405,174);
+    const base=size/2;
+    outer.forEach((button,i)=>{
+      const angle=angleFor(i)+rotation*Math.PI/180;
+      button.style.left=(base+radius*Math.cos(angle))+'px';
+      button.style.top=(base+radius*Math.sin(angle))+'px';
+      button.classList.toggle('is-active',i===active);
+      button.setAttribute('aria-pressed',String(i===active));
     });
-    const types=group.types.map(locationType).filter(Boolean);
-    types.forEach((type,j)=>{
-      const theta=2*Math.PI*j/types.length+(i%2)*.4;
-      const spread=types.length===1?.32:.44;
-      const childPoint=normalize(p.map((v,k)=>v*Math.cos(spread)+Math.sin(spread)*(tangent[k]*Math.cos(theta)+up[k]*Math.sin(theta))));
-      const node=makeNode(locationIcon(type.id),'child',childPoint,()=>{
-        const deselect=selected===type.id;
-        active=deselect?null:group.id;
-        selected=deselect?null:type.id;
+    inner.replaceChildren();
+    const types=groups[active].types;
+    types.forEach((type,i)=>{
+      const button=document.createElement('button');
+      button.type='button';button.className='story-wheel-type';
+      button.classList.toggle('is-selected',selected===type.id);
+      button.setAttribute('aria-pressed',String(selected===type.id));
+      const icon=document.createElement('span');icon.className='story-wheel-type-icon';icon.textContent=locationIcon(type.id);
+      const label=document.createElement('span');label.textContent=type.label;
+      button.append(icon,label);
+      const t=types.length===1?0:(i/(types.length-1));
+      const angle=(-145+t*290)*Math.PI/180;
+      const r=Math.min(size*.26,112);
+      button.style.left=(base+r*Math.cos(angle))+'px';
+      button.style.top=(base+r*Math.sin(angle))+'px';
+      button.addEventListener('click',()=>{
+        selected=selected===type.id?null:type.id;
         confirm.disabled=!selected;
         confirm.textContent=selected?type.label+' bevestigen':'Bevestigen';
-        if(!deselect)orientTo(p);
         render();
       });
-      node.type=type;
-      const icon = document.createElement('span');
-      icon.className='story-sphere-icon';
-      icon.textContent=locationIcon(type.id);
-      const label=document.createElement('span');
-      label.className='story-sphere-label';
-      label.textContent=type.label;
-      node.button.replaceChildren(icon,label);
-      entry.children.push(node);
+      inner.append(button);
     });
-    return entry;
-  });
-  function orientTo(p) {
-    yaw=Math.atan2(-p[0],p[2]);
-    const z=p[2]*Math.cos(yaw)-p[0]*Math.sin(yaw);
-    pitch=Math.atan2(p[1],z);
   }
-  function project(point) {
-    const [x,y,z]=point;
-    const xx=x*Math.cos(yaw)+z*Math.sin(yaw);
-    const zz=z*Math.cos(yaw)-x*Math.sin(yaw);
-    const yy=y*Math.cos(pitch)-zz*Math.sin(pitch);
-    const depth=y*Math.sin(pitch)+zz*Math.cos(pitch);
-    return {x:xx,y:yy,depth};
-  }
-  function render() {
-    const w=sphere.clientWidth||320,h=sphere.clientHeight||320;
-    const radius=Math.min(w,h)*.37*zoom;
-    const coords=new Map();
-    const focused=groups.find(g=>g.group.id===active);
-    for(const entry of groups){
-      for(const node of [entry.node,...entry.children]){
-        const p=project(node.point);
-        const isFocus=entry===focused;
-        const size=node.kind==='group'? (isFocus?1.18:focused?.80:1.00) : (isFocus?1.53:focused?.48:.78);
-        const depthSize=.78+.22*(p.depth+1)/2;
-        const scale=size*depthSize;
-        coords.set(node,{x:w/2+p.x*radius,y:h/2-p.y*radius,scale,depth:p.depth,focus:isFocus});
-      }
-    }
-    // Separate projected points without changing their underlying spherical coordinates.
-    const all=[...coords.entries()];
-    for(let step=0;step<24;step++){
-      for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){
-        const [na,a]=all[i],[nb,b]=all[j];
-        const ra=(na.kind==='group'?45:31)*a.scale;
-        const rb=(nb.kind==='group'?38:31)*b.scale;
-        const min=ra+rb+9;
-        let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
-        if(dist>=min)continue;
-        if(dist<.001){dx=Math.cos(i*2.4+j);dy=Math.sin(i*2.4+j);dist=1;}
-        const move=(min-dist)*.52;
-        const ux=dx/dist,uy=dy/dist;
-        a.x-=ux*move;a.y-=uy*move;b.x+=ux*move;b.y+=uy*move;
-      }
-      for(const [,p] of all){p.x=Math.max(48,Math.min(w-48,p.x));p.y=Math.max(48,Math.min(h-48,p.y));}
-    }
-    lines.replaceChildren();
-    for(const entry of groups){
-      const a=coords.get(entry.node);
-      for(const child of entry.children){
-        const b=coords.get(child);
-        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1',a.x/w*1000);line.setAttribute('y1',a.y/h*1000);
-        line.setAttribute('x2',b.x/w*1000);line.setAttribute('y2',b.y/h*1000);
-        line.setAttribute('stroke-opacity',entry===focused?.42:.15);
-        lines.append(line);
-      }
-    }
-    for(const [node,p] of all){
-      node.button.style.left=p.x+'px';
-      node.button.style.top=p.y+'px';
-      node.button.style.setProperty('--sphere-scale',p.scale.toFixed(3));
-      node.button.style.opacity=String(Math.max(.48,.83+p.depth*.16));
-      node.button.style.zIndex=String(Math.round(100+p.depth*20)+(p.focus?40:0));
-      node.button.classList.toggle('is-active',node.kind==='group'&&focused?.node===node);
-      node.button.classList.toggle('is-selected',node.type?.id===selected);
-      node.button.classList.toggle('is-focused',p.focus);
-      if(node.kind==='group')node.button.setAttribute('aria-pressed',String(focused?.node===node));
-      if(node.kind==='child')node.button.setAttribute('aria-pressed',String(node.type?.id===selected));
-      if(node.kind==='child')node.button.title=node.type.label;
-    }
-  }
-  const contacts=new Map();
-  let gesture=null,ignoreClick=false;
   graph.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
-    contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    graph.setPointerCapture(e.pointerId);
-    if(contacts.size===1)gesture={x:e.clientX,y:e.clientY,moved:false};
-    if(contacts.size===2){
-      const [a,b]=[...contacts.values()];
-      gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
-    }
+    down={x:e.clientX,y:e.clientY,angle:Math.atan2(e.clientY-graph.getBoundingClientRect().top-graph.clientHeight/2,e.clientX-graph.getBoundingClientRect().left-graph.clientWidth/2),rotation};
+    dragged=false;
   });
-  graph.addEventListener('pointermove',e=>{
-    if(!contacts.has(e.pointerId))return;
-    const prev=contacts.get(e.pointerId);
-    contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(contacts.size===2){
-      const [a,b]=[...contacts.values()];
-      if(!gesture?.pinch)gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom,pinch:true};
-      zoom=Math.max(.75,Math.min(1.25,gesture.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(1,gesture.distance)));
-      ignoreClick=true;render();return;
+  graph.addEventListener('pointerup',e=>{
+    if(!down)return;
+    const dx=e.clientX-down.x,dy=e.clientY-down.y;
+    if(Math.hypot(dx,dy)>24){
+      dragged=true;
+      const rect=graph.getBoundingClientRect();
+      const angle=Math.atan2(e.clientY-rect.top-rect.height/2,e.clientX-rect.left-rect.width/2);
+      let delta=(angle-down.angle)*180/Math.PI;
+      delta=((delta+540)%360)-180;
+      const next=Math.round((-down.rotation-delta)/(360/groups.length));
+      activate(next);
+      setTimeout(()=>{dragged=false;},80);
     }
-    if(!gesture||gesture.pinch)return;
-    if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>7)gesture.moved=true;
-    if(!gesture.moved)return;
-    ignoreClick=true;
-    yaw+=(e.clientX-prev.x)*.008;
-    pitch=Math.max(-1.35,Math.min(1.35,pitch+(e.clientY-prev.y)*.008));
-    render();
+    down=null;
   });
-  const finish=e=>{
-    contacts.delete(e.pointerId);
-    if(contacts.size<2)gesture=null;
-    if(ignoreClick)setTimeout(()=>{ignoreClick=false;},120);
-  };
-  graph.addEventListener('pointerup',finish);
-  graph.addEventListener('pointercancel',finish);
-  graph.addEventListener('click',e=>{if(ignoreClick){e.preventDefault();e.stopPropagation();}},true);
+  graph.addEventListener('pointercancel',()=>{down=null;});
+  const observer=new ResizeObserver(render);observer.observe(graph);
   render();
-  return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected)resolve(selected);}));
+  return new Promise(resolve=>confirm.addEventListener('click',()=>{if(selected){observer.disconnect();resolve(selected);}}));
 }
 
 async function typeParagraphs(container, lines, { reducedMotion = false } = {}) {
