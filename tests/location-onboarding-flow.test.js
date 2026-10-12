@@ -125,13 +125,13 @@ test('nieuw en bewerken gebruiken dezelfde cirkelvormige typekeuze als onboardin
   assert.ok(worker.includes('LocationTypeSphere.js?v=' + version));
 });
 
-test('typekiezer toont hoofdgroepen of subtypen, nooit beide tegelijk', async () => {
- const sphere = await read('../src/ui/LocationTypeSphere.js');
- assert.ok(sphere.includes("group.types.map(locationType)"));
- assert.ok(sphere.includes("LOCATION_GROUPS.map(entry"));
- assert.ok(sphere.includes("const options = group"));
- assert.ok(sphere.includes("back.addEventListener('click'"));
- assert.ok(sphere.includes("aria-pressed"));
- const flow = await read('../src/ui/LocationOnboardingFlow.js');
- assert.ok(flow.includes("typeChips.classList.add('sh-type-picker-host')"));
+
+test('typecirkel toont hoofdgroepen en subtypen in één draaibare weergave', async () => {
+  const sphere = await read('../src/ui/LocationTypeSphere.js');
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  assert.ok(sphere.includes("const groups=LOCATION_GROUPS.map"));
+  assert.ok(sphere.includes("entry.children.push(node)"));
+  assert.ok(sphere.includes("graph.addEventListener('pointermove'"));
+  assert.ok(sphere.includes("const focused=groups.find"));
+  assert.ok(flow.includes("typeChips.classList.add('story-location-graph', 'story-sphere')"));
 });
