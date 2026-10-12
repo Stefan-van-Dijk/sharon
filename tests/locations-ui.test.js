@@ -32,7 +32,8 @@ test('zinnenbibliotheek gebruikt uitsluitend swipe voor kopiëren en bewaart nie
   assert.ok(editor.includes('onEdit:id =>'));
   assert.ok(!editor.includes('onOpen:id =>'));
   assert.ok(editor.includes("dot.classList.add('sh-sentence-green')"));
-  assert.ok(editor.includes('ensureInputVisible()'));
+  assert.ok(editor.includes('showEditor()'));
+  assert.ok(editor.includes('keyboardScrollTimer = setTimeout('));
 });
 
 test('zinnenbibliotheek wisselt afstandssituaties met drie tabs', async () => {
