@@ -1,14 +1,14 @@
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.34';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.34';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.34';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.34';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.34';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.34';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.34';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.35';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.35';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.35';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.35';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.35';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.35';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.35';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.34';
+} from '../core/location/LocationHierarchy.js?v=0.2.35';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
