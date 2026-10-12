@@ -368,10 +368,20 @@ export async function openLocationsView(root, {
               if (key === 'excludedLocation') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary,item.id,situation,template,true);
               if (key === 'excludedGroup') sentenceLibrary = setGroupVariantExcluded(sentenceLibrary,kind,situation,template,true);
               if (key === 'excludedGlobal') sentenceLibrary = setGlobalVariantExcluded(sentenceLibrary,situation,template,true);
-              // For a custom group/global template, local visibility can be narrowed by copying.
-              if (key === 'location' && source !== 'location' && source !== 'default') sentenceLibrary = addLocationVariant(sentenceLibrary,item.id,situation,template);
-              if (key === 'group' && source === 'location') sentenceLibrary = updateGroupVariant(sentenceLibrary,kind,situation,template);
-              if (key === 'global' && source !== 'global' && source !== 'default') sentenceLibrary = addGlobalVariant(sentenceLibrary,situation,template);
+              // Changing applicability moves an authored variant instead of duplicating it.
+              // Sharon's built-in defaults remain immutable and universally sourced.
+              if (key === 'location' || key === 'group' || key === 'global') {
+                if (source !== 'default' && source !== key) {
+                  if (source === 'location') sentenceLibrary = removeLocationVariant(sentenceLibrary,item.id,situation,template);
+                  else if (source === 'group') sentenceLibrary = removeGroupVariant(sentenceLibrary,kind,situation,template);
+                  else sentenceLibrary = removeGlobalVariant(sentenceLibrary,situation,template);
+                }
+                if (source !== 'default') {
+                  if (key === 'location') sentenceLibrary = addLocationVariant(sentenceLibrary,item.id,situation,template);
+                  else if (key === 'group') sentenceLibrary = updateGroupVariant(sentenceLibrary,kind,situation,template);
+                  else sentenceLibrary = addGlobalVariant(sentenceLibrary,situation,template);
+                }
+              }
               await persistAndDraw();
             }));
           }
