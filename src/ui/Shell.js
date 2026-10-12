@@ -4,7 +4,7 @@ import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.1.90';
 
-const APP_VERSION = '0.2.00';
+const APP_VERSION = '0.2.30';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -303,6 +303,49 @@ export function createShell(root, {
 
     await openPlaceholder(module);
   };
+
+  // Android's system Back button and predictive-back gesture trigger history navigation.
+  // Keep one history entry for the shell and one for each opened module.
+  const navigationKey = '__sharonNavigation';
+  const homeState = () => ({ ...history.state, [navigationKey]: 'home' });
+  history.replaceState(homeState(), '');
+  const openHistoryModule = moduleId => {
+    if (history.state?.[navigationKey] !== moduleId) {
+      history.pushState({ ...history.state, [navigationKey]: moduleId }, '');
+    }
+  };
+  const navigateBack = () => {
+    if (currentView !== 'detail') return;
+    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .locations-view [data-back]');
+    if (back) {
+      back.click();
+      return;
+    }
+    showHome();
+  };
+  window.addEventListener('popstate', event => {
+    const target = event.state?.[navigationKey];
+    if (!target || target === 'home') {
+      if (currentView === 'detail') navigateBack();
+      return;
+    }
+    if (target === 'settings') openSettingsView({ animate: false });
+    else openModule(target, { animate: false });
+  });
+  const oldOpenModule = openModule;
+  // The module-list click handlers below use the history-aware wrapper.
+  const openWithHistory = (moduleId, options = {}) => {
+    openHistoryModule(moduleId);
+    return oldOpenModule(moduleId, options);
+  };
+  outlet.addEventListener('click', event => {
+    const moduleButton = event.target.closest('[data-module]');
+    if (moduleButton && currentView === 'home') {
+      // Module clicks already have handlers; only register their history entry.
+      openHistoryModule(moduleButton.dataset.module);
+    }
+    if (event.target.closest('[data-settings]') && currentView === 'home') openHistoryModule('settings');
+  }, true);
 
   brandButton.addEventListener('click', () => {
     if (currentView === 'detail') showHome();
