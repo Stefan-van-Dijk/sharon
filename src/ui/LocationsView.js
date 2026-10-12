@@ -1,3 +1,4 @@
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.08';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.01';
 import { bindSwipeRows } from './SwipeRows.js?v=0.1.90';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.01';
@@ -421,15 +422,6 @@ function readNumber(value) {
   if (value == null || String(value).trim() === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
-}
-function locationIcon(type) {
-  return ({
-    home:'⌂', work:'▣', customer:'▣', business:'◇', private:'○',
-    parking:'P', fuel:'◈', shop:'▤', supermarket:'▤',
-    restaurant:'◒', hospitality:'◒', family:'⌂', sport:'◉',
-    school:'▱', healthcare:'+', hotel:'⌂', construction:'△',
-    public:'◎', other:'·'
-  })[type] || '·';
 }
 function formatCoordinates(point) {
   return Number.isFinite(point?.lat) && Number.isFinite(point?.lng)
