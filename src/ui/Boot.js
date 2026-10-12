@@ -42,19 +42,18 @@ async function showFirstRunStory(root) {
     'Jouw wereld. Jouw momenten. Jouw informatie.'
   ];
   panel.innerHTML = '';
-  panel.classList.add('is-visible');
+  panel.classList.add('is-story', 'is-visible');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   for (const line of lines) {
     const paragraph = document.createElement('p');
-    paragraph.className = 'sharon-welcome';
-    paragraph.style.marginBottom = '0.8em';
+    paragraph.className = 'sharon-story-line';
     panel.append(paragraph);
     if (reducedMotion) {
       paragraph.textContent = line;
     } else {
       for (const char of line) {
         paragraph.textContent += char;
-        await sleep(/[.,]/.test(char) ? 95 : 18);
+        await sleep(/[.!?]/.test(char) ? 250 : char === ',' ? 140 : char === ' ' ? 28 : 43);
       }
     }
     await sleep(reducedMotion ? 0 : 220);
@@ -68,6 +67,7 @@ async function showFirstRunStory(root) {
   panel.classList.remove('is-visible');
   await sleep(180);
   panel.innerHTML = '';
+  panel.classList.remove('is-story');
 }
 
 function askForName(root, { initialName = '' } = {}) {
