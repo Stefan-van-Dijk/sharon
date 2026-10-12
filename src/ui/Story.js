@@ -468,14 +468,14 @@ async function choosePlaceType(stage, place) {
   const layout=()=>{
     const focused=groups.find(g=>g.group.id===active);
     const root=focused?[23,50]:[50,50];
-    placeNode(center,...root,focused?.8:1);
+    placeNode(center,...root,focused ? .8 : 1);
     groups.forEach(({group,index,button,children,line})=>{
       const angle=-Math.PI/2+index*Math.PI/3;
       const isFocus=group.id===active;
       const pos=focused
         ? (isFocus?[56,50]:[23+19*Math.cos(angle),50+31*Math.sin(angle)])
         : [50+29*Math.cos(angle),50+29*Math.sin(angle)];
-      placeNode(button,...pos,isFocus?1.4:focused?.68:1);
+      placeNode(button,...pos,isFocus?1.4:focused ? .68 : 1);
       button.classList.toggle('is-active',isFocus);
       button.classList.toggle('is-muted',!!focused&&!isFocus);
       connect(line,root,pos);
@@ -486,7 +486,7 @@ async function choosePlaceType(stage, place) {
         const dx=isFocus?23:focused?5:8;
         const dy=isFocus?30:focused?8:10;
         const p=[Math.max(5,Math.min(95,pos[0]+dx*Math.cos(theta))),Math.max(5,Math.min(95,pos[1]+dy*Math.sin(theta)))];
-        placeNode(child,...p,isFocus?(selected===type.id?1.32:1.12):focused?.52:.74);
+        placeNode(child,...p,isFocus?(selected===type.id?1.32:1.12):focused ? .52 : .74);
         child.classList.toggle('is-focused',isFocus);
         child.classList.toggle('is-muted',!!focused&&!isFocus);
         child.classList.toggle('is-selected',selected===type.id);
