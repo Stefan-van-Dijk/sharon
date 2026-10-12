@@ -1,7 +1,7 @@
 import { focusTextField } from './TextInputFocus.js?v=0.2.01';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.01';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.01';
-import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.01';
+import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.2.18';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;
@@ -178,6 +178,8 @@ export function enhanceLocationEditor(root, {
   const existingCopy = view.querySelector('[data-existing-copy]');
   const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   let positionEditing = false;
+  const nameSlot = view.querySelector('[data-name-slot]');
+  const typeSection = typeChips.closest('.sh-location-reference-section');
 
   function updateConclusion(animate = false) {
     const value = locationConclusion(
@@ -448,14 +450,56 @@ export function enhanceLocationEditor(root, {
     } catch { /* GPS permission may be unavailable: address entry remains usable. */ }
   }
 
-  // Retain all existing handlers, IDs, nested-location relationships and saving.
+  function setNewLocationStage(stage) {
+    if (!isNew) return;
+    const placeReady = Boolean(currentPoint());
+    nameSlot.hidden = stage === 'place';
+    typeSection.hidden = stage !== 'type';
+    parentSection.hidden = stage === 'place';
+    moreSettings.hidden = stage !== 'type';
+    nativeSave.hidden = stage !== 'type' || Boolean(saveInHeader);
+    if (stage === 'place') {
+      conclusionElement.textContent = placeReady ? 'Dit is de plek. Klopt de positie?' : 'Waar is deze plek?';
+    } else if (stage === 'name') {
+      conclusionElement.textContent = 'Hoe wil je deze plek noemen?';
+      nameSlot.hidden = false;
+      focusTextField(form.elements.title);
+    } else {
+      conclusionElement.textContent = 'Wat is ' + (form.elements.title.value.trim() || 'deze plek') + ' voor jou?';
+      nameSlot.hidden = false;
+      typeSection.hidden = false;
+    }
+  }
+  function advanceNewLocationStage() {
+    if (!isNew) return;
+    const stage = view.dataset.stage || 'place';
+    if (stage === 'place' && currentPoint()) { view.dataset.stage = 'name'; setNewLocationStage('name'); }
+    else if (stage === 'name' && form.elements.title.value.trim()) { view.dataset.stage = 'type'; setNewLocationStage('type'); }
+  }
+  if (isNew) {
+    view.dataset.stage = 'place';
+    const next = document.createElement('button');
+    next.type = 'button'; next.className = 'primary-line-action'; next.dataset.locationNext = '';
+    next.textContent = 'Verder';
+    view.querySelector('[data-bottom-save]').prepend(next);
+    next.addEventListener('click', () => {
+      advanceNewLocationStage();
+      next.hidden = view.dataset.stage === 'type';
+    });
+    form.elements.title.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && view.dataset.stage === 'name') {
+        event.preventDefault(); advanceNewLocationStage(); next.hidden = view.dataset.stage === 'type';
+      }
+    });
+  }
+
   onModeChange('details');
   renderTypes();
   renderParents();
-  // The first sentence types like the original Sharon introduction.
-  updateConclusion(true);
+  updateConclusion(!isNew);
   syncText();
   syncMap();
+  if (isNew) setNewLocationStage('place');
   if (useGps) gpsButton.click();
   else if (isNew) void checkSavedPlaceOnStart();
 
