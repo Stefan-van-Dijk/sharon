@@ -109,7 +109,7 @@ export function bindSwipeHome(surface, onHome, {
     if (!surface.contains(event.target)) return;
     if (isInteractiveTarget(event.target)) return;
     // Never navigate while a row action is expanded; restore that row first.
-    if (surface.querySelector('.swipe-row.is-actions-open, .sh-sentence-row.is-actions-open')) return;
+    if (surface.querySelector?.('.swipe-row.is-actions-open, .sh-sentence-row.is-actions-open')) return;
 
     const point = touchPoint(event);
     if (!point) return;
