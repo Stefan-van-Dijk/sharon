@@ -284,33 +284,38 @@ export async function openLocationsView(root, {
       label.textContent = 'Nieuwe zin'; submitButton.textContent = 'Zin toevoegen';
       cancel.hidden = true;
     };
-    cancel.addEventListener('click', resetForm);
+    cancel.addEventListener('click', () => { if (keyboardScrollTimer !== null) clearTimeout(keyboardScrollTimer); resetForm(); });
+    let keyboardScrollTimer = null;
+    const showEditor = () => {
+      // Only the module outlet scrolls. Avoid smooth-scroll and repeated
+      // visualViewport callbacks while iOS animates its keyboard.
+      const outlet = root.closest('.app-view');
+      if (!outlet || !form.isConnected) return;
+      const top = form.getBoundingClientRect().top - outlet.getBoundingClientRect().top + outlet.scrollTop - 96;
+      outlet.scrollTop = Math.max(0, top);
+    };
     const beginEdit = (template, scope, situation) => {
+      if (keyboardScrollTimer !== null) clearTimeout(keyboardScrollTimer);
       editing = { template, scope, situation, copy: scope === 'default' };
       textarea.value = template;
       label.textContent = scope === 'default' ? 'Nieuwe zin op basis van standaardzin' : 'Zin aanpassen';
       submitButton.textContent = scope === 'default' ? 'Nieuwe zin toevoegen' : 'Wijziging opslaan';
       cancel.hidden = false;
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showEditor();
       textarea.focus({ preventScroll: true });
-      ensureInputVisible();
+      // One immediate position correction after the keyboard finishes opening.
+      // Never schedule continuous scrolls from visualViewport resize/scroll.
+      keyboardScrollTimer = setTimeout(() => {
+        keyboardScrollTimer = null;
+        if (!textarea.isConnected || document.activeElement !== textarea) return;
+        const outlet = root.closest('.app-view');
+        const viewport = window.visualViewport;
+        if (!outlet || !viewport) return;
+        const bottom = viewport.offsetTop + viewport.height - 20;
+        const rect = textarea.getBoundingClientRect();
+        if (rect.bottom > bottom) outlet.scrollTop += rect.bottom - bottom;
+      }, 360);
     };
-    const ensureInputVisible = () => {
-      if (!textarea.isConnected || document.activeElement !== textarea) return;
-      const viewport = window.visualViewport;
-      const viewportBottom = (viewport?.offsetTop || 0) + (viewport?.height || window.innerHeight);
-      const rect = textarea.getBoundingClientRect();
-      const availableBottom = viewportBottom - 24;
-      if (rect.bottom > availableBottom || rect.top < 90) {
-        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    };
-    textarea.addEventListener('focus', () => {
-      requestAnimationFrame(ensureInputVisible);
-      setTimeout(ensureInputVisible, 280);
-    });
-    window.visualViewport?.addEventListener('resize', ensureInputVisible);
-    window.visualViewport?.addEventListener('scroll', ensureInputVisible);
     const persist = async () => {
       await store.put('meta', { key: 'locations.sentenceLibrary', value: sentenceLibrary });
     };
