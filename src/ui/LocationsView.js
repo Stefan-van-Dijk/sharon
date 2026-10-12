@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js?v=0.2.25';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.25';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.25';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.25';
-import { renderLocationSentence } from './LocationSentenceLibrary.js?v=0.2.25';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.25';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -193,7 +193,6 @@ export async function openLocationsView(root, {
       void detailMap?.update?.();
     }
     unbindSwipes = bindSwipeRows(root.querySelector('[data-detail-swipes]'), {
-      onOpen: id => edit(item, '', false, id),
       onEdit: id => edit(item, '', false, id),
       onSecondary: id => { if (id === 'identity') void sentenceEditor(item); }
     });
