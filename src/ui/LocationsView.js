@@ -213,7 +213,7 @@ export async function openLocationsView(root, {
     root.innerHTML = `<section class="module-view sh-sentence-editor">
       <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locatie</button><span>${escapeHtml(name)}</span></div>
       <h2 data-sentence-intro aria-live="off"></h2>
-      <p>Gebruik [Naam], [Type] en [Afstand] om een zin passend te maken.</p>
+      <div data-sentence-reveal hidden><p>Gebruik [Naam], [Type] en [Afstand] om een zin passend te maken.</p>
       <label class="clean-field"><span>Afstandssituatie</span><select data-sentence-state>
         ${Object.entries(stateNames).map(([key, label]) => `<option value="${key}" ${state === key ? 'selected' : ''}>${label}</option>`).join('')}
       </select></label>
@@ -223,12 +223,28 @@ export async function openLocationsView(root, {
         <label class="clean-field"><span>Toepassen op</span><select name="scope"><option value="location">Alleen deze locatie</option><option value="group">Alle locaties van dit type</option><option value="global">Alle groepen</option></select></label>
         <button class="primary-line-action" type="submit">Zin toevoegen</button>
       </form>
-      <p role="status" data-sentence-status></p>
+      <p role="status" data-sentence-status></p></div>
     </section>`;
     const intro = root.querySelector('[data-sentence-intro]');
     const introText = 'Zo praat ik over ' + name + '. Hier kun je mijn zinnen aanpassen of me iets nieuws leren.';
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const stopIntro = typeLocationConclusion(intro, introText, { reducedMotion, speed: 32 });
+    const reveal = root.querySelector('[data-sentence-reveal]');
+    const revealSections = [...reveal.children];
+    if (reducedMotion) {
+      intro.textContent = introText;
+      reveal.hidden = false;
+    } else {
+      const stopIntro = typeLocationConclusion(intro, introText, { reducedMotion, speed: 32 });
+      const estimatedMs = [...introText].reduce((ms, ch) => ms + (/[.,:]/.test(ch) ? 100 : ch === ' ' ? 12 : 32), 0) + 120;
+      window.setTimeout(() => {
+        if (!intro.isConnected) return;
+        reveal.hidden = false;
+        revealSections.forEach((section, index) => {
+          section.classList.add('sh-sentence-enter');
+          section.style.animationDelay = (index * 110) + 'ms';
+        });
+      }, estimatedMs);
+    }
     const stateInput = root.querySelector('[data-sentence-state]');
     const variantsHost = root.querySelector('[data-sentence-variants]');
     root.querySelector('[data-back]').addEventListener('click', () => detail(item));
@@ -255,14 +271,16 @@ export async function openLocationsView(root, {
         const copy = document.createElement('span');
         copy.textContent = template;
         const scope = localAdded.includes(template) ? 'location' : groupAdded.includes(template) ? 'group' : globalAdded.includes(template) ? 'global' : 'default';
-        const scopeLabel = document.createElement('small');
-        scopeLabel.textContent = scope === 'location' ? 'Alleen deze locatie' : scope === 'group' ? 'Deze typegroep' : scope === 'global' ? 'Alle groepen' : 'Standaardzin';
-        line.append(copy, scopeLabel);
+        line.classList.add(scope === 'default' ? 'sh-sentence-default' : 'sh-sentence-custom');
+        const dot = document.createElement('i');
+        dot.className = 'sh-sentence-dot';
+        dot.setAttribute('aria-label', scope === 'default' ? 'Standaardzin' : 'Eigen zin');
+        line.append(dot, copy);
         const excludeHere = async () => {
           sentenceLibrary = setLocationVariantExcluded(sentenceLibrary, item.id, situation, template, true);
           await persist(); draw();
         };
-        line.append(button('Niet voor deze plek', excludeHere));
+        if (scope !== 'default') line.append(button('Niet voor deze plek', excludeHere));
         const edit = button('Bewerk', () => {
           line.replaceChildren();
           const form = document.createElement('form');
@@ -300,9 +318,31 @@ export async function openLocationsView(root, {
           line.append(form);
           input.focus();
         });
-        line.append(edit);
+        if (scope === 'default') {
+          line.addEventListener('click', () => {
+            const form = root.querySelector('[data-sentence-add]');
+            form.elements.template.value = template;
+            form.elements.scope.value = 'location';
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            form.elements.template.focus({ preventScroll: true });
+          });
+        } else {
+          const actions = document.createElement('div');
+          actions.className = 'sh-sentence-swipe-actions';
+          actions.append(edit);
+          line.append(actions);
+          let startX = null;
+          line.addEventListener('touchstart', event => { startX = event.touches[0]?.clientX ?? null; }, { passive: true });
+          line.addEventListener('touchend', event => {
+            if (startX === null) return;
+            const dx = (event.changedTouches[0]?.clientX ?? startX) - startX;
+            if (dx < -45) line.classList.add('is-actions-open');
+            if (dx > 45) line.classList.remove('is-actions-open');
+            startX = null;
+          }, { passive: true });
+        }
         if (scope !== 'default') {
-          line.append(button('Verwijder', async () => {
+          const removeButton = button('Verwijder', async () => {
             const choice = scope === 'global'
               ? window.prompt('Verwijderen: typ GROEP om deze groep uit te sluiten, of ALLES om de zin overal te verwijderen.', 'GROEP')
               : scope === 'group'
@@ -316,7 +356,8 @@ export async function openLocationsView(root, {
             else if (scope === 'location' && choice === 'PLEK') sentenceLibrary = removeLocationVariant(sentenceLibrary, item.id, situation, template);
             else return;
             await persist(); draw();
-          }));
+          });
+          line.querySelector('.sh-sentence-swipe-actions').append(removeButton);
         }
         variantsHost.append(line);
       }
