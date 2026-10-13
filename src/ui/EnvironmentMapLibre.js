@@ -1,3 +1,4 @@
+import { openBoardViewer } from './BoardViewer.js?v=0.2.67';
 import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.66';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
@@ -350,6 +351,14 @@ export function openEnvironmentView(root, {
   const unsubscribers = [];
   let popup = null;
   let wikipediaLayer = null;
+  let closeBoard = null;
+  const showBoard = (feature, available = []) => {
+    closeBoard?.();
+    const index = available.findIndex(item => item.id === feature.id);
+    const next = available.length > 1 ? available[(index + 1) % available.length] : null;
+    closeBoard = openBoardViewer(feature, { location, events,
+      onNext: next ? () => showBoard(next, available) : null });
+  };
   let wikipediaEnabled = false;
   const filterPanel = root.querySelector('[data-readout-filters]');
   const readoutBar = root.querySelector('[data-map-readout]');
@@ -510,7 +519,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl" });
+      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard });
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
       unsubscribers.push(appearanceBinding);
@@ -627,6 +636,7 @@ export function openEnvironmentView(root, {
     resizeObserver?.disconnect();
     popup?.remove();
     wikipediaLayer?.destroy();
+    closeBoard?.();
     gpsMarker?.remove();
     map?.remove();
   };
