@@ -8,7 +8,7 @@ export function wikiFeatures(pages = []) {
     seen.add(id);
     return [{ type: 'Feature', id, geometry: { type: 'Point', coordinates: [point.lon, point.lat] }, properties: {
       wikidata: id, area: environmentIdForPoint({ lat: point.lat, lng: point.lon }, 6),
-      title: String(page.title || ''), description: String(page.extract || '').slice(0, 350),
+      title: String(page.title || ''), image: /^https:\/\//.test(page.thumbnail?.source || '') ? page.thumbnail.source : '', description: String(page.extract || '').slice(0, 350),
       url: 'https://' + page.language + '.wikipedia.org/?curid=' + Number(page.pageid)
     }}];
   }) };
@@ -18,7 +18,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const lang = /^[a-z]{2,3}$/.test(language) ? language : 'nl';
   const params = new URLSearchParams({ action: 'query', format: 'json', origin: '*', generator: 'geosearch',
     ggscoord: center.lat + '|' + center.lng, ggsradius: '10000', ggslimit: '40',
-    prop: 'coordinates|pageprops|extracts', exintro: '1', explaintext: '1', exsentences: '2', colimit: 'max' });
+    prop: 'coordinates|pageprops|extracts|pageimages', pithumbsize: '480', exintro: '1', explaintext: '1', exsentences: '2', colimit: 'max' });
   const response = await fetcher('https://' + lang + '.wikipedia.org/w/api.php?' + params, { signal });
   if (!response.ok) throw new Error('Wikipedia is tijdelijk niet bereikbaar');
   const data = await response.json();
@@ -30,7 +30,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl' } = {}) {
   const ensure = () => {
     if (!map.getSource(sourceId)) map.addSource(sourceId, { type: 'geojson', data: EMPTY });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
-      paint: { 'circle-radius': 6, 'circle-color': '#ffffff', 'circle-stroke-color': '#344d6b', 'circle-stroke-width': 2 } });
+      paint: { 'circle-radius': 9, 'circle-color': '#ffffff', 'circle-stroke-color': '#344d6b', 'circle-stroke-width': 2 } });
   };
   const clear = () => map.getSource(sourceId)?.setData(EMPTY);
   const refresh = async () => {
@@ -47,16 +47,30 @@ export function mountWikipediaLayer(map, library, { language = 'nl' } = {}) {
   const schedule = () => { clearTimeout(timeout); if (enabled) timeout = setTimeout(refresh, 450); };
   const click = event => {
     if (!enabled || !map.getLayer(layerId)) return;
-    const feature = map.queryRenderedFeatures(event.point, { layers: [layerId] })[0];
+    const point = event.point;
+    const feature = map.queryRenderedFeatures([[point.x - 14, point.y - 14], [point.x + 14, point.y + 14]], { layers: [layerId] })[0];
     if (!feature) return;
-    popup?.remove(); const node = document.createElement('div');
-    const heading = document.createElement('strong'); heading.textContent = feature.properties.title; node.append(heading);
-    if (feature.properties.description) { const p = document.createElement('p'); p.textContent = feature.properties.description; node.append(p); }
-    const link = document.createElement('a'); link.href = feature.properties.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Wikipedia · ' + feature.properties.wikidata; node.append(link);
-    popup = new library.Popup({ maxWidth: '280px' }).setLngLat(feature.geometry.coordinates).setDOMContent(node).addTo(map);
+    popup?.remove(); const node = document.createElement('article');
+    node.style.cssText = 'width:min(76vw,310px);max-height:55vh;overflow:auto;font:inherit;line-height:1.45';
+    if (feature.properties.image) {
+      const photo = document.createElement('img');
+      photo.src = feature.properties.image;
+      photo.alt = '';
+      photo.loading = 'lazy';
+      photo.referrerPolicy = 'no-referrer';
+      photo.style.cssText = 'display:block;width:100%;max-height:190px;object-fit:cover;border-radius:8px;margin-bottom:10px';
+      node.append(photo);
+    }
+    const heading = document.createElement('strong'); heading.textContent = feature.properties.title; heading.style.cssText = 'display:block;font-size:17px;margin-bottom:6px'; node.append(heading);
+    if (feature.properties.description) { const p = document.createElement('p'); p.textContent = feature.properties.description; p.style.cssText = 'margin:6px 0 12px'; node.append(p); }
+    const link = document.createElement('a'); link.href = feature.properties.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Lees meer op Wikipedia ↗'; link.style.cssText = 'display:inline-block;padding:8px 0;font-weight:600'; node.append(link);
+    popup = new library.Popup({ maxWidth: '340px', closeButton: true, closeOnClick: true, offset: 14 }).setLngLat(feature.geometry.coordinates).setDOMContent(node).addTo(map);
   };
   map.on('moveend', schedule); map.on('click', click);
+  const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
+  const leave = () => { map.getCanvas().style.cursor = ''; };
+  map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
   return { setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); schedule(); } else { clear(); popup?.remove(); } },
-    destroy() { disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); } };
+    destroy() { disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
