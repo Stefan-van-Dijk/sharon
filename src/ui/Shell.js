@@ -316,7 +316,7 @@ export function createShell(root, {
   };
   const navigateBack = () => {
     if (currentView !== 'detail') return;
-    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .locations-view [data-back]');
+    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .sh-location-reference-page [data-back], .locations-view [data-back], [data-navigation-back]');
     if (back) {
       back.click();
       return;
@@ -345,17 +345,7 @@ export function createShell(root, {
     if (currentView === 'detail') showHome();
   });
 
-  bindSwipeHome(stage, () => {
-    if (currentView !== 'detail') return;
-    // A rightward edge swipe from an open location edits back to its module
-    // list, not all the way to Sharon's home screen.
-    const backToLocations = outlet.querySelector('.location-editor-view [data-back]');
-    if (backToLocations) {
-      backToLocations.click();
-      return;
-    }
-    return showHome();
-  }, {
+  bindSwipeHome(stage, () => navigateBack(), {
     isEnabled: () => currentView === 'detail'
   });
 
