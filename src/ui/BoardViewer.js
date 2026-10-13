@@ -77,101 +77,219 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
   if (!json.parse?.text) throw Error('Geen verhaal beschikbaar.');
   return sectionsFromWikipediaHtml(json.parse.text, feature.properties);
 }
-export function openBoardViewer(feature, { location, events, onNext } = {}) {
+export function openBoardViewer(feature, { location, events, onNext, onClose = () => {} } = {}) {
   const abort = new AbortController();
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
-  const destination = coords?.length === 2 ? {lat:coords[1],lng:coords[0]} : null;
+  const destination = coords?.length === 2 ? {lat: coords[1], lng: coords[0]} : null;
+
   const overlay = document.createElement('section');
-  overlay.className='sh-board-overlay';
-  overlay.setAttribute('role','dialog');
-  overlay.setAttribute('aria-modal','true');
-  overlay.setAttribute('aria-label','Verhaal');
-  const header = document.createElement('header');
-  header.className='sh-board-header';
-  const back = document.createElement('button');
-  back.type='button'; back.textContent='‹'; back.setAttribute('aria-label','Sluit verhaal');
-  const brand = document.createElement('strong'); brand.textContent='Boards';
-  header.append(back,brand);
-  const scroller = document.createElement('div'); scroller.className='sh-board-scroller';
-  const list = document.createElement('article'); list.className='sh-board-story';
-  const status=document.createElement('p'); status.textContent='Verhaal laden…'; list.append(status);
-  const source=document.createElement('a'); source.textContent='Lees op Wikipedia ↗';
-  source.href=safeUrl(feature?.properties?.url);
-  source.target='_blank'; source.rel='noopener noreferrer'; source.className='sh-board-source';
-  const credits=document.createElement('small');
-  credits.textContent='Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
-  list.append(source,credits);
-  if (onNext) {
-    const next = document.createElement('button');
-    next.type = 'button'; next.className = 'sh-board-next';
-    next.textContent = 'Volgend verhaal ↓';
-    next.addEventListener('click', () => { close(); onNext(); });
-    list.append(next);
+  overlay.className = 'sh-board-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Verhaal over ' + (feature.properties?.title || 'deze plek'));
+
+  // The map remains visible behind the transparent backdrop. The staggered
+  // cards behind the reader are visual hints, never duplicate map instances.
+  const deck = document.createElement('div');
+  deck.className = 'sh-board-deck';
+  deck.setAttribute('aria-hidden', 'true');
+  for (let n = 1; n <= 2; n++) {
+    const card = document.createElement('div');
+    card.className = 'sh-board-deck-card sh-board-deck-card-' + n;
+    deck.append(card);
   }
-  scroller.append(list); overlay.append(header,scroller);
+
+  const plate = document.createElement('div');
+  plate.className = 'sh-board-plate';
+  const controls = document.createElement('div');
+  controls.className = 'sh-board-controls';
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'sh-board-close';
+  closeButton.textContent = '×';
+  closeButton.setAttribute('aria-label', 'Verhaal sluiten');
+  const label = document.createElement('span');
+  label.textContent = 'Boards';
+  controls.append(label, closeButton);
+
+  const scroller = document.createElement('div');
+  scroller.className = 'sh-board-scroller';
+  const story = document.createElement('article');
+  story.className = 'sh-board-story';
+  const status = document.createElement('p');
+  status.className = 'sh-board-loading';
+  status.textContent = 'Verhaal laden…';
+  story.append(status);
+  const source = document.createElement('a');
+  source.textContent = 'Wikipedia · bron en volledige artikeltekst ↗';
+  source.href = safeUrl(feature?.properties?.url);
+  source.target = '_blank';
+  source.rel = 'noopener noreferrer';
+  source.className = 'sh-board-source';
+  const credits = document.createElement('small');
+  credits.textContent = 'Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
+  story.append(source, credits);
+  scroller.append(story);
+
+  const chapterRail = document.createElement('nav');
+  chapterRail.className = 'sh-board-chapters';
+  chapterRail.setAttribute('aria-label', 'Hoofdstukken');
+  plate.append(controls, scroller, chapterRail);
+  overlay.append(deck, plate);
   document.body.append(overlay);
-  const compasses=[];
-  const update=()=>{
-    const result=distanceBearing(gps,destination);
-    for(const c of compasses) {
-      c.distance.textContent=result?(result.distance < 1000?Math.round(result.distance)+' m':(result.distance/1000).toFixed(result.distance<10000?1:0)+' km'):'GPS onbekend';
-      c.arrow.hidden=!result || heading===null;
-      if(result && heading!==null)c.arrow.style.transform='rotate('+((result.bearing-heading+360)%360)+'deg)';
-      c.activate.hidden=heading!==null;
-    }
-  };
-  const orient=e=>{
-    if(Number.isFinite(e.webkitCompassHeading))heading=e.webkitCompassHeading;
-    else if(e.absolute && Number.isFinite(e.alpha))heading=(360-e.alpha)%360;
-    else return;
-    update();
-  };
-  window.addEventListener('deviceorientation',orient,{passive:true});
-  window.addEventListener('deviceorientationabsolute',orient,{passive:true});
-  const unsub=events?.on?.('location.changed',e=>{gps=e.detail;update();});
-  const key=e=>{if(e.key==='Escape')close();};
-  window.addEventListener('keydown',key);
-  const close=()=>{
-    if(closed)return;
-    closed=true;abort.abort();unsub?.();window.removeEventListener('keydown',key);
-    window.removeEventListener('deviceorientation',orient);
-    window.removeEventListener('deviceorientationabsolute',orient);
-    overlay.remove();
-  };
-  back.addEventListener('click',close);
-  async function permission(){
-    try{
-      if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-        if(await DeviceOrientationEvent.requestPermission()!=='granted')return;
+
+  const compasses = [];
+  const updateCompass = () => {
+    const value = distanceBearing(gps, destination);
+    for (const item of compasses) {
+      item.distance.textContent = value
+        ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
+          (value.distance / 1000).toFixed(value.distance < 10000 ? 1 : 0) + ' km')
+        : 'GPS onbekend';
+      item.arrow.hidden = !value || heading === null;
+      if (value && heading !== null) {
+        item.arrow.style.transform = 'rotate(' + ((value.bearing - heading + 360) % 360) + 'deg)';
       }
-      for(const c of compasses)c.activate.textContent='Richting bepalen…';
-    }catch{for(const c of compasses)c.activate.textContent='Kompas niet beschikbaar';}
-  }
-  function renderSection(section,index){
-    const item=document.createElement('section');item.className='sh-board-chapter';
-    const imageFrame=document.createElement('div');imageFrame.className='sh-board-image';
-    if(section.image){
-      const img=document.createElement('img');img.src=section.image;img.alt=section.title;
-      img.loading=index?'lazy':'eager';imageFrame.append(img);
+      item.activate.hidden = heading !== null;
     }
-    const compass=document.createElement('div');compass.className='sh-board-compass';
-    const activate=document.createElement('button');activate.type='button';activate.setAttribute('aria-label','Kompas activeren');
-    const arrow=document.createElement('span');arrow.textContent='➤';arrow.className='sh-board-arrow';
-    const label=document.createElement('span');label.textContent='Kompas';label.className='sh-board-activate';
-    activate.append(arrow,label);activate.addEventListener('click',permission);
-    const distance=document.createElement('small');compass.append(activate,distance);
-    imageFrame.append(compass);compasses.push({arrow,activate:label,distance});
-    const title=document.createElement(index?'h3':'h2');title.textContent=section.title;
-    const text=document.createElement('p');text.textContent=section.text;
-    item.append(imageFrame,title,text);list.insertBefore(item,source);
+  };
+  const onOrientation = event => {
+    if (Number.isFinite(event.webkitCompassHeading)) heading = event.webkitCompassHeading;
+    else if (event.absolute && Number.isFinite(event.alpha)) heading = (360 - event.alpha) % 360;
+    else return;
+    updateCompass();
+  };
+  window.addEventListener('deviceorientation', onOrientation, { passive: true });
+  window.addEventListener('deviceorientationabsolute', onOrientation, { passive: true });
+  const unsubscribe = events?.on?.('location.changed', event => {
+    gps = event.detail;
+    updateCompass();
+  });
+
+  const onKey = event => { if (event.key === 'Escape') close(); };
+  window.addEventListener('keydown', onKey);
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    abort.abort();
+    unsubscribe?.();
+    window.removeEventListener('keydown', onKey);
+    window.removeEventListener('deviceorientation', onOrientation);
+    window.removeEventListener('deviceorientationabsolute', onOrientation);
+    scroller.removeEventListener('scroll', refreshChapter);
+    overlay.remove();
+    onClose();
+  };
+  closeButton.addEventListener('click', close);
+  const switchNext = () => { if (onNext) { close(); onNext(); } };
+
+  // Keep vertical scrolling native. Only a decisive horizontal swipe on the
+  // glass plate advances the deck; this does not intercept map gestures.
+  let start = null;
+  plate.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1 || event.target.closest('button,a')) return;
+    start = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  }, { passive: true });
+  plate.addEventListener('touchend', event => {
+    if (!start) return;
+    const dx = event.changedTouches[0].clientX - start.x;
+    const dy = event.changedTouches[0].clientY - start.y;
+    start = null;
+    if (onNext && dx < -75 && Math.abs(dx) > Math.abs(dy) * 1.5) switchNext();
+  }, { passive: true });
+  plate.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+
+  async function requestCompass() {
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function' &&
+        await DeviceOrientationEvent.requestPermission() !== 'granted') return;
+      for (const item of compasses) item.activate.textContent = 'Richting bepalen…';
+    } catch {
+      for (const item of compasses) item.activate.textContent = 'Kompas niet beschikbaar';
+    }
   }
-  fetchWikipediaBoard(feature,{signal:abort.signal}).then(chapters=>{
-    if(closed)return;
+
+  const chapters = [];
+  const dots = [];
+  const setActive = index => {
+    dots.forEach((dot, i) => {
+      dot.setAttribute('aria-current', i === index ? 'step' : 'false');
+      dot.setAttribute('aria-label', 'Hoofdstuk ' + (i + 1) + ' van ' + dots.length +
+        ': ' + (chapters[i]?.querySelector('h2,h3')?.textContent || 'Verhaal'));
+    });
+  };
+  const refreshChapter = () => {
+    const threshold = scroller.getBoundingClientRect().top + 100;
+    let active = 0;
+    for (let i = 0; i < chapters.length; i++) {
+      if (chapters[i].getBoundingClientRect().top <= threshold) active = i;
+    }
+    setActive(active);
+  };
+  scroller.addEventListener('scroll', refreshChapter, { passive: true });
+
+  function addChapter(section, index) {
+    const item = document.createElement('section');
+    item.className = 'sh-board-chapter';
+    const hero = document.createElement('div');
+    hero.className = 'sh-board-image';
+    if (section.image) {
+      const photo = document.createElement('img');
+      photo.src = section.image;
+      photo.alt = section.title;
+      photo.loading = index === 0 ? 'eager' : 'lazy';
+      hero.append(photo);
+    } else hero.classList.add('sh-board-no-photo');
+
+    const compass = document.createElement('div');
+    compass.className = 'sh-board-compass';
+    const activate = document.createElement('button');
+    activate.type = 'button';
+    activate.setAttribute('aria-label', 'Kompas activeren');
+    const arrow = document.createElement('span');
+    arrow.className = 'sh-board-arrow';
+    arrow.textContent = '➤';
+    const instruction = document.createElement('span');
+    instruction.textContent = 'Kompas';
+    instruction.className = 'sh-board-activate';
+    activate.append(arrow, instruction);
+    activate.addEventListener('click', requestCompass);
+    const distance = document.createElement('small');
+    compass.append(activate, distance);
+    hero.append(compass);
+    compasses.push({ arrow, activate: instruction, distance });
+
+    const title = document.createElement(index ? 'h3' : 'h2');
+    title.textContent = section.title;
+    const paragraph = document.createElement('p');
+    paragraph.textContent = section.text;
+    item.append(hero, title, paragraph);
+    story.insertBefore(item, source);
+    chapters.push(item);
+
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'sh-board-chapter-dot';
+    dot.title = section.title;
+    dot.addEventListener('click', () => {
+      scroller.scrollTo({ top: item.offsetTop - story.offsetTop, behavior: 'smooth' });
+      setActive(index);
+    });
+    chapterRail.append(dot);
+    dots.push(dot);
+  }
+
+  fetchWikipediaBoard(feature, { signal: abort.signal }).then(sections => {
+    if (closed) return;
     status.remove();
-    if(!chapters.length)throw Error('Geen leesbare inhoud.');
-    chapters.forEach(renderSection);
-    update();
-  }).catch(error=>{if(!closed)status.textContent=error.message;});
+    if (!sections.length) throw Error('Geen leesbare inhoud.');
+    sections.forEach(addChapter);
+    setActive(0);
+    updateCompass();
+  }).catch(error => {
+    if (!closed) status.textContent = error.message || 'Het verhaal kan niet worden geladen.';
+  });
   return close;
 }
