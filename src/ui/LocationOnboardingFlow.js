@@ -153,10 +153,8 @@ export function enhanceLocationEditor(root, {
       '<h3>Wat voor plek is dit?</h3>' +
       '<div class="sh-location-reference-chips sh-location-reference-types" data-type-chips></div>' +
     '</div>' +
-    '<details class="sh-location-reference-more" data-more>' +
-      '<summary>Meer instellingen</summary>' +
-      '<div data-more-fields></div>' +
-    '</details>' +
+    '<div data-more-fields hidden></div>' +
+    '<div data-location-editor-actions hidden></div>' +
     '<div class="sh-location-reference-status" data-status-slot></div>' +
     '<div class="sh-location-reference-bottom-save" data-bottom-save></div>';
   form.prepend(view);
@@ -189,8 +187,9 @@ export function enhanceLocationEditor(root, {
   view.querySelector('[data-more-fields]').append(
     typeLabel, radiusLabel, shareLabel, triggerGroup, distanceGroup);
   radiusLabel.hidden = true; // Original numeric value is still what gets saved.
-  if (extras) view.querySelector('[data-more-fields]').append(extras);
-  if (merge) view.querySelector('[data-more-fields]').append(merge);
+  const actionsSlot = view.querySelector('[data-location-editor-actions]');
+  if (extras) actionsSlot.append(extras);
+  if (merge) actionsSlot.append(merge);
   view.querySelector('[data-status-slot]').append(status);
   nativeSave.classList.add('sh-location-reference-save');
   view.querySelector('[data-bottom-save]').append(nativeSave);
@@ -211,7 +210,7 @@ export function enhanceLocationEditor(root, {
   const typeChips = view.querySelector('[data-type-chips]');
   const parentChips = view.querySelector('[data-parent-chips]');
   const parentSection = view.querySelector('[data-parent-section]');
-  const moreSettings = view.querySelector('[data-more]');
+  const actionsSlotForStage = view.querySelector('[data-location-editor-actions]');
   const mapHint = view.querySelector('[data-map-hint]');
   const conclusionElement = view.querySelector('[data-location-conclusion]');
   const existingNotice = view.querySelector('[data-existing-location]');
@@ -575,8 +574,9 @@ export function enhanceLocationEditor(root, {
     typeSection.hidden = stage !== 'type';
     if (stage === 'type') requestAnimationFrame(() => typeSphere?.refresh());
     parentSection.hidden = true;
-    // Advanced settings are not part of the two-step identity editor.
-    moreSettings.hidden = stage !== 'type' || editMode === 'identity';
+    // Secondary location actions remain reachable when editing the place,
+    // without reviving the obsolete "Meer instellingen" accordion.
+    actionsSlotForStage.hidden = stage !== 'parent' || isNew || editMode !== 'place';
     nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : editMode === 'place' ? true : false) || Boolean(saveInHeader);
     if (editMode === 'place') nativeSave.textContent = 'Bevestig locatie';
     const placeBlock = view.querySelector('.sh-location-reference-place');
