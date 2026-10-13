@@ -517,7 +517,9 @@ export function enhanceLocationEditor(root, {
       place && all.findIndex(other => other?.id === place.id) === i);
   }
   function needsHierarchyChoice() {
-    return matchingParentChoices().length > 0;
+    // Suggest a relationship only when a known location's recognition radius overlaps this point.
+    // An existing parent remains saved, but does not by itself trigger the question.
+    return parentCandidatesWithinRadius(currentPoint(), eligible).length > 0;
   }
   function renderHierarchyChoice() {
     const choices = matchingParentChoices();
@@ -601,14 +603,18 @@ export function enhanceLocationEditor(root, {
     if (stageButton) {
       stageButton.hidden = stage === 'type' || (stage === 'parent' && !manualParentOpen && editMode !== 'place') || (!isNew && editMode !== 'identity' && editMode !== 'place');
       stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
-      stageButton.textContent = stage === 'place' ? 'Verder naar relatie' : stage === 'parent' && editMode === 'place' ? 'Bewaar relatie' : 'Verder';
+      stageButton.textContent = stage === 'place' ? (needsHierarchyChoice() ? 'Verder naar relatie' : editMode === 'place' ? 'Bevestig locatie' : 'Verder naar naam') : stage === 'parent' && editMode === 'place' ? 'Bewaar relatie' : 'Verder';
     }
     if ((stage === 'name' || stage === 'type') && animate && stage === 'name') focusTextField(form.elements.title);
   }
   function advanceNewLocationStage() {
     if (!isNew && editMode !== 'identity' && editMode !== 'place') return;
     const stage = view.dataset.stage || 'place';
-    if (stage === 'place' && (currentPoint() || editMode === 'place')) setNewLocationStage(editMode === 'place' || needsHierarchyChoice() ? 'parent' : 'name');
+    if (stage === 'place' && (currentPoint() || editMode === 'place')) {
+      if (needsHierarchyChoice()) setNewLocationStage('parent');
+      else if (editMode === 'place') form.requestSubmit();
+      else setNewLocationStage('name');
+    }
     else if (stage === 'parent' && editMode === 'place') form.requestSubmit();
     else if (stage === 'parent') setNewLocationStage('name');
     else if (stage === 'name' && form.elements.title.value.trim()) setNewLocationStage('type');
