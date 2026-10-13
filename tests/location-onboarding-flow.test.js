@@ -178,7 +178,8 @@ test('bovenliggende locaties worden alleen binnen herkenningsstraal voorgesteld,
 test('hiërarchie wordt alleen na bevestiging gewijzigd en opgeslagen met naam en type in afzonderlijke stappen', async () => {
   const flow=await read('../src/ui/LocationOnboardingFlow.js');
   const view=await read('../src/ui/LocationsView.js');
-  assert.ok(flow.includes("setNewLocationStage(needsHierarchyChoice() ? 'parent' : 'name')"));
+  assert.ok(flow.includes("setNewLocationStage(editMode === 'place' || needsHierarchyChoice() ? 'parent' : 'name')"));
+  assert.ok(flow.includes("else if (stage === 'parent' && editMode === 'place') form.requestSubmit()"));
   assert.ok(flow.includes("parentSelect.value = value"));
   assert.ok(flow.includes("setNewLocationStage('name')"));
   assert.ok(flow.includes("setNewLocationStage('type')"));
