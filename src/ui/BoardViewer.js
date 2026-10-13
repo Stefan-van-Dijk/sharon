@@ -143,7 +143,7 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
 export function articleProgressDotCount(wordCount) {
   return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
 }
-export function openBoardViewer(feature, { location, events, onNext, onClose = () => {} } = {}) {
+export function openBoardViewer(feature, { location, events, onNext, onPrevious, onClose = () => {} } = {}) {
   const abort = new AbortController();
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
@@ -292,7 +292,10 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     overlay.remove();
     onClose();
   };
-  const switchNext = () => { if (onNext) { close(); onNext(); } };
+  const switchTo = direction => {
+    const action = direction === 'next' ? onNext : onPrevious;
+    if (action) { close(); action(); }
+  };
 
   // Interactive deck: the active card follows the finger. Vertical reading
   // remains native; only after a horizontal direction lock do we prevent scroll.
@@ -305,7 +308,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     plate.classList.remove('is-board-dragging');
   };
   plate.addEventListener('touchstart', event => {
-    if (!onNext || transitioning || event.touches.length !== 1 ||
+    if ((!onNext && !onPrevious) || transitioning || event.touches.length !== 1 ||
         event.target.closest('button,a,.sh-board-compass')) return;
     const t = event.touches[0];
     swipe = { x:t.clientX, y:t.clientY, dx:0, direction:null };
@@ -320,25 +323,29 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
       swipe.direction = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'horizontal' : 'vertical';
     }
     if (swipe.direction !== 'horizontal') return;
-    swipe.dx = Math.min(0, dx);
+    swipe.dx = dx < 0 && !onNext ? 0 : dx > 0 && !onPrevious ? 0 : dx;
     if (event.cancelable) event.preventDefault();
     plate.classList.add('is-board-dragging');
     plate.style.transform = 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
       (swipe.dx / 65).toFixed(2) + 'deg)';
     plate.style.opacity = String(Math.max(.6, 1 + swipe.dx / 900));
-    deck.style.transform = 'translate3d(' + Math.min(20, -swipe.dx * .10) + 'px,0,0)';
+    deck.style.transform = 'translate3d(' + Math.max(-20, Math.min(20, -swipe.dx * .10)) + 'px,0,0)';
   }, { passive:false });
   plate.addEventListener('touchend', () => {
     if (!swipe) return;
     const dx = swipe.dx;
     swipe = null;
     plate.classList.remove('is-board-dragging');
-    if (dx < -Math.min(95, plate.clientWidth * .25)) {
+    const threshold = Math.min(95, plate.clientWidth * .25);
+    if ((dx < -threshold && onNext) || (dx > threshold && onPrevious)) {
       transitioning = true;
+      const direction = dx < 0 ? 'next' : 'previous';
       plate.classList.add('is-board-exiting');
-      plate.style.transform = 'translate3d(-110vw,0,0) rotate(-9deg)';
+      plate.style.transform = direction === 'next'
+        ? 'translate3d(-110vw,0,0) rotate(-9deg)'
+        : 'translate3d(110vw,0,0) rotate(9deg)';
       plate.style.opacity = '0';
-      window.setTimeout(() => { if (!closed) switchNext(); }, 210);
+      window.setTimeout(() => { if (!closed) switchTo(direction); }, 210);
     } else resetDeck();
   }, { passive:true });
   plate.addEventListener('touchcancel', () => { swipe = null; resetDeck(); }, { passive:true });
