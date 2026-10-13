@@ -1,3 +1,4 @@
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.55';
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.55';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.55';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.55';
@@ -694,12 +695,15 @@ export async function openLocationsView(root, {
         if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) throw Error('Ongeldige GPS-coördinaten.');
         if (parentId && (!byId.has(parentId) || (item && isDescendant(parentId, item.id, byId)))) throw Error('Kies een geldige bovenliggende locatie.');
         const now = Date.now();
-        const savedId = item?.id || crypto.randomUUID();
+        let savedId = item?.id;
+        if (!savedId) {
+          do { savedId = IdentifierService.create(); } while (await store.get('objects', savedId));
+        }
         const oldAddress = addressText(original.address);
         const address = text === oldAddress ? (original.address || {}) :
           (pickedAddress && text === addressText(pickedAddress) ? pickedAddress : (text ? { text } : {}));
         const saved = {
-          ...(item || { id: savedId, externalId: null, type: 'location', schemaVersion: 1, createdAt: now, deletedAt: null }),
+          ...(item || { id: savedId, externalId: savedId, type: 'location', schemaVersion: 1, createdAt: now, deletedAt: null }),
           updatedAt: now,
           data: {
             ...original, title, parentId, address,
@@ -713,7 +717,7 @@ export async function openLocationsView(root, {
         const enabled = values.get('triggerEnabled') === 'on';
         if (locationAction || enabled) {
           await store.put('objects', {
-            ...(locationAction || { id: crypto.randomUUID(), externalId: null, type: 'location-action', schemaVersion: 1, createdAt: now, deletedAt: null }),
+            ...(locationAction || { id: IdentifierService.create(), externalId: null, type: 'location-action', schemaVersion: 1, createdAt: now, deletedAt: null }),
             updatedAt: now,
             data: {
               ...(locationAction?.data || {}), locationId: savedId, event: 'enter', enabled,
