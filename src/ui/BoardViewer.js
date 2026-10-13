@@ -200,11 +200,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   source.setAttribute('aria-label', 'Open oorspronkelijk Wikipedia-artikel');
   source.title = 'Open Wikipedia';
   const credits = document.createElement('small');
-  credits.textContent = 'Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
+  credits.textContent = 'Tekst: Wikipedia · CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.';
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
-  credits.textContent = 'Wikipedia · CC BY-SA · Wikimedia Commons';
-  footer.append(credits, source);
+  footer.append(credits);
+  // One unobtrusive source badge inside the photo; no duplicate bottom link.
+  source.classList.add('sh-board-photo-source');
+  photoHeader.append(source);
   story.append(footer);
   scroller.append(story);
 
