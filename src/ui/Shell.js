@@ -316,6 +316,13 @@ export function createShell(root, {
   };
   const navigateBack = () => {
     if (currentView !== 'detail') return;
+    // Give guided multi-step editors first refusal before leaving the editor.
+    const editor = outlet.querySelector('.location-editor-view[data-stage]');
+    if (editor) {
+      const request = new Event('sharon:navigate-back', { cancelable: true });
+      editor.dispatchEvent(request);
+      if (request.defaultPrevented) return;
+    }
     // Editors and location detail screens own their own previous-page action.
     // Never fall through to Home when an internal page has no matching back button.
     const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .sh-location-detail-view [data-back], .sh-location-reference-page [data-back], .locations-view [data-back], [data-navigation-back]');
