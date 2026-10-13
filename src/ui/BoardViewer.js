@@ -3,7 +3,7 @@ const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
 function safeUrl(value, image = false) {
   try {
-    const url = new URL(value, 'https://nl.wikipedia.org');
+    const url = new URL(String(value || '').startsWith('//') ? 'https:' + value : value, 'https://nl.wikipedia.org');
     if (url.protocol !== 'https:' || !(image ? imageHosts : wikiHosts).test(url.hostname)) return '';
     if (image && /\.(svg|gif)(?:$|\?)/i.test(url.pathname)) return '';
     return url.href;
@@ -28,6 +28,13 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
   const root = doc.querySelector('.mw-parser-output') || doc.body;
   const sections = [first];
   let current = first, count = 0;
+  const extractImage = node => {
+    const img = node.matches?.('img') ? node : node.querySelector?.('img');
+    if (!img) return '';
+    const width = Number(img.getAttribute('width') || img.naturalWidth || 0);
+    if (width && width < 95) return '';
+    return safeUrl(img.getAttribute('src') || img.getAttribute('data-src') || '', true);
+  };
   for (const el of root.querySelectorAll('h2,h3,p,figure,.thumb')) {
     if (el.closest('table,nav,aside,.reflist,.reference')) continue;
     if (el.matches('h2,h3')) {
@@ -42,7 +49,7 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
       current.text += (current.text ? '\n\n' : '') + paragraph;
     } else if (!current.image) {
       const img = el.querySelector('img');
-      const src = safeUrl(img?.getAttribute('src') || '', true);
+      const src = extractImage(img);
       if (src) current.image = src;
     }
   }
@@ -52,7 +59,7 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
   const used = new Set(sections.map(section => section.image).filter(Boolean));
   const extras = [];
   for (const img of root.querySelectorAll('img')) {
-    const url = safeUrl(img.getAttribute('src') || '', true);
+    const url = extractImage(img);
     const width = Number(img.getAttribute('width')) || 0;
     if (url && width >= 100 && !used.has(url)) {
       extras.push(url);
@@ -62,7 +69,8 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
   for (const section of sections) {
     if (!section.image && extras.length) section.image = extras.shift();
   }
-  return sections.filter(x => x.text || x.image);
+  return sections.filter((x, i) => (x.text && x.text.length >= 60) || (i === 0 && Boolean(x.image)));
+
 }
 export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } = {}) {
   const article = safeUrl(feature?.properties?.url);
@@ -184,21 +192,54 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   closeButton.addEventListener('click', close);
   const switchNext = () => { if (onNext) { close(); onNext(); } };
 
-  // Keep vertical scrolling native. Only a decisive horizontal swipe on the
-  // glass plate advances the deck; this does not intercept map gestures.
-  let start = null;
+  // Interactive deck: the active card follows the finger. Vertical reading
+  // remains native; only after a horizontal direction lock do we prevent scroll.
+  let swipe = null;
+  let transitioning = false;
+  const resetDeck = () => {
+    plate.style.transform = '';
+    deck.style.transform = '';
+    plate.style.opacity = '';
+    plate.classList.remove('is-board-dragging');
+  };
   plate.addEventListener('touchstart', event => {
-    if (event.touches.length !== 1 || event.target.closest('button,a')) return;
-    start = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-  }, { passive: true });
-  plate.addEventListener('touchend', event => {
-    if (!start) return;
-    const dx = event.changedTouches[0].clientX - start.x;
-    const dy = event.changedTouches[0].clientY - start.y;
-    start = null;
-    if (onNext && dx < -75 && Math.abs(dx) > Math.abs(dy) * 1.5) switchNext();
-  }, { passive: true });
-  plate.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+    if (!onNext || transitioning || event.touches.length !== 1 ||
+        event.target.closest('button,a,.sh-board-compass')) return;
+    const t = event.touches[0];
+    swipe = { x:t.clientX, y:t.clientY, dx:0, direction:null };
+  }, { passive:true });
+  plate.addEventListener('touchmove', event => {
+    if (!swipe || event.touches.length !== 1 || transitioning) return;
+    const t = event.touches[0], dx = t.clientX - swipe.x;
+    const dy = t.clientY - swipe.y;
+    if (!swipe.direction) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; }
+      if (Math.abs(dx) < 12) return;
+      swipe.direction = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'horizontal' : 'vertical';
+    }
+    if (swipe.direction !== 'horizontal') return;
+    swipe.dx = Math.min(0, dx);
+    if (event.cancelable) event.preventDefault();
+    plate.classList.add('is-board-dragging');
+    plate.style.transform = 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
+      (swipe.dx / 65).toFixed(2) + 'deg)';
+    plate.style.opacity = String(Math.max(.6, 1 + swipe.dx / 900));
+    deck.style.transform = 'translate3d(' + Math.min(20, -swipe.dx * .10) + 'px,0,0)';
+  }, { passive:false });
+  plate.addEventListener('touchend', () => {
+    if (!swipe) return;
+    const dx = swipe.dx;
+    swipe = null;
+    plate.classList.remove('is-board-dragging');
+    if (dx < -Math.min(95, plate.clientWidth * .25)) {
+      transitioning = true;
+      plate.classList.add('is-board-exiting');
+      plate.style.transform = 'translate3d(-110vw,0,0) rotate(-9deg)';
+      plate.style.opacity = '0';
+      window.setTimeout(() => { if (!closed) switchNext(); }, 210);
+    } else resetDeck();
+  }, { passive:true });
+  plate.addEventListener('touchcancel', () => { swipe = null; resetDeck(); }, { passive:true });
 
   async function requestCompass() {
     try {
@@ -240,6 +281,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
       photo.src = section.image;
       photo.alt = section.title;
       photo.loading = index === 0 ? 'eager' : 'lazy';
+      photo.addEventListener('error', () => { hero.classList.add('sh-board-no-photo'); photo.remove(); }, { once: true });
       hero.append(photo);
     } else hero.classList.add('sh-board-no-photo');
 
