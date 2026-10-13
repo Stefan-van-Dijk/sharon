@@ -1945,7 +1945,28 @@
 .sh-location-merge-review-actions{display:flex;gap:12px;align-items:center;margin-top:16px}
 .sh-location-merge-review-actions button:first-child{border:0;background:transparent;color:#6a4a9e;padding:12px}
 .sh-location-merge-review-actions .primary-line-action{flex:1;margin:0}
-</style>
+
+    /* Shared strip presentation: geometry and interaction remain module-independent. */
+    .sh-strip{--strip-min-height:68px;--strip-pad-x:12px;--strip-gap:12px}
+    .sh-strip .sh-strip-surface{box-sizing:border-box;min-height:var(--strip-min-height);padding:12px var(--strip-pad-x);gap:var(--strip-gap);display:flex;align-items:center;justify-content:flex-start;border-bottom:1px solid #e9e9ed;background:#fff}
+    .sh-strip .sh-strip-content{display:flex;flex:1 1 auto;min-width:0;align-items:center}
+    .sh-strip .sh-strip-content>span{min-width:0;max-width:100%}
+    .sh-strip .sh-strip-content strong,.sh-strip .sh-strip-content small{overflow:hidden;text-overflow:ellipsis}
+    .sh-strip .sh-strip-surface:focus-visible{outline:2px solid #505057;outline-offset:-2px}
+    .sh-strip--location{--strip-min-height:72px;--strip-pad-x:12px}
+    .sh-strip--location .sh-location-row{padding-left:var(--strip-pad-x);padding-right:var(--strip-pad-x);gap:var(--strip-gap)}
+    .sh-strip--location .sh-location-kind{flex:0 0 26px;width:26px}
+    .sh-strip--location .sh-location-copy{flex:1;gap:5px}
+    .sh-strip--location .sh-location-copy strong{font-size:15px;line-height:1.35}
+    .sh-strip--location .sh-location-copy small{font-size:12px;line-height:1.35}
+    .sh-strip--location .sh-location-chevron{margin-left:auto;flex:0 0 auto}
+    .sh-strip--detail{--strip-min-height:78px;--strip-pad-x:12px}
+    .sh-strip--detail .sh-strip-surface{padding:18px var(--strip-pad-x)}
+    .sh-strip--detail .sh-strip-content{align-items:flex-start}
+    .sh-strip--detail .sh-location-detail-identity h2{font-size:21px}
+    .sh-strip--detail .sh-location-detail-place{border-top:0}
+    @media (prefers-reduced-motion:reduce){.sh-strip .swipe-surface.is-animating{transition:none!important}}
+  </style>
 </head>
 <body>
   <div id="app">
