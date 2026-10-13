@@ -2134,6 +2134,45 @@
     .sh-board-plate .sh-board-chapter-dot[aria-current="step"]::after{
       opacity:.93;background:#203e54;transform:scale(1.35);
     }
+
+    /* Board: calmer joined photo/compass and a short fade where reading text
+       passes under the fixed media region. The fade never captures gestures. */
+    .sh-board-plate .sh-board-photo-header{
+      position:relative;
+      z-index:2;
+      isolation:isolate;
+      background:transparent!important;
+    }
+    .sh-board-plate .sh-board-photo-current,
+    .sh-board-plate .sh-board-photo-placeholder{
+      border-radius:27px 27px 24px 24px!important;
+      -webkit-mask-image:radial-gradient(circle 76px at 0% 100%,transparent 0 71px,#000 75px)!important;
+      mask-image:radial-gradient(circle 76px at 0% 100%,transparent 0 71px,#000 75px)!important;
+    }
+    .sh-board-plate .sh-board-photo-header .sh-board-compass{
+      width:62px!important;height:62px!important;bottom:7px!important;left:7px!important;
+      background:rgba(250,251,252,.91)!important;border:1px solid rgba(255,255,255,.9)!important;
+      box-shadow:none!important;gap:0!important;position:absolute;
+    }
+    .sh-board-plate .sh-board-compass.is-distance-only button{
+      position:absolute;inset:0;width:100%!important;height:100%!important;
+      min-width:0!important;min-height:0!important;background:transparent!important;
+      border:0!important;opacity:0;z-index:2;
+    }
+    .sh-board-plate .sh-board-compass.is-distance-only small{
+      font-size:12px!important;line-height:1.15;white-space:nowrap;
+      text-align:center;font-weight:600;pointer-events:none;
+    }
+    .sh-board-plate .sh-board-compass:not(.is-distance-only) button{
+      width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
+      font-size:17px!important;
+    }
+    .sh-board-plate .sh-board-scroller{position:relative;z-index:1}
+    .sh-board-plate::after{
+      content:'';position:absolute;z-index:3;top:clamp(160px,26vh,270px);left:0;right:0;
+      height:24px;pointer-events:none;
+      background:linear-gradient(to bottom,rgba(248,249,249,.94),rgba(248,249,249,.53) 42%,rgba(248,249,249,0));
+    }
 </style>
 </head>
 <body>
