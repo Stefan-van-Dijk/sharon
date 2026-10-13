@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.2.52">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.52">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.2.53">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.53">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1473,7 +1473,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.2.52 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.2.53 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1626,7 +1626,7 @@
       .sh-location-reference-chip{font-size:12px;padding:8px 11px}
     }
 
-    /* Location 0.2.52: contextual typewriter and compact swipe categories. */
+    /* Location 0.2.53: contextual typewriter and compact swipe categories. */
     .sh-location-reference-heading h2{min-height:1.45em;overflow-wrap:anywhere}
     .sh-location-reference-heading h2.is-typing::after{
       content:'|';display:inline-block;margin-left:2px;color:#9b9ba0;
@@ -1936,6 +1936,15 @@
   width:100%;min-width:0;max-width:none;box-sizing:border-box;
 }
 .sh-sentence-scope-default > .sh-sentence-icon-action:last-child{grid-column:3}
+.sh-location-merge-review-ids{display:grid;gap:6px;overflow-wrap:anywhere;margin:12px 0}
+.sh-location-merge-review-table{border-top:1px solid #e6e2ea;margin:14px 0}
+.sh-location-merge-review-row{display:grid;gap:3px;padding:11px 0;border-bottom:1px solid #e6e2ea}
+.sh-location-merge-review-row strong{font-size:14px}
+.sh-location-merge-review-row span{font-size:16px}
+.sh-location-merge-review-row small{color:#797581;line-height:1.4}
+.sh-location-merge-review-actions{display:flex;gap:12px;align-items:center;margin-top:16px}
+.sh-location-merge-review-actions button:first-child{border:0;background:transparent;color:#6a4a9e;padding:12px}
+.sh-location-merge-review-actions .primary-line-action{flex:1;margin:0}
 </style>
 </head>
 <body>
@@ -1949,16 +1958,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.52#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.52#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.52#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.52#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.52#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.53#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.53#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.53#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.53#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.53#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.2.52"></script>
+  <script type="module" src="./src/main.js?v=0.2.53"></script>
 </body>
 </html>
