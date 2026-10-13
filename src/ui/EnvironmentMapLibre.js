@@ -210,8 +210,14 @@ export function openEnvironmentView(root, {
               </div>
             </div>
           </div>
+          <div class="environment-readout-filters" data-readout-filters aria-hidden="true">
+            <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
+            <div class="environment-filter-options" role="group" aria-label="Kaartinformatielagen">
+              <button type="button" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia-plekken tonen of verbergen" title="Wikipedia op kaart">W <span>Wikipedia</span></button>
+            </div>
+            <small class="environment-filter-hint">Filters</small>
+          </div>
         </div>
-        <button type="button" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia-plekken tonen of verbergen" title="Wikipedia-plekken op de kaart" style="position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:30;display:grid;place-items:center;width:46px;height:46px;min-width:44px;min-height:44px;border:1px solid #999;border-radius:50%;background:rgba(255,255,255,.95);color:#222;font:700 26px Georgia,serif;box-shadow:0 2px 8px rgba(0,0,0,.12);touch-action:manipulation">W</button>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
@@ -345,6 +351,38 @@ export function openEnvironmentView(root, {
   let popup = null;
   let wikipediaLayer = null;
   let wikipediaEnabled = false;
+  const filterPanel = root.querySelector('[data-readout-filters]');
+  const readoutBar = root.querySelector('[data-map-readout]');
+  const filterBack = root.querySelector('[data-filter-return]');
+  const setFilterMode = enabled => {
+    readoutBar.classList.toggle('is-filter-active', enabled);
+    filterPanel.setAttribute('aria-hidden', String(!enabled));
+    for (const button of filterPanel.querySelectorAll('button')) button.tabIndex = enabled ? 0 : -1;
+  };
+  let filterSwipe = null;
+  const onFilterStart = event => {
+    if (event.touches.length !== 1 || readoutBar.classList.contains('is-style-active')) return;
+    if (!readoutBar.classList.contains('is-filter-active') &&
+        !event.target.closest('[data-readout-position]')) return;
+    if (event.target.closest('button, a, input')) return;
+    const touch = event.touches[0];
+    filterSwipe = { x: touch.clientX, y: touch.clientY };
+  };
+  const onFilterEnd = event => {
+    if (!filterSwipe) return;
+    const touch = event.changedTouches?.[0];
+    const dx = (touch?.clientX ?? filterSwipe.x) - filterSwipe.x;
+    const dy = (touch?.clientY ?? filterSwipe.y) - filterSwipe.y;
+    filterSwipe = null;
+    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    if (dx < 0) setFilterMode(true);
+    else if (readoutBar.classList.contains('is-filter-active')) setFilterMode(false);
+  };
+  readoutBar.addEventListener('touchstart', onFilterStart, { passive: true });
+  readoutBar.addEventListener('touchend', onFilterEnd, { passive: true });
+  readoutBar.addEventListener('touchcancel', () => { filterSwipe = null; }, { passive: true });
+  filterBack.addEventListener('click', () => setFilterMode(false));
+  setFilterMode(false);
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   wikipediaToggle?.addEventListener("click", () => {
     wikipediaEnabled = !wikipediaEnabled;
