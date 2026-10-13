@@ -316,12 +316,17 @@ export function createShell(root, {
   };
   const navigateBack = () => {
     if (currentView !== 'detail') return;
-    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .sh-location-reference-page [data-back], .locations-view [data-back], [data-navigation-back]');
+    // Editors and location detail screens own their own previous-page action.
+    // Never fall through to Home when an internal page has no matching back button.
+    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .sh-location-detail-view [data-back], .sh-location-reference-page [data-back], .locations-view [data-back], [data-navigation-back]');
     if (back) {
       back.click();
       return;
     }
-    showHome();
+    // Only a module root (not a nested editing screen) may return Home.
+    if (outlet.querySelector('.locations-view, .environment-view, [data-module-root], .settings-view')) {
+      showHome();
+    }
   };
   window.addEventListener('popstate', event => {
     const target = event.state?.[navigationKey];
