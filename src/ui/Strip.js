@@ -22,6 +22,7 @@ function actionMarkup(action) {
 export function renderStrip({
   id,
   className = '',
+  surfaceClassName = '',
   ariaLabel = '',
   leadingHtml = '',
   title = '',
@@ -40,7 +41,7 @@ export function renderStrip({
   const copy = bodyHtml || `<span class="sh-strip-copy"><strong>${escapeHtml(title)}</strong>${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ''}</span>`;
   return `<div class="swipe-row sh-strip ${escapeAttribute(className)}" data-swipe-row="${escapeAttribute(id)}" ${flags}>
     ${actionList.length ? `<div class="swipe-actions">${actionList.map(actionMarkup).join('')}</div>` : ''}
-    <button type="button" class="clean-row swipe-surface sh-strip-surface" data-swipe-surface${ariaLabel ? ` aria-label="${escapeAttribute(ariaLabel)}"` : ''}>
+    <button type="button" class="clean-row swipe-surface sh-strip-surface ${escapeAttribute(surfaceClassName)}" data-swipe-surface${ariaLabel ? ` aria-label="${escapeAttribute(ariaLabel)}"` : ''}>
       ${leadingHtml}<span class="sh-strip-content">${copy}</span>${trailingHtml}
     </button>
   </div>`;
