@@ -399,7 +399,18 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     setActive(0);
     updateCompass();
   }).catch(error => {
-    if (!closed) status.textContent = error.message || 'Het verhaal kan niet worden geladen.';
+    if (closed) return;
+    status.remove();
+    // The map discovery response already carries a summary. Keep a readable
+    // Board even when Wikipedia's full article endpoint is unavailable.
+    addChapter({
+      title: feature.properties?.title || 'Verhaal',
+      text: feature.properties?.description || 'De uitgebreide tekst is tijdelijk niet beschikbaar.',
+      image: feature.properties?.image || ''
+    }, 0);
+    setActive(0);
+    updateCompass();
+    console.warn('Sharon Board: Wikipedia-artikel tijdelijk niet beschikbaar', error?.message);
   });
   return close;
 }
