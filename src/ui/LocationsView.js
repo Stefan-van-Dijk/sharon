@@ -70,6 +70,7 @@ export async function openLocationsView(root, {
               ${renderStrip({
                 id: item.id,
                 className: 'sh-location-strip',
+                variant: 'location',
                 surfaceClassName: 'sh-location-row',
                 ariaLabel: item.data?.title || 'Locatie',
                 leadingHtml: `<span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>`,
@@ -159,6 +160,7 @@ export async function openLocationsView(root, {
           ${renderStrip({
             id: 'identity',
             surfaceClassName: 'sh-location-detail-identity sh-location-reference-heading',
+            variant: 'detail',
             ariaLabel: 'Naam en type bewerken door te vegen',
             bodyHtml: '<h2 data-detail-conclusion></h2>',
             doubleSwipe: true,
@@ -170,6 +172,7 @@ export async function openLocationsView(root, {
           ${renderStrip({
             id: 'place',
             surfaceClassName: 'sh-location-detail-place sh-location-reference-address',
+            variant: 'detail',
             ariaLabel: 'Locatiegegevens bewerken door te vegen',
             leadingHtml: '<span class="sh-location-reference-marker" aria-hidden="true">⌖</span>',
             bodyHtml: `<span class="sh-location-reference-place-copy"><strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong><small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small></span>`,
