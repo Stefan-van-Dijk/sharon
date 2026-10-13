@@ -1,4 +1,4 @@
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.63';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.65';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
   environmentIdForPoint,
