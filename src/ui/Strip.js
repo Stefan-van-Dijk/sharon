@@ -31,7 +31,8 @@ export function renderStrip({
   trailingHtml = '',
   actions = [],
   singleAction = false,
-  doubleSwipe = false
+  doubleSwipe = false,
+  variant = 'standard'
 } = {}) {
   const actionList = actions.filter(Boolean);
   const flags = [
@@ -39,7 +40,7 @@ export function renderStrip({
     doubleSwipe ? 'data-double-swipe' : ''
   ].filter(Boolean).join(' ');
   const copy = bodyHtml || `<span class="sh-strip-copy"><strong>${escapeHtml(title)}</strong>${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ''}</span>`;
-  return `<div class="swipe-row sh-strip ${escapeAttribute(className)}" data-swipe-row="${escapeAttribute(id)}" ${flags}>
+  return `<div class="swipe-row sh-strip sh-strip--${escapeAttribute(variant)} ${escapeAttribute(className)}" data-swipe-row="${escapeAttribute(id)}" ${flags}>
     ${actionList.length ? `<div class="swipe-actions">${actionList.map(actionMarkup).join('')}</div>` : ''}
     <button type="button" class="clean-row swipe-surface sh-strip-surface ${escapeAttribute(surfaceClassName)}" data-swipe-surface${ariaLabel ? ` aria-label="${escapeAttribute(ariaLabel)}"` : ''}>
       ${leadingHtml}<span class="sh-strip-content">${copy}</span>${trailingHtml}
