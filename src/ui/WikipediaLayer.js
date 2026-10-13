@@ -31,7 +31,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const ensure = () => {
     if (!map.getSource(sourceId)) map.addSource(sourceId, { type: 'geojson', data: EMPTY });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
-      paint: { 'circle-radius': 9, 'circle-color': '#ffffff', 'circle-stroke-color': '#344d6b', 'circle-stroke-width': 2 } });
+      paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-stroke-color': '#344d6b', 'circle-stroke-width': 2 } });
   };
   const clear = () => map.getSource(sourceId)?.setData(EMPTY);
   const refresh = async () => {
