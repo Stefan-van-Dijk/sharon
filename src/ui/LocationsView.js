@@ -2,6 +2,7 @@ import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.57';
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.57';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.57';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.57';
+import { renderStrip } from './Strip.js?v=0.2.57';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.57';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.57';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.57';
@@ -66,19 +67,16 @@ export async function openLocationsView(root, {
               || (effective.coordinates ? formatCoordinates(effective.coordinates) : 'Geen adres of GPS');
             const custom = prefs.sort === 'custom';
             return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}">
-              <div class="swipe-row" data-swipe-row="${escapeAttribute(item.id)}">
-                <div class="swipe-actions">
-                  <button type="button" class="swipe-action-delete" data-swipe-delete>Verwijder</button>
-                </div>
-                <button type="button" class="clean-row swipe-surface sh-location-row" data-swipe-surface>
-                  <span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>
-                  <span class="sh-location-copy">
-                    <strong>${escapeHtml(item.data?.title || 'Locatie')}</strong>
-                    <small>${escapeHtml(secondary)}</small>
-                  </span>
-                  <span class="sh-location-chevron" aria-hidden="true">›</span>
-                </button>
-              </div>
+              ${renderStrip({
+                id: item.id,
+                className: 'sh-location-strip',
+                surfaceClassName: 'sh-location-row',
+                ariaLabel: item.data?.title || 'Locatie',
+                leadingHtml: `<span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>`,
+                bodyHtml: `<span class="sh-location-copy"><strong>${escapeHtml(item.data?.title || 'Locatie')}</strong><small>${escapeHtml(secondary)}</small></span>`,
+                trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
+                actions: [{ kind: 'delete', label: 'Verwijder' }]
+              })}
               ${custom ? `<div class="sh-location-order"><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="-1" aria-label="Omhoog">↑</button><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="1" aria-label="Omlaag">↓</button></div>` : ''}
               </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
@@ -158,19 +156,25 @@ export async function openLocationsView(root, {
       <section class="module-view sh-location-detail-view sh-location-reference">
         <div class="sh-location-editor-nav"><button type="button" data-back>‹ Locaties</button><span>${escapeHtml(pathForLocation(item, byId))}</span></div>
         <div class="swipe-list sh-location-detail-swipes sh-location-reference-page" data-detail-swipes>
-          <div class="swipe-row" data-swipe-row="identity" data-double-swipe>
-            <div class="swipe-actions sh-location-double-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk</button><button type="button" class="swipe-action-secondary" data-swipe-secondary aria-label="Zinnenbibliotheek" title="Zinnenbibliotheek"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 0-3 1V5.5Z"/><path d="M7 9h9M7 12.5h7M7 16h5"/></svg></button></div>
-            <button type="button" class="swipe-surface sh-location-detail-identity sh-location-reference-heading" data-swipe-surface aria-label="Naam en type bewerken door te vegen">
-              <h2 data-detail-conclusion></h2>
-            </button>
-          </div>
-          <div class="swipe-row" data-swipe-row="place">
-            <div class="swipe-actions"><button type="button" class="swipe-action-edit" data-swipe-edit>Bewerk</button></div>
-            <button type="button" class="swipe-surface sh-location-detail-place sh-location-reference-address" data-swipe-surface aria-label="Locatiegegevens bewerken door te vegen">
-              <span class="sh-location-reference-marker" aria-hidden="true">⌖</span><span class="sh-location-reference-place-copy"><strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong>
-              <small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small></span>
-            </button>
-          </div>
+          ${renderStrip({
+            id: 'identity',
+            surfaceClassName: 'sh-location-detail-identity sh-location-reference-heading',
+            ariaLabel: 'Naam en type bewerken door te vegen',
+            bodyHtml: '<h2 data-detail-conclusion></h2>',
+            doubleSwipe: true,
+            actions: [
+              { kind: 'edit', label: 'Bewerk' },
+              { kind: 'secondary', ariaLabel: 'Zinnenbibliotheek', html: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 0-3 1V5.5Z"/><path d="M7 9h9M7 12.5h7M7 16h5"/></svg>' }
+            ]
+          })}
+          ${renderStrip({
+            id: 'place',
+            surfaceClassName: 'sh-location-detail-place sh-location-reference-address',
+            ariaLabel: 'Locatiegegevens bewerken door te vegen',
+            leadingHtml: '<span class="sh-location-reference-marker" aria-hidden="true">⌖</span>',
+            bodyHtml: `<span class="sh-location-reference-place-copy"><strong>${escapeHtml(effective.address || 'Geen adres vastgelegd')}</strong><small>${escapeHtml(point ? formatCoordinates(point) : 'Geen GPS-positie')}</small></span>`,
+            actions: [{ kind: 'edit', label: 'Bewerk' }]
+          })}
         </div>
         <div class="sh-location-reference-map-panel sh-location-detail-map-panel">
           <div class="sh-radius-map-host sh-location-reference-map" data-detail-map></div>
