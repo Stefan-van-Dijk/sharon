@@ -140,6 +140,9 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
   }
   return sections;
 }
+export function articleProgressDotCount(wordCount) {
+  return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
+}
 export function openBoardViewer(feature, { location, events, onNext, onClose = () => {} } = {}) {
   const abort = new AbortController();
   let closed = false, heading = null, gps = location?.latest || null;
@@ -400,11 +403,32 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
         feature.properties?.image;
       selectPhoto(chosen);
     }
-    dots.forEach((dot, i) => {
-      dot.setAttribute('aria-current', i === index ? 'step' : 'false');
-      dot.setAttribute('aria-label', 'Hoofdstuk ' + (i + 1) + ' van ' + dots.length +
-        ': ' + (chapters[i]?.querySelector('h2,h3')?.textContent || 'Verhaal'));
-    });
+    refreshProgress();
+  };
+  const refreshProgress = () => {
+    const total = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+    const progress = Math.min(1, Math.max(0, scroller.scrollTop / total));
+    const current = Math.min(dots.length-1, Math.floor(progress * dots.length));
+    dots.forEach((dot, i) => dot.setAttribute('aria-current', i === current ? 'step' : 'false'));
+  };
+  const buildProgress = sections => {
+    chapterRail.replaceChildren();
+    dots.length = 0;
+    const words = sections.reduce((sum, section) => sum + String(section.text || '').trim().split(/\s+/).filter(Boolean).length, 0);
+    const count = articleProgressDotCount(words);
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'sh-board-chapter-dot';
+      const fraction = count === 1 ? 0 : i/(count-1);
+      dot.setAttribute('aria-label', 'Ga naar ' + Math.round(fraction*100) + '% van het artikel');
+      dot.addEventListener('click', () => {
+        scroller.scrollTo({ top: fraction * Math.max(0,scroller.scrollHeight-scroller.clientHeight), behavior:'smooth' });
+      });
+      dots.push(dot);
+      chapterRail.append(dot);
+    }
+    refreshProgress();
   };
   const refreshChapter = () => {
     const threshold = scroller.getBoundingClientRect().top + 100;
@@ -413,6 +437,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
       if (chapters[i].getBoundingClientRect().top <= threshold) active = i;
     }
     setActive(active);
+    refreshProgress();
   };
   scroller.addEventListener('scroll', refreshChapter, { passive: true });
 
@@ -428,16 +453,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     story.insertBefore(item, footer);
     chapters.push(item);
 
-    const dot = document.createElement('button');
-    dot.type = 'button';
-    dot.className = 'sh-board-chapter-dot';
-    dot.title = section.title;
-    dot.addEventListener('click', () => {
-      scroller.scrollTo({ top: item.offsetTop - story.offsetTop, behavior: 'smooth' });
-      setActive(index);
-    });
-    chapterRail.append(dot);
-    dots.push(dot);
+
   }
 
   fetchWikipediaBoard(feature, { signal: abort.signal }).then(sections => {
@@ -445,6 +461,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     status.remove();
     if (!sections.length) throw Error('Geen leesbare inhoud.');
     sections.forEach(addChapter);
+    buildProgress(sections);
     if (!chapters.length) addChapter({ title: feature.properties?.title || 'Verhaal', text: feature.properties?.description || 'Geen aanvullende tekst beschikbaar.', image: feature.properties?.image || '' }, 0);
     setActive(0);
     updateCompass();
@@ -458,6 +475,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
       text: feature.properties?.description || 'De uitgebreide tekst is tijdelijk niet beschikbaar.',
       image: feature.properties?.image || ''
     }, 0);
+    buildProgress([{ text: feature.properties?.description || '' }]);
     setActive(0);
     updateCompass();
     console.warn('Sharon Board: Wikipedia-artikel tijdelijk niet beschikbaar', error?.message);
