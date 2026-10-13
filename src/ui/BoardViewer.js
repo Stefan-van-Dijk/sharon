@@ -86,7 +86,15 @@ export function openBoardViewer(feature, { location, events, onNext } = {}) {
   source.target='_blank'; source.rel='noopener noreferrer'; source.className='sh-board-source';
   const credits=document.createElement('small');
   credits.textContent='Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
-  list.append(source,credits); scroller.append(list); overlay.append(header,scroller);
+  list.append(source,credits);
+  if (onNext) {
+    const next = document.createElement('button');
+    next.type = 'button'; next.className = 'sh-board-next';
+    next.textContent = 'Volgend verhaal ↓';
+    next.addEventListener('click', () => { close(); onNext(); });
+    list.append(next);
+  }
+  scroller.append(list); overlay.append(header,scroller);
   document.body.append(overlay);
   const compasses=[];
   const update=()=>{
