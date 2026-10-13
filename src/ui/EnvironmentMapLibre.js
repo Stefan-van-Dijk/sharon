@@ -374,9 +374,12 @@ export function openEnvironmentView(root, {
         essential: true };
       map.easeTo(target);
     }
+    const previous = available.length > 1
+      ? available[(index - 1 + available.length) % available.length] : null;
     closeBoard = openBoardViewer(feature, { location, events,
       onClose: () => { closeBoard = null; },
-      onNext: next ? () => showBoard(next, available) : null });
+      onNext: next ? () => showBoard(next, available) : null,
+      onPrevious: previous ? () => showBoard(previous, available) : null });
   };
   let wikipediaEnabled = false;
   const filterPanel = root.querySelector('[data-readout-filters]');
