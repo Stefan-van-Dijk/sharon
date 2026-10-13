@@ -2002,6 +2002,33 @@
     .sh-board-story>small{display:block;margin:14px 0;color:#80838a;font-size:11px;line-height:1.45}
     .sh-board-next{width:100%;margin-top:24px;min-height:50px;background:#f3f4f6;color:#252c35;border:1px solid #e4e7ea;border-radius:16px;font-weight:600}
     @media (min-width:760px){.sh-board-overlay{background:#f8f8f9}.sh-board-scroller{background:#fff;width:min(100%,760px);margin:auto}.sh-board-image{aspect-ratio:1.8}}
+
+    /* Boards 0.2.68: transparent map overlay with a spacious, layered reader. */
+    .sh-board-overlay{position:fixed;inset:0;z-index:10000;display:block;background:transparent;pointer-events:none;isolation:isolate;color:#19232e}
+    .sh-board-deck{position:absolute;left:6%;right:6%;top:clamp(24%,32vh,37%);bottom:max(30px,env(safe-area-inset-bottom));z-index:0;pointer-events:none}
+    .sh-board-deck-card{position:absolute;inset:0;border:1px solid rgba(255,255,255,.8);border-radius:32px;background:rgba(244,246,248,.53);box-shadow:0 8px 28px rgba(26,37,54,.09);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px)}
+    .sh-board-deck-card-1{transform:translate(12px,-9px) scale(.985);opacity:.88}
+    .sh-board-deck-card-2{transform:translate(23px,-18px) scale(.969);opacity:.58}
+    .sh-board-plate{position:absolute;top:clamp(24%,32vh,37%);left:max(13px,env(safe-area-inset-left));right:max(30px,calc(env(safe-area-inset-right) + 13px));bottom:max(20px,env(safe-area-inset-bottom));z-index:2;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;border:1px solid rgba(255,255,255,.8);border-radius:30px;background:rgba(250,250,250,.80);box-shadow:0 16px 44px rgba(20,30,45,.22);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%)}
+    .sh-board-controls{position:absolute;top:9px;left:14px;right:10px;z-index:5;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+    .sh-board-controls span{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#fff;text-shadow:0 1px 4px #0008;font-weight:600}
+    .sh-board-close{pointer-events:auto;width:38px;height:38px;border-radius:50%;border:1px solid #ffffffb8;background:#ffffffe8;color:#2e343d;font-size:27px;line-height:1}
+    .sh-board-scroller{flex:1;width:100%;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;background:transparent}
+    .sh-board-story{max-width:none;margin:0;padding:0 22px 30px 18px}
+    .sh-board-chapter{margin:0 0 34px;scroll-margin-top:10px}
+    .sh-board-image{margin:0 -22px 22px -18px;aspect-ratio:1.65;position:relative;background:transparent;overflow:visible}
+    .sh-board-image>img{border-radius:29px 29px 27px 105px;object-fit:cover;width:100%;height:100%;display:block}
+    .sh-board-compass{left:8px;bottom:6px;width:88px;height:88px;box-shadow:0 1px 8px #0002;background:#f9faf9ee}
+    .sh-board-chapter h2,.sh-board-chapter h3{font-size:clamp(21px,5vw,29px);letter-spacing:-.025em;margin:0 0 12px;line-height:1.22}
+    .sh-board-chapter p{font-size:15px;line-height:1.67;white-space:pre-line;color:#27313b;margin:0 0 8px;padding-right:12px}
+    .sh-board-chapters{position:absolute;right:5px;top:51%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:4px;max-height:44%;overflow-y:auto;scrollbar-width:none}
+    .sh-board-chapter-dot{height:23px;width:20px;flex:0 0 23px;border:0!important;background:transparent!important;padding:0!important;display:grid;place-items:center;opacity:.8}
+    .sh-board-chapter-dot::after{content:'';width:4px;height:4px;border-radius:50%;background:#737d86;opacity:.42;transition:opacity .15s,transform .15s}
+    .sh-board-chapter-dot[aria-current="step"]::after{background:#253b51;opacity:1;transform:scale(1.45)}
+    .sh-board-source{margin-top:12px;background:#ffffff7a;border:1px solid #ffffff9c;border-radius:14px;padding:13px;font-size:13px}
+    .sh-board-story>small{font-size:10px;line-height:1.4;color:#656d73}
+    @media(min-width:760px){.sh-board-plate{width:min(540px,70vw);left:50%;right:auto;transform:translateX(-50%)}.sh-board-deck{width:min(540px,70vw);left:50%;right:auto;transform:translateX(-50%)}.sh-board-image{aspect-ratio:1.8}}
+    @media(prefers-reduced-motion:reduce){.sh-board-chapter-dot::after{transition:none}}
 </style>
 </head>
 <body>
