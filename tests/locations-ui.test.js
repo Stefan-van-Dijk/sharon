@@ -63,7 +63,11 @@ test('zinsbewerking voorkomt concurrerende scrollanimaties bij iOS-toetsenbord',
 test('standaardzinnen lijnen vier statuskeuzes rechts uit in hetzelfde raster als zes eigen opties', async () => {
  const source=await readFile(new URL('../src/ui/LocationsView.js',import.meta.url),'utf8');
  const css=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.ok(source.includes("source === 'default' ? ' sh-sentence-scope-default' : ''"));
- assert.ok(css.includes('.sh-sentence-scope-default > .sh-sentence-icon-action:last-child{grid-column:3}'));
- assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
+ assert.ok(source.includes("if (source === 'default') row.setAttribute('data-swipe-single', '')"));
+ assert.ok(source.includes("menu.className = 'sh-sentence-scope-choices'"));
+ for (const option of ["['location','Voor deze locatie']", "['group','Voor deze groep']", "['global','Overal van toepassing']", "['excludedLocation','Uitsluiten voor deze locatie']", "['excludedGroup','Uitsluiten voor deze groep']", "['excludedGlobal','Overal uitsluiten']"]) {
+   assert.ok(source.includes(option), option);
+ }
+ assert.ok(css.includes('.sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action'));
+ assert.ok(css.includes('flex-wrap:wrap'));
 });
