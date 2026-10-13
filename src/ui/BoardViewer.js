@@ -176,6 +176,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   photo.className = 'sh-board-photo-current';
   photo.alt = '';
   photo.decoding = 'async';
+  photo.hidden = true;
   const photoEmpty = document.createElement('span');
   photoEmpty.className = 'sh-board-photo-placeholder';
   photoEmpty.textContent = 'Geen afbeelding beschikbaar';
@@ -245,24 +246,27 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     activate.hidden = heading !== null;
   };
   let currentPhoto = '';
+  let pendingPhoto = '';
   const selectPhoto = image => {
     const url = safeUrl(image, true);
-    if (!url || url === currentPhoto) return;
-    currentPhoto = url;
-    photo.style.visibility = 'hidden';
-    photoEmpty.hidden = false;
-    photo.onload = () => {
-      if (closed || currentPhoto !== url) return;
-      photo.style.visibility = 'visible';
+    if (!url || url === currentPhoto || url === pendingPhoto) return;
+    pendingPhoto = url;
+    // Never blank the previous photo while a new Wikimedia image loads.
+    const preload = new Image();
+    preload.onload = () => {
+      if (closed || pendingPhoto !== url) return;
+      currentPhoto = url;
+      pendingPhoto = '';
+      photo.src = url;
+      photo.hidden = false;
       photoEmpty.hidden = true;
     };
-    photo.onerror = () => {
-      if (closed || currentPhoto !== url) return;
-      // Do not discard the fixed photo area on failed requests.
-      photo.style.visibility = 'hidden';
-      photoEmpty.hidden = false;
+    preload.onerror = () => {
+      if (closed || pendingPhoto !== url) return;
+      pendingPhoto = '';
+      if (!currentPhoto) photoEmpty.hidden = false;
     };
-    photo.src = url;
+    preload.src = url;
   };
   selectPhoto(feature.properties?.image);
   const onOrientation = event => {
