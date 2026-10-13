@@ -84,13 +84,13 @@ test('all existing data fields and actions remain saved once', async () => {
   assert.ok(!locations.includes('data-export'));
 });
 
-test('map zoom sets recognition radius; changing GPS requires explicit action', async () => {
+test('map zoom sets recognition radius; onboarding-like place editing uses map and 2-meter nudges', async () => {
   const flow = await read('../src/ui/LocationOnboardingFlow.js');
   const worker = await read('../service-worker.js');
   assert.ok(flow.includes("onRadiusChange: radius =>"));
   assert.ok(flow.includes("form.elements.radiusM.value = String(radius)"));
-  assert.ok(flow.includes("mapView?.setPositionEditable(positionEditing)"));
-  assert.ok(flow.includes('gpsButton.hidden = !positionEditing'));
+  assert.ok(flow.includes("mapView.setPositionEditable?.(true)"));
+  assert.ok(flow.includes('gpsButton.hidden = false'));
   assert.ok(!flow.includes('data-zoom-out'));
   assert.ok(flow.includes('typeSelect.value = id'));
   assert.ok(flow.includes('mapControls.append(gpsButton)'));

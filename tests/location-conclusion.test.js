@@ -71,10 +71,10 @@ test('one-line conclusion replaces multi-question heading and categories scroll 
   assert.ok(swipe.includes('[data-type-chips]'));
 });
 
-test('map shows current GPS button only while editing its pin and no +/- controls', async () => {
+test('onboarding-like position map shows GPS control and 2-meter nudge buttons, but no zoom buttons', async () => {
   const code = await readFile(new URL('../src/ui/LocationOnboardingFlow.js',import.meta.url),'utf8');
-  assert.ok(code.includes('gpsButton.hidden = true'));
-  assert.ok(code.includes('gpsButton.hidden = !positionEditing'));
+  assert.ok(code.includes('gpsButton.hidden = false'));
+  assert.ok(code.includes('data-sh-move=\"north\"'));
   assert.ok(!code.includes("data-zoom-in"));
   assert.ok(!code.includes("data-zoom-out"));
 });
