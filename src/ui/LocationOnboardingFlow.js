@@ -577,7 +577,7 @@ export function enhanceLocationEditor(root, {
     parentSection.hidden = true;
     // Advanced settings are not part of the two-step identity editor.
     moreSettings.hidden = stage !== 'type' || editMode === 'identity';
-    nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : editMode === 'place' ? stage !== 'parent' : false) || Boolean(saveInHeader);
+    nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : editMode === 'place' ? true : false) || Boolean(saveInHeader);
     if (editMode === 'place') nativeSave.textContent = 'Bevestig locatie';
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
