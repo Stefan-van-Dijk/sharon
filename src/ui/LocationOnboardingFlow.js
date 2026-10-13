@@ -570,6 +570,19 @@ export function enhanceLocationEditor(root, {
       ? 'Verberg andere locaties' : 'Andere locatie kiezen';
     if (view.dataset.stage === 'parent') setNewLocationStage('parent', false);
   });
+  // The shared shell asks the active editor to navigate one guided step back.
+  // Only leave the editor when its first step is already visible.
+  const onNavigateBack = event => {
+    if (!guided) return;
+    const stage = view.dataset.stage;
+    const previous = stage === 'type' ? 'name'
+      : stage === 'name' ? (isNew ? (needsHierarchyChoice() ? 'parent' : 'place') : null)
+      : stage === 'parent' ? 'place' : null;
+    if (!previous) return;
+    event.preventDefault();
+    setNewLocationStage(previous, false);
+  };
+  view.addEventListener('sharon:navigate-back', onNavigateBack);
   function setNewLocationStage(stage, animate = true) {
     if (!guided) return;
     view.dataset.stage = stage;
@@ -663,6 +676,7 @@ export function enhanceLocationEditor(root, {
   else if (isNew) void checkSavedPlaceOnStart();
 
   function cleanup() {
+    view.removeEventListener('sharon:navigate-back', onNavigateBack);
     disposed = true;
     stopTyping();
     if (typeof unsubscribeLocation === 'function') unsubscribeLocation();
