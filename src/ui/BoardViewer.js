@@ -83,12 +83,62 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
   const parsed = new URL(article);
   const id = Number(parsed.searchParams.get('curid'));
   if (!Number.isSafeInteger(id) || id <= 0) throw Error('Ongeldig Wikipedia-artikel.');
-  const query = new URLSearchParams({ action:'parse', pageid:String(id), prop:'text', format:'json', formatversion:'2', origin:'*' });
+  const query = new URLSearchParams({ action:'parse', pageid:String(id), prop:'text|images', format:'json', formatversion:'2', origin:'*' });
   const response = await fetcher(parsed.origin+'/w/api.php?'+query, {signal});
   if (!response.ok) throw Error('Wikipedia is momenteel niet bereikbaar.');
   const json = await response.json();
   if (!json.parse?.text) throw Error('Geen verhaal beschikbaar.');
-  return sectionsFromWikipediaHtml(json.parse.text, feature.properties);
+  const sections = sectionsFromWikipediaHtml(json.parse.text, feature.properties);
+  // Wikipedia's image list is more complete than the thumbnail markup. Resolve
+  // image filenames through imageinfo into real, browser-accessible URLs.
+  const titles = (json.parse.images || []).filter(name =>
+    /\.(?:jpe?g|png|webp)$/i.test(name) && !/^(?:icon|logo|flag|coat of arms|commons-logo|wikimedia)/i.test(name)
+  ).slice(0, 16).map(name => 'File:' + name);
+  if (titles.length) {
+    try {
+      const params = new URLSearchParams({ action:'query', format:'json', formatversion:'2',
+        origin:'*', prop:'imageinfo', iiprop:'url|size', iiurlwidth:'1100', titles: titles.join('|') });
+      const imagesResponse = await fetcher(parsed.origin + '/w/api.php?' + params, { signal });
+      if (imagesResponse.ok) {
+        const images = await imagesResponse.json();
+        const available = (images.query?.pages || [])
+          .map(page => page.imageinfo?.[0])
+          .filter(info => !info?.width || (info.width >= 240 && info.height >= 140))
+          .map(info => safeUrl(info?.thumburl || info?.url, true))
+          .filter(Boolean);
+        const distinct = [...new Set(available)];
+        // The hero keeps the relevant picture from discovery when possible;
+        // later sections receive additional photographs from the same article.
+        const taken = new Set(sections.map(s => s.image).filter(Boolean));
+        const unused = distinct.filter(url => !taken.has(url));
+        for (let i = 0; i < sections.length; i++) {
+          if (i === 0 && sections[i].image) continue;
+          if (unused.length) sections[i].image = unused.shift();
+        }
+        // If the article has one long section but multiple photos, distribute
+        // the text into consecutive reading segments tied to those images.
+        if (sections.length === 1 && unused.length && sections[0].text.length > 900) {
+          const text = sections[0].text;
+          const chunks = text.split(/\n\n+/).filter(Boolean);
+          if (chunks.length >= 3) {
+            const count = Math.min(1 + unused.length, 6, chunks.length);
+            sections[0].text = chunks.slice(0, Math.ceil(chunks.length/count)).join('\n\n');
+            let position = Math.ceil(chunks.length/count);
+            for (let n = 1; n < count; n++) {
+              const end = n === count-1 ? chunks.length : position + Math.ceil(chunks.length/count);
+              sections.push({ title: sections[0].title + ' · vervolg', text: chunks.slice(position,end).join('\n\n'), image: unused.shift() || '' });
+              position = end;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      // Images are enrichment: never lose the readable story when this fails.
+      console.warn('Wikipedia extra afbeeldingen niet beschikbaar', error?.message);
+    }
+  }
+  return sections;
 }
 export function openBoardViewer(feature, { location, events, onNext, onClose = () => {} } = {}) {
   const abort = new AbortController();
