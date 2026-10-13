@@ -1,7 +1,7 @@
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
-function safeUrl(value, image = false) {
+export function safeUrl(value, image = false) {
   try {
     const url = new URL(String(value || '').startsWith('//') ? 'https:' + value : value, 'https://nl.wikipedia.org');
     if (url.protocol !== 'https:' || !(image ? imageHosts : wikiHosts).test(url.hostname)) return '';
