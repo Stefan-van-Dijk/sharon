@@ -580,26 +580,27 @@ export async function openLocationsView(root, {
         const references = objects.filter(x => !x.deletedAt && x.id !== remove.id && x.data?.locationId === remove.id);
         const ownKeep = ownCoordinates(keep);
         const ownRemove = ownCoordinates(remove);
-        const previewRows = [
-          ['Naam', keep.data?.title || 'Locatie', 'Bestaande naam blijft behouden'],
-          ['Type', (keep.data?.kind || 'other') !== 'other' ? TYPES.get(keep.data.kind) : TYPES.get(remove.data?.kind || 'other'), 'Bestaand type, anders type van tweede locatie'],
-          ['Adres', addressText(keep.data?.address) || addressText(remove.data?.address) || 'Geen', 'Adres van behouden locatie krijgt voorrang'],
-          ['GPS', ownKeep || ownRemove ? formatCoordinates(ownKeep || ownRemove) : 'Geen', 'Eigen positie krijgt voorrang'],
-          ['Herkenningsstraal', radius(keep.data?.radiusM) + ' meter', 'Instelling van behouden locatie'],
-          ['Sublocaties', String(transferred.length), 'Worden gekoppeld aan de behouden locatie'],
-          ['Gekoppelde gegevens', String(references.length), 'Verwijzingen worden omgezet; dubbele binnenkomstmeldingen worden uitgeschakeld']
-        ];
+        // Only display meaningful differences; unchanged fields remain implicit.
+        const differences = [];
+        const addDifference = (label, current, incoming, note) => {
+          if (current === incoming) return;
+          differences.push([label, current || 'Niet ingevuld', incoming || 'Niet ingevuld', note]);
+        };
+        addDifference('Naam', keep.data?.title || '', remove.data?.title || '', 'Naam van behouden locatie blijft');
+        const typeLabel = data => TYPES.get(data?.kind || 'other') || data?.kind || 'Overig';
+        addDifference('Type', typeLabel(keep.data), typeLabel(remove.data), 'Bestaand type krijgt voorrang, tenzij dit Overig is');
+        addDifference('Adres', addressText(keep.data?.address) || '', addressText(remove.data?.address) || '', 'Adres van behouden locatie krijgt voorrang');
+        addDifference('GPS', ownKeep ? formatCoordinates(ownKeep) : '', ownRemove ? formatCoordinates(ownRemove) : '', 'Eigen positie van behouden locatie krijgt voorrang');
+        addDifference('Herkenningsstraal', radius(keep.data?.radiusM) + ' meter', radius(remove.data?.radiusM) + ' meter', 'Instelling van behouden locatie blijft');
+        if (transferred.length) differences.push(['Sublocaties', 'Gekoppeld aan vervallende locatie', transferred.length + ' worden overgezet', 'Koppeling wordt aangepast']);
+        if (references.length) differences.push(['Gekoppelde gegevens', 'Verwijzen naar vervallende locatie', references.length + ' worden omgezet', 'Dubbele binnenkomstmeldingen worden uitgeschakeld']);
         review.innerHTML = `
           <h3>Controleer de samenvoeging</h3>
           <p><strong>${escapeHtml(remove.data?.title || 'Locatie')}</strong> gaat op in <strong>${escapeHtml(keep.data?.title || 'Locatie')}</strong>.</p>
-          <p class="clean-help">De naam en identifier van de behouden locatie blijven leidend. De tweede locatie vervalt. Gekoppelde gegevens worden naar de behouden locatie omgezet.</p>
-          <div class="sh-location-merge-review-ids">
-            <small>Blijvende identifier: <code>${escapeHtml(keep.externalId || keep.id)}</code></small>
-            <small>Vervallende identifier: <code>${escapeHtml(remove.externalId || remove.id)}</code></small>
-          </div>
-          <div class="sh-location-merge-review-table">
-            ${previewRows.map(([label, value, note]) => `<div class="sh-location-merge-review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value || 'Onbekend')}</span><small>${escapeHtml(note)}</small></div>`).join('')}
-          </div>
+          <p class="clean-help">De behouden locatie blijft leidend. Gekoppelde gegevens worden overgezet.</p>
+          ${differences.length ? `<div class="sh-location-merge-review-table">
+            ${differences.map(([label, current, incoming, note]) => `<div class="sh-location-merge-review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(current)} → ${escapeHtml(incoming)}</span><small>${escapeHtml(note)}</small></div>`).join('')}
+          </div>` : '<p class="clean-help">Geen verschillen in locatiegegevens.</p>'}
           <p class="clean-help">Let op: afwijkende gegevens van de vervallen locatie worden niet automatisch gecombineerd. Controleer de gegevens voordat je verdergaat.</p>
           <div class="sh-location-merge-review-actions">
             <button type="button" data-merge-cancel>Terug</button>
