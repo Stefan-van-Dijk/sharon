@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.2.49">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.49">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.2.50">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.2.50">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1473,7 +1473,7 @@
     }
     @media(prefers-reduced-motion:reduce){.sh-radius-fade{transition:none}}
 
-    /* Sharon locations 0.2.49 — single light reference screen, minimal edits. */
+    /* Sharon locations 0.2.50 — single light reference screen, minimal edits. */
     .app-stage[data-view="detail"] .app-view>.module-view.sh-location-reference{
       max-width:none;background:#fff;padding-bottom:max(50px,env(safe-area-inset-bottom));color:#111;
     }
@@ -1626,7 +1626,7 @@
       .sh-location-reference-chip{font-size:12px;padding:8px 11px}
     }
 
-    /* Location 0.2.49: contextual typewriter and compact swipe categories. */
+    /* Location 0.2.50: contextual typewriter and compact swipe categories. */
     .sh-location-reference-heading h2{min-height:1.45em;overflow-wrap:anywhere}
     .sh-location-reference-heading h2.is-typing::after{
       content:'|';display:inline-block;margin-left:2px;color:#9b9ba0;
@@ -1873,6 +1873,50 @@
 .sh-location-parent-choice[aria-pressed="true"]{border-color:#7448b1;background:#f3eefe}
 .sh-location-parent-other{background:none;border:0;padding:14px 0;color:#6840a4;font:inherit;font-size:14px}
 .sh-location-parent-proposal [data-parent-manual] .clean-field{padding:8px 0}
+
+/* Consistent location confirmation for first onboarding and all location editors. */
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-heading h2{font-size:clamp(25px,5.8vw,34px)}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-place{margin:10px 0 14px}
+.sh-onboarding-place-caption{font-size:14px;color:#7e7e83;margin:0 0 9px}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address{
+  position:relative;display:flex;align-items:flex-start;min-height:80px;border:0;
+  padding:0 54px 0 0;background:transparent;
+}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-place-copy strong{
+  font-size:clamp(21px,5.2vw,27px);font-weight:360;line-height:1.3;
+}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-marker,
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-chevron{display:none}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-position-toggle{display:none}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{display:block}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{display:none}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle[hidden]{display:none}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle:focus-visible{outline:2px solid #704ac0}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{font-size:20px}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{border-radius:50%}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{background:#fff}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{border:1px solid #e4e4e8}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{width:40px;height:40px}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{position:absolute;right:0;top:0}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{display:block}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-address .sh-location-reference-position-toggle{z-index:2}
+.sh-onboarding-position-question{font-size:17px;line-height:1.4;margin:16px 0 12px;color:#666}
+.sh-onboarding-adjustment{margin:4px 0 18px}
+.sh-onboarding-adjustment[hidden],.sh-onboarding-position-question[hidden]{display:none!important}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-map-panel{
+  border-radius:12px;height:clamp(210px,30vh,295px);overflow:hidden
+}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-map-controls{
+  position:absolute;right:12px;top:12px;z-index:8;width:auto;height:auto;pointer-events:none
+}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-map-controls [data-current-gps]{
+  position:relative;pointer-events:auto;display:grid;place-items:center;
+  width:40px;height:40px;border:1px solid #eee;border-radius:50%;
+  background:#fff;color:#111;font-size:24px;box-shadow:0 2px 8px #0002
+}
+.sh-location-reference-page[data-stage="place"] .sh-onboarding-adjustment .story-location-arrows{margin-top:12px}
+.sh-location-reference-page[data-stage="place"] .sh-onboarding-adjustment .story-location-tip{text-align:left;margin:10px 0}
+.sh-location-reference-page[data-stage="place"] .sh-location-reference-bottom-save{margin-top:17px}
 </style>
 </head>
 <body>
@@ -1886,16 +1930,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.49#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.49#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.49#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.49#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.49#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.2.50#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.2.50#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.2.50#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.2.50#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.2.50#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.2.49"></script>
+  <script type="module" src="./src/main.js?v=0.2.50"></script>
 </body>
 </html>

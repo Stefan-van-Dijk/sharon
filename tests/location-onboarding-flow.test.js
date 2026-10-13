@@ -187,3 +187,17 @@ test('hiërarchie wordt alleen na bevestiging gewijzigd en opgeslagen met naam e
   assert.ok(view.includes("const parentId = String(values.get('parentId') || '')"));
   assert.ok(view.includes("...original, title, parentId, address"));
 });
+
+test('nieuwe locatie en plek aanpassen gebruiken dezelfde onboarding-positiebediening', async () => {
+ const flow=await read('../src/ui/LocationOnboardingFlow.js');
+ const story=await read('../src/ui/Story.js');
+ assert.ok(flow.includes("data-sh-move=\"west\""));
+ assert.ok(flow.includes("data-sh-move=\"north\""));
+ assert.ok(flow.includes("const metres = 2"));
+ assert.ok(flow.includes("data-position-question"));
+ assert.ok(flow.includes("setPositionEditable?.(true)"));
+ assert.ok(flow.includes("stage !== 'place'"));
+ assert.ok(flow.includes("editMode === 'place'"));
+ assert.ok(story.includes("story-location-arrows"));
+ assert.ok(flow.includes("mountLocationTypeSphere(typeChips"));
+});

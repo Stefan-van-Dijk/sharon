@@ -1,4 +1,4 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.49';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.2.50';
 import { focusTextField } from './TextInputFocus.js?v=0.2.20';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.20';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.20';
@@ -120,6 +120,7 @@ export function enhanceLocationEditor(root, {
     '<div class="sh-location-reference-name" data-name-slot></div>' +
     '<button type="button" class="sh-location-reference-step-back" data-type-back hidden>‹ Naam aanpassen</button>' +
     '<div class="sh-location-reference-place">' +
+      '<div class="sh-onboarding-place-caption">Je bent nu op:</div>' +
       '<button type="button" class="sh-location-reference-address" data-address-toggle aria-expanded="false">' +
         '<span class="sh-location-reference-marker" aria-hidden="true">⌖</span>' +
         '<span class="sh-location-reference-place-copy"><strong data-address-text>Geen adres geselecteerd</strong>' +
@@ -128,10 +129,20 @@ export function enhanceLocationEditor(root, {
       '</button>' +
       '<div class="sh-location-reference-address-fields" data-address-fields hidden></div>' +
     '</div>' +
+    '<p class="sh-onboarding-position-question" data-position-question>Klopt deze positie of wil je het aanpassen?</p>' +
     '<div class="sh-location-reference-map-panel">' +
       '<div class="sh-radius-map-host sh-location-reference-map" data-radius-map></div>' +
       '<div class="sh-location-reference-map-controls" data-map-controls></div>' +
       '<span class="sh-location-reference-map-hint" data-map-hint hidden>Sleep de pin of tik op de kaart.</span>' +
+    '</div>' +
+    '<div class="sh-onboarding-adjustment" data-place-adjustment>' +
+      '<div class="story-location-arrows" aria-label="GPS-positie bijstellen">' +
+        '<button type="button" data-sh-move="west" aria-label="2 meter west">←</button>' +
+        '<button type="button" data-sh-move="north" aria-label="2 meter noord">↑</button>' +
+        '<button type="button" data-sh-move="south" aria-label="2 meter zuid">↓</button>' +
+        '<button type="button" data-sh-move="east" aria-label="2 meter oost">→</button>' +
+      '</div>' +
+      '<p class="story-location-tip">Tik op de kaart of verplaats de positie met 2 meter per stap.</p>' +
     '</div>' +
     '<div class="sh-location-reference-section" data-parent-section>' +
       '<h3>Onderdeel van <small data-parent-hint></small></h3>' +
@@ -161,12 +172,17 @@ export function enhanceLocationEditor(root, {
   const positionButton = document.createElement('button');
   positionButton.type = 'button';
   positionButton.className = 'sh-location-reference-position-toggle';
-  positionButton.textContent = 'Positie wijzigen';
+  positionButton.textContent = '✎';
+  positionButton.setAttribute('aria-label', 'Adres aanpassen');
+  positionButton.title = 'Adres aanpassen';
   positionButton.setAttribute('aria-pressed', 'false');
-  mapControls.append(positionButton);
   mapControls.append(gpsButton);
-  gpsButton.textContent = '⌖ Mijn locatie';
-  gpsButton.hidden = true;
+  gpsButton.textContent = '⌖';
+  gpsButton.setAttribute('aria-label', 'Huidige GPS-positie');
+  gpsButton.title = 'Huidige GPS-positie';
+  gpsButton.hidden = false;
+  const headingEdit = view.querySelector('[data-address-toggle]');
+  headingEdit.append(positionButton);
   // The complete hierarchy picker stays available under the secondary details.
   view.querySelector('[data-more-fields]').prepend(parentLabel);
   typeLabel.hidden = true;
@@ -286,6 +302,7 @@ export function enhanceLocationEditor(root, {
         }
       });
     }
+    if (guided && (isNew || editMode === 'place')) mapView.setPositionEditable?.(true);
     void mapView.update();
   }
   function setAddressEditing(editing, focus = false) {
@@ -400,14 +417,31 @@ export function enhanceLocationEditor(root, {
 
   // Default map interaction is navigation/zoom only. The saved GPS point is
   // protected until the user explicitly opts into editing.
-  positionButton.addEventListener('click', () => {
-    positionEditing = !positionEditing;
-    mapView?.setPositionEditable(positionEditing);
-    gpsButton.hidden = !positionEditing;
-    positionButton.textContent = positionEditing ? 'Gereed' : 'Positie wijzigen';
-    positionButton.setAttribute('aria-pressed', String(positionEditing));
-    mapHint.hidden = !positionEditing;
+  // The first onboarding map is directly adjustable: tap the map or use 2m arrows.
+  // Its address edit control remains separate from the editable pin.
+  positionButton.addEventListener('click', event => {
+    event.stopPropagation();
+    setAddressEditing(!addressEditing, !addressEditing);
   });
+  view.querySelectorAll('[data-sh-move]').forEach(button => button.addEventListener('click', () => {
+    const point = currentPoint();
+    if (!point) return;
+    const metres = 2;
+    const latStep = metres / 111320;
+    const lngStep = metres / (111320 * Math.max(0.01, Math.cos(point.lat * Math.PI / 180)));
+    const direction = button.dataset.shMove;
+    const next = {
+      lat: point.lat + (direction === 'north' ? latStep : direction === 'south' ? -latStep : 0),
+      lng: point.lng + (direction === 'east' ? lngStep : direction === 'west' ? -lngStep : 0)
+    };
+    changeInput(form.elements.lat, next.lat.toFixed(7));
+    changeInput(form.elements.lng, next.lng.toFixed(7));
+    addressManuallyEdited = false;
+    ++geocodeRequest;
+    syncMap();
+    renderParents();
+    void reversePoint(next);
+  }));
   form.elements.title.addEventListener('input', () => updateConclusion());
   form.elements.address.addEventListener('input', () => {
     if (addressEditing) {
@@ -543,14 +577,17 @@ export function enhanceLocationEditor(root, {
     // Advanced settings are not part of the two-step identity editor.
     moreSettings.hidden = stage !== 'type' || editMode === 'identity';
     nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
+    if (editMode === 'place') nativeSave.textContent = 'Bevestig locatie';
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
     placeBlock.hidden = stage !== 'place';
     mapBlock.hidden = stage !== 'place';
+    view.querySelector('[data-position-question]').hidden = stage !== 'place';
+    view.querySelector('[data-place-adjustment]').hidden = stage !== 'place';
     existingNotice.hidden = stage !== 'place' || !selectedExisting;
     const message = stage === 'parent' ? 'Hoort deze plek bij een locatie die ik al ken?'
       : stage === 'place'
-      ? (isNew ? (placeReady ? 'Ik heb deze plek gevonden. Klopt de locatie?' : 'Waar wil je deze plek vastleggen?') : 'Welke positie wil je aanpassen?')
+      ? (isNew ? 'Mag ik je iets laten zien?' : 'Waar ligt deze plek precies?')
       : stage === 'name'
         ? (isNew ? 'Hoe wil je deze plek noemen?' : 'Hoe wil je deze plek voortaan noemen?')
         : 'Wat is ' + (form.elements.title.value.trim() || 'deze plek') + ' voor jou?';
