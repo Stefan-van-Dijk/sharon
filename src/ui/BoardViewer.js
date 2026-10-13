@@ -228,19 +228,23 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   arrow.className = 'sh-board-arrow';
   arrow.textContent = '➤';
   const activate = document.createElement('span');
-  activate.textContent = 'Kompas';
+  activate.textContent = 'Richting';
   activate.className = 'sh-board-activate';
   compassButton.append(arrow, activate);
   const distance = document.createElement('small');
   compass.append(compassButton, distance);
+  compass.classList.add('is-distance-only');
   photoHeader.append(compass);
+  let compassEnabled = false;
   const updateCompass = () => {
     const value = distanceBearing(gps, destination);
     distance.textContent = value
       ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
         (value.distance / 1000).toFixed(value.distance < 10000 ? 1 : 0) + ' km')
       : 'GPS onbekend';
-    arrow.hidden = !value || heading === null;
+    arrow.hidden = !compassEnabled || !value || heading === null;
+    compass.classList.toggle('is-distance-only', !compassEnabled || heading === null);
+    compassButton.setAttribute('aria-pressed', String(compassEnabled));
     if (value && heading !== null) {
       arrow.style.transform = 'rotate(' + ((value.bearing - heading + 360) % 360) + 'deg)';
     }
@@ -272,9 +276,11 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   selectPhoto(feature.properties?.image);
   const onOrientation = event => {
+    if (!compassEnabled) return;
     if (Number.isFinite(event.webkitCompassHeading)) heading = event.webkitCompassHeading;
     else if (event.absolute && Number.isFinite(event.alpha)) heading = (360 - event.alpha) % 360;
     else return;
+    activate.textContent = 'Richting';
     updateCompass();
   };
   window.addEventListener('deviceorientation', onOrientation, { passive: true });
@@ -393,13 +399,25 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
 
 
   async function requestCompass() {
+    if (compassEnabled) {
+      compassEnabled = false;
+      heading = null;
+      activate.textContent = 'Richting';
+      updateCompass();
+      return;
+    }
+    if (typeof DeviceOrientationEvent === 'undefined') {
+      activate.textContent = 'Geen kompas';
+      return;
+    }
     try {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function' &&
+      if (typeof DeviceOrientationEvent.requestPermission === 'function' &&
         await DeviceOrientationEvent.requestPermission() !== 'granted') return;
-      activate.textContent = 'Richting bepalen…';
+      compassEnabled = true;
+      activate.textContent = 'Wachten…';
+      updateCompass();
     } catch {
-      activate.textContent = 'Kompas niet beschikbaar';
+      activate.textContent = 'Niet beschikbaar';
     }
   }
 
