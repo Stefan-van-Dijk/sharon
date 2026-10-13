@@ -364,8 +364,13 @@ export function openEnvironmentView(root, {
       cameraControls?.reset();
       // Shift the story location above the glass plate while preserving the
       // existing map renderer and camera. Move with each deck transition.
+      // Center the place in the visible map window above the Board glass plate.
+      // The glass plate starts at about 32% of viewport height; its visible
+      // map area has its center around 16% of screen height.
+      const height = map.getContainer().clientHeight;
+      const panelTop = Math.min(height * .37, Math.max(height * .24, window.innerHeight * .32));
       const target = { center: coords, duration: 850,
-        offset: [0, -Math.round(map.getContainer().clientHeight * 0.22)],
+        offset: [0, Math.round(panelTop / 2 - height / 2)],
         essential: true };
       map.easeTo(target);
     }
