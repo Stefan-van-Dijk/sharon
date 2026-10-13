@@ -70,6 +70,7 @@ export async function openLocationsView(root, {
               ${renderStrip({
                 id: item.id,
                 className: 'sh-location-strip',
+                surfaceClassName: 'sh-location-row',
                 ariaLabel: item.data?.title || 'Locatie',
                 leadingHtml: `<span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>`,
                 bodyHtml: `<span class="sh-location-copy"><strong>${escapeHtml(item.data?.title || 'Locatie')}</strong><small>${escapeHtml(secondary)}</small></span>`,
