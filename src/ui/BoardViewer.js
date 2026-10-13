@@ -145,7 +145,11 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
   plate.append(controls, scroller, chapterRail);
   overlay.append(deck, plate);
+  plate.classList.add('is-board-entering');
   document.body.append(overlay);
+  requestAnimationFrame(() => {
+    if (!closed && plate.isConnected) plate.classList.remove('is-board-entering');
+  });
 
   const compasses = [];
   const updateCompass = () => {
