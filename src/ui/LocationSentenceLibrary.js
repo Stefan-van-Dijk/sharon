@@ -19,7 +19,14 @@ export function formatDistance(meters){
   return meters<1000?Math.max(10,Math.round(meters/10)*10)+' m':(meters/1000).toLocaleString('nl-NL',{maximumFractionDigits:1})+' km';
 }
 export function resolveSentenceVariants({state,typeId,locationId,library={}}){
-  const base=[...(defaults[state]||[])];
+  const scopes=library.defaultScopes?.[state]||{};
+  const base=(defaults[state]||[]).filter(template=>{
+    const rule=scopes[template];
+    if(!rule||rule.scope==='global')return true;
+    if(rule.scope==='group')return rule.typeId===typeId;
+    if(rule.scope==='location')return rule.locationId===locationId;
+    return true;
+  });
   const group=library.groups?.[typeId]?.[state]||[];
   const global=(library.global?.[state]||[]).filter(v=>!(library.groupExcluded?.[typeId]?.[state]||[]).includes(v));
   const local=library.locations?.[locationId]||{};
@@ -82,4 +89,14 @@ export function setGlobalVariantExcluded(library,state,template,excluded=true){
  const next=structuredClone(library||{}); next.globalExcluded??={};next.globalExcluded[state]??=[];
  const values=new Set(next.globalExcluded[state]);if(excluded)values.add(template);else values.delete(template);
  next.globalExcluded[state]=[...values];return next;
+}
+
+/** Standard sentences are immutable text, but their applicability is configurable. */
+export function setDefaultSentenceScope(library,state,template,scope,{typeId='',locationId=''}={}){
+  const next=structuredClone(library||{});
+  next.defaultScopes??={};
+  next.defaultScopes[state]??={};
+  if(scope==='global')delete next.defaultScopes[state][template];
+  else next.defaultScopes[state][template]={scope,...(scope==='group'?{typeId}:{locationId})};
+  return next;
 }
