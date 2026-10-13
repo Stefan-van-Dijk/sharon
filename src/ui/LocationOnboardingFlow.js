@@ -182,7 +182,7 @@ export function enhanceLocationEditor(root, {
   gpsButton.title = 'Huidige GPS-positie';
   gpsButton.hidden = false;
   const headingEdit = view.querySelector('[data-address-toggle]');
-  headingEdit.append(positionButton);
+  headingEdit.parentElement.append(positionButton);
   // The complete hierarchy picker stays available under the secondary details.
   view.querySelector('[data-more-fields]').prepend(parentLabel);
   typeLabel.hidden = true;
