@@ -27,7 +27,7 @@ export function distanceBearing(start, end) {
     bearing: (Math.atan2(y,x)*180/Math.PI+360)%360 };
 }
 export function sectionsFromWikipediaHtml(html, fallback = {}) {
-  const first = { title: fallback.title || 'Verhaal', text: '', image: safeUrl(fallback.image, true) };
+  const first = { title: fallback.title || 'Verhaal', text: fallback.description || '', image: safeUrl(fallback.image, true) };
   if (typeof DOMParser === 'undefined') return [{ ...first, text: fallback.description || '' }];
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const root = doc.querySelector('.mw-parser-output') || doc.body;
@@ -74,7 +74,7 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
   for (const section of sections) {
     if (!section.image && extras.length) section.image = extras.shift();
   }
-  return sections.filter((x, i) => (x.text && x.text.length >= 60) || (i === 0 && Boolean(x.image)));
+  return sections.filter((x, i) => (x.text && x.text.trim().length >= 30) || (i === 0 && Boolean(x.image)));
 
 }
 export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } = {}) {
@@ -160,12 +160,13 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   footer.className = 'sh-board-footer';
   credits.textContent = 'Wikipedia · CC BY-SA · Wikimedia Commons';
   footer.append(credits, source);
+  story.append(footer);
   scroller.append(story);
 
   const chapterRail = document.createElement('nav');
   chapterRail.className = 'sh-board-chapters';
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
-  plate.append(controls, photoHeader, scroller, chapterRail, footer);
+  plate.append(controls, photoHeader, scroller, chapterRail);
   overlay.append(deck, plate);
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
@@ -405,6 +406,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     status.remove();
     if (!sections.length) throw Error('Geen leesbare inhoud.');
     sections.forEach(addChapter);
+    if (!chapters.length) addChapter({ title: feature.properties?.title || 'Verhaal', text: feature.properties?.description || 'Geen aanvullende tekst beschikbaar.', image: feature.properties?.image || '' }, 0);
     setActive(0);
     updateCompass();
   }).catch(error => {
