@@ -2098,6 +2098,42 @@
     .sh-board-plate .sh-board-chapter{display:block!important;min-height:0}
     .sh-board-plate .sh-board-chapter p{display:block!important;opacity:1!important;visibility:visible!important;color:#27313b!important}
     .sh-board-plate .sh-board-controls{display:none!important}
+
+    /* Board refinement: one calm compass scoop and a fixed-height reading rail. */
+    .sh-board-plate .sh-board-photo-current,
+    .sh-board-plate .sh-board-photo-placeholder{
+      -webkit-mask-image:radial-gradient(circle 84px at 0 100%,transparent 0 79px,#000 83px)!important;
+      mask-image:radial-gradient(circle 84px at 0 100%,transparent 0 79px,#000 83px)!important;
+    }
+    .sh-board-plate .sh-board-photo-header .sh-board-compass{
+      width:68px!important;height:68px!important;left:8px!important;bottom:8px!important;
+      display:flex;gap:0!important;align-items:center;justify-content:center;
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(255,255,255,.9);box-shadow:0 2px 9px rgba(30,40,50,.08);
+    }
+    .sh-board-plate .sh-board-compass button{
+      width:40px!important;height:40px!important;min-height:40px!important;min-width:40px!important;
+      background:rgba(249,251,252,.93)!important;border:1px solid #d9e0e3!important;
+      border-radius:50%;font-size:16px!important;
+    }
+    .sh-board-plate .sh-board-compass .sh-board-arrow{display:block;color:#2e526e;transform-origin:center;transition:transform .15s linear}
+    .sh-board-plate .sh-board-compass .sh-board-activate{font:500 8px system-ui,sans-serif;color:#64717c}
+    .sh-board-plate .sh-board-compass small{font:600 10px system-ui,sans-serif;color:#273a4b}
+    .sh-board-plate .sh-board-chapters{
+      position:absolute;top:50%;right:7px;transform:translateY(-50%);
+      height:104px!important;max-height:104px!important;width:20px;overflow:visible;
+      display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:0;
+    }
+    .sh-board-plate .sh-board-chapter-dot{
+      flex:1 1 0!important;height:auto!important;min-height:0!important;width:18px!important;
+      padding:0!important;border:0!important;display:grid;place-items:center;
+    }
+    .sh-board-plate .sh-board-chapter-dot::after{
+      width:3px;height:3px;opacity:.33;background:#4b5d6b;
+    }
+    .sh-board-plate .sh-board-chapter-dot[aria-current="step"]::after{
+      opacity:.93;background:#203e54;transform:scale(1.35);
+    }
 </style>
 </head>
 <body>
