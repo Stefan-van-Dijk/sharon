@@ -24,9 +24,10 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const data = await response.json();
   return wikiFeatures(Object.values(data?.query?.pages || {}).map(page => ({ ...page, language: lang })));
 }
-export function mountWikipediaLayer(map, library, { language = 'nl' } = {}) {
+export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
   let enabled = false, disposed = false, request = null, timeout = null, popup = null, lastCenter = null;
+  let currentFeatures = [];
   const ensure = () => {
     if (!map.getSource(sourceId)) map.addSource(sourceId, { type: 'geojson', data: EMPTY });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
@@ -41,7 +42,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl' } = {}) {
     request?.abort(); const controller = new AbortController(); request = controller;
     try {
       const data = await fetchWikipediaPlaces(center, { language, signal: controller.signal });
-      if (enabled && !disposed && request === controller) { ensure(); map.getSource(sourceId)?.setData(data); lastCenter = center; }
+      if (enabled && !disposed && request === controller) { ensure(); map.getSource(sourceId)?.setData(data); currentFeatures = data.features; lastCenter = center; }
     } catch (error) { if (error.name !== 'AbortError') console.warn('Wikipedia-laag:', error.message); }
   };
   const schedule = () => { clearTimeout(timeout); if (enabled) timeout = setTimeout(refresh, 450); };
@@ -50,6 +51,11 @@ export function mountWikipediaLayer(map, library, { language = 'nl' } = {}) {
     const point = event.point;
     const feature = map.queryRenderedFeatures([[point.x - 14, point.y - 14], [point.x + 14, point.y + 14]], { layers: [layerId] })[0];
     if (!feature) return;
+    if (typeof onOpen === 'function') {
+      const chosen = currentFeatures.find(item => item.id === feature.id) || feature;
+      onOpen(chosen, currentFeatures);
+      return;
+    }
     popup?.remove(); const node = document.createElement('article');
     node.style.cssText = 'width:min(76vw,310px);max-height:55vh;overflow:auto;font:inherit;line-height:1.45';
     if (feature.properties.image) {
