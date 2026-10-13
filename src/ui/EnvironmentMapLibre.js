@@ -356,7 +356,17 @@ export function openEnvironmentView(root, {
     closeBoard?.();
     const index = available.findIndex(item => item.id === feature.id);
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
+    const coords = feature.geometry?.coordinates;
+    if (map && Array.isArray(coords) && coords.length === 2) {
+      // Shift the story location above the glass plate while preserving the
+      // existing map renderer and camera. Move with each deck transition.
+      const target = { center: coords, duration: 850,
+        offset: [0, -Math.round(map.getContainer().clientHeight * 0.22)],
+        essential: true };
+      map.easeTo(target);
+    }
     closeBoard = openBoardViewer(feature, { location, events,
+      onClose: () => { closeBoard = null; },
       onNext: next ? () => showBoard(next, available) : null });
   };
   let wikipediaEnabled = false;
