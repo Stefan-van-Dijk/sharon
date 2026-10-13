@@ -2075,6 +2075,29 @@
     .sh-board-plate .sh-board-compass .sh-board-activate{font-size:9px}
     .sh-board-plate .sh-board-chapter h2,.sh-board-plate .sh-board-chapter h3{font-size:clamp(20px,4.8vw,27px)}
     .sh-board-plate .sh-board-chapter p{font-size:15px;line-height:1.6}
+
+    /* Board media: organic concave lower-left image cut-out for the compass. */
+    .sh-board-plate .sh-board-photo-header{position:relative;background:transparent!important;overflow:visible;border-radius:0!important;isolation:auto}
+    .sh-board-plate .sh-board-photo-current{
+      border-radius:28px 28px 24px 24px!important;
+      -webkit-mask-image:radial-gradient(circle 102px at 0% 100%,transparent 0 97px,#000 101px);
+      mask-image:radial-gradient(circle 102px at 0% 100%,transparent 0 97px,#000 101px);
+    }
+    .sh-board-plate .sh-board-photo-placeholder{
+      border-radius:28px 28px 24px 24px!important;
+      -webkit-mask-image:radial-gradient(circle 102px at 0% 100%,transparent 0 97px,#000 101px);
+      mask-image:radial-gradient(circle 102px at 0% 100%,transparent 0 97px,#000 101px);
+    }
+    .sh-board-plate .sh-board-photo-header .sh-board-compass{
+      left:8px!important;bottom:8px!important;width:78px!important;height:78px!important;
+      border:1px solid rgba(255,255,255,.8);box-shadow:0 2px 9px rgba(30,40,50,.12);
+      background:rgba(248,250,250,.91);
+    }
+    .sh-board-plate .sh-board-scroller{display:block!important;min-height:0;flex:1 1 auto}
+    .sh-board-plate .sh-board-story{display:block!important;min-height:0}
+    .sh-board-plate .sh-board-chapter{display:block!important;min-height:0}
+    .sh-board-plate .sh-board-chapter p{display:block!important;opacity:1!important;visibility:visible!important;color:#27313b!important}
+    .sh-board-plate .sh-board-controls{display:none!important}
 </style>
 </head>
 <body>
