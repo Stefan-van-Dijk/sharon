@@ -745,7 +745,33 @@ export async function openLocationsView(root, {
       }
       if (next !== data) await store.put('objects', { ...record, updatedAt: now, data: next });
     }
-    await store.put('objects', { ...remove, updatedAt: now, deletedAt: now });
+    // Keep an explicit alias trail: a merged location's identifiers must never
+    // be reused for an unrelated place, even after its record is tombstoned.
+    const aliasKey = 'locations.identifierAliases';
+    const aliasRecord = await store.get('meta', aliasKey);
+    const aliases = { ...(aliasRecord?.value || {}) };
+    for (const identifier of [remove.id, remove.externalId].filter(Boolean)) {
+      aliases[identifier] = keep.id;
+    }
+    // Collapse any previously merged identifiers onto the surviving location.
+    for (const [identifier, target] of Object.entries(aliases)) {
+      if (target === remove.id) aliases[identifier] = keep.id;
+    }
+    await store.put('meta', { key: aliasKey, value: aliases, updatedAt: now });
+    const settingsRecord = await store.get('settings', 'app');
+    if (settingsRecord?.value?.onboarding?.firstPlaceId === remove.id) {
+      await store.put('settings', {
+        ...settingsRecord, updatedAt: now,
+        value: {
+          ...settingsRecord.value,
+          onboarding: { ...settingsRecord.value.onboarding, firstPlaceId: keep.id }
+        }
+      });
+    }
+    await store.put('objects', {
+      ...remove, updatedAt: now, deletedAt: now,
+      data: { ...remove.data, mergedInto: keep.id }
+    });
     events.emit('location.updated', { id: keep.id });
     events.emit('location.deleted', { id: remove.id, mergedInto: keep.id });
     await reload();
