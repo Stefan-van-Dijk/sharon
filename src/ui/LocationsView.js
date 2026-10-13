@@ -2,6 +2,7 @@ import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.57';
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.57';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.57';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.57';
+import { renderStrip } from './Strip.js?v=0.2.57';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.57';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.57';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.57';
@@ -66,19 +67,15 @@ export async function openLocationsView(root, {
               || (effective.coordinates ? formatCoordinates(effective.coordinates) : 'Geen adres of GPS');
             const custom = prefs.sort === 'custom';
             return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}">
-              <div class="swipe-row" data-swipe-row="${escapeAttribute(item.id)}">
-                <div class="swipe-actions">
-                  <button type="button" class="swipe-action-delete" data-swipe-delete>Verwijder</button>
-                </div>
-                <button type="button" class="clean-row swipe-surface sh-location-row" data-swipe-surface>
-                  <span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>
-                  <span class="sh-location-copy">
-                    <strong>${escapeHtml(item.data?.title || 'Locatie')}</strong>
-                    <small>${escapeHtml(secondary)}</small>
-                  </span>
-                  <span class="sh-location-chevron" aria-hidden="true">›</span>
-                </button>
-              </div>
+              ${renderStrip({
+                id: item.id,
+                className: 'sh-location-strip',
+                ariaLabel: item.data?.title || 'Locatie',
+                leadingHtml: `<span class="sh-location-kind" aria-hidden="true">${locationIcon(item.data?.kind)}</span>`,
+                bodyHtml: `<span class="sh-location-copy"><strong>${escapeHtml(item.data?.title || 'Locatie')}</strong><small>${escapeHtml(secondary)}</small></span>`,
+                trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
+                actions: [{ kind: 'delete', label: 'Verwijder' }]
+              })}
               ${custom ? `<div class="sh-location-order"><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="-1" aria-label="Omhoog">↑</button><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="1" aria-label="Omlaag">↓</button></div>` : ''}
               </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
