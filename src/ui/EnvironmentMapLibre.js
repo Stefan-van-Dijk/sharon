@@ -1,3 +1,4 @@
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.63';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
   environmentIdForPoint,
@@ -210,6 +211,7 @@ export function openEnvironmentView(root, {
             </div>
           </div>
         </div>
+        <button type="button" data-wikipedia-toggle aria-pressed="false" title="Wikipedia-plekken op de kaart" style="position:absolute;right:12px;top:64px;z-index:8;border:1px solid #888;border-radius:20px;background:white;color:#222;padding:8px 12px;font:inherit">Wikipedia</button>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
@@ -341,6 +343,14 @@ export function openEnvironmentView(root, {
   let resizeObserver = null;
   const unsubscribers = [];
   let popup = null;
+  let wikipediaLayer = null;
+  let wikipediaEnabled = false;
+  const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
+  wikipediaToggle?.addEventListener("click", () => {
+    wikipediaEnabled = !wikipediaEnabled;
+    wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
+    wikipediaLayer?.setEnabled(wikipediaEnabled);
+  });
   let awaitingFirstPosition = !userPoint;
   let readoutFrame = 0;
   let saveTimer = null;
@@ -462,6 +472,8 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
+      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl" });
+      if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
       unsubscribers.push(appearanceBinding);
       // The editor may have loaded from IndexedDB before the map's style.
@@ -576,6 +588,7 @@ export function openEnvironmentView(root, {
     for (const unsubscribe of unsubscribers) unsubscribe();
     resizeObserver?.disconnect();
     popup?.remove();
+    wikipediaLayer?.destroy();
     gpsMarker?.remove();
     map?.remove();
   };
