@@ -177,6 +177,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   photo.alt = '';
   photo.decoding = 'async';
   photo.hidden = true;
+  photo.style.display = 'none';
   const photoEmpty = document.createElement('span');
   photoEmpty.className = 'sh-board-photo-placeholder';
   photoEmpty.textContent = 'Geen afbeelding beschikbaar';
@@ -259,6 +260,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       pendingPhoto = '';
       photo.src = url;
       photo.hidden = false;
+      photo.style.display = 'block';
       photoEmpty.hidden = true;
     };
     preload.onerror = () => {
