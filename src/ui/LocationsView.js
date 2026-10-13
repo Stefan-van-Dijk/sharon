@@ -592,10 +592,10 @@ export async function openLocationsView(root, {
         review.innerHTML = `
           <h3>Controleer de samenvoeging</h3>
           <p><strong>${escapeHtml(remove.data?.title || 'Locatie')}</strong> gaat op in <strong>${escapeHtml(keep.data?.title || 'Locatie')}</strong>.</p>
-          <p class="clean-help">De naam en identifier van de behouden locatie blijven leidend. De andere locatie verdwijnt uit de lijst, maar haar oude identifiers blijven als verwijzing bewaard.</p>
+          <p class="clean-help">De naam en identifier van de behouden locatie blijven leidend. De tweede locatie vervalt. Gekoppelde gegevens worden naar de behouden locatie omgezet.</p>
           <div class="sh-location-merge-review-ids">
             <small>Blijvende identifier: <code>${escapeHtml(keep.externalId || keep.id)}</code></small>
-            <small>Oude identifier: <code>${escapeHtml(remove.externalId || remove.id)}</code></small>
+            <small>Vervallende identifier: <code>${escapeHtml(remove.externalId || remove.id)}</code></small>
           </div>
           <div class="sh-location-merge-review-table">
             ${previewRows.map(([label, value, note]) => `<div class="sh-location-merge-review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value || 'Onbekend')}</span><small>${escapeHtml(note)}</small></div>`).join('')}
@@ -796,19 +796,6 @@ export async function openLocationsView(root, {
       }
       if (next !== data) await store.put('objects', { ...record, updatedAt: now, data: next });
     }
-    // Keep an explicit alias trail: a merged location's identifiers must never
-    // be reused for an unrelated place, even after its record is tombstoned.
-    const aliasKey = 'locations.identifierAliases';
-    const aliasRecord = await store.get('meta', aliasKey);
-    const aliases = { ...(aliasRecord?.value || {}) };
-    for (const identifier of [remove.id, remove.externalId].filter(Boolean)) {
-      aliases[identifier] = keep.id;
-    }
-    // Collapse any previously merged identifiers onto the surviving location.
-    for (const [identifier, target] of Object.entries(aliases)) {
-      if (target === remove.id) aliases[identifier] = keep.id;
-    }
-    await store.put('meta', { key: aliasKey, value: aliases, updatedAt: now });
     const settingsRecord = await store.get('settings', 'app');
     if (settingsRecord?.value?.onboarding?.firstPlaceId === remove.id) {
       await store.put('settings', {
