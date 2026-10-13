@@ -211,7 +211,7 @@ export function openEnvironmentView(root, {
             </div>
           </div>
         </div>
-        <button type="button" data-wikipedia-toggle aria-pressed="false" title="Wikipedia-plekken op de kaart" style="position:absolute;right:12px;top:64px;z-index:8;border:1px solid #888;border-radius:20px;background:white;color:#222;padding:8px 12px;font:inherit">Wikipedia</button>
+        <button type="button" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia-plekken tonen of verbergen" title="Wikipedia-plekken op de kaart" style="position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:30;display:grid;place-items:center;width:46px;height:46px;min-width:44px;min-height:44px;border:1px solid #999;border-radius:50%;background:rgba(255,255,255,.95);color:#222;font:700 26px Georgia,serif;box-shadow:0 2px 8px rgba(0,0,0,.12);touch-action:manipulation">W</button>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
