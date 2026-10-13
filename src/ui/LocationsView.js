@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js?v=0.2.54';
 import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.54';
 import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.54';
 import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.54';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded } from './LocationSentenceLibrary.js?v=0.2.54';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.2.54';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
@@ -352,7 +352,8 @@ export async function openLocationsView(root, {
       for (const [index,template] of all.entries()) {
         const source = local.includes(template) ? 'location' : group.includes(template) ? 'group' : global.includes(template) ? 'global' : 'default';
         const excludedStatus = globalExcluded.includes(template) ? 'excludedGlobal' : localExcluded.includes(template) ? 'excludedLocation' : groupExcluded.includes(template) ? 'excludedGroup' : '';
-        const statusKey = excludedStatus || (source === 'default' ? 'global' : source);
+        const defaultRule = source === 'default' ? sentenceLibrary.defaultScopes?.[situation]?.[template] : null;
+        const statusKey = excludedStatus || (source === 'default' ? (defaultRule?.scope || 'global') : source);
         const row = document.createElement('div');
         row.className = 'swipe-row sh-sentence-swipe-row';
         if (excludedStatus) row.classList.add('sh-sentence-inactive');
@@ -388,18 +389,11 @@ export async function openLocationsView(root, {
           if (open) { open.remove(); return; }
           variantsHost.querySelectorAll('.sh-sentence-scope-choices').forEach(el=>el.remove());
           const menu = document.createElement('div');
-          menu.className = 'sh-sentence-scope-choices' + (source === 'default' ? ' sh-sentence-scope-default' : '');
-          const choices = source === 'default'
-            ? [
-                ['global','Overal van toepassing'],
-                ['excludedLocation','Uitsluiten voor deze locatie'],
-                ['excludedGroup','Uitsluiten voor deze groep'],
-                ['excludedGlobal','Overal uitsluiten']
-              ]
-            : [
-                ['location','Voor deze locatie'],['group','Voor deze groep'],['global','Overal van toepassing'],
-                ['excludedLocation','Uitsluiten voor deze locatie'],['excludedGroup','Uitsluiten voor deze groep'],['excludedGlobal','Overal uitsluiten']
-              ];
+          menu.className = 'sh-sentence-scope-choices';
+          const choices = [
+            ['location','Voor deze locatie'],['group','Voor deze groep'],['global','Overal van toepassing'],
+            ['excludedLocation','Uitsluiten voor deze locatie'],['excludedGroup','Uitsluiten voor deze groep'],['excludedGlobal','Overal uitsluiten']
+          ];
           for (const [key,text] of choices) {
             menu.append(iconButton(scopes[key][0],text,async () => {
               // Each choice defines exactly one effective status; no extra row.
@@ -409,6 +403,9 @@ export async function openLocationsView(root, {
               if (key === 'excludedLocation') sentenceLibrary = setLocationVariantExcluded(sentenceLibrary,item.id,situation,template,true);
               if (key === 'excludedGroup') sentenceLibrary = setGroupVariantExcluded(sentenceLibrary,kind,situation,template,true);
               if (key === 'excludedGlobal') sentenceLibrary = setGlobalVariantExcluded(sentenceLibrary,situation,template,true);
+              if (source === 'default' && (key === 'location' || key === 'group' || key === 'global')) {
+                sentenceLibrary = setDefaultSentenceScope(sentenceLibrary,situation,template,key,{typeId:kind,locationId:item.id});
+              }
               // Changing applicability moves an authored variant instead of duplicating it.
               // Sharon's built-in defaults remain immutable and universally sourced.
               if (key === 'location' || key === 'group' || key === 'global') {
