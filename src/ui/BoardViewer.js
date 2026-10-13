@@ -3,7 +3,12 @@ const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
 export function safeUrl(value, image = false) {
   try {
-    const url = new URL(String(value || '').startsWith('//') ? 'https:' + value : value, 'https://nl.wikipedia.org');
+    const raw = String(value || '');
+    // MediaWiki sometimes emits root-relative thumb URLs from upload.wikimedia.org.
+    const normalized = image && raw.startsWith('/wikipedia/')
+      ? 'https://upload.wikimedia.org' + raw
+      : raw.startsWith('//') ? 'https:' + raw : raw;
+    const url = new URL(normalized, 'https://nl.wikipedia.org');
     if (url.protocol !== 'https:' || !(image ? imageHosts : wikiHosts).test(url.hostname)) return '';
     if (image && /\.(svg|gif)(?:$|\?)/i.test(url.pathname)) return '';
     return url.href;
@@ -121,6 +126,18 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   label.textContent = 'Boards';
   controls.append(label, closeButton);
 
+  // Stable photo frame: the article scrolls underneath, never the photo.
+  const photoHeader = document.createElement('div');
+  photoHeader.className = 'sh-board-photo-header';
+  const photo = document.createElement('img');
+  photo.className = 'sh-board-photo-current';
+  photo.alt = '';
+  photo.decoding = 'async';
+  const photoEmpty = document.createElement('span');
+  photoEmpty.className = 'sh-board-photo-placeholder';
+  photoEmpty.textContent = 'Geen afbeelding beschikbaar';
+  photoHeader.append(photo, photoEmpty);
+
   const scroller = document.createElement('div');
   scroller.className = 'sh-board-scroller';
   const story = document.createElement('article');
@@ -130,20 +147,25 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   status.textContent = 'Verhaal laden…';
   story.append(status);
   const source = document.createElement('a');
-  source.textContent = 'Wikipedia · bron en volledige artikeltekst ↗';
+  source.textContent = 'W';
   source.href = safeUrl(feature?.properties?.url);
   source.target = '_blank';
   source.rel = 'noopener noreferrer';
   source.className = 'sh-board-source';
+  source.setAttribute('aria-label', 'Open oorspronkelijk Wikipedia-artikel');
+  source.title = 'Open Wikipedia';
   const credits = document.createElement('small');
   credits.textContent = 'Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
-  story.append(source, credits);
+  const footer = document.createElement('footer');
+  footer.className = 'sh-board-footer';
+  credits.textContent = 'Wikipedia · CC BY-SA · foto's: Wikimedia Commons';
+  footer.append(credits, source);
   scroller.append(story);
 
   const chapterRail = document.createElement('nav');
   chapterRail.className = 'sh-board-chapters';
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
-  plate.append(controls, scroller, chapterRail);
+  plate.append(controls, photoHeader, scroller, chapterRail, footer);
   overlay.append(deck, plate);
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
@@ -151,21 +173,54 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     if (!closed && plate.isConnected) plate.classList.remove('is-board-entering');
   });
 
-  const compasses = [];
+  const compass = document.createElement('div');
+  compass.className = 'sh-board-compass';
+  const compassButton = document.createElement('button');
+  compassButton.type = 'button';
+  compassButton.setAttribute('aria-label', 'Kompas activeren');
+  const arrow = document.createElement('span');
+  arrow.className = 'sh-board-arrow';
+  arrow.textContent = '➤';
+  const activate = document.createElement('span');
+  activate.textContent = 'Kompas';
+  activate.className = 'sh-board-activate';
+  compassButton.append(arrow, activate);
+  const distance = document.createElement('small');
+  compass.append(compassButton, distance);
+  photoHeader.append(compass);
   const updateCompass = () => {
     const value = distanceBearing(gps, destination);
-    for (const item of compasses) {
-      item.distance.textContent = value
-        ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
-          (value.distance / 1000).toFixed(value.distance < 10000 ? 1 : 0) + ' km')
-        : 'GPS onbekend';
-      item.arrow.hidden = !value || heading === null;
-      if (value && heading !== null) {
-        item.arrow.style.transform = 'rotate(' + ((value.bearing - heading + 360) % 360) + 'deg)';
-      }
-      item.activate.hidden = heading !== null;
+    distance.textContent = value
+      ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
+        (value.distance / 1000).toFixed(value.distance < 10000 ? 1 : 0) + ' km')
+      : 'GPS onbekend';
+    arrow.hidden = !value || heading === null;
+    if (value && heading !== null) {
+      arrow.style.transform = 'rotate(' + ((value.bearing - heading + 360) % 360) + 'deg)';
     }
+    activate.hidden = heading !== null;
   };
+  let currentPhoto = '';
+  const selectPhoto = image => {
+    const url = safeUrl(image, true);
+    if (!url || url === currentPhoto) return;
+    currentPhoto = url;
+    photo.style.visibility = 'hidden';
+    photoEmpty.hidden = false;
+    photo.onload = () => {
+      if (closed || currentPhoto !== url) return;
+      photo.style.visibility = 'visible';
+      photoEmpty.hidden = true;
+    };
+    photo.onerror = () => {
+      if (closed || currentPhoto !== url) return;
+      // Do not discard the fixed photo area on failed requests.
+      photo.style.visibility = 'hidden';
+      photoEmpty.hidden = false;
+    };
+    photo.src = url;
+  };
+  selectPhoto(feature.properties?.image);
   const onOrientation = event => {
     if (Number.isFinite(event.webkitCompassHeading)) heading = event.webkitCompassHeading;
     else if (event.absolute && Number.isFinite(event.alpha)) heading = (360 - event.alpha) % 360;
@@ -250,15 +305,25 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
       if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function' &&
         await DeviceOrientationEvent.requestPermission() !== 'granted') return;
-      for (const item of compasses) item.activate.textContent = 'Richting bepalen…';
+      activate.textContent = 'Richting bepalen…';
     } catch {
-      for (const item of compasses) item.activate.textContent = 'Kompas niet beschikbaar';
+      activate.textContent = 'Kompas niet beschikbaar';
     }
   }
 
+  compassButton.addEventListener('click', requestCompass);
   const chapters = [];
+  const chapterImages = [];
   const dots = [];
+  let activeChapter = -1;
   const setActive = index => {
+    if (index !== activeChapter) {
+      activeChapter = index;
+      const chosen = chapterImages[index] ||
+        chapterImages.slice(0, index + 1).reverse().find(Boolean) ||
+        feature.properties?.image;
+      selectPhoto(chosen);
+    }
     dots.forEach((dot, i) => {
       dot.setAttribute('aria-current', i === index ? 'step' : 'false');
       dot.setAttribute('aria-label', 'Hoofdstuk ' + (i + 1) + ' van ' + dots.length +
@@ -278,40 +343,12 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   function addChapter(section, index) {
     const item = document.createElement('section');
     item.className = 'sh-board-chapter';
-    const hero = document.createElement('div');
-    hero.className = 'sh-board-image';
-    if (section.image) {
-      const photo = document.createElement('img');
-      photo.src = section.image;
-      photo.alt = section.title;
-      photo.loading = index === 0 ? 'eager' : 'lazy';
-      photo.addEventListener('error', () => { hero.classList.add('sh-board-no-photo'); photo.remove(); }, { once: true });
-      hero.append(photo);
-    } else hero.classList.add('sh-board-no-photo');
-
-    const compass = document.createElement('div');
-    compass.className = 'sh-board-compass';
-    const activate = document.createElement('button');
-    activate.type = 'button';
-    activate.setAttribute('aria-label', 'Kompas activeren');
-    const arrow = document.createElement('span');
-    arrow.className = 'sh-board-arrow';
-    arrow.textContent = '➤';
-    const instruction = document.createElement('span');
-    instruction.textContent = 'Kompas';
-    instruction.className = 'sh-board-activate';
-    activate.append(arrow, instruction);
-    activate.addEventListener('click', requestCompass);
-    const distance = document.createElement('small');
-    compass.append(activate, distance);
-    hero.append(compass);
-    compasses.push({ arrow, activate: instruction, distance });
-
+    chapterImages.push(section.image || '');
     const title = document.createElement(index ? 'h3' : 'h2');
     title.textContent = section.title;
     const paragraph = document.createElement('p');
     paragraph.textContent = section.text;
-    item.append(hero, title, paragraph);
+    item.append(title, paragraph);
     story.insertBefore(item, source);
     chapters.push(item);
 
