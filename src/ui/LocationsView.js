@@ -1,16 +1,16 @@
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.57';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.57';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.57';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.57';
-import { renderStrip } from './Strip.js?v=0.2.57';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.57';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.57';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.57';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.2.57';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.58';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.58';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.58';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.58';
+import { renderStrip } from './Strip.js?v=0.2.58';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.58';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.58';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.58';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.2.58';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.57';
+} from '../core/location/LocationHierarchy.js?v=0.2.58';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
