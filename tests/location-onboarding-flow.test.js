@@ -205,3 +205,11 @@ test('nieuwe locatie en plek aanpassen gebruiken dezelfde onboarding-positiebedi
  assert.ok(story.includes("story-location-arrows"));
  assert.ok(flow.includes("mountLocationTypeSphere(typeChips"));
 });
+
+test('eigen locatie en onderliggende locaties worden niet als bovenliggende suggestie aangeboden', async () => {
+  const flow = await read('../src/ui/LocationOnboardingFlow.js');
+  assert.ok(flow.includes('descendants.add(location.id)'));
+  assert.ok(flow.includes('descendants.has(candidate.parentId || candidate.data?.parentId)'));
+  assert.ok(flow.includes('knownLocations.filter(candidate => !descendants.has(candidate.id))'));
+  assert.ok(flow.includes('parentCandidatesWithinRadius(currentPoint(), eligible).length > 0'));
+});
