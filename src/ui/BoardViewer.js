@@ -158,7 +158,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   credits.textContent = 'Tekst: Wikipedia (CC BY-SA). Afbeeldingen: Wikimedia Commons; licenties verschillen per afbeelding.';
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
-  credits.textContent = 'Wikipedia · CC BY-SA · foto's: Wikimedia Commons';
+  credits.textContent = 'Wikipedia · CC BY-SA · Wikimedia Commons';
   footer.append(credits, source);
   scroller.append(story);
 
