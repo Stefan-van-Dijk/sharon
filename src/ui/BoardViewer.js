@@ -107,6 +107,8 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
           .map(info => safeUrl(info?.thumburl || info?.url, true))
           .filter(Boolean);
         const distinct = [...new Set(available)];
+        // Wikipedia may have no lead thumbnail, but usable article photographs.
+        if (!sections[0]?.image && distinct.length) sections[0].image = distinct.shift();
         // The hero keeps the relevant picture from discovery when possible;
         // later sections receive additional photographs from the same article.
         const taken = new Set(sections.map(s => s.image).filter(Boolean));
@@ -180,7 +182,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   photo.style.display = 'none';
   const photoEmpty = document.createElement('span');
   photoEmpty.className = 'sh-board-photo-placeholder';
-  photoEmpty.textContent = 'Geen afbeelding beschikbaar';
+  photoEmpty.textContent = feature.properties?.title || 'Verhaal';
   photoHeader.append(photo, photoEmpty);
 
   const scroller = document.createElement('div');
