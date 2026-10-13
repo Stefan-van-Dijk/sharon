@@ -548,7 +548,8 @@ export async function openLocationsView(root, {
             <option value="current">Deze locatie</option><option value="other">De geselecteerde locatie</option>
           </select></label>
           <p class="clean-help">Onderliggende locaties en verwijzingen gaan mee. Samenvoegen van een locatie met haar eigen (sub)locatie is niet mogelijk.</p>
-          <button type="button" class="primary-line-action" data-merge-confirm>Samenvoegen</button>
+          <button type="button" class="primary-line-action" data-merge-preview>Bekijk samenvoeging</button>
+           <div data-merge-review hidden aria-live="polite"></div>
         </div>` : ''}
       </section>
     `;
@@ -562,13 +563,63 @@ export async function openLocationsView(root, {
       const panel = root.querySelector('[data-merge-panel]');
       panel.hidden = !panel.hidden;
     });
-    root.querySelector('[data-merge-confirm]')?.addEventListener('click', async () => {
-      const otherId = root.querySelector('[data-merge-other]').value;
-      const keepOther = root.querySelector('[data-merge-keep]').value === 'other';
+    const review = root.querySelector('[data-merge-review]');
+    const otherSelect = root.querySelector('[data-merge-other]');
+    const keepSelect = root.querySelector('[data-merge-keep]');
+    const resetReview = () => { if (review) { review.hidden = true; review.replaceChildren(); } };
+    otherSelect?.addEventListener('change', resetReview);
+    keepSelect?.addEventListener('change', resetReview);
+    root.querySelector('[data-merge-preview]')?.addEventListener('click', () => {
       try {
-        if (!otherId) throw Error('Geen tweede locatie beschikbaar.');
-        await mergeLocations(item.id, otherId, keepOther);
-      } catch (error) { setStatus(error.message); }
+        const other = byId.get(otherSelect.value);
+        const keep = keepSelect.value === 'other' ? other : item;
+        const remove = keepSelect.value === 'other' ? item : other;
+        if (!keep || !remove) throw Error('Kies eerst twee locaties.');
+        if (isDescendant(keep.id, remove.id, byId) || isDescendant(remove.id, keep.id, byId)) {
+          throw Error('Een locatie kan niet met haar eigen sublocatie worden samengevoegd.');
+        }
+        const transferred = locations.filter(x => parentIdOf(x) === remove.id);
+        const references = objects.filter(x => !x.deletedAt && x.id !== remove.id && x.data?.locationId === remove.id);
+        const ownKeep = ownCoordinates(keep);
+        const ownRemove = ownCoordinates(remove);
+        const previewRows = [
+          ['Naam', keep.data?.title || 'Locatie', 'Bestaande naam blijft behouden'],
+          ['Type', (keep.data?.kind || 'other') !== 'other' ? TYPES.get(keep.data.kind) : TYPES.get(remove.data?.kind || 'other'), 'Bestaand type, anders type van tweede locatie'],
+          ['Adres', addressText(keep.data?.address) || addressText(remove.data?.address) || 'Geen', 'Adres van behouden locatie krijgt voorrang'],
+          ['GPS', ownKeep || ownRemove ? formatCoordinates(ownKeep || ownRemove) : 'Geen', 'Eigen positie krijgt voorrang'],
+          ['Herkenningsstraal', radius(keep.data?.radiusM) + ' meter', 'Instelling van behouden locatie'],
+          ['Sublocaties', String(transferred.length), 'Worden gekoppeld aan de behouden locatie'],
+          ['Gekoppelde gegevens', String(references.length), 'Verwijzingen worden omgezet; dubbele binnenkomstmeldingen worden uitgeschakeld']
+        ];
+        review.innerHTML = `
+          <h3>Controleer de samenvoeging</h3>
+          <p><strong>${escapeHtml(remove.data?.title || 'Locatie')}</strong> gaat op in <strong>${escapeHtml(keep.data?.title || 'Locatie')}</strong>.</p>
+          <p class="clean-help">De naam en identifier van de behouden locatie blijven leidend. De andere locatie verdwijnt uit de lijst, maar haar oude identifiers blijven als verwijzing bewaard.</p>
+          <div class="sh-location-merge-review-ids">
+            <small>Blijvende identifier: <code>${escapeHtml(keep.externalId || keep.id)}</code></small>
+            <small>Oude identifier: <code>${escapeHtml(remove.externalId || remove.id)}</code></small>
+          </div>
+          <div class="sh-location-merge-review-table">
+            ${previewRows.map(([label, value, note]) => `<div class="sh-location-merge-review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value || 'Onbekend')}</span><small>${escapeHtml(note)}</small></div>`).join('')}
+          </div>
+          <p class="clean-help">Let op: afwijkende gegevens van de vervallen locatie worden niet automatisch gecombineerd. Controleer de gegevens voordat je verdergaat.</p>
+          <div class="sh-location-merge-review-actions">
+            <button type="button" data-merge-cancel>Terug</button>
+            <button type="button" class="primary-line-action" data-merge-confirm>Definitief samenvoegen</button>
+          </div>`;
+        review.hidden = false;
+        review.querySelector('[data-merge-cancel]').addEventListener('click', resetReview);
+        review.querySelector('[data-merge-confirm]').addEventListener('click', async event => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            await mergeLocations(item.id, other.id, keepSelect.value === 'other');
+          } catch (error) {
+            setStatus(error.message);
+            button.disabled = false;
+          }
+        });
+      } catch (error) { setStatus(error.message); resetReview(); }
     });
     root.querySelector('[data-current-gps]').addEventListener('click', async () => {
       const button = root.querySelector('[data-current-gps]');
@@ -714,7 +765,6 @@ export async function openLocationsView(root, {
     }
     const keep = keepOther ? other : current;
     const remove = keepOther ? current : other;
-    if (!confirm(`“${remove.data.title}” samenvoegen met “${keep.data.title}”? Alle onderliggende locaties worden behouden.`)) return;
     const now = Date.now();
     const ownKeep = ownCoordinates(keep), ownRemove = ownCoordinates(remove);
     const updatedKeep = {
