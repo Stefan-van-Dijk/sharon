@@ -594,6 +594,19 @@
     .environment-readout-track.is-dragging{transition:none}
     .environment-readout.is-style-active .environment-readout-track{transform:translate3d(0,0,0)}
     .environment-readout-position,.environment-readout-style{flex:0 0 50%;width:50%;height:100%;min-width:0;padding:7px 13px}
+    /* Right-to-left gesture on the position bar reveals the extensible
+       information filters. The existing left-edge right swipe still opens Style. */
+    .environment-readout-filters{position:absolute;inset:0;z-index:2;display:flex;align-items:center;gap:12px;padding:7px 13px;background:#fff;opacity:0;visibility:hidden;transform:translate3d(100%,0,0);transition:transform .25s cubic-bezier(.22,.61,.36,1),opacity .2s,visibility .25s;pointer-events:none}
+    .environment-readout.is-filter-active .environment-readout-filters{opacity:1;visibility:visible;transform:translate3d(0,0,0);pointer-events:auto}
+    .environment-readout.is-filter-active .environment-readout-track{transform:translate3d(-100%,0,0);pointer-events:none}
+    .environment-filter-back{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px!important;min-height:44px!important;padding:0;border:1px solid #eeeef0;border-radius:14px;background:#fafafa;color:#555;font-size:28px;line-height:1}
+    .environment-filter-options{display:flex;align-items:center;gap:9px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+    .environment-filter-options::-webkit-scrollbar{display:none}
+    .environment-filter-options button{flex:0 0 auto;min-height:44px!important;padding:5px 12px;border:1px solid #e6e6e9;border-radius:13px;background:#f8f8fa;color:#36363b;font:600 14px Georgia,serif;display:flex;align-items:center;gap:9px}
+    .environment-filter-options button span{font:500 12px system-ui,sans-serif}
+    .environment-filter-options button[aria-pressed="true"]{border-color:#647b91;background:#eaf0f5;color:#234261}
+    .environment-filter-hint{flex:0 0 auto;font-size:10px;color:#888;letter-spacing:.03em}
+
     .environment-readout-position{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px}
     .environment-readout-position>div{min-width:0;display:grid;gap:3px}
     .environment-readout-position>div:last-child{text-align:right}
