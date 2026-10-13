@@ -1,5 +1,5 @@
-import { openBoardViewer } from './BoardViewer.js?v=0.2.71';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.71';
+import { openBoardViewer } from './BoardViewer.js?v=0.2.72';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.72';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
   environmentIdForPoint,
