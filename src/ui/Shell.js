@@ -1,10 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.2.60';
+import { openLocationsView } from './LocationsView.js?v=0.2.62';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.1.90';
 import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
-import { bindSwipeHome } from './SwipeHome.js?v=0.2.60';
+import { bindSwipeHome } from './SwipeHome.js?v=0.2.62';
 
-const APP_VERSION = '0.2.60';
+const APP_VERSION = '0.2.62';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -151,6 +151,7 @@ export function createShell(root, {
     document.body.classList.toggle('sharon-detail-active', detail);
 
     stage.dataset.view = currentView;
+    stage.dataset.module = detail ? moduleId : '';
     frame.dataset.view = currentView;
     stage.classList.toggle('is-environment', environment);
     frame.classList.toggle('is-environment', environment);
@@ -315,30 +316,37 @@ export function createShell(root, {
     }
   };
   const navigateBack = () => {
-    if (currentView !== 'detail') return;
-    // Give guided multi-step editors first refusal before leaving the editor.
+    if (currentView !== 'detail') return false;
+    // The editor owns its guided steps. Never discard a form by returning Home.
     const editor = outlet.querySelector('.location-editor-view[data-stage]');
     if (editor) {
       const request = new Event('sharon:navigate-back', { cancelable: true });
       editor.dispatchEvent(request);
-      if (request.defaultPrevented) return;
+      if (request.defaultPrevented) return true;
     }
-    // Editors and location detail screens own their own previous-page action.
-    // Never fall through to Home when an internal page has no matching back button.
-    const back = outlet.querySelector('.sh-sentence-editor [data-back], .location-editor-view [data-back], .sh-location-detail-view [data-back], .sh-location-reference-page [data-back], .locations-view [data-back], [data-navigation-back]');
-    if (back) {
+    // Only use the active screen's own back control; no hidden or nested buttons.
+    const screen = outlet.querySelector('.app-view > .module-view, :scope > .module-view');
+    const back = screen?.querySelector('.sh-location-editor-nav > [data-back], [data-navigation-back]');
+    if (back && !back.hidden && !back.disabled) {
       back.click();
-      return;
+      return true;
     }
-    // Only a module root (not a nested editing screen) may return Home.
-    if (outlet.querySelector('.locations-view, .environment-view, [data-module-root], .settings-view')) {
-      showHome();
-    }
+    // Module roots have no previous internal screen.
+    showHome();
+    return false;
   };
   window.addEventListener('popstate', event => {
     const target = event.state?.[navigationKey];
     if (!target || target === 'home') {
-      if (currentView === 'detail') navigateBack();
+      if (currentView === 'detail') {
+        const handledInternally = navigateBack();
+        // Keep Android/system Back consistent: internal screens must not consume
+        // the module history entry and make the next Back leave Sharon.
+        if (handledInternally) {
+          const activeModule = stage.dataset.module || 'locations';
+          history.pushState({ ...history.state, [navigationKey]: activeModule }, '');
+        }
+      }
       return;
     }
     if (target === 'settings') openSettingsView({ animate: false });
