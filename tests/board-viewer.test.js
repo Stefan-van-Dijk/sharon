@@ -25,3 +25,8 @@ test('Wikimedia protocol-relative images are accepted and unsafe URLs rejected',
     'https://upload.wikimedia.org/wikipedia/commons/photo.jpg');
   assert.equal(safeUrl('javascript:alert(1)', true), '');
 });
+
+test('MediaWiki root-relative image URLs resolve to Wikimedia uploads', () => {
+  assert.equal(safeUrl('/wikipedia/commons/thumb/a/ab/Foto.jpg/480px-Foto.jpg', true),
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Foto.jpg/480px-Foto.jpg');
+});
