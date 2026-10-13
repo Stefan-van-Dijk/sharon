@@ -2029,6 +2029,18 @@
     .sh-board-story>small{font-size:10px;line-height:1.4;color:#656d73}
     @media(min-width:760px){.sh-board-plate{width:min(540px,70vw);left:50%;right:auto;transform:translateX(-50%)}.sh-board-deck{width:min(540px,70vw);left:50%;right:auto;transform:translateX(-50%)}.sh-board-image{aspect-ratio:1.8}}
     @media(prefers-reduced-motion:reduce){.sh-board-chapter-dot::after{transition:none}}
+
+    /* Board deck motion: the card follows a leftward finger gesture, then
+       either snaps back or exits to reveal the next story over the moving map. */
+    .sh-board-plate{transition:transform .28s cubic-bezier(.22,.7,.28,1),opacity .22s ease;will-change:transform}
+    .sh-board-plate.is-board-dragging{transition:none}
+    .sh-board-plate.is-board-exiting{transition:transform .23s ease-in,opacity .23s ease-in}
+    .sh-board-deck{transition:transform .26s ease-out}
+    .sh-board-deck-card-1{transform:translate(15px,-10px) scale(.99);background:rgba(247,248,249,.7)}
+    .sh-board-deck-card-2{transform:translate(27px,-19px) scale(.975);background:rgba(247,248,249,.5)}
+    .sh-board-plate .sh-board-image.sh-board-no-photo{aspect-ratio:2.5;background:linear-gradient(130deg,rgba(209,220,223,.72),rgba(241,242,237,.4))}
+    .sh-board-plate .sh-board-image.sh-board-no-photo .sh-board-compass{bottom:4px}
+    .sh-board-story .sh-board-chapter:first-child{padding-top:0}
 </style>
 </head>
 <body>
