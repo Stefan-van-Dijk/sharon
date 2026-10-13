@@ -536,7 +536,8 @@ export function enhanceLocationEditor(root, {
       button.addEventListener('click', () => {
         parentSelect.value = value;
         renderParents();
-        setNewLocationStage('name');
+        if (editMode !== 'place') setNewLocationStage('name');
+        else setNewLocationStage('parent', false);
       });
       hierarchyOptions.append(button);
     };
@@ -576,7 +577,7 @@ export function enhanceLocationEditor(root, {
     parentSection.hidden = true;
     // Advanced settings are not part of the two-step identity editor.
     moreSettings.hidden = stage !== 'type' || editMode === 'identity';
-    nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : false) || Boolean(saveInHeader);
+    nativeSave.hidden = (isNew || editMode === 'identity' ? stage !== 'type' : editMode === 'place' ? stage !== 'parent' : false) || Boolean(saveInHeader);
     if (editMode === 'place') nativeSave.textContent = 'Bevestig locatie';
     const placeBlock = view.querySelector('.sh-location-reference-place');
     const mapBlock = view.querySelector('.sh-location-reference-map-panel');
@@ -598,20 +599,21 @@ export function enhanceLocationEditor(root, {
       stopTyping = typeLocationConclusion(conclusionElement, message, { reducedMotion: !animate || reducedMotion, speed: 30 });
     }
     if (stageButton) {
-      stageButton.hidden = stage === 'type' || (stage === 'parent' && !manualParentOpen) || (!isNew && editMode !== 'identity');
+      stageButton.hidden = stage === 'type' || (stage === 'parent' && !manualParentOpen && editMode !== 'place') || (!isNew && editMode !== 'identity' && editMode !== 'place');
       stageButton.disabled = stage === 'place' ? !placeReady : stage === 'name' ? !form.elements.title.value.trim() : false;
-      stageButton.textContent = stage === 'place' ? 'Bevestig locatie' : 'Verder';
+      stageButton.textContent = stage === 'place' ? 'Verder naar relatie' : stage === 'parent' && editMode === 'place' ? 'Bewaar relatie' : 'Verder';
     }
     if ((stage === 'name' || stage === 'type') && animate && stage === 'name') focusTextField(form.elements.title);
   }
   function advanceNewLocationStage() {
-    if (!isNew && editMode !== 'identity') return;
+    if (!isNew && editMode !== 'identity' && editMode !== 'place') return;
     const stage = view.dataset.stage || 'place';
-    if (stage === 'place' && currentPoint()) setNewLocationStage(needsHierarchyChoice() ? 'parent' : 'name');
+    if (stage === 'place' && (currentPoint() || editMode === 'place')) setNewLocationStage(editMode === 'place' || needsHierarchyChoice() ? 'parent' : 'name');
+    else if (stage === 'parent' && editMode === 'place') form.requestSubmit();
     else if (stage === 'parent') setNewLocationStage('name');
     else if (stage === 'name' && form.elements.title.value.trim()) setNewLocationStage('type');
   }
-  if (isNew || editMode === 'identity') {
+  if (isNew || editMode === 'identity' || editMode === 'place') {
     stageButton = document.createElement('button');
     stageButton.type = 'button';
     stageButton.className = 'primary-line-action';
@@ -637,7 +639,7 @@ export function enhanceLocationEditor(root, {
   updateConclusion(!isNew);
   syncText();
   syncMap();
-  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : needsHierarchyChoice() ? 'parent' : 'name');
+  if (guided) setNewLocationStage(isNew || editMode === 'place' ? 'place' : 'name');
   if (useGps && !isNew) gpsButton.click();
   else if (isNew) void checkSavedPlaceOnStart();
 
