@@ -27,7 +27,7 @@ export function distanceBearing(start, end) {
     bearing: (Math.atan2(y,x)*180/Math.PI+360)%360 };
 }
 export function sectionsFromWikipediaHtml(html, fallback = {}) {
-  const first = { title: fallback.title || 'Verhaal', text: fallback.description || '', image: safeUrl(fallback.image, true) };
+  const first = { title: fallback.title || 'Verhaal', text: '', image: safeUrl(fallback.image, true) };
   if (typeof DOMParser === 'undefined') return [{ ...first, text: fallback.description || '' }];
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const root = doc.querySelector('.mw-parser-output') || doc.body;
@@ -58,7 +58,7 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
       if (src) current.image = src;
     }
   }
-  if (!first.text) first.text = fallback.description || '';
+  if (!sections.some(section => section.text.trim().length >= 30)) first.text = fallback.description || '';
   // Some articles keep photos in infoboxes or galleries rather than inside
   // the corresponding chapter. Reuse those existing article images in order.
   const used = new Set(sections.map(section => section.image).filter(Boolean));
@@ -183,7 +183,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const photoEmpty = document.createElement('span');
   photoEmpty.className = 'sh-board-photo-placeholder';
   photoEmpty.textContent = feature.properties?.title || 'Verhaal';
-  photoHeader.append(photo, photoEmpty);
+  const incomingPhoto = document.createElement('img');
+  incomingPhoto.className = 'sh-board-photo-current sh-board-photo-incoming';
+  incomingPhoto.alt = '';
+  incomingPhoto.decoding = 'async';
+  incomingPhoto.hidden = true;
+  incomingPhoto.style.display = 'none';
+  photoHeader.append(photo, incomingPhoto, photoEmpty);
 
   const scroller = document.createElement('div');
   scroller.className = 'sh-board-scroller';
@@ -256,23 +262,52 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   let currentPhoto = '';
   let pendingPhoto = '';
+  let imageRevision = 0;
+  let photoAnimation = null;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   const selectPhoto = image => {
     const url = safeUrl(image, true);
     if (!url || url === currentPhoto || url === pendingPhoto) return;
+    const revision = ++imageRevision;
     pendingPhoto = url;
-    // Never blank the previous photo while a new Wikimedia image loads.
     const preload = new Image();
     preload.onload = () => {
-      if (closed || pendingPhoto !== url) return;
-      currentPhoto = url;
+      if (closed || revision !== imageRevision) return;
       pendingPhoto = '';
-      photo.src = url;
-      photo.hidden = false;
-      photo.style.display = 'block';
+      if (photoAnimation) { photoAnimation.cancel(); photoAnimation = null; }
+      if (reducedMotion || !currentPhoto) {
+        photo.src = url;
+        photo.hidden = false;
+        photo.style.display = 'block';
+        incomingPhoto.hidden = true;
+        incomingPhoto.style.display = 'none';
+        currentPhoto = url;
+        photoEmpty.hidden = true;
+        return;
+      }
+      // Crossfade after loading; never reveal an empty media frame.
+      incomingPhoto.src = url;
+      incomingPhoto.hidden = false;
+      incomingPhoto.style.display = 'block';
       photoEmpty.hidden = true;
+      const previous = currentPhoto;
+      currentPhoto = url;
+      photoAnimation = incomingPhoto.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 430, easing: 'ease-in-out', fill: 'forwards' }
+      );
+      photoAnimation.onfinish = () => {
+        if (closed || currentPhoto !== url) return;
+        photo.src = url;
+        photo.hidden = false;
+        photo.style.display = 'block';
+        incomingPhoto.hidden = true;
+        incomingPhoto.style.display = 'none';
+        photoAnimation = null;
+      };
     };
     preload.onerror = () => {
-      if (closed || pendingPhoto !== url) return;
+      if (closed || revision !== imageRevision) return;
       pendingPhoto = '';
       if (!currentPhoto) photoEmpty.hidden = false;
     };
