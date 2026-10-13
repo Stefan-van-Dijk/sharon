@@ -299,6 +299,42 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     } else resetDeck();
   }, { passive:true });
   plate.addEventListener('touchcancel', () => { swipe = null; resetDeck(); }, { passive:true });
+  // Pull down from the fixed photo to dismiss without blocking text scrolling.
+  let dismiss = null;
+  photoHeader.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1 || event.target.closest('button')) return;
+    const t = event.touches[0];
+    dismiss = { x:t.clientX, y:t.clientY, dy:0 };
+  }, { passive:true });
+  photoHeader.addEventListener('touchmove', event => {
+    if (!dismiss || event.touches.length !== 1 || transitioning) return;
+    const t = event.touches[0], dx = t.clientX - dismiss.x;
+    const dy = t.clientY - dismiss.y;
+    if (Math.abs(dx) > Math.max(18, dy)) { dismiss = null; return; }
+    if (dy < 8) return;
+    dismiss.dy = Math.min(220, dy);
+    if (event.cancelable) event.preventDefault();
+    plate.classList.add('is-board-dragging');
+    plate.style.transform = 'translate3d(0,' + dismiss.dy + 'px,0)';
+    plate.style.opacity = String(Math.max(.65, 1 - dismiss.dy / 600));
+  }, { passive:false });
+  photoHeader.addEventListener('touchend', () => {
+    if (!dismiss) return;
+    const dy = dismiss.dy;
+    dismiss = null;
+    plate.classList.remove('is-board-dragging');
+    if (dy > 100) {
+      transitioning = true;
+      plate.classList.add('is-board-exiting');
+      plate.style.transform = 'translate3d(0,110vh,0)';
+      plate.style.opacity = '0';
+      window.setTimeout(() => { if (!closed) close(); }, 220);
+    } else resetDeck();
+  }, { passive:true });
+  photoHeader.addEventListener('touchcancel', () => {
+    dismiss = null; resetDeck();
+  }, { passive:true });
+
 
   async function requestCompass() {
     try {
