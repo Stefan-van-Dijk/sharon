@@ -83,3 +83,18 @@ test('samenvoegvoorbeeld toont uitsluitend verschillen en geen identifiers', asy
   assert.ok(!preview.includes('Blijvende identifier:'));
   assert.ok(!preview.includes('Vervallende identifier:'));
 });
+
+
+test('locatielijst gebruikt de centrale herbruikbare strook zonder domeinregels te verplaatsen', async () => {
+  const source = await readFile(new URL('../src/ui/LocationsView.js', import.meta.url), 'utf8');
+  const strip = await readFile(new URL('../src/ui/Strip.js', import.meta.url), 'utf8');
+  assert.ok(source.includes("import { renderStrip } from './Strip.js"));
+  assert.ok(source.includes('renderStrip({'));
+  assert.ok(source.includes("surfaceClassName: 'sh-location-row'"));
+  assert.ok(source.includes("actions: [{ kind: 'delete', label: 'Verwijder' }]"));
+  assert.ok(strip.includes('export function renderStrip'));
+  assert.ok(strip.includes('data-swipe-row='));
+  assert.ok(strip.includes('data-swipe-surface'));
+  assert.ok(!strip.includes('locationId'));
+  assert.ok(!strip.includes('removeLocation'));
+});
