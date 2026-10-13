@@ -59,3 +59,11 @@ test('zinsbewerking voorkomt concurrerende scrollanimaties bij iOS-toetsenbord',
   assert.ok(!editor.includes("visualViewport?.addEventListener('scroll'"));
   assert.ok(!editor.includes("scrollIntoView({ behavior: 'smooth'"));
 });
+
+test('standaardzinnen lijnen vier statuskeuzes rechts uit in hetzelfde raster als zes eigen opties', async () => {
+ const source=await readFile(new URL('../src/ui/LocationsView.js',import.meta.url),'utf8');
+ const css=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(source.includes("source === 'default' ? ' sh-sentence-scope-default' : ''"));
+ assert.ok(css.includes('.sh-sentence-scope-default > .sh-sentence-icon-action:last-child{grid-column:3}'));
+ assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
+});
