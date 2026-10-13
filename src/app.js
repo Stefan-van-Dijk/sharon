@@ -1,3 +1,4 @@
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.2.55';
 import { EventBus } from './core/events/EventBus.js?v=0.2.55';
 import { ObjectStore } from './core/storage/ObjectStore.js?v=0.2.55';
 import { SettingsService } from './core/settings/SettingsService.js?v=0.2.55';
@@ -139,12 +140,13 @@ export async function createApp() {
 
 async function saveFirstPlace(store, result) {
   const now = Date.now();
-  const id = crypto.randomUUID();
+  let id;
+  do { id = IdentifierService.create(); } while (await store.get('objects', id));
   const place = result.place ?? {};
 
   await store.put('objects', {
     id,
-    externalId: null,
+    externalId: id,
     type: 'location',
     schemaVersion: 1,
     createdAt: now,
