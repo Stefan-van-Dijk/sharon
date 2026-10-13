@@ -92,7 +92,20 @@ export function enhanceLocationEditor(root, {
   const merge = page.querySelector('[data-merge-panel]');
   const typeSelect = form.elements.kind;
   const parentSelect = form.elements.parentId;
-  const eligible = knownLocations;
+  // An existing location must never suggest itself as a nearby parent.
+  // Also exclude its descendants, which cannot legally become its parent.
+  const descendants = new Set();
+  if (!isNew && location?.id) {
+    descendants.add(location.id);
+    let previousSize;
+    do {
+      previousSize = descendants.size;
+      for (const candidate of knownLocations) {
+        if (descendants.has(candidate.parentId || candidate.data?.parentId)) descendants.add(candidate.id);
+      }
+    } while (descendants.size !== previousSize);
+  }
+  const eligible = knownLocations.filter(candidate => !descendants.has(candidate.id));
   const byId = new Map(eligible.map(item => [item.id, item]));
   let disposed = false, mapView = null, accuracy = 0, geocodeRequest = 0;
   let addressEditing = false, addressManuallyEdited = false, lastLookupAddress = '';
