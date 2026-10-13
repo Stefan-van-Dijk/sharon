@@ -115,16 +115,6 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
 
   const plate = document.createElement('div');
   plate.className = 'sh-board-plate';
-  const controls = document.createElement('div');
-  controls.className = 'sh-board-controls';
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.className = 'sh-board-close';
-  closeButton.textContent = '×';
-  closeButton.setAttribute('aria-label', 'Verhaal sluiten');
-  const label = document.createElement('span');
-  label.textContent = 'Boards';
-  controls.append(label, closeButton);
 
   // Stable photo frame: the article scrolls underneath, never the photo.
   const photoHeader = document.createElement('div');
@@ -166,7 +156,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
   const chapterRail = document.createElement('nav');
   chapterRail.className = 'sh-board-chapters';
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
-  plate.append(controls, photoHeader, scroller, chapterRail);
+  plate.append(photoHeader, scroller, chapterRail);
   overlay.append(deck, plate);
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
@@ -249,7 +239,6 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     overlay.remove();
     onClose();
   };
-  closeButton.addEventListener('click', close);
   const switchNext = () => { if (onNext) { close(); onNext(); } };
 
   // Interactive deck: the active card follows the finger. Vertical reading
@@ -386,7 +375,7 @@ export function openBoardViewer(feature, { location, events, onNext, onClose = (
     const paragraph = document.createElement('p');
     paragraph.textContent = section.text;
     item.append(title, paragraph);
-    story.insertBefore(item, source);
+    story.insertBefore(item, footer);
     chapters.push(item);
 
     const dot = document.createElement('button');
