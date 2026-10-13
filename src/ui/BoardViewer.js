@@ -47,6 +47,21 @@ export function sectionsFromWikipediaHtml(html, fallback = {}) {
     }
   }
   if (!first.text) first.text = fallback.description || '';
+  // Some articles keep photos in infoboxes or galleries rather than inside
+  // the corresponding chapter. Reuse those existing article images in order.
+  const used = new Set(sections.map(section => section.image).filter(Boolean));
+  const extras = [];
+  for (const img of root.querySelectorAll('img')) {
+    const url = safeUrl(img.getAttribute('src') || '', true);
+    const width = Number(img.getAttribute('width')) || 0;
+    if (url && width >= 100 && !used.has(url)) {
+      extras.push(url);
+      used.add(url);
+    }
+  }
+  for (const section of sections) {
+    if (!section.image && extras.length) section.image = extras.shift();
+  }
   return sections.filter(x => x.text || x.image);
 }
 export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } = {}) {
