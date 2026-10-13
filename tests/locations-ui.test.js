@@ -71,3 +71,15 @@ test('standaardzinnen lijnen vier statuskeuzes rechts uit in hetzelfde raster al
  assert.ok(css.includes('.sh-sentence-editor .sh-sentence-scope-choices .sh-sentence-icon-action'));
  assert.ok(css.includes('flex-wrap:wrap'));
 });
+
+test('samenvoegvoorbeeld toont uitsluitend verschillen en geen identifiers', async () => {
+  const source = await readFile(new URL('../src/ui/LocationsView.js', import.meta.url), 'utf8');
+  const preview = source.slice(source.indexOf("root.querySelector('[data-merge-preview]')"), source.indexOf("root.querySelector('[data-current-gps]')"));
+  assert.ok(preview.includes('if (current === incoming) return'));
+  assert.ok(preview.includes('differences.map('));
+  assert.ok(preview.includes('if (transferred.length)'));
+  assert.ok(preview.includes('if (references.length)'));
+  assert.ok(!preview.includes('sh-location-merge-review-ids'));
+  assert.ok(!preview.includes('Blijvende identifier:'));
+  assert.ok(!preview.includes('Vervallende identifier:'));
+});
