@@ -358,6 +358,10 @@ export function openEnvironmentView(root, {
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
     if (map && Array.isArray(coords) && coords.length === 2) {
+      // Board navigation owns the camera until the reader closes.
+      followingPosition = false;
+      awaitingFirstPosition = false;
+      cameraControls?.reset();
       // Shift the story location above the glass plate while preserving the
       // existing map renderer and camera. Move with each deck transition.
       const target = { center: coords, duration: 850,
