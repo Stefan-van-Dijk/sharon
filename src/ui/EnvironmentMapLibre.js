@@ -1,3 +1,4 @@
+import { openLocationDeck } from './LocationDeck.js?v=0.2.87';
 import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.2.86';
 import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.86';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
@@ -350,6 +351,7 @@ export function openEnvironmentView(root, {
   let resizeObserver = null;
   const unsubscribers = [];
   let popup = null;
+  let closeLocationDeck = null;
   let wikipediaLayer = null;
   let closeBoard = null;
   const showBoard = (feature, available = []) => {
@@ -610,26 +612,34 @@ export function openEnvironmentView(root, {
       if (event.isSourceLoaded) errorBanner.hidden = true;
     });
 
-    map.on('click', event => {
+    map.on('click', async event => {
       if (!mapReady) return;
       const features = map.queryRenderedFeatures(event.point, { layers: LOCAL_LAYERS });
       const selected = features[0];
       if (!selected) return;
       popup?.remove();
-      const element = document.createElement('div');
-      const heading = document.createElement('strong');
-      heading.textContent = String(selected.properties?.title || 'Object');
-      element.append(heading);
-      if (selected.properties?.sourceId) {
-        const detail = document.createElement('small');
-        detail.style.display = 'block';
-        detail.textContent = `Bron: ${selected.properties.sourceId}`;
-        element.append(detail);
+      closeLocationDeck?.();
+      closeLocationDeck = null;
+      if (selected.properties?.kind === 'location') {
+        const objects = await store.getAll('objects');
+        if (disposed) return;
+        closeLocationDeck = openLocationDeck({ store, objects, selected,
+          onClose: () => { closeLocationDeck = null; },
+          onLocation: item => {
+            const point = item.data?.coordinates;
+            if (point && Number.isFinite(Number(point.lng)) && Number.isFinite(Number(point.lat))) {
+              map.easeTo({center:[Number(point.lng),Number(point.lat)],duration:650});
+            }
+          }
+        });
+      } else {
+        const element = document.createElement('div');
+        const heading = document.createElement('strong');
+        heading.textContent = String(selected.properties?.title || 'Object');
+        element.append(heading);
+        popup = new lib.Popup({closeButton:true,maxWidth:'240px'})
+          .setLngLat(event.lngLat).setDOMContent(element).addTo(map);
       }
-      popup = new lib.Popup({ closeButton: true, maxWidth: '240px' })
-        .setLngLat(event.lngLat)
-        .setDOMContent(element)
-        .addTo(map);
     });
 
     // Loading failures do not trigger old Overpass requests.
