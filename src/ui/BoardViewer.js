@@ -195,9 +195,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     plate.style.setProperty('--sh-board-map-space', map + 'vh');
     plate.style.setProperty('--sh-board-photo-size', photo + 'vh');
     plate.style.setProperty('--sh-board-position-x', Math.max(5, Math.min(95, Number(layout.x) || 50)) + '%');
-    plate.style.setProperty('--sh-board-position-y', Math.max(12, Math.min(75, Number(layout.y) || 32)) + 'vh');
+    plate.style.setProperty('--sh-board-position-y', Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh');
     deck.style.setProperty('--sh-board-position-x', Math.max(5, Math.min(95, Number(layout.x) || 50)) + '%');
-    deck.style.setProperty('--sh-board-position-y', Math.max(12, Math.min(75, Number(layout.y) || 32)) + 'vh');
+    deck.style.setProperty('--sh-board-position-y', Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh');
     plate.dataset.boardSide = ['left','right','top','bottom'].includes(layout.side) ? layout.side : 'center';
   };
   const saveLayout = () => {
@@ -319,28 +319,48 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     applyLayout();
   });
 
+  // Follow the pointer on window: iOS can stop delivering events to the small
+  // handle when the Board moves out from underneath the finger.
   let moving = null;
+  const moveBoard = event => {
+    if (!moving || moving.id !== event.pointerId) return;
+    if (window.innerWidth >= 760) {
+      layout.x = Math.max(15, Math.min(85,
+        moving.startX + (event.clientX - moving.x) / window.innerWidth * 100));
+    }
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    layout.y = Math.max(8, Math.min(75,
+      moving.startY + (event.clientY - moving.y) / viewportHeight * 100));
+    applyLayout();
+    if (event.cancelable) event.preventDefault();
+  };
+  const stopMoving = event => {
+    if (!moving || (event?.pointerId !== undefined && moving.id !== event.pointerId)) return;
+    moving = null;
+    moveHandle.classList.remove('is-moving');
+    window.removeEventListener('pointermove', moveBoard);
+    window.removeEventListener('pointerup', stopMoving);
+    window.removeEventListener('pointercancel', stopMoving);
+    saveLayout();
+  };
   moveHandle.addEventListener('pointerdown', event => {
-    moving = { id:event.pointerId, x:event.clientX, y:event.clientY, startX: Number(layout.x)||50, startY:Number(layout.y)||32 };
-    moveHandle.setPointerCapture?.(event.pointerId);
+    if (event.button !== undefined && event.button !== 0) return;
+    moving = { id:event.pointerId, x:event.clientX, y:event.clientY,
+      startX:Number(layout.x) || 50, startY:Number(layout.y) || 32 };
+    moveHandle.classList.add('is-moving');
+    window.addEventListener('pointermove', moveBoard, { passive:false });
+    window.addEventListener('pointerup', stopMoving);
+    window.addEventListener('pointercancel', stopMoving);
     event.preventDefault();
   });
-  moveHandle.addEventListener('pointermove', event => {
-    if (!moving || moving.id !== event.pointerId) return;
-    if (window.innerWidth >= 760) layout.x = Math.max(15,Math.min(85,moving.startX + (event.clientX-moving.x)/window.innerWidth*100));
-    layout.y = Math.max(12,Math.min(75,moving.startY + (event.clientY-moving.y)/window.innerHeight*100));
-    applyLayout();
-  });
-  const stopMoving = () => { if (moving) { moving = null; saveLayout(); } };
-  moveHandle.addEventListener('pointerup', stopMoving);
-  moveHandle.addEventListener('pointercancel', stopMoving);
   moveHandle.addEventListener('keydown', event => {
     if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
     event.preventDefault();
     if (event.key === 'ArrowUp') layout.y -= 2;
     if (event.key === 'ArrowDown') layout.y += 2;
-    if (event.key === 'ArrowLeft') layout.x -= 2;
-    if (event.key === 'ArrowRight') layout.x += 2;
+    if (event.key === 'ArrowLeft' && window.innerWidth >= 760) layout.x -= 2;
+    if (event.key === 'ArrowRight' && window.innerWidth >= 760) layout.x += 2;
+    layout.y = Math.max(8, Math.min(75, layout.y));
     saveLayout();
   });
   // On wider screens a double tap/click on the map divider cycles the reader
