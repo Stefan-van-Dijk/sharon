@@ -1,4 +1,4 @@
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.2.82';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.2.84';
 import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.78';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
