@@ -356,6 +356,13 @@ export function openEnvironmentView(root, {
   let closeBoard = null;
   const showBoard = (feature, available = []) => {
     closeBoard?.();
+    // Unread articles lead the swipe sequence; read ones remain accessible later.
+    const wasRead = item => {
+      const id = String(item?.properties?.wikidata || item?.id || item?.properties?.url || '');
+      try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}').read === true; }
+      catch { return false; }
+    };
+    available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
     const index = available.findIndex(item => item.id === feature.id);
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
