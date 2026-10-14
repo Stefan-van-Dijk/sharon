@@ -26,6 +26,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     </svg>`;
     return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
   };
+  const complete = id => { try {localStorage.setItem('sharon.board.lesson.v2.'+id,'done');}catch{} };
   const show = async () => {
     const ticket = ++sequence, item = current();
     const [links, record] = await Promise.all([getPrivateWebSources(store,item.id),store.get('meta',IMAGE_KEY+item.id)]);
@@ -50,11 +51,11 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
         title, type:source ? 'Webpagina' : String(data.locationType || data.type || 'Locatie'),
         address:source ? source.url : addressText(data),
         website:source?.url || '', image,
-        toggle:()=>{expanded=!expanded;page=0;show();},
+        toggle:()=>{complete('deck');expanded=!expanded;page=0;show();},
         addLink:async()=>{
           const url=window.prompt('Koppel een website aan deze locatie (https://)');
           if(url===null)return;
-          try {await addPrivateWebSource(store,item.id,url);expanded=true;page=0;show();}
+          try {await addPrivateWebSource(store,item.id,url);complete('link');expanded=true;page=0;show();}
           catch(error){window.alert(error.message);}
         },
         setImage:async()=>{
@@ -62,15 +63,17 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
           const url=window.prompt('Afbeelding-URL (https://)',typeof saved?.value==='string'?saved.value:'');
           if(url===null)return;
           if(url.trim() && !/^https:\/\/[^\s]+$/i.test(url.trim())){window.alert('Gebruik een https://-URL');return;}
-          await store.put('meta',{key:IMAGE_KEY+item.id,value:url.trim()});show();
+          await store.put('meta',{key:IMAGE_KEY+item.id,value:url.trim()});if(url.trim())complete('image');show();
         }
       },
       onNext:()=>{
+        complete('swipe');
         if(expanded){page=(page+1)%(sources.length+1);}
         else {index=(index+1)%places.length;onLocation?.(current());}
         show();
       },
       onPrevious:()=>{
+        complete('swipe');
         if(expanded){page=(page+sources.length)%(sources.length+1);}
         else {index=(index-1+places.length)%places.length;onLocation?.(current());}
         show();
