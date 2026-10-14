@@ -2242,6 +2242,21 @@
     .sh-board-plate .sh-board-photo-header .sh-board-compass,
     .sh-board-plate .sh-board-photo-header .sh-board-photo-source{z-index:4}
     @media(prefers-reduced-motion:reduce){.sh-board-photo-incoming{animation:none!important;transition:none!important}}
+    /* Board layout controls: map/reader and photo/text ratios are user adjustable. */
+    .sh-board-plate{top:clamp(12%,var(--sh-board-map-space,32vh),62%)}
+    .sh-board-deck{top:clamp(12%,var(--sh-board-map-space,32vh),62%)}
+    .sh-board-plate .sh-board-photo-header{height:clamp(140px,var(--sh-board-photo-size,26vh),48vh)}
+    .sh-board-resizer{position:relative;z-index:8;display:block;flex:0 0 14px;width:100%;min-height:14px;padding:0;border:0;background:transparent;touch-action:none;cursor:ns-resize}
+    .sh-board-resizer::after{content:'';position:absolute;left:50%;top:50%;width:38px;height:4px;transform:translate(-50%,-50%);border-radius:999px;background:rgba(54,68,80,.22);box-shadow:0 0 0 1px rgba(255,255,255,.42)}
+    .sh-board-map-resizer{position:absolute;left:0;right:0;top:-10px;height:20px}
+    .sh-board-photo-resizer{margin:-7px 0 -7px}
+    @media(min-width:760px){
+      .sh-board-plate[data-board-side="left"]{left:max(22px,env(safe-area-inset-left));right:auto;transform:none}
+      .sh-board-plate[data-board-side="right"]{left:auto;right:max(22px,env(safe-area-inset-right));transform:none}
+      .sh-board-plate[data-board-side="left"].is-board-entering,
+      .sh-board-plate[data-board-side="right"].is-board-entering{transform:translate3d(38px,0,0) scale(.98)}
+    }
+
 </style>
 </head>
 <body>
