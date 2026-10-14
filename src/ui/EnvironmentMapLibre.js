@@ -216,6 +216,10 @@ export function openEnvironmentView(root, {
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
             <div class="environment-filter-options" role="group" aria-label="Kaartinformatielagen">
               <button type="button" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia-plekken tonen of verbergen" title="Wikipedia op kaart">W <span>Wikipedia</span></button>
+              <button type="button" data-wiki-filter="unread" aria-pressed="false">Ongelezen</button>
+              <button type="button" data-wiki-filter="read" aria-pressed="false">Gelezen</button>
+              <button type="button" data-wiki-filter="liked" aria-pressed="false">♥</button>
+              <button type="button" data-wiki-filter="hidden" aria-pressed="false">Verborgen</button>
             </div>
             <small class="environment-filter-hint">Filters</small>
           </div>
@@ -466,6 +470,16 @@ export function openEnvironmentView(root, {
     wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
     wikipediaLayer?.setEnabled(wikipediaEnabled);
   });
+  const activeWikiFilters = new Set();
+  for (const button of root.querySelectorAll('[data-wiki-filter]')) {
+    listenEarly(button,'click', () => {
+      const name = button.dataset.wikiFilter;
+      if (activeWikiFilters.has(name)) activeWikiFilters.delete(name);
+      else activeWikiFilters.add(name);
+      button.setAttribute('aria-pressed',String(activeWikiFilters.has(name)));
+      wikipediaLayer?.setFilters([...activeWikiFilters]);
+    });
+  }
   let awaitingFirstPosition = !userPoint;
   let readoutFrame = 0;
   let saveTimer = null;
