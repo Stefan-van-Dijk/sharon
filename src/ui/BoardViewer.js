@@ -461,7 +461,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     deckControl.textContent = '▤ Deck';
     deckControl.setAttribute('aria-label','Locatiedeck openen of sluiten');
     deckControl.addEventListener('click', () => localBoard.toggle?.());
-    photoHeader.append(deckControl);
+    const localControls = document.createElement('div');
+    localControls.className = 'sh-local-controls';
+    localControls.append(deckControl);
 
     const imageControl = document.createElement('button');
     imageControl.type = 'button';
@@ -469,7 +471,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     imageControl.textContent = '▧';
     imageControl.setAttribute('aria-label','Afbeelding koppelen of wijzigen');
     imageControl.addEventListener('click', () => localBoard.setImage?.());
-    photoHeader.append(imageControl);
+    localControls.append(imageControl);
 
     source.href = '#';
     source.removeAttribute('target');
@@ -477,6 +479,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     source.textContent = '+';
     source.title = 'Webpagina aan locatie koppelen';
     source.setAttribute('aria-label','Webpagina aan locatie koppelen');
+    localControls.append(source);
+    photoHeader.append(localControls);
     source.addEventListener('click', event => {
       event.preventDefault();
       localBoard.addLink?.();
@@ -590,7 +594,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   const switchTo = direction => {
     const action = direction === 'next' ? onNext : onPrevious;
-    if (action) { close(); action(); }
+    if (action) { action(); }
   };
 
   // Interactive deck: the active card follows the finger. Vertical reading
