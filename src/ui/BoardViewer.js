@@ -378,6 +378,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const beginGesture = (handle, kind, event) => {
     if (event.button !== undefined && event.button !== 0) return;
     clearGesture();
+    try { handle.setPointerCapture(event.pointerId); } catch {}
     gesture = { id:event.pointerId, kind, mode:'pending', x:event.clientX,
       y:event.clientY, lastY:event.clientY,
       startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y, timer:null };
@@ -407,12 +408,15 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     window.addEventListener('pointercancel', onGestureEnd);
     event.preventDefault();
   };
+  mapSizer.style.touchAction = 'none';
+  photoSizer.style.touchAction = 'none';
   mapSizer.addEventListener('pointerdown', event => beginGesture(mapSizer, 'map', event));
   photoSizer.addEventListener('pointerdown', event => beginGesture(photoSizer, 'photo', event));
   // The former third handle is not needed; the two dividers own both actions.
   moveHandle.hidden = true;
   moveHandle.style.display = 'none';
   mapSizer.title = 'Sleep voor kaartgrootte; houd 2 seconden vast om alles te verplaatsen';
+  mapSizer.setAttribute('aria-description', 'Houd twee seconden vast en sleep om de hele Board te verplaatsen');
   photoSizer.title = 'Sleep voor afbeeldingsgrootte; houd 2 seconden vast om alles te verplaatsen';
   mapSizer.addEventListener('keydown', event => {
     if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
