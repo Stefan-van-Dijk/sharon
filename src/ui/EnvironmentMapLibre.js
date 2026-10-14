@@ -358,22 +358,45 @@ export function openEnvironmentView(root, {
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
     if (map && Array.isArray(coords) && coords.length === 2) {
-      // Board navigation owns the camera until the reader closes.
       followingPosition = false;
       awaitingFirstPosition = false;
       cameraControls?.reset();
-      // Shift the story location above the glass plate while preserving the
-      // existing map renderer and camera. Move with each deck transition.
-      // Center the place in the visible map window above the Board glass plate.
-      // The glass plate starts at about 32% of viewport height; its visible
-      // map area has its center around 16% of screen height.
-      const height = map.getContainer().clientHeight;
-      const panelTop = Math.min(height * .37, Math.max(height * .24, window.innerHeight * .32));
-      const target = { center: coords, duration: 850,
-        offset: [0, Math.round(panelTop / 2 - height / 2)],
-        essential: true };
-      map.easeTo(target);
     }
+    // Sample the map viewport and choose the largest unobstructed area.
+    // Projected point placement is recalculated whenever the deck changes.
+    let cameraFrame = 0;
+    const alignVisibleMap = (plateRect, deckRect) => {
+      if (!map || !Array.isArray(coords) || coords.length !== 2) return;
+      cancelAnimationFrame(cameraFrame);
+      cameraFrame = requestAnimationFrame(() => {
+        const rect = map.getContainer().getBoundingClientRect();
+        const blocked = [plateRect, deckRect].filter(Boolean).map(r => ({
+          left: Math.max(0, r.left - rect.left - 8), right: Math.min(rect.width, r.right - rect.left + 8),
+          top: Math.max(0, r.top - rect.top - 8), bottom: Math.min(rect.height, r.bottom - rect.top + 8)
+        }));
+        const step = 24;
+        let best = { x:rect.width/2, y:rect.height*.2, score:-Infinity };
+        for (let y = step; y < rect.height - step; y += step) {
+          for (let x = step; x < rect.width - step; x += step) {
+            if (blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) continue;
+            let clearance = Math.min(x, y, rect.width-x, rect.height-y);
+            for (const r of blocked) {
+              const dx = Math.max(r.left-x, 0, x-r.right);
+              const dy = Math.max(r.top-y, 0, y-r.bottom);
+              clearance = Math.min(clearance, Math.hypot(dx, dy));
+            }
+            const score = clearance - Math.hypot(x-rect.width/2,y-rect.height/2)*.08;
+            if (score > best.score) best = {x,y,score};
+          }
+        }
+        const point = map.project(coords);
+        const deltaX = best.x - point.x, deltaY = best.y - point.y;
+        if (Math.hypot(deltaX,deltaY) > 12) map.easeTo({
+          center: map.unproject([rect.width/2 - deltaX, rect.height/2 - deltaY]),
+          duration: 480, essential:true
+        });
+      });
+    };
     const previous = available.length > 1
       ? available[(index - 1 + available.length) % available.length] : null;
     // Keep both neighboring stories warm; errors never block navigation.
@@ -383,7 +406,8 @@ export function openEnvironmentView(root, {
     }
     for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
-      onClose: () => { closeBoard = null; },
+      onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; },
+      onLayout: alignVisibleMap,
       onNext: next ? () => showBoard(next, available) : null,
       onPrevious: previous ? () => showBoard(previous, available) : null });
   };
