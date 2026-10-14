@@ -312,85 +312,92 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
 
-  const attachVerticalSizer = (handle, onMove) => {
-    let startY = 0;
-    const move = event => {
-      if (!startY) return;
-      onMove(event.clientY - startY);
-      startY = event.clientY;
-      if (event.cancelable) event.preventDefault();
-    };
-    const end = () => {
-      if (!startY) return;
-      startY = 0;
-      saveLayout();
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', end);
-    };
-    handle.addEventListener('pointerdown', event => {
-      startY = event.clientY;
-      handle.setPointerCapture?.(event.pointerId);
-      window.addEventListener('pointermove', move, { passive:false });
-      window.addEventListener('pointerup', end, { once:true });
-    });
-    handle.addEventListener('keydown', event => {
-      if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
-      event.preventDefault();
-      onMove(event.key === 'ArrowDown' ? 12 : -12);
-      saveLayout();
-    });
+  // Both dividers resize immediately. Hold either for two seconds to lock
+  // Board and deck into a movable unit, indicated by a temporary outline.
+  let gesture = null;
+  const clearGesture = () => {
+    if (!gesture) return;
+    window.clearTimeout(gesture.timer);
+    gesture = null;
+    plate.classList.remove('is-board-moving-together');
+    deck.classList.remove('is-board-moving-together');
+    plate.style.outline = '';
+    plate.style.outlineOffset = '';
+    deck.style.outline = '';
+    window.removeEventListener('pointermove', onGestureMove);
+    window.removeEventListener('pointerup', onGestureEnd);
+    window.removeEventListener('pointercancel', onGestureEnd);
   };
-  attachVerticalSizer(mapSizer, dy => {
-    layout.map = Math.max(12, Math.min(62, (Number(layout.map) || defaults.map) + dy / window.innerHeight * 100));
-    applyLayout();
-  });
-  attachVerticalSizer(photoSizer, dy => {
-    layout.photo = Math.max(14, Math.min(48, (Number(layout.photo) || defaults.photo) + dy / window.innerHeight * 100));
-    applyLayout();
-  });
-
-  // Follow the pointer on window: iOS can stop delivering events to the small
-  // handle when the Board moves out from underneath the finger.
-  let moving = null;
-  const moveBoard = event => {
-    if (!moving || moving.id !== event.pointerId) return;
-    if (window.innerWidth >= 760) {
-      layout.x = Math.max(15, Math.min(85,
-        moving.startX + (event.clientX - moving.x) / window.innerWidth * 100));
+  const onGestureMove = event => {
+    if (!gesture || gesture.id !== event.pointerId) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (gesture.mode === 'pending' && Math.hypot(dx, dy) > 8) {
+      window.clearTimeout(gesture.timer);
+      gesture.mode = 'resize';
     }
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    layout.y = Math.max(8, Math.min(75,
-      moving.startY + (event.clientY - moving.y) / viewportHeight * 100));
-    applyLayout();
+    if (gesture.mode === 'move') {
+      if (window.innerWidth >= 760) layout.x = Math.max(15, Math.min(85,
+        gesture.startX + dx / window.innerWidth * 100));
+      layout.y = Math.max(8, Math.min(75,
+        gesture.startY + dy / window.innerHeight * 100));
+    } else if (gesture.mode === 'resize') {
+      const delta = (event.clientY - gesture.lastY) / window.innerHeight * 100;
+      if (gesture.kind === 'map') {
+        // The top divider moves the Board's upper edge: expose more or less map.
+        layout.y = Math.max(8, Math.min(75, (Number(layout.y) || defaults.y) + delta));
+      } else {
+        layout.photo = Math.max(14, Math.min(48, (Number(layout.photo) || defaults.photo) + delta));
+      }
+    }
+    gesture.lastY = event.clientY;
+    if (gesture.mode !== 'pending') applyLayout();
     if (event.cancelable) event.preventDefault();
   };
-  const stopMoving = event => {
-    if (!moving || (event?.pointerId !== undefined && moving.id !== event.pointerId)) return;
-    moving = null;
-    moveHandle.classList.remove('is-moving');
-    window.removeEventListener('pointermove', moveBoard);
-    window.removeEventListener('pointerup', stopMoving);
-    window.removeEventListener('pointercancel', stopMoving);
+  const onGestureEnd = event => {
+    if (!gesture || gesture.id !== event.pointerId) return;
+    clearGesture();
     saveLayout();
   };
-  moveHandle.addEventListener('pointerdown', event => {
+  const beginGesture = (handle, kind, event) => {
     if (event.button !== undefined && event.button !== 0) return;
-    moving = { id:event.pointerId, x:event.clientX, y:event.clientY,
-      startX:Number(layout.x) || 50, startY:Number(layout.y) || 32 };
-    moveHandle.classList.add('is-moving');
-    window.addEventListener('pointermove', moveBoard, { passive:false });
-    window.addEventListener('pointerup', stopMoving);
-    window.addEventListener('pointercancel', stopMoving);
+    clearGesture();
+    gesture = { id:event.pointerId, kind, mode:'pending', x:event.clientX,
+      y:event.clientY, lastY:event.clientY,
+      startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y, timer:null };
+    const id = event.pointerId;
+    gesture.timer = window.setTimeout(() => {
+      if (!gesture || gesture.id !== id || gesture.mode !== 'pending') return;
+      gesture.mode = 'move';
+      plate.classList.add('is-board-moving-together');
+      deck.classList.add('is-board-moving-together');
+      plate.style.outline = '2px solid rgba(110,170,225,.85)';
+      plate.style.outlineOffset = '3px';
+      deck.style.outline = '1px solid rgba(110,170,225,.4)';
+      if (navigator.vibrate) navigator.vibrate(25);
+    }, 2000);
+    window.addEventListener('pointermove', onGestureMove, { passive:false });
+    window.addEventListener('pointerup', onGestureEnd);
+    window.addEventListener('pointercancel', onGestureEnd);
     event.preventDefault();
+  };
+  mapSizer.addEventListener('pointerdown', event => beginGesture(mapSizer, 'map', event));
+  photoSizer.addEventListener('pointerdown', event => beginGesture(photoSizer, 'photo', event));
+  // The former third handle is not needed; the two dividers own both actions.
+  moveHandle.hidden = true;
+  moveHandle.style.display = 'none';
+  mapSizer.title = 'Sleep voor kaartgrootte; houd 2 seconden vast om alles te verplaatsen';
+  photoSizer.title = 'Sleep voor afbeeldingsgrootte; houd 2 seconden vast om alles te verplaatsen';
+  mapSizer.addEventListener('keydown', event => {
+    if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    layout.y = Math.max(8, Math.min(75, layout.y + (event.key === 'ArrowDown' ? 2 : -2)));
+    saveLayout();
   });
-  moveHandle.addEventListener('keydown', event => {
-    if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
+  photoSizer.addEventListener('keydown', event => {
+    if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
     event.preventDefault();
-    if (event.key === 'ArrowUp') layout.y -= 2;
-    if (event.key === 'ArrowDown') layout.y += 2;
-    if (event.key === 'ArrowLeft' && window.innerWidth >= 760) layout.x -= 2;
-    if (event.key === 'ArrowRight' && window.innerWidth >= 760) layout.x += 2;
-    layout.y = Math.max(8, Math.min(75, layout.y));
+    layout.photo = Math.max(14, Math.min(48, layout.photo + (event.key === 'ArrowDown' ? 2 : -2)));
     saveLayout();
   });
   // On wider screens a double tap/click on the map divider cycles the reader
