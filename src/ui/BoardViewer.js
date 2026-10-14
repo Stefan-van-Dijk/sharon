@@ -166,8 +166,9 @@ export function preloadWikipediaBoard(feature) {
 export function articleProgressDotCount(wordCount) {
   return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
 }
-export function openBoardViewer(feature, { location, events, onNext, onPrevious, onLayout = () => {}, onClose = () => {} } = {}) {
+export function openBoardViewer(feature, { location, events, onNext, onPrevious, onLayout = () => {}, onClose = () => {}, localBoard = null } = {}) {
   const abort = new AbortController();
+  const isLocal = Boolean(localBoard);
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
   const destination = coords?.length === 2 ? {lat: coords[1], lng: coords[0]} : null;
