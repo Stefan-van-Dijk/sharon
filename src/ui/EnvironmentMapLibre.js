@@ -376,7 +376,12 @@ export function openEnvironmentView(root, {
     }
     const previous = available.length > 1
       ? available[(index - 1 + available.length) % available.length] : null;
-    if (next) preloadWikipediaBoard(next).catch(() => {});
+    // Keep both neighboring stories warm; errors never block navigation.
+    const neighbors = new Map();
+    for (const neighbor of [previous, next]) {
+      if (neighbor?.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
+    }
+    for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
       onClose: () => { closeBoard = null; },
       onNext: next ? () => showBoard(next, available) : null,
