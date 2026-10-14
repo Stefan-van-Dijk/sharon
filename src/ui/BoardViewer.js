@@ -454,8 +454,17 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   compass.append(compassButton, distance);
   compass.classList.add('is-distance-only');
   photoHeader.append(compass);
+  if (isLocal) {
+    compass.replaceChildren();
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.textContent = '▤ Deck';
+    toggle.addEventListener('click', () => localBoard.toggle?.());
+    compass.append(toggle);
+  }
   let compassEnabled = boardCompassEnabled;
   const updateCompass = () => {
+    if (isLocal) return;
     const value = distanceBearing(gps, destination);
     distance.textContent = value
       ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
