@@ -329,7 +329,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     likeButton.addEventListener('click', () => { feedback.liked = !feedback.liked; persistFeedback(); });
     renderFeedback();
     actions.append(readButton,likeButton);
-    footer.prepend(actions);
+    footer.append(actions);
   }
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
   source.classList.add('sh-board-photo-source');
