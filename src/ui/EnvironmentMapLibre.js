@@ -1,6 +1,6 @@
-import { openLocationDeck } from './LocationDeck.js?v=0.3.06';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.06';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.06';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.07';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.07';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.07';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
   environmentIdForPoint,
