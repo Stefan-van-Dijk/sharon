@@ -198,6 +198,17 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     plate.style.setProperty('--sh-board-position-y', Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh');
     deck.style.setProperty('--sh-board-position-x', Math.max(5, Math.min(95, Number(layout.x) || 50)) + '%');
     deck.style.setProperty('--sh-board-position-y', Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh');
+    // Inline positions override legacy responsive CSS and move the whole deck.
+    const y = Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh';
+    plate.style.top = y;
+    deck.style.top = y;
+    if (window.innerWidth >= 760) {
+      const x = Math.max(15, Math.min(85, Number(layout.x) || 50)) + '%';
+      plate.style.left = x;
+      deck.style.left = x;
+      plate.style.right = 'auto';
+      deck.style.right = 'auto';
+    }
     plate.dataset.boardSide = ['left','right','top','bottom'].includes(layout.side) ? layout.side : 'center';
   };
   const saveLayout = () => {
