@@ -1,7 +1,7 @@
 {
   "name": "sharon-app",
   "private": true,
-  "version": "0.3.02",
+  "version": "0.3.03",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js"
