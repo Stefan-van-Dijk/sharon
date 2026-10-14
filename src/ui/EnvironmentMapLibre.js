@@ -614,6 +614,7 @@ export function openEnvironmentView(root, {
 
     map.on('click', async event => {
       if (!mapReady) return;
+      try {
       // A finger tap often lands just outside the tiny point circle on iPad/iPhone.
       const radius = 18;
       const box = [[event.point.x-radius,event.point.y-radius],[event.point.x+radius,event.point.y+radius]];
@@ -650,6 +651,11 @@ export function openEnvironmentView(root, {
         element.append(heading);
         popup = new lib.Popup({closeButton:true,maxWidth:'240px'})
           .setLngLat(event.lngLat).setDOMContent(element).addTo(map);
+      }
+      } catch (error) {
+        console.error('Locatiekaart openen mislukt', error);
+        errorBanner.hidden = false;
+        errorBanner.textContent = 'Locatiekaart openen mislukt: ' + (error?.message || 'onbekende fout');
       }
     });
 
