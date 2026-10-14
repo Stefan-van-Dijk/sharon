@@ -10,12 +10,32 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
   const current = () => places[index];
   const addressText = data => typeof data.address === 'string' ? data.address :
     [data.address?.street, data.address?.houseNumber, data.address?.postalCode, data.address?.city].filter(Boolean).join(' ');
+  const placeholder = (point) => {
+    // An illustrative map-like placeholder, not a claimed geographical map.
+    const lat=Number(point?.lat)||0, lng=Number(point?.lng)||0;
+    const shiftX=Math.round(Math.abs(lng*37))%110, shiftY=Math.round(Math.abs(lat*29))%95;
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 430">
+      <rect width="720" height="430" fill="#e9e5d9"/>
+      <path d="M0 95 L720 175 M0 310 L720 260 M180 0 L240 430 M480 0 L440 430" fill="none" stroke="#f9f7f1" stroke-width="31"/>
+      <path d="M0 95 L720 175 M0 310 L720 260 M180 0 L240 430 M480 0 L440 430" fill="none" stroke="#c3c6bd" stroke-width="2"/>
+      <path d="M${70+shiftX} 0 Q${180+shiftX} 190 ${110+shiftX} 430" stroke="#a7c5c8" stroke-width="68" fill="none"/>
+      <path d="M${70+shiftX} 0 Q${180+shiftX} 190 ${110+shiftX} 430" stroke="#d6e5df" stroke-width="2" fill="none"/>
+      <path d="M315 0 V430 M575 0 V430 M0 370 H720 M0 45 H720" stroke="#c5c7b8" stroke-width="3" fill="none" stroke-dasharray="6 9"/>
+      <circle cx="365" cy="212" r="32" fill="#fff" opacity=".8"/><circle cx="365" cy="212" r="13" fill="#587d85" stroke="#fff" stroke-width="5"/>
+      <text x="360" y="385" font-family="sans-serif" font-size="17" fill="#687b77" text-anchor="middle">Sharon · locatie</text>
+    </svg>`;
+    return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  };
   const show = async () => {
     const ticket = ++sequence, item = current();
     const [links, record] = await Promise.all([getPrivateWebSources(store,item.id),store.get('meta',IMAGE_KEY+item.id)]);
     if (disposed || ticket !== sequence) return;
     sources = links;
     image = typeof record?.value === 'string' ? record.value : '';
+    if (!image) {
+      try { image = map?.getCanvas()?.toDataURL('image/png') || ''; } catch { image = ''; }
+      if (!image) image = placeholder(item.data?.coordinates);
+    }
     const data = item.data || {}, point = data.coordinates;
     const source = expanded && page > 0 ? sources[page-1] : null;
     const title = source ? new URL(source.url).hostname : String(data.name || data.title || 'Locatie');
@@ -38,7 +58,8 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
           catch(error){window.alert(error.message);}
         },
         setImage:async()=>{
-          const url=window.prompt('Afbeelding-URL (https://)',image);
+          const saved=await store.get('meta',IMAGE_KEY+item.id);
+          const url=window.prompt('Afbeelding-URL (https://)',typeof saved?.value==='string'?saved.value:'');
           if(url===null)return;
           if(url.trim() && !/^https:\/\/[^\s]+$/i.test(url.trim())){window.alert('Gebruik een https://-URL');return;}
           await store.put('meta',{key:IMAGE_KEY+item.id,value:url.trim()});show();
