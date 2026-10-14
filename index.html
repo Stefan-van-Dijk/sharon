@@ -2257,6 +2257,17 @@
       .sh-board-plate[data-board-side="right"].is-board-entering{transform:translate3d(38px,0,0) scale(.98)}
     }
 
+
+    /* Board layouts: the map remains the same shared renderer behind the reader. */
+    @media (min-width:760px) {
+      .sh-board-plate[data-board-side="top"] {top:max(16px,env(safe-area-inset-top));bottom:auto;height:min(62vh,620px);left:50%;right:auto;transform:translateX(-50%)}
+      .sh-board-plate[data-board-side="bottom"] {top:auto;bottom:max(16px,env(safe-area-inset-bottom));height:min(62vh,620px);left:50%;right:auto;transform:translateX(-50%)}
+      .sh-board-plate[data-board-side="top"].is-board-entering,
+      .sh-board-plate[data-board-side="bottom"].is-board-entering {transform:translate3d(calc(-50% + 38px),0,0) scale(.98)}
+    }
+    .sh-board-plate .sh-board-photo-header {height:clamp(110px,var(--sh-board-photo-size,26vh),48vh)}
+    .sh-board-resizer {touch-action:none;user-select:none;-webkit-user-select:none}
+
 </style>
 </head>
 <body>
