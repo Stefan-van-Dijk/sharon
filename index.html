@@ -2373,6 +2373,12 @@
  bottom:57px!important;left:12px!important;top:auto!important;right:auto!important;
 }
 
+/* iPad: generous grip hit areas and no native gesture stealing. */
+@media (pointer:coarse) and (min-width:760px) {
+ .sh-board-map-resizer {top:-15px;height:30px;touch-action:none}
+ .sh-board-photo-resizer {min-height:30px;margin:-15px 0;touch-action:none}
+ .sh-board-resizer::after {width:54px;height:5px}
+}
 </style>
 </head>
 <body>
