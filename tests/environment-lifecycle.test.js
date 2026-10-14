@@ -7,11 +7,16 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
   let resolveRenderer, constructed = 0;
   const renderer = new Promise(resolve => resolveRenderer = resolve);
   const listeners = new Map();
+  const fake = key => ({
+    addEventListener: (name, fn) => listeners.set(key + name, fn),
+    removeEventListener: name => listeners.delete(key + name),
+    classList: { contains: () => false, toggle: () => {} },
+    setAttribute: () => {},
+    querySelectorAll: () => []
+  });
   const nodes = new Map(['[data-maplibre-map]', '[data-map-readout]', '[data-map-scale]',
-    '[data-map-position]', '[data-map-error]'].map(key => [key, {
-      addEventListener: (name, fn) => listeners.set(key + name, fn),
-      removeEventListener: name => listeners.delete(key + name)
-    }]));
+    '[data-map-position]', '[data-map-error]', '[data-readout-filters]', '[data-filter-return]']
+    .map(key => [key, fake(key)]));
   globalThis.cancelAnimationFrame = () => {};
   globalThis.window = { location: { search: '' } };
   globalThis.document = { querySelector: () => ({} ) };
@@ -53,13 +58,19 @@ test('shared header map controls are mounted and removed even before renderer re
   const listeners = new Map();
   const fake = key => ({
     addEventListener: (name, fn) => listeners.set(key + name, fn),
-    removeEventListener: name => listeners.delete(key + name)
+    removeEventListener: name => listeners.delete(key + name),
+    classList: { contains: () => false, toggle: () => {} },
+    setAttribute: () => {},
+    querySelectorAll: () => []
   });
   const nodes = new Map([
     ['[data-maplibre-map]', fake('map')],
     ['[data-map-scale]', fake('scale')],
     ['[data-map-position]', fake('position')],
     ['[data-map-error]', fake('error')],
+    ['[data-map-readout]', fake('readout')],
+    ['[data-readout-filters]', fake('filters')],
+    ['[data-filter-return]', fake('filter-return')],
     ['.environment-map-top-actions', mapActions]
   ]);
   globalThis.window = { location: { search: '' } };
