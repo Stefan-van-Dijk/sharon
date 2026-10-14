@@ -614,7 +614,10 @@ export function openEnvironmentView(root, {
 
     map.on('click', async event => {
       if (!mapReady) return;
-      const features = map.queryRenderedFeatures(event.point, { layers: LOCAL_LAYERS });
+      // A finger tap often lands just outside the tiny point circle on iPad/iPhone.
+      const radius = 18;
+      const box = [[event.point.x-radius,event.point.y-radius],[event.point.x+radius,event.point.y+radius]];
+      const features = map.queryRenderedFeatures(box, { layers: LOCAL_LAYERS });
       // Prefer a location point over overlapping polygons/lines so tapping its marker opens its Board.
       const selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
       if (!selected) return;
