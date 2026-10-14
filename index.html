@@ -2351,6 +2351,28 @@
 .sh-board-photo-header .sh-local-image-control {right:12px}
 .sh-board-photo-header:has(.sh-local-deck-control) .sh-board-compass {left:12px;bottom:12px;top:auto;right:auto}
 .sh-board-photo-header:has(.sh-local-deck-control) .sh-board-photo-source {right:12px;bottom:12px;top:auto;left:auto}
+
+/* Compact, quiet controls at the lower edge of location imagery. */
+.sh-board-photo-header:has(.sh-local-controls) .sh-local-controls {
+ position:absolute;z-index:15;bottom:12px;left:12px;right:12px;
+ display:flex;align-items:center;gap:7px;pointer-events:auto;
+}
+.sh-board-photo-header .sh-local-controls .sh-local-deck-control,
+.sh-board-photo-header .sh-local-controls .sh-local-image-control,
+.sh-board-photo-header .sh-local-controls .sh-board-photo-source {
+ position:static!important;inset:auto!important;transform:none!important;
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:34px;min-width:34px;padding:7px 10px;
+ border-radius:20px;border:1px solid rgba(255,255,255,.65);
+ background:rgba(250,251,251,.75);color:#32414a;
+ font-size:12px;box-shadow:0 2px 9px #0001;backdrop-filter:blur(12px);
+}
+.sh-board-photo-header .sh-local-controls .sh-local-deck-control {margin-right:auto}
+.sh-board-photo-header .sh-local-controls .sh-board-photo-source {margin:0!important}
+.sh-board-photo-header:has(.sh-local-controls) .sh-board-compass {
+ bottom:57px!important;left:12px!important;top:auto!important;right:auto!important;
+}
+
 </style>
 </head>
 <body>
