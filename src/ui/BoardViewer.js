@@ -179,7 +179,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const photo = Math.max(14, Math.min(48, Number(layout.photo) || defaults.photo));
     plate.style.setProperty('--sh-board-map-space', map + 'vh');
     plate.style.setProperty('--sh-board-photo-size', photo + 'vh');
-    plate.dataset.boardSide = ['left','right'].includes(layout.side) ? layout.side : 'center';
+    plate.dataset.boardSide = ['left','right','top','bottom'].includes(layout.side) ? layout.side : 'center';
   };
   const saveLayout = () => {
     try { localStorage.setItem(layoutKey, JSON.stringify(layout)); } catch {}
@@ -294,10 +294,11 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   // On wider screens a double tap/click on the map divider cycles the reader
   // from centred to left and right, leaving the map visible alongside it.
   mapSizer.addEventListener('dblclick', () => {
-    const order = ['center','left','right'];
+    const order = ['center','left','right','top','bottom'];
     layout.side = order[(order.indexOf(layout.side) + 1) % order.length];
     saveLayout();
   });
+  mapSizer.setAttribute('aria-label', 'Kaartpositie wijzigen met dubbelklik; versleep om kaartgrootte aan te passen');
   requestAnimationFrame(() => {
     if (!closed && plate.isConnected) plate.classList.remove('is-board-entering');
   });
