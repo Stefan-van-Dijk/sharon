@@ -293,7 +293,11 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   footer.append(credits);
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
   source.classList.add('sh-board-photo-source');
-  photoHeader.append(source);
+  if (!isLocal) photoHeader.append(source);
+  if (isLocal) {
+    const controls = story.querySelector('.sh-local-controls');
+    if (controls) story.append(controls);
+  }
   story.append(footer);
   const textGlass = document.createElement('div');
   textGlass.className = 'sh-board-text-glass';
@@ -484,7 +488,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     source.title = 'Webpagina aan locatie koppelen';
     source.setAttribute('aria-label','Webpagina aan locatie koppelen');
     localControls.append(source);
-    photoHeader.append(localControls);
+    story.append(localControls);
     source.addEventListener('click', event => {
       event.preventDefault();
       localBoard.addLink?.();
