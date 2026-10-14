@@ -1,3 +1,4 @@
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js';
 import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.60';
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.60';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.60';
@@ -179,10 +180,60 @@ export async function openLocationsView(root, {
             actions: [{ kind: 'edit', label: 'Bewerk' }]
           })}
         </div>
+        <section class="sh-location-web-sources" data-location-web-sources style="padding:18px 20px;margin:12px 0;border:1px solid rgba(100,110,120,.16);border-radius:20px">
+          <h3>Webpagina’s bij deze plek</h3>
+          <p class="clean-help">Koppel een pagina aan deze locatie. De koppeling blijft privé op dit apparaat.</p>
+          <form data-web-source-add style="display:flex;gap:8px;flex-wrap:wrap">
+            <input name="url" type="url" required placeholder="https://website.nl/pagina" aria-label="Webpagina URL" style="flex:1;min-width:190px" />
+            <button type="submit" class="text-action">Koppel</button>
+          </form>
+          <p data-web-source-status role="status"></p>
+          <div data-web-source-list></div>
+        </section>
         <div class="sh-location-reference-map-panel sh-location-detail-map-panel">
           <div class="sh-radius-map-host sh-location-reference-map" data-detail-map></div>
         </div>
       </section>`;
+    // Links are displayed as links only: no cross-origin scraping or publishing.
+    const sourcePanel = root.querySelector('[data-location-web-sources]');
+    const sourceList = sourcePanel.querySelector('[data-web-source-list]');
+    const sourceStatus = sourcePanel.querySelector('[data-web-source-status]');
+    const renderSources = async () => {
+      const sources = await getPrivateWebSources(store, item.id);
+      sourceList.replaceChildren();
+      for (const source of sources) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;margin:10px 0;';
+        const link = document.createElement('a');
+        link.href = source.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = new URL(source.url).hostname + new URL(source.url).pathname;
+        link.style.cssText = 'flex:1;overflow-wrap:anywhere;';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'text-action';
+        remove.textContent = 'Verwijder';
+        remove.setAttribute('aria-label', 'Verwijder koppeling met ' + source.url);
+        remove.addEventListener('click', async () => {
+          await removePrivateWebSource(store, item.id, source.id);
+          await renderSources();
+        });
+        row.append(link, remove);
+        sourceList.append(row);
+      }
+    };
+    sourcePanel.querySelector('[data-web-source-add]').addEventListener('submit', async event => {
+      event.preventDefault();
+      const input = event.currentTarget.elements.url;
+      try {
+        await addPrivateWebSource(store, item.id, input.value);
+        input.value = '';
+        sourceStatus.textContent = 'Privé gekoppeld aan deze locatie.';
+        await renderSources();
+      } catch (error) { sourceStatus.textContent = error.message || 'Koppelen mislukt.'; }
+    });
+    void renderSources().catch(() => { sourceStatus.textContent = 'Koppelingen konden niet worden geladen.'; });
     root.querySelector('[data-back]').addEventListener('click', () => list());
     const heading = root.querySelector('[data-detail-conclusion]');
     typeLocationConclusion(heading, sentence, {
