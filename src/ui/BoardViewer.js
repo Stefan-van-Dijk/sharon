@@ -192,7 +192,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const plate = document.createElement('div');
   plate.className = 'sh-board-plate';
   const layoutKey = 'sharon.board.layout.v1';
-  const defaults = { map: 32, photo: 26, side: 'center', x: 50, y: 32 };
+  const defaults = { map: 32, photo: 26, side: 'center', x: 50, y: 32, height: 65 };
   let layout = { ...defaults };
   try { layout = { ...defaults, ...JSON.parse(localStorage.getItem(layoutKey) || '{}') }; } catch {}
   const applyLayout = () => {
@@ -211,12 +211,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     // Preserve the reader's height while dragging: both edges move together.
     // The previous fixed bottom edge made the handle behave like a height sizer.
     const viewportHeight = window.innerHeight;
-    const initialTop = viewportHeight * (Number(layout.map) || defaults.map) / 100;
-    const bottomInset = Math.max(20, viewportHeight * .025);
-    const savedHeight = Math.max(180, viewportHeight - initialTop - bottomInset);
-    const actualTop = viewportHeight * Math.max(8, Math.min(75, Number(layout.y) || 32)) / 100;
+    const actualTop = viewportHeight * Math.max(8, Math.min(75, Number(layout.y) || defaults.y)) / 100;
     const availableHeight = Math.max(160, viewportHeight - actualTop - 8);
-    const height = Math.min(savedHeight, availableHeight) + 'px';
+    const height = Math.min(Math.max(180, viewportHeight * (Number(layout.height) || defaults.height) / 100), availableHeight) + 'px';
     plate.style.height = height;
     deck.style.height = height;
     plate.style.bottom = 'auto';
@@ -357,7 +354,12 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       const delta = (event.clientY - gesture.lastY) / window.innerHeight * 100;
       if (gesture.kind === 'map') {
         // The top divider moves the Board's upper edge: expose more or less map.
-        layout.y = Math.max(8, Math.min(75, (Number(layout.y) || defaults.y) + delta));
+        const oldY = Number(layout.y) || defaults.y;
+        const newY = Math.max(8, Math.min(75, oldY + delta));
+        const applied = newY - oldY;
+        layout.y = newY;
+        // Keep the lower edge stationary: change height opposite to the top edge.
+        layout.height = Math.max(20, Math.min(90, (Number(layout.height) || defaults.height) - applied));
       } else {
         layout.photo = Math.max(14, Math.min(48, (Number(layout.photo) || defaults.photo) + delta));
       }
