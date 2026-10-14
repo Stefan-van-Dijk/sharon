@@ -170,8 +170,30 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
 
   const plate = document.createElement('div');
   plate.className = 'sh-board-plate';
+  const layoutKey = 'sharon.board.layout.v1';
+  const defaults = { map: 32, photo: 26, side: 'center' };
+  let layout = { ...defaults };
+  try { layout = { ...defaults, ...JSON.parse(localStorage.getItem(layoutKey) || '{}') }; } catch {}
+  const applyLayout = () => {
+    const map = Math.max(12, Math.min(62, Number(layout.map) || defaults.map));
+    const photo = Math.max(14, Math.min(48, Number(layout.photo) || defaults.photo));
+    plate.style.setProperty('--sh-board-map-space', map + 'vh');
+    plate.style.setProperty('--sh-board-photo-size', photo + 'vh');
+    plate.dataset.boardSide = ['left','right'].includes(layout.side) ? layout.side : 'center';
+  };
+  const saveLayout = () => {
+    try { localStorage.setItem(layoutKey, JSON.stringify(layout)); } catch {}
+    applyLayout();
+  };
+  applyLayout();
 
   // Stable photo frame: the article scrolls underneath, never the photo.
+  const mapSizer = document.createElement('button');
+  mapSizer.type = 'button';
+  mapSizer.className = 'sh-board-resizer sh-board-map-resizer';
+  mapSizer.setAttribute('aria-label', 'Hoogte van kaart en leesveld aanpassen');
+  mapSizer.title = 'Sleep om kaart en leesveld te verdelen';
+
   const photoHeader = document.createElement('div');
   photoHeader.className = 'sh-board-photo-header';
   const photo = document.createElement('img');
@@ -190,6 +212,12 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   incomingPhoto.hidden = true;
   incomingPhoto.style.display = 'none';
   photoHeader.append(photo, incomingPhoto, photoEmpty);
+
+  const photoSizer = document.createElement('button');
+  photoSizer.type = 'button';
+  photoSizer.className = 'sh-board-resizer sh-board-photo-resizer';
+  photoSizer.setAttribute('aria-label', 'Hoogte van afbeelding en tekst aanpassen');
+  photoSizer.title = 'Sleep om afbeelding en tekst te verdelen';
 
   const scroller = document.createElement('div');
   scroller.className = 'sh-board-scroller';
@@ -221,10 +249,55 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const chapterRail = document.createElement('nav');
   chapterRail.className = 'sh-board-chapters';
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
-  plate.append(photoHeader, scroller, chapterRail);
+  plate.append(mapSizer, photoHeader, photoSizer, scroller, chapterRail);
   overlay.append(deck, plate);
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
+
+  const attachVerticalSizer = (handle, onMove) => {
+    let startY = 0;
+    const move = event => {
+      if (!startY) return;
+      onMove(event.clientY - startY);
+      startY = event.clientY;
+      if (event.cancelable) event.preventDefault();
+    };
+    const end = () => {
+      if (!startY) return;
+      startY = 0;
+      saveLayout();
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+    };
+    handle.addEventListener('pointerdown', event => {
+      startY = event.clientY;
+      handle.setPointerCapture?.(event.pointerId);
+      window.addEventListener('pointermove', move, { passive:false });
+      window.addEventListener('pointerup', end, { once:true });
+    });
+    handle.addEventListener('keydown', event => {
+      if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      onMove(event.key === 'ArrowDown' ? 12 : -12);
+      saveLayout();
+    });
+  };
+  attachVerticalSizer(mapSizer, dy => {
+    layout.map = Math.max(12, Math.min(62, (Number(layout.map) || defaults.map) + dy / window.innerHeight * 100));
+    applyLayout();
+  });
+  attachVerticalSizer(photoSizer, dy => {
+    layout.photo = Math.max(14, Math.min(48, (Number(layout.photo) || defaults.photo) + dy / window.innerHeight * 100));
+    applyLayout();
+  });
+
+  // On wider screens a double tap/click on the map divider cycles the reader
+  // from centred to left and right, leaving the map visible alongside it.
+  mapSizer.addEventListener('dblclick', () => {
+    const order = ['center','left','right'];
+    layout.side = order[(order.indexOf(layout.side) + 1) % order.length];
+    saveLayout();
+  });
   requestAnimationFrame(() => {
     if (!closed && plate.isConnected) plate.classList.remove('is-board-entering');
   });
