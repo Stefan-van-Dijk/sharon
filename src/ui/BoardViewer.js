@@ -166,7 +166,7 @@ export function preloadWikipediaBoard(feature) {
 export function articleProgressDotCount(wordCount) {
   return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
 }
-export function openBoardViewer(feature, { location, events, onNext, onPrevious, onClose = () => {} } = {}) {
+export function openBoardViewer(feature, { location, events, onNext, onPrevious, onLayout = () => {}, onClose = () => {} } = {}) {
   const abort = new AbortController();
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
@@ -230,11 +230,14 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     }
     plate.dataset.boardSide = ['left','right','top','bottom'].includes(layout.side) ? layout.side : 'center';
   };
+  const notifyLayout = () => onLayout(plate.getBoundingClientRect(), deck.getBoundingClientRect());
   const saveLayout = () => {
     try { localStorage.setItem(layoutKey, JSON.stringify(layout)); } catch {}
     applyLayout();
+    notifyLayout();
   };
   applyLayout();
+  requestAnimationFrame(notifyLayout);
 
   // Stable photo frame: the article scrolls underneath, never the photo.
   const mapSizer = document.createElement('button');
@@ -360,7 +363,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       }
     }
     gesture.lastY = event.clientY;
-    if (gesture.mode !== 'pending') applyLayout();
+    if (gesture.mode !== 'pending') { applyLayout(); notifyLayout(); }
     if (event.cancelable) event.preventDefault();
   };
   const onGestureEnd = event => {
