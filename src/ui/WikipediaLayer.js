@@ -32,7 +32,14 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   let activeId = null;
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
-  const redraw = () => map.getSource(sourceId)?.setData({type:'FeatureCollection', features:[...knownFeatures.values()]});
+  const feedback = id => {
+    try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
+    catch { return {}; }
+  };
+  const redraw = () => map.getSource(sourceId)?.setData({type:'FeatureCollection', features:[...knownFeatures.values()].map(feature => {
+    const state = feedback(String(feature.properties?.wikidata || feature.id));
+    return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
+  })});
   const pulse = () => {
     if (disposed || !enabled) return;
     const t = (performance.now() % 2200) / 2200;
@@ -48,7 +55,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       filter:['==',['get','wikidata'],'__none__'],
       paint:{'circle-radius':9,'circle-color':'#547da0','circle-opacity':0.18,'circle-stroke-width':0} });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
-      paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-stroke-color': '#344d6b', 'circle-stroke-width': 2 } });
+      paint: { 'circle-radius': 7, 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
   };
   const clear = () => { knownFeatures.clear(); currentFeatures = []; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const refresh = async () => {
@@ -92,11 +99,13 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     const link = document.createElement('a'); link.href = feature.properties.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Lees meer op Wikipedia ↗'; link.style.cssText = 'display:inline-block;padding:8px 0;font-weight:600'; node.append(link);
     popup = new library.Popup({ maxWidth: '340px', closeButton: true, closeOnClick: true, offset: 14 }).setLngLat(feature.geometry.coordinates).setDOMContent(node).addTo(map);
   };
+  const onFeedbackChanged = () => redraw();
+  window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
   map.on('moveend', schedule); map.on('click', click);
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
   return { setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
