@@ -2379,6 +2379,25 @@
  .sh-board-photo-resizer {min-height:30px;margin:-15px 0;touch-action:none}
  .sh-board-resizer::after {width:54px;height:5px}
 }
+
+/* Location actions belong to the reading area, not on top of the photo. */
+.sh-board-story .sh-local-controls {
+ display:flex;align-items:center;gap:12px;justify-content:flex-end;
+ margin:22px 0 12px;padding:13px 0 4px;
+ border-top:1px solid rgba(95,110,122,.16);
+}
+.sh-board-story .sh-local-controls .sh-local-deck-control,
+.sh-board-story .sh-local-controls .sh-local-image-control,
+.sh-board-story .sh-local-controls .sh-board-photo-source {
+ position:static!important;inset:auto!important;transform:none!important;
+ min-height:36px;min-width:36px;padding:7px 11px;
+ display:inline-flex;align-items:center;justify-content:center;
+ background:transparent!important;border:1px solid rgba(105,117,128,.25);
+ border-radius:19px;box-shadow:none!important;backdrop-filter:none!important;
+ color:inherit;font-size:13px;cursor:pointer;
+}
+.sh-board-story .sh-local-controls .sh-local-deck-control {margin-right:auto}
+.sh-board-story .sh-local-controls .sh-board-photo-source {margin:0!important}
 </style>
 </head>
 <body>
