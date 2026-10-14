@@ -2304,6 +2304,24 @@
       border-radius:0 0 23px 23px;
     }
 
+
+    /* Wikipedia source: compact translucent glass control over the photograph. */
+    .sh-board-plate .sh-board-photo-source {
+      width:29px!important;height:29px!important;min-height:29px!important;
+      right:12px!important;bottom:12px!important;padding:0!important;
+      font-size:18px!important;font-weight:600!important;
+      color:rgba(29,46,59,.86)!important;
+      background:rgba(255,255,255,.38)!important;
+      border:1px solid rgba(255,255,255,.55)!important;
+      box-shadow:0 2px 9px rgba(25,38,52,.10),inset 0 1px rgba(255,255,255,.3)!important;
+      -webkit-backdrop-filter:blur(12px) saturate(135%)!important;
+      backdrop-filter:blur(12px) saturate(135%)!important;
+    }
+    /* Image-anchored fade stays inside the resizable photo header. */
+    .sh-board-plate .sh-board-photo-header::after {
+      background:linear-gradient(to bottom,rgba(248,249,249,0) 0%,rgba(248,249,249,.16) 48%,rgba(248,249,249,.50) 100%)!important;
+    }
+
 </style>
 </head>
 <body>
