@@ -620,7 +620,7 @@ export function openEnvironmentView(root, {
       const features = map.queryRenderedFeatures(box, { layers: LOCAL_LAYERS });
       // Prefer a location point over overlapping polygons/lines so tapping its marker opens its Board.
       let selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
-      if (!selected) {
+      if (selected?.properties?.kind !== 'location') {
         const items = await store.getAll('objects');
         const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && isCoordinate(item.data?.coordinates))
           .map(item => ({item, point: map.project(coordinateArray(item.data.coordinates))}))
