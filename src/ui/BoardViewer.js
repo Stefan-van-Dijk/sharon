@@ -298,6 +298,42 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const controls = story.querySelector('.sh-local-controls');
     if (controls) story.append(controls);
   }
+  if (isLocal) {
+    const introKey = 'sharon.location-board.intro.v1';
+    let showIntro = false;
+    try { showIntro = localStorage.getItem(introKey) !== 'done'; } catch {}
+    if (showIntro) {
+      const intro = document.createElement('div');
+      intro.className = 'sh-local-board-intro';
+      intro.setAttribute('aria-live','polite');
+      const introText = document.createElement('span');
+      const dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.textContent = 'Begrepen';
+      dismiss.setAttribute('aria-label','Introductie sluiten');
+      intro.append(introText,dismiss);
+      story.insertBefore(intro, story.querySelector('.sh-local-controls') || footer);
+      const lines = [
+        'Swipe naar links of rechts om andere plekken te ontdekken.',
+        'Open Deck om door de bronnen van deze locatie te bladeren.',
+        'Koppel een afbeelding of webpagina om deze plek aan te vullen.',
+        'Pas de kaartweergave aan via de stijlbediening in Omgeving.'
+      ];
+      let line = 0, char = 0, timer = null;
+      const tick = () => {
+        if (closed || !intro.isConnected) return;
+        introText.textContent = lines[line].slice(0,++char);
+        if (char <= lines[line].length) timer = window.setTimeout(tick,24);
+        else if (line < lines.length-1) timer = window.setTimeout(()=>{line++;char=0;tick();},1450);
+      };
+      dismiss.addEventListener('click',()=>{
+        window.clearTimeout(timer);
+        try {localStorage.setItem(introKey,'done');}catch{}
+        intro.remove();
+      });
+      tick();
+    }
+  }
   story.append(footer);
   const textGlass = document.createElement('div');
   textGlass.className = 'sh-board-text-glass';
