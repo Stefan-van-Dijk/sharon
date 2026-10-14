@@ -2343,6 +2343,14 @@
       backdrop-filter:blur(18px) saturate(155%)!important;
     }
 
+
+/* Location controls share the Wikipedia photo frame without obscuring the compass. */
+.sh-board-photo-header .sh-local-deck-control,
+.sh-board-photo-header .sh-local-image-control {position:absolute;z-index:9;top:12px;border:1px solid rgba(255,255,255,.7);background:rgba(248,249,249,.83);backdrop-filter:blur(12px);border-radius:22px;padding:9px 13px;color:#263746;font:inherit;font-size:13px;box-shadow:0 2px 9px #0002;cursor:pointer}
+.sh-board-photo-header .sh-local-deck-control {left:12px}
+.sh-board-photo-header .sh-local-image-control {right:12px}
+.sh-board-photo-header:has(.sh-local-deck-control) .sh-board-compass {left:12px;bottom:12px;top:auto;right:auto}
+.sh-board-photo-header:has(.sh-local-deck-control) .sh-board-photo-source {right:12px;bottom:12px;top:auto;left:auto}
 </style>
 </head>
 <body>
