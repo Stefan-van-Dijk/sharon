@@ -461,6 +461,17 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     toggle.textContent = '▤ Deck';
     toggle.addEventListener('click', () => localBoard.toggle?.());
     compass.append(toggle);
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.textContent = '+ Link';
+    add.addEventListener('click', () => localBoard.addLink?.());
+    compass.append(add);
+    const imageButton = document.createElement('button');
+    imageButton.type = 'button';
+    imageButton.textContent = '▧';
+    imageButton.title = 'Afbeelding instellen';
+    imageButton.addEventListener('click', () => localBoard.setImage?.());
+    photoHeader.append(imageButton);
   }
   let compassEnabled = boardCompassEnabled;
   const updateCompass = () => {
