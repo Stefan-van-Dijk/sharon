@@ -287,7 +287,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   source.title = isLocal ? 'Open website' : 'Open Wikipedia';
   if (isLocal && !localBoard.website) source.hidden = true;
   const credits = document.createElement('small');
-  credits.textContent = isLocal ? 'Locatie · Sharon' : 'Tekst: Wikipedia · CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.';
+  credits.textContent = isLocal ? 'Locatie · Sharon' : 'CC BY-SA';
+  if (!isLocal) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
   footer.append(credits);
@@ -298,20 +299,26 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
     const actions = document.createElement('div');
     actions.className = 'sh-board-feedback';
-    actions.style.cssText = 'display:flex;gap:10px;align-items:center;justify-content:center;margin:14px 0 8px';
+    actions.style.cssText = 'display:flex;gap:16px;align-items:center;margin:0';
     const readButton = document.createElement('button');
     const likeButton = document.createElement('button');
+    const square = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/>';
+    const heart = '<svg viewBox="0 0 24 24" width="21" height="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"/></svg>';
     for (const button of [readButton,likeButton]) {
       button.type = 'button';
-      button.style.cssText = 'border:1px solid rgba(100,115,125,.22);border-radius:999px;background:rgba(255,255,255,.4);padding:9px 15px;font:inherit;cursor:pointer';
+      button.style.cssText = 'display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#697580;padding:7px;cursor:pointer;touch-action:manipulation';
     }
     const renderFeedback = () => {
-      readButton.textContent = feedback.read ? '✓ Gelezen' : '✓ Markeer gelezen';
-      likeButton.textContent = feedback.liked ? '♥ Leuk gevonden' : '♡ Leuk';
+      readButton.innerHTML = square + (feedback.read ? '<path d="m7.5 12 3 3 6-6"/>' : '') + '</svg>';
+      likeButton.innerHTML = heart.replace('<svg ', '<svg fill="' + (feedback.liked ? 'currentColor' : 'none') + '" ');
+      readButton.setAttribute('aria-label',feedback.read ? 'Markering gelezen verwijderen' : 'Markeer als gelezen');
+      likeButton.setAttribute('aria-label',feedback.liked ? 'Hartje verwijderen' : 'Vind ik leuk');
+      readButton.title = readButton.getAttribute('aria-label');
+      likeButton.title = likeButton.getAttribute('aria-label');
       readButton.setAttribute('aria-pressed',String(feedback.read));
       likeButton.setAttribute('aria-pressed',String(feedback.liked));
-      readButton.style.fontWeight = feedback.read ? '700' : '400';
-      likeButton.style.fontWeight = feedback.liked ? '700' : '400';
+      readButton.style.color = feedback.read ? '#334e63' : '#88949e';
+      likeButton.style.color = feedback.liked ? '#b75b68' : '#88949e';
     };
     const persistFeedback = () => {
       try { localStorage.setItem(feedbackKey,JSON.stringify(feedback)); } catch {}
