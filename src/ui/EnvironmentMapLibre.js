@@ -1,4 +1,4 @@
-import { openBoardViewer } from './BoardViewer.js?v=0.2.78';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.2.80';
 import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.2.78';
 import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.2.00';
 import {
@@ -376,6 +376,7 @@ export function openEnvironmentView(root, {
     }
     const previous = available.length > 1
       ? available[(index - 1 + available.length) % available.length] : null;
+    if (next) preloadWikipediaBoard(next).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
       onClose: () => { closeBoard = null; },
       onNext: next ? () => showBoard(next, available) : null,
