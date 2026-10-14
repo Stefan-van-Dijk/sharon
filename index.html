@@ -2322,6 +2322,27 @@
       background:linear-gradient(to bottom,rgba(248,249,249,0) 0%,rgba(248,249,249,.16) 48%,rgba(248,249,249,.50) 100%)!important;
     }
 
+
+    /* Keep the photograph sharp; blur scrolling words immediately beneath it. */
+    .sh-board-plate .sh-board-photo-header::after {content:none!important;display:none!important}
+    .sh-board-plate .sh-board-scroller {isolation:isolate}
+    .sh-board-plate .sh-board-text-glass {
+      position:sticky;top:0;z-index:5;display:block;height:66px;
+      margin-bottom:-66px;pointer-events:none;
+      background:linear-gradient(to bottom,rgba(247,249,250,.42),rgba(247,249,250,.16) 62%,rgba(247,249,250,0));
+      -webkit-backdrop-filter:blur(12px) saturate(120%);
+      backdrop-filter:blur(12px) saturate(120%);
+      -webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.85) 45%,transparent 100%);
+      mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.85) 45%,transparent 100%);
+    }
+    .sh-board-plate .sh-board-photo-source {
+      background:rgba(255,255,255,.20)!important;
+      border:1px solid rgba(255,255,255,.30)!important;
+      box-shadow:inset 0 1px rgba(255,255,255,.28),0 2px 7px rgba(16,30,44,.07)!important;
+      -webkit-backdrop-filter:blur(18px) saturate(155%)!important;
+      backdrop-filter:blur(18px) saturate(155%)!important;
+    }
+
 </style>
 </head>
 <body>
