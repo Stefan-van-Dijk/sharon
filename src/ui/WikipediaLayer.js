@@ -36,10 +36,13 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
     catch { return {}; }
   };
-  const redraw = () => map.getSource(sourceId)?.setData({type:'FeatureCollection', features:[...knownFeatures.values()].map(feature => {
-    const state = feedback(String(feature.properties?.wikidata || feature.id));
-    return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
-  })});
+  const redraw = () => {
+    const features = [...knownFeatures.values()].map(feature => {
+      const state = feedback(String(feature.properties?.wikidata || feature.id));
+      return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
+    });
+    map.getSource(sourceId)?.setData({type:'FeatureCollection', features});
+  };
   const pulse = () => {
     if (disposed || !enabled) return;
     const t = (performance.now() % 2200) / 2200;
@@ -99,7 +102,12 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     const link = document.createElement('a'); link.href = feature.properties.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Lees meer op Wikipedia ↗'; link.style.cssText = 'display:inline-block;padding:8px 0;font-weight:600'; node.append(link);
     popup = new library.Popup({ maxWidth: '340px', closeButton: true, closeOnClick: true, offset: 14 }).setLngLat(feature.geometry.coordinates).setDOMContent(node).addTo(map);
   };
-  const onFeedbackChanged = () => redraw();
+  const onFeedbackChanged = () => {
+    redraw();
+    // Updating GeoJSON is asynchronous in MapLibre; refresh the paint expression
+    // as well so the visible marker changes immediately on supported devices.
+    if (map.getLayer(layerId)) map.triggerRepaint();
+  };
   window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
   map.on('moveend', schedule); map.on('click', click);
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
