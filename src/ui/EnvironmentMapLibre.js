@@ -704,6 +704,7 @@ export function openEnvironmentView(root, {
     for (const unsubscribe of unsubscribers) unsubscribe();
     resizeObserver?.disconnect();
     popup?.remove();
+    closeLocationDeck?.();
     wikipediaLayer?.destroy();
     closeBoard?.();
     gpsMarker?.remove();
