@@ -36,7 +36,7 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
   }
 });
 
-test('shared header map controls are mounted and removed even before renderer resolves', async () => {
+test('shared map controls are mounted immediately and cleaned up before a late renderer resolves', async () => {
   const savedWindow = globalThis.window, savedDocument = globalThis.document;
   const savedCancel = globalThis.cancelAnimationFrame;
   let resolveRenderer, mapConstructed = 0;
