@@ -668,7 +668,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (event.cancelable) event.preventDefault();
     plate.classList.add('is-board-dragging');
     plate.style.transformOrigin = '50% 50%';
-    plate.style.transform = 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
+    plate.style.transform = (window.innerWidth >= 760 ? 'translateX(-50%) ' : '') + 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
       Math.max(-8, Math.min(8, swipe.dx / Math.max(100, plate.clientWidth) * 12)).toFixed(2) + 'deg)';
     plate.style.opacity = String(Math.max(.6, 1 + swipe.dx / 900));
     deck.style.transform = 'translate3d(' + Math.max(-20, Math.min(20, -swipe.dx * .10)) + 'px,0,0)';
@@ -684,9 +684,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       const direction = dx < 0 ? 'next' : 'previous';
       plate.classList.add('is-board-exiting');
       plate.style.transformOrigin = '50% 50%';
-      plate.style.transform = direction === 'next'
+      plate.style.transform = (window.innerWidth >= 760 ? 'translateX(-50%) ' : '') + (direction === 'next'
         ? 'translate3d(-110%,0,0) rotate(-8deg)'
-        : 'translate3d(110%,0,0) rotate(8deg)';
+        : 'translate3d(110%,0,0) rotate(8deg)');
       plate.style.opacity = '0';
       window.setTimeout(() => { if (!closed) switchTo(direction); }, 210);
     } else resetDeck();
