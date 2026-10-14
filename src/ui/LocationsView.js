@@ -1,4 +1,4 @@
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.2.81';
 import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.60';
 import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.60';
 import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.60';
