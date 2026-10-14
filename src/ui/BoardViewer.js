@@ -455,27 +455,35 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   compass.classList.add('is-distance-only');
   photoHeader.append(compass);
   if (isLocal) {
-    compass.replaceChildren();
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.textContent = '▤ Deck';
-    toggle.addEventListener('click', () => localBoard.toggle?.());
-    compass.append(toggle);
-    const add = document.createElement('button');
-    add.type = 'button';
-    add.textContent = '+ Link';
-    add.addEventListener('click', () => localBoard.addLink?.());
-    compass.append(add);
-    const imageButton = document.createElement('button');
-    imageButton.type = 'button';
-    imageButton.textContent = '▧';
-    imageButton.title = 'Afbeelding instellen';
-    imageButton.addEventListener('click', () => localBoard.setImage?.());
-    photoHeader.append(imageButton);
+    const deckControl = document.createElement('button');
+    deckControl.type = 'button';
+    deckControl.className = 'sh-local-deck-control';
+    deckControl.textContent = '▤ Deck';
+    deckControl.setAttribute('aria-label','Locatiedeck openen of sluiten');
+    deckControl.addEventListener('click', () => localBoard.toggle?.());
+    photoHeader.append(deckControl);
+
+    const imageControl = document.createElement('button');
+    imageControl.type = 'button';
+    imageControl.className = 'sh-local-image-control';
+    imageControl.textContent = '▧';
+    imageControl.setAttribute('aria-label','Afbeelding koppelen of wijzigen');
+    imageControl.addEventListener('click', () => localBoard.setImage?.());
+    photoHeader.append(imageControl);
+
+    source.href = '#';
+    source.removeAttribute('target');
+    source.hidden = false;
+    source.textContent = '+';
+    source.title = 'Webpagina aan locatie koppelen';
+    source.setAttribute('aria-label','Webpagina aan locatie koppelen');
+    source.addEventListener('click', event => {
+      event.preventDefault();
+      localBoard.addLink?.();
+    });
   }
   let compassEnabled = boardCompassEnabled;
   const updateCompass = () => {
-    if (isLocal) return;
     const value = distanceBearing(gps, destination);
     distance.textContent = value
       ? (value.distance < 1000 ? Math.round(value.distance) + ' m' :
