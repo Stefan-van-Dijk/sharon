@@ -669,9 +669,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     plate.classList.add('is-board-dragging');
     plate.style.transformOrigin = '50% 50%';
     plate.style.transform = (window.innerWidth >= 760 ? 'translateX(-50%) ' : '') + 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
-      Math.max(-8, Math.min(8, swipe.dx / Math.max(100, plate.clientWidth) * 12)).toFixed(2) + 'deg)';
+      Math.max(-3, Math.min(3, swipe.dx / Math.max(100, plate.clientWidth) * 5)).toFixed(2) + 'deg)';
     plate.style.opacity = String(Math.max(.6, 1 + swipe.dx / 900));
-    deck.style.transform = 'translate3d(' + Math.max(-20, Math.min(20, -swipe.dx * .10)) + 'px,0,0)';
+    // Keep the stack anchored: only the front story card moves during a swipe.
+    deck.style.transform = '';
   }, { passive:false });
   plate.addEventListener('touchend', () => {
     if (!swipe) return;
@@ -685,8 +686,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       plate.classList.add('is-board-exiting');
       plate.style.transformOrigin = '50% 50%';
       plate.style.transform = (window.innerWidth >= 760 ? 'translateX(-50%) ' : '') + (direction === 'next'
-        ? 'translate3d(-110%,0,0) rotate(-8deg)'
-        : 'translate3d(110%,0,0) rotate(8deg)');
+        ? 'translate3d(-65%,0,0) rotate(-3deg)'
+        : 'translate3d(65%,0,0) rotate(3deg)');
       plate.style.opacity = '0';
       window.setTimeout(() => { if (!closed) switchTo(direction); }, 210);
     } else resetDeck();
