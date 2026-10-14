@@ -2293,6 +2293,17 @@
     .sh-board-move-handle:active,.sh-board-move-handle:focus-visible {opacity:1}
     .sh-board-plate .sh-board-photo-header::after {inset:auto 0 0!important;height:min(22%,70px)!important;top:auto!important;bottom:0!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
 
+
+    /* Board fade belongs to the resizable image, never to the plate. */
+    .sh-board-plate::after {content:none!important;display:none!important}
+    .sh-board-plate .sh-board-photo-header {isolation:isolate;overflow:hidden!important}
+    .sh-board-plate .sh-board-photo-header::after {
+      content:'';position:absolute;left:0;right:0;bottom:0;top:auto!important;
+      height:min(22%,70px)!important;z-index:2;pointer-events:none;
+      background:linear-gradient(to bottom,rgba(248,249,249,0),rgba(248,249,249,.24))!important;
+      border-radius:0 0 23px 23px;
+    }
+
 </style>
 </head>
 <body>
