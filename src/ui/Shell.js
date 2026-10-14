@@ -1,10 +1,10 @@
-import { openLocationsView } from './LocationsView.js?v=0.2.81';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.2.81';
+import { openLocationsView } from './LocationsView.js?v=0.2.82';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.2.82';
 import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.78';
 
-const APP_VERSION = '0.2.81';
+const APP_VERSION = '0.2.82';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
