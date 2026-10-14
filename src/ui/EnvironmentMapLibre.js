@@ -615,7 +615,8 @@ export function openEnvironmentView(root, {
     map.on('click', async event => {
       if (!mapReady) return;
       const features = map.queryRenderedFeatures(event.point, { layers: LOCAL_LAYERS });
-      const selected = features[0];
+      // Prefer a location point over overlapping polygons/lines so tapping its marker opens its Board.
+      const selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
       if (!selected) return;
       popup?.remove();
       closeLocationDeck?.();
