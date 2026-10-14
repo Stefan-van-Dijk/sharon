@@ -359,15 +359,23 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const motion = [plate, deck, ...cards];
   const resetStack = () => {
     for (const el of motion) {
-      el.style.transition = 'none';
+      el.style.transition = 'transform 240ms ease, box-shadow 240ms ease, filter 240ms ease';
       el.style.transform = '';
       el.style.boxShadow = '';
       el.style.filter = '';
     }
   };
+  const liftStack = () => {
+    // Keep the front card fixed relative to the pointer; only the cards behind it lift.
+    plate.style.boxShadow = '0 24px 58px rgba(0,0,0,.23)';
+    deck.style.filter = 'drop-shadow(0 12px 18px rgba(0,0,0,.12))';
+    cards.forEach((card, i) => {
+      card.style.transition = 'transform 220ms ease, box-shadow 220ms ease';
+      card.style.transform = 'translate(' + (-3 - i * 2) + 'px,' + (-3 - i * 2) + 'px)';
+    });
+  };
   const clearGesture = () => {
     if (!gesture) return;
-    window.clearTimeout(gesture.timer);
     gesture = null;
     plate.classList.remove('is-board-moving-together');
     deck.classList.remove('is-board-moving-together');
@@ -380,25 +388,34 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (!gesture || gesture.id !== event.pointerId) return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
-    if (gesture.mode === 'pending' && Math.hypot(dx, dy) > 8) {
-      window.clearTimeout(gesture.timer);
-      gesture.mode = 'resize';
-      resetStack();
+    if (gesture.mode === 'pending' && Math.hypot(dx,dy) > 9) {
+      if (Math.abs(dx) > Math.abs(dy) * 1.3 && Math.abs(dx) >= 15) {
+        gesture.mode = 'move';
+        plate.classList.add('is-board-moving-together');
+        deck.classList.add('is-board-moving-together');
+        liftStack();
+        // Anchor at the activation point, preventing a jump when switching modes.
+        gesture.x = event.clientX;
+        gesture.y = event.clientY;
+        gesture.startX = Number(layout.x) || defaults.x;
+        gesture.startY = Number(layout.y) || defaults.y;
+        if (navigator.vibrate) navigator.vibrate(15);
+      } else if (Math.abs(dy) > Math.abs(dx)) {
+        gesture.mode = 'resize';
+      }
     }
     if (gesture.mode === 'move') {
       if (window.innerWidth >= 760) layout.x = Math.max(15, Math.min(85,
-        gesture.startX + dx / window.innerWidth * 100));
+        gesture.startX + (event.clientX - gesture.x) / window.innerWidth * 100));
       layout.y = Math.max(8, Math.min(75,
-        gesture.startY + dy / window.innerHeight * 100));
+        gesture.startY + (event.clientY - gesture.y) / window.innerHeight * 100));
     } else if (gesture.mode === 'resize') {
       const delta = (event.clientY - gesture.lastY) / window.innerHeight * 100;
       if (gesture.kind === 'map') {
-        // The top divider moves the Board's upper edge: expose more or less map.
         const oldY = Number(layout.y) || defaults.y;
         const newY = Math.max(8, Math.min(75, oldY + delta));
         const applied = newY - oldY;
         layout.y = newY;
-        // Keep the lower edge stationary: change height opposite to the top edge.
         layout.height = Math.max(20, Math.min(90, (Number(layout.height) || defaults.height) - applied));
       } else {
         layout.photo = Math.max(14, Math.min(48, (Number(layout.photo) || defaults.photo) + delta));
@@ -419,22 +436,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try { handle.setPointerCapture(event.pointerId); } catch {}
     gesture = { id:event.pointerId, kind, mode:'pending', x:event.clientX,
       y:event.clientY, lastY:event.clientY,
-      startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y, timer:null };
-    const id = event.pointerId;
-    // On iPad do not scale/translate the active card during the hold.
-    // Visual motion on the active card breaks finger-to-position correspondence.
-    plate.style.transition = 'none';
-    deck.style.transition = 'none';
-    gesture.timer = window.setTimeout(() => {
-      if (!gesture || gesture.id !== id || gesture.mode !== 'pending') return;
-      gesture.mode = 'move';
-      plate.classList.add('is-board-moving-together');
-      deck.classList.add('is-board-moving-together');
-      plate.style.transition = 'none';
-      deck.style.transition = 'none';
-      // The completed lifted stack now follows the pointer.
-      if (navigator.vibrate) navigator.vibrate(25);
-    }, 2000);
+      startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y };
     window.addEventListener('pointermove', onGestureMove, { passive:false });
     window.addEventListener('pointerup', onGestureEnd);
     window.addEventListener('pointercancel', onGestureEnd);
@@ -447,8 +449,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   // The former third handle is not needed; the two dividers own both actions.
   moveHandle.hidden = true;
   moveHandle.style.display = 'none';
-  mapSizer.title = 'Sleep voor kaartgrootte; houd 2 seconden vast om alles te verplaatsen';
-  mapSizer.setAttribute('aria-description', 'Houd twee seconden vast en sleep om de hele Board te verplaatsen');
+  mapSizer.title = 'Sleep voor kaartgrootte; swipe horizontaal om de stapel op te pakken';
+  mapSizer.setAttribute('aria-description', 'Swipe horizontaal over de greep om de hele stapel te verplaatsen');
   photoSizer.title = 'Sleep voor afbeeldingsgrootte; houd 2 seconden vast om alles te verplaatsen';
   mapSizer.addEventListener('keydown', event => {
     if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
