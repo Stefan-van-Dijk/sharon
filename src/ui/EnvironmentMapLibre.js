@@ -628,7 +628,7 @@ export function openEnvironmentView(root, {
           onLocation: item => {
             const point = item.data?.coordinates;
             if (point && Number.isFinite(Number(point.lng)) && Number.isFinite(Number(point.lat))) {
-              map.easeTo({center:[Number(point.lng),Number(point.lat)],duration:650});
+              map.easeTo({center:[Number(point.lng),Number(point.lat)],offset:[0,-map.getContainer().clientHeight*0.27],duration:650,essential:true});
             }
           }
         });
