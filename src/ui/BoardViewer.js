@@ -755,7 +755,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
 
   }
 
-  preloadWikipediaBoard(feature).then(sections => {
+  if (isLocal) {
+    status.remove();
+    const sections = [{ title: localBoard.title || 'Locatie', text: [localBoard.type, localBoard.address, localBoard.description].filter(Boolean).join('\n'), image: '' }];
+    sections.forEach(addChapter);
+    buildProgress(sections);
+    setActive(0);
+  } else preloadWikipediaBoard(feature).then(sections => {
     if (closed) return;
     status.remove();
     if (!sections.length) throw Error('Geen leesbare inhoud.');
