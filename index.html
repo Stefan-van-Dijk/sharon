@@ -2286,6 +2286,13 @@
       .sh-board-plate[data-board-side="right"] {right:max(22px,calc(95% - var(--sh-board-position-x,50%)))}
     }
 
+
+    /* Compact Board movement affordance and image-anchored fade. */
+    .sh-board-move-handle {width:58px;height:15px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0;opacity:.48;transition:opacity .18s}
+    .sh-board-move-handle::after {left:18px;right:18px;top:6px;height:3px;background:rgba(30,43,56,.58)}
+    .sh-board-move-handle:active,.sh-board-move-handle:focus-visible {opacity:1}
+    .sh-board-plate .sh-board-photo-header::after {inset:auto 0 0!important;height:min(22%,70px)!important;top:auto!important;bottom:0!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
+
 </style>
 </head>
 <body>
