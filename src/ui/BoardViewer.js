@@ -142,6 +142,21 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
   }
   return sections;
 }
+const boardCache = new Map();
+export function preloadWikipediaBoard(feature) {
+  const key = safeUrl(feature?.properties?.url);
+  if (!key) return Promise.resolve([]);
+  if (!boardCache.has(key)) {
+    const task = fetchWikipediaBoard(feature).then(sections => {
+      const image = safeUrl(sections[0]?.image || feature?.properties?.image, true);
+      if (image && typeof Image !== 'undefined') { const preview = new Image(); preview.src = image; }
+      return sections;
+    }).catch(error => { boardCache.delete(key); throw error; });
+    boardCache.set(key, task);
+    if (boardCache.size > 6) boardCache.delete(boardCache.keys().next().value);
+  }
+  return boardCache.get(key);
+}
 export function articleProgressDotCount(wordCount) {
   return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
 }
@@ -633,7 +648,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
 
   }
 
-  fetchWikipediaBoard(feature, { signal: abort.signal }).then(sections => {
+  preloadWikipediaBoard(feature).then(sections => {
     if (closed) return;
     status.remove();
     if (!sections.length) throw Error('Geen leesbare inhoud.');
