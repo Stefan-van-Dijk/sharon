@@ -389,7 +389,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
     if (gesture.mode === 'pending' && Math.hypot(dx,dy) > 9) {
-      if (Math.abs(dx) > Math.abs(dy) * 1.3 && Math.abs(dx) >= 15) {
+      if (gesture.kind === 'compass' && dx > 22 && dx > Math.abs(dy) * 1.2) {
         gesture.mode = 'move';
         plate.classList.add('is-board-moving-together');
         deck.classList.add('is-board-moving-together');
@@ -400,7 +400,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
         gesture.startX = Number(layout.x) || defaults.x;
         gesture.startY = Number(layout.y) || defaults.y;
         if (navigator.vibrate) navigator.vibrate(15);
-      } else if (Math.abs(dy) > Math.abs(dx)) {
+      } else if (gesture.kind !== 'compass' && Math.abs(dy) > Math.abs(dx)) {
         gesture.mode = 'resize';
       }
     }
@@ -449,9 +449,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   // The former third handle is not needed; the two dividers own both actions.
   moveHandle.hidden = true;
   moveHandle.style.display = 'none';
-  mapSizer.title = 'Sleep voor kaartgrootte; swipe horizontaal om de stapel op te pakken';
-  mapSizer.setAttribute('aria-description', 'Swipe horizontaal over de greep om de hele stapel te verplaatsen');
-  photoSizer.title = 'Sleep voor afbeeldingsgrootte; houd 2 seconden vast om alles te verplaatsen';
+  mapSizer.title = 'Sleep verticaal om de hoogte van de Board aan te passen';
+  mapSizer.setAttribute('aria-description', 'Sleep verticaal om de hoogte van de Board aan te passen');
+  photoSizer.title = 'Sleep verticaal om de afbeeldingshoogte aan te passen';
   mapSizer.addEventListener('keydown', event => {
     if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
     event.preventDefault();
@@ -492,6 +492,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   compass.append(compassButton, distance);
   compass.classList.add('is-distance-only');
   photoHeader.append(compass);
+  compass.style.touchAction = 'none';
+  compass.addEventListener('pointerdown', event => beginGesture(compass, 'compass', event));
   if (isLocal) {
     const deckControl = document.createElement('button');
     deckControl.type = 'button';
