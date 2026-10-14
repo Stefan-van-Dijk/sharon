@@ -6,7 +6,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
   const places = objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates);
   let index = places.findIndex(item => String(item.id) === String(selected.properties?.id));
   if (index < 0) return () => {};
-  let expanded = false, page = 0, sources = [], image = '', closeViewer = null, disposed = false, sequence = 0;
+  let expanded = false, page = 0, sources = [], image = '', closeViewer = null, disposed = false, replacing = false, sequence = 0;
   const current = () => places[index];
   const addressText = data => typeof data.address === 'string' ? data.address :
     [data.address?.street, data.address?.houseNumber, data.address?.postalCode, data.address?.city].filter(Boolean).join(' ');
@@ -21,7 +21,9 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     const title = source ? new URL(source.url).hostname : String(data.name || data.title || 'Locatie');
     const feature = {type:'Feature',geometry:{type:'Point',coordinates:[Number(point.lng),Number(point.lat)]},
       properties:{title,url:source?.url || '',image}};
+    replacing = true;
     closeViewer?.();
+    replacing = false;
     closeViewer = openBoardViewer(feature,{
       location, events,
       localBoard:{
@@ -52,7 +54,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
         else {index=(index-1+places.length)%places.length;onLocation?.(current());}
         show();
       },
-      onClose:()=>{closeViewer=null;disposed=true;onClose?.();}
+      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;onClose?.();}
     });
   };
   show();
