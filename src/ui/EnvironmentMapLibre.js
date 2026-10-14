@@ -356,6 +356,7 @@ export function openEnvironmentView(root, {
   let closeBoard = null;
   const showBoard = (feature, available = []) => {
     closeBoard?.();
+    wikipediaLayer?.setActive(feature);
     // Unread articles lead the swipe sequence; read ones remain accessible later.
     const wasRead = item => {
       const id = String(item?.properties?.wikidata || item?.id || item?.properties?.url || '');
@@ -415,7 +416,7 @@ export function openEnvironmentView(root, {
     }
     for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
-      onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; },
+      onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; wikipediaLayer?.setActive(null); },
       onLayout: alignVisibleMap,
       onNext: next ? () => showBoard(next, available) : null,
       onPrevious: previous ? () => showBoard(previous, available) : null });
