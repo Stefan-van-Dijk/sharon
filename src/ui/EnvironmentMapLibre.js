@@ -623,7 +623,7 @@ export function openEnvironmentView(root, {
       if (selected.properties?.kind === 'location') {
         const objects = await store.getAll('objects');
         if (disposed) return;
-        closeLocationDeck = openLocationDeck({ store, objects, selected, map,
+        closeLocationDeck = openLocationDeck({ store, objects, selected, map, location, events,
           onClose: () => { closeLocationDeck = null; },
           onLocation: item => {
             const point = item.data?.coordinates;
