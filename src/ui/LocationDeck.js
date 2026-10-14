@@ -2,10 +2,12 @@ import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } fro
 
 // A location owns one address Board and any number of private source Boards.
 // This surface does not create a second map instance.
-export function openLocationDeck({ store, objects, selected, onClose, onLocation }) {
+export function openLocationDeck({ store, objects, selected, onClose, onLocation, map }) {
   const locations = objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates);
   const initial = locations.findIndex(item => String(item.id) === String(selected.properties?.id));
-  let index = initial, page = 0, expanded = false, sources = [], disposed = false;
+  let index = initial, page = 0, expanded = false, sources = [], disposed = false, imageUrl = '';
+  let loadSequence = 0;
+  const IMAGE_KEY = 'location.board.image.v1:';
   if (index < 0) return () => {};
   const surface = document.createElement('section');
   surface.className = 'sh-location-deck';
@@ -24,20 +26,42 @@ export function openLocationDeck({ store, objects, selected, onClose, onLocation
   const el = (tag, text, css='') => { const node=document.createElement(tag); node.textContent=text; if(css)node.style.cssText=css; return node; };
   const button = (text, action) => { const node=el('button',text,'border:1px solid #ddd;background:#fff;border-radius:16px;padding:8px 12px;color:inherit;cursor:pointer'); node.type='button';node.addEventListener('click',action);return node; };
   const current = () => locations[index];
-  const load = async () => { sources=await getPrivateWebSources(store,current().id); if(!disposed)render(); };
+  const load = async () => {
+    const sequence=++loadSequence, id=current().id;
+    const [nextSources, imageRecord]=await Promise.all([getPrivateWebSources(store,id),store.get('meta',IMAGE_KEY+id)]);
+    if(disposed || sequence!==loadSequence)return;
+    sources=nextSources;imageUrl=typeof imageRecord?.value==='string'?imageRecord.value:'';render();
+  };
   const changeLocation = delta => { index=(index+delta+locations.length)%locations.length;page=0;expanded=false;onLocation?.(current());load(); };
   const render = () => {
     if (disposed) return;
     surface.replaceChildren();
     const item=current(), data=item.data||{}, coords=data.coordinates||{};
     const bar=el('div','','display:flex;align-items:center;justify-content:space-between;gap:8px');
-    bar.append(el('small',expanded?'LOCATIEDECK':'LOCATIE','letter-spacing:.12em;opacity:.6'),button('✕',()=>{disposed=true;surface.remove();onClose?.();}));
+    const deckButton=button(expanded?'▤ Deck sluiten':'▤ Deck',()=>{expanded=!expanded;page=0;render();});
+    deckButton.style.cssText+=';transition:all .35s ease;order:'+(expanded?'0':'2');
+    bar.append(deckButton,el('small',expanded?'DECK':'LOCATIE','letter-spacing:.12em;opacity:.55'),button('✕',()=>{disposed=true;surface.remove();onClose?.();}));
     surface.append(bar);
+    const imageFrame=el('div','','position:relative;height:clamp(125px,22vh,210px);margin:12px -4px;border-radius:15px;overflow:hidden;background:linear-gradient(140deg,#c5d3c8,#dce3d6 40%,#b9cdd2 41%,#e8e4d5 65%,#a5b8a9)');
+    const img=document.createElement('img');img.alt='Afbeelding van de locatie';img.style.cssText='width:100%;height:100%;object-fit:cover';
+    if(imageUrl) img.src=imageUrl;
+    else {
+      // Use the existing map as an image if the renderer permits canvas capture.
+      try { const snapshot=map?.getCanvas()?.toDataURL('image/png'); if(snapshot)img.src=snapshot; } catch {}
+    }
+    if(img.src)imageFrame.append(img);
+    const imageTools=el('div','','position:absolute;right:8px;bottom:8px;display:flex;gap:6px');
+    const imageButton=button('Afbeelding',async()=>{
+      const value=window.prompt('URL van een afbeelding (https://)',imageUrl);
+      if(value===null)return;
+      if(value.trim() && (!/^https:\/\/[^\s]+$/i.test(value.trim()) || value.length>2048)) {window.alert('Gebruik een geldige https:// afbeelding-URL.');return;}
+      imageUrl=value.trim();await store.put('meta',{key:IMAGE_KEY+current().id,value:imageUrl});render();
+    });
+    imageTools.append(imageButton);imageFrame.append(imageTools);surface.append(imageFrame);
     if (!expanded || page===0) {
       surface.append(el('div',(data.type||data.locationType||'📍')+'  '+(data.name||data.title||'Locatie'),'font-size:21px;font-weight:600;margin:12px 0 4px'));
       const address=data.address;
       surface.append(el('div',typeof address==='string'?address:(address?.formatted||[address?.street,address?.houseNumber,address?.city].filter(Boolean).join(' ')||'Geen adres ingesteld'),'font-size:13px;opacity:.7;margin-bottom:12px'));
-      if (Number.isFinite(Number(coords.lat))&&Number.isFinite(Number(coords.lng)))surface.append(el('small',Number(coords.lat).toFixed(5)+', '+Number(coords.lng).toFixed(5),'opacity:.45'));
     } else {
       const source=sources[page-1];
       surface.append(el('h3',new URL(source.url).hostname,'margin:16px 0 8px'));
@@ -51,7 +75,7 @@ export function openLocationDeck({ store, objects, selected, onClose, onLocation
       actions.append(button('‹',()=>{page=(page-1+sources.length+1)%(sources.length+1);render();}));
       actions.append(el('small',(page+1)+' / '+(sources.length+1),'opacity:.65'));
       actions.append(button('›',()=>{page=(page+1)%(sources.length+1);render();}));
-      actions.append(button('Deck sluiten',()=>{expanded=false;page=0;render();}));
+      actions.append(button('+ Website',()=>{surface.querySelector('input[type=url]')?.focus();}));
       const form=document.createElement('form');form.style.cssText='display:flex;gap:6px;width:100%;margin-top:8px';
       const input=document.createElement('input');input.type='url';input.required=true;input.placeholder='https://website.nl';input.setAttribute('aria-label','Webpagina URL');input.style.cssText='min-width:0;flex:1;padding:10px;border:1px solid #ddd;border-radius:12px';
       const add=button('+ URL',()=>{});add.type='submit';form.append(input,add);
@@ -60,7 +84,7 @@ export function openLocationDeck({ store, objects, selected, onClose, onLocation
       actions.append(form,status);
     }else{
       actions.append(button('‹ Locatie',()=>changeLocation(-1)));
-      actions.append(button('Deck openen ('+(sources.length+1)+')',()=>{expanded=true;render();}));
+      actions.append(el('small',(sources.length+1)+' Board'+(sources.length?'s':''),'opacity:.65'));
       actions.append(button('Locatie ›',()=>changeLocation(1)));
     }
     surface.append(actions);
