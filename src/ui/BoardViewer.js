@@ -143,13 +143,19 @@ export async function fetchWikipediaBoard(feature, { signal, fetcher = fetch } =
   return sections;
 }
 const boardCache = new Map();
+// Compass preference survives Board changes, not browser restarts.
+let boardCompassEnabled = false;
 export function preloadWikipediaBoard(feature) {
   const key = safeUrl(feature?.properties?.url);
   if (!key) return Promise.resolve([]);
   if (!boardCache.has(key)) {
     const task = fetchWikipediaBoard(feature).then(sections => {
-      const image = safeUrl(sections[0]?.image || feature?.properties?.image, true);
-      if (image && typeof Image !== 'undefined') { const preview = new Image(); preview.src = image; }
+      // Warm the first images without downloading the entire article gallery.
+      if (typeof Image !== 'undefined') {
+        const images = [...new Set([feature?.properties?.image, ...sections.slice(0, 3).map(section => section.image)]
+          .map(value => safeUrl(value, true)).filter(Boolean))].slice(0, 3);
+        images.forEach(src => { const preview = new Image(); preview.src = src; });
+      }
       return sections;
     }).catch(error => { boardCache.delete(key); throw error; });
     boardCache.set(key, task);
@@ -402,7 +408,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   compass.append(compassButton, distance);
   compass.classList.add('is-distance-only');
   photoHeader.append(compass);
-  let compassEnabled = false;
+  let compassEnabled = boardCompassEnabled;
   const updateCompass = () => {
     const value = distanceBearing(gps, destination);
     distance.textContent = value
@@ -597,6 +603,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   async function requestCompass() {
     if (compassEnabled) {
       compassEnabled = false;
+      boardCompassEnabled = false;
       heading = null;
       activate.textContent = 'Richting';
       updateCompass();
@@ -609,7 +616,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try {
       if (typeof DeviceOrientationEvent.requestPermission === 'function' &&
         await DeviceOrientationEvent.requestPermission() !== 'granted') return;
+      if (closed) return;
       compassEnabled = true;
+      boardCompassEnabled = true;
       activate.textContent = 'Wachten…';
       updateCompass();
     } catch {
