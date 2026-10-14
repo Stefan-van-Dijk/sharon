@@ -89,6 +89,14 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;onClose?.();}
     });
   };
-  show();
+  show().catch(error => {
+    console.error('Sharon locatie-Board kon niet openen', error);
+    const notice = document.createElement('div');
+    notice.setAttribute('role','alert');
+    notice.style.cssText = 'position:fixed;z-index:2147483647;left:16px;right:16px;bottom:24px;padding:14px 18px;border-radius:14px;background:#fff;color:#222;box-shadow:0 8px 35px #0003';
+    notice.textContent = 'Locatie-Board kon niet openen: ' + (error?.message || 'onbekende fout');
+    document.body.append(notice);
+    window.setTimeout(() => notice.remove(), 9000);
+  });
   return ()=>{disposed=true;++sequence;closeViewer?.();};
 }
