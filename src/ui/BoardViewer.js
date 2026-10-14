@@ -263,6 +263,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   source.classList.add('sh-board-photo-source');
   photoHeader.append(source);
   story.append(footer);
+  const textGlass = document.createElement('div');
+  textGlass.className = 'sh-board-text-glass';
+  textGlass.setAttribute('aria-hidden', 'true');
+  scroller.append(textGlass);
   scroller.append(story);
 
   const chapterRail = document.createElement('nav');
