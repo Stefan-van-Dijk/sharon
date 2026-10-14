@@ -391,6 +391,12 @@ export function openEnvironmentView(root, {
     filterPanel.setAttribute('aria-hidden', String(!enabled));
     for (const button of filterPanel.querySelectorAll('button')) button.tabIndex = enabled ? 0 : -1;
   };
+  const earlyListeners = [];
+  const listenEarly = (element, name, handler, options) => {
+    if (!element?.addEventListener) return;
+    element.addEventListener(name, handler, options);
+    earlyListeners.push(() => element.removeEventListener(name, handler, options));
+  };
   let filterSwipe = null;
   const onFilterStart = event => {
     if (event.touches.length !== 1 || readoutBar.classList.contains('is-style-active')) return;
@@ -410,13 +416,13 @@ export function openEnvironmentView(root, {
     if (dx < 0) setFilterMode(true);
     else if (readoutBar.classList.contains('is-filter-active')) setFilterMode(false);
   };
-  readoutBar.addEventListener('touchstart', onFilterStart, { passive: true });
-  readoutBar.addEventListener('touchend', onFilterEnd, { passive: true });
-  readoutBar.addEventListener('touchcancel', () => { filterSwipe = null; }, { passive: true });
-  filterBack.addEventListener('click', () => setFilterMode(false));
+  listenEarly(readoutBar, 'touchstart', onFilterStart, { passive: true });
+  listenEarly(readoutBar, 'touchend', onFilterEnd, { passive: true });
+  listenEarly(readoutBar, 'touchcancel', () => { filterSwipe = null; }, { passive: true });
+  listenEarly(filterBack, 'click', () => setFilterMode(false));
   setFilterMode(false);
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
-  wikipediaToggle?.addEventListener("click", () => {
+  listenEarly(wikipediaToggle, "click", () => {
     wikipediaEnabled = !wikipediaEnabled;
     wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
     wikipediaLayer?.setEnabled(wikipediaEnabled);
@@ -647,6 +653,7 @@ export function openEnvironmentView(root, {
 
   return () => {
     disposed = true;
+    for (const detach of earlyListeners) detach();
     root.closest?.('.app-stage')?.classList.remove('is-map-clean');
     if (headerActions && topActions?.parentNode === headerActions) topActions.remove();
     cleanupDiagnostics();
