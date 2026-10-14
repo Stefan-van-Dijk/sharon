@@ -643,6 +643,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   let transitioning = false;
   const resetDeck = () => {
     plate.style.transform = '';
+    plate.style.transformOrigin = '';
     deck.style.transform = '';
     plate.style.opacity = '';
     plate.classList.remove('is-board-dragging');
@@ -666,8 +667,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     swipe.dx = dx < 0 && !onNext ? 0 : dx > 0 && !onPrevious ? 0 : dx;
     if (event.cancelable) event.preventDefault();
     plate.classList.add('is-board-dragging');
+    plate.style.transformOrigin = '50% 50%';
     plate.style.transform = 'translate3d(' + swipe.dx + 'px,0,0) rotate(' +
-      (swipe.dx / 65).toFixed(2) + 'deg)';
+      Math.max(-8, Math.min(8, swipe.dx / Math.max(100, plate.clientWidth) * 12)).toFixed(2) + 'deg)';
     plate.style.opacity = String(Math.max(.6, 1 + swipe.dx / 900));
     deck.style.transform = 'translate3d(' + Math.max(-20, Math.min(20, -swipe.dx * .10)) + 'px,0,0)';
   }, { passive:false });
@@ -681,9 +683,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       transitioning = true;
       const direction = dx < 0 ? 'next' : 'previous';
       plate.classList.add('is-board-exiting');
+      plate.style.transformOrigin = '50% 50%';
       plate.style.transform = direction === 'next'
-        ? 'translate3d(-110vw,0,0) rotate(-9deg)'
-        : 'translate3d(110vw,0,0) rotate(9deg)';
+        ? 'translate3d(-110%,0,0) rotate(-8deg)'
+        : 'translate3d(110%,0,0) rotate(8deg)';
       plate.style.opacity = '0';
       window.setTimeout(() => { if (!closed) switchTo(direction); }, 210);
     } else resetDeck();
