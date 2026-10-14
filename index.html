@@ -2268,6 +2268,24 @@
     .sh-board-plate .sh-board-photo-header {height:clamp(110px,var(--sh-board-photo-size,26vh),48vh)}
     .sh-board-resizer {touch-action:none;user-select:none;-webkit-user-select:none}
 
+
+    /* Boards: dedicated movement handle, synchronized deck, photo-bound fade. */
+    .sh-board-plate {top:clamp(12%,var(--sh-board-position-y,32vh),75%)}
+    .sh-board-deck {top:clamp(12%,var(--sh-board-position-y,32vh),75%)}
+    .sh-board-move-handle {position:absolute;z-index:12;top:0;left:50%;transform:translateX(-50%);width:76px;height:24px;border:0;border-radius:0 0 14px 14px;background:rgba(255,255,255,.66);backdrop-filter:blur(10px);touch-action:none;cursor:grab}
+    .sh-board-move-handle::after {content:'';position:absolute;left:19px;right:19px;top:8px;height:4px;border-radius:5px;background:rgba(47,61,75,.42)}
+    .sh-board-move-handle:active {cursor:grabbing}
+    .sh-board-photo-header {isolation:isolate}
+    .sh-board-photo-header::after {content:'';position:absolute;inset:auto 0 0;height:min(22%,75px);z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(245,246,244,.28));border-radius:inherit}
+    .sh-board-plate .sh-board-scroller {isolation:isolate}
+    .sh-board-deck {pointer-events:none}
+    @media(min-width:760px) {
+      .sh-board-plate[data-board-side="center"],.sh-board-plate[data-board-side="top"],.sh-board-plate[data-board-side="bottom"] {left:var(--sh-board-position-x,50%)}
+      .sh-board-deck {left:var(--sh-board-position-x,50%);transform:translateX(-50%)}
+      .sh-board-plate[data-board-side="left"] {left:max(22px,calc(var(--sh-board-position-x,50%) - 45%))}
+      .sh-board-plate[data-board-side="right"] {right:max(22px,calc(95% - var(--sh-board-position-x,50%)))}
+    }
+
 </style>
 </head>
 <body>
