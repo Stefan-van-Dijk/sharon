@@ -113,7 +113,10 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
-  return { setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
+  return { setActive(feature) {
+    activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
+    if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
+  }, setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
     destroy() { window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
