@@ -208,6 +208,19 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const y = Math.max(8, Math.min(75, Number(layout.y) || 32)) + 'vh';
     plate.style.top = y;
     deck.style.top = y;
+    // Preserve the reader's height while dragging: both edges move together.
+    // The previous fixed bottom edge made the handle behave like a height sizer.
+    const viewportHeight = window.innerHeight;
+    const initialTop = viewportHeight * (Number(layout.map) || defaults.map) / 100;
+    const bottomInset = Math.max(20, viewportHeight * .025);
+    const savedHeight = Math.max(180, viewportHeight - initialTop - bottomInset);
+    const actualTop = viewportHeight * Math.max(8, Math.min(75, Number(layout.y) || 32)) / 100;
+    const availableHeight = Math.max(160, viewportHeight - actualTop - 8);
+    const height = Math.min(savedHeight, availableHeight) + 'px';
+    plate.style.height = height;
+    deck.style.height = height;
+    plate.style.bottom = 'auto';
+    deck.style.bottom = 'auto';
     if (window.innerWidth >= 760) {
       const x = Math.max(15, Math.min(85, Number(layout.x) || 50)) + '%';
       plate.style.left = x;
