@@ -619,7 +619,14 @@ export function openEnvironmentView(root, {
       const box = [[event.point.x-radius,event.point.y-radius],[event.point.x+radius,event.point.y+radius]];
       const features = map.queryRenderedFeatures(box, { layers: LOCAL_LAYERS });
       // Prefer a location point over overlapping polygons/lines so tapping its marker opens its Board.
-      const selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
+      let selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
+      if (!selected) {
+        const items = await store.getAll('objects');
+        const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && isCoordinate(item.data?.coordinates))
+          .map(item => ({item, point: map.project(coordinateArray(item.data.coordinates))}))
+          .find(({point}) => Math.hypot(point.x - event.point.x, point.y - event.point.y) < 24);
+        if (nearest) selected = {geometry:{type:'Point',coordinates:coordinateArray(nearest.item.data.coordinates)},properties:{kind:'location',id:String(nearest.item.id)}};
+      }
       if (!selected) return;
       popup?.remove();
       closeLocationDeck?.();
