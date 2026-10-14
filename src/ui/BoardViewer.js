@@ -531,7 +531,15 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     };
     preload.src = url;
   };
-  selectPhoto(feature.properties?.image);
+  if (isLocal) {
+    if (localBoard.image) {
+      photo.src = localBoard.image;
+      photo.hidden = false;
+      photo.style.display = 'block';
+      photoEmpty.hidden = true;
+      photo.onerror = () => { photo.hidden = true; photo.style.display = 'none'; photoEmpty.hidden = false; };
+    }
+  } else selectPhoto(feature.properties?.image);
   const onOrientation = event => {
     if (!compassEnabled) return;
     if (Number.isFinite(event.webkitCompassHeading)) heading = event.webkitCompassHeading;
