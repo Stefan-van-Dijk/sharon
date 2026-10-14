@@ -1,8 +1,8 @@
-import { createApp } from './app.js?v=0.2.82';
+import { createApp } from './app.js?v=0.2.84';
 
 // Register before the intro: app.start can finish after the window load event.
 if ('serviceWorker' in navigator) {
-  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.2.82', {
+  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.2.84', {
     updateViaCache: 'none'
   }).then(registration => registration.update()).catch(console.error);
   if (document.readyState === 'complete') register();
