@@ -299,39 +299,37 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (controls) story.append(controls);
   }
   if (isLocal) {
-    const introKey = 'sharon.location-board.intro.v1';
-    let showIntro = false;
-    try { showIntro = localStorage.getItem(introKey) !== 'done'; } catch {}
-    if (showIntro) {
-      const intro = document.createElement('div');
-      intro.className = 'sh-local-board-intro';
-      intro.setAttribute('aria-live','polite');
-      const introText = document.createElement('span');
+    const lessons = [
+      ['swipe','Swipe horizontaal om een andere locatie te bekijken.'],
+      ['deck','Open Deck om de extra bronnen van deze plek te bekijken.'],
+      ['image','Je kunt een eigen afbeelding aan deze locatie koppelen.'],
+      ['link','Koppel een website om informatie bij deze locatie te bewaren.']
+    ];
+    const lessonKey = id => 'sharon.board.lesson.v2.' + id;
+    const lesson = lessons.find(([id]) => {
+      try { return localStorage.getItem(lessonKey(id)) !== 'done'; } catch { return true; }
+    });
+    if (lesson) {
+      const [id, message] = lesson;
+      const tip = document.createElement('div');
+      tip.className = 'sh-local-board-intro';
+      const line = document.createElement('span');
       const dismiss = document.createElement('button');
       dismiss.type = 'button';
-      dismiss.textContent = 'Begrepen';
-      dismiss.setAttribute('aria-label','Introductie sluiten');
-      intro.append(introText,dismiss);
-      story.insertBefore(intro, story.querySelector('.sh-local-controls') || footer);
-      const lines = [
-        'Swipe naar links of rechts om andere plekken te ontdekken.',
-        'Open Deck om door de bronnen van deze locatie te bladeren.',
-        'Koppel een afbeelding of webpagina om deze plek aan te vullen.',
-        'Pas de kaartweergave aan via de stijlbediening in Omgeving.'
-      ];
-      let line = 0, char = 0, timer = null;
-      const tick = () => {
-        if (closed || !intro.isConnected) return;
-        introText.textContent = lines[line].slice(0,++char);
-        if (char <= lines[line].length) timer = window.setTimeout(tick,24);
-        else if (line < lines.length-1) timer = window.setTimeout(()=>{line++;char=0;tick();},1450);
+      dismiss.textContent = 'Overslaan';
+      tip.append(line,dismiss);
+      story.insertBefore(tip, story.querySelector('.sh-local-controls') || footer);
+      let cursor = 0;
+      const type = () => {
+        if (closed || !tip.isConnected) return;
+        line.textContent = message.slice(0,++cursor);
+        if (cursor < message.length) window.setTimeout(type, 28);
       };
-      dismiss.addEventListener('click',()=>{
-        window.clearTimeout(timer);
-        try {localStorage.setItem(introKey,'done');}catch{}
-        intro.remove();
+      dismiss.addEventListener('click', () => {
+        try {localStorage.setItem(lessonKey(id),'done');}catch{}
+        tip.remove();
       });
-      tick();
+      type();
     }
   }
   story.append(footer);
