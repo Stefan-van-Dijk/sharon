@@ -315,15 +315,23 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   // Both dividers resize immediately. Hold either for two seconds to lock
   // Board and deck into a movable unit, indicated by a temporary outline.
   let gesture = null;
+  const cards = [...deck.querySelectorAll('.sh-board-deck-card')];
+  const motion = [plate, deck, ...cards];
+  const resetStack = () => {
+    for (const el of motion) {
+      el.style.transition = 'transform 420ms cubic-bezier(.2,1.25,.35,1), box-shadow 420ms ease, filter 420ms ease';
+      el.style.transform = '';
+      el.style.boxShadow = '';
+      el.style.filter = '';
+    }
+  };
   const clearGesture = () => {
     if (!gesture) return;
     window.clearTimeout(gesture.timer);
     gesture = null;
     plate.classList.remove('is-board-moving-together');
     deck.classList.remove('is-board-moving-together');
-    plate.style.outline = '';
-    plate.style.outlineOffset = '';
-    deck.style.outline = '';
+    resetStack();
     window.removeEventListener('pointermove', onGestureMove);
     window.removeEventListener('pointerup', onGestureEnd);
     window.removeEventListener('pointercancel', onGestureEnd);
@@ -335,6 +343,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (gesture.mode === 'pending' && Math.hypot(dx, dy) > 8) {
       window.clearTimeout(gesture.timer);
       gesture.mode = 'resize';
+      resetStack();
     }
     if (gesture.mode === 'move') {
       if (window.innerWidth >= 760) layout.x = Math.max(15, Math.min(85,
@@ -366,14 +375,24 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       y:event.clientY, lastY:event.clientY,
       startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y, timer:null };
     const id = event.pointerId;
+    // Physical pickup: the shadows rise and the offset cards slide under
+    // the reader over the full two-second hold, not only at the end.
+    plate.style.transition = 'transform 2000ms ease-in-out, box-shadow 2000ms ease-in-out';
+    deck.style.transition = 'transform 2000ms ease-in-out, filter 2000ms ease-in-out';
+    plate.style.transform = 'scale(1.03) translateY(-4px)';
+    plate.style.boxShadow = '0 28px 65px rgba(0,0,0,.24), 0 9px 24px rgba(0,0,0,.12)';
+    deck.style.transform = 'scale(1.03) translateY(-4px)';
+    deck.style.filter = 'drop-shadow(0 16px 22px rgba(0,0,0,.12))';
+    cards.forEach((card, i) => {
+      card.style.transition = 'transform 2000ms ease-in-out';
+      card.style.transform = 'translate(' + ((i + 1) * -7) + 'px, ' + ((i + 1) * -7) + 'px) rotate(' + ((i + 1) * -.8) + 'deg)';
+    });
     gesture.timer = window.setTimeout(() => {
       if (!gesture || gesture.id !== id || gesture.mode !== 'pending') return;
       gesture.mode = 'move';
       plate.classList.add('is-board-moving-together');
       deck.classList.add('is-board-moving-together');
-      plate.style.outline = '2px solid rgba(110,170,225,.85)';
-      plate.style.outlineOffset = '3px';
-      deck.style.outline = '1px solid rgba(110,170,225,.4)';
+      // The completed lifted stack now follows the pointer.
       if (navigator.vibrate) navigator.vibrate(25);
     }, 2000);
     window.addEventListener('pointermove', onGestureMove, { passive:false });
