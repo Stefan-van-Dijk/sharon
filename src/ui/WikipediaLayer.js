@@ -32,12 +32,17 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   let activeId = null;
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
+  let filters = [];
   const feedback = id => {
     try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
     catch { return {}; }
   };
   const redraw = () => {
-    const features = [...knownFeatures.values()].map(feature => {
+    const features = [...knownFeatures.values()].filter(feature => {
+      const state = feedback(String(feature.properties?.wikidata || feature.id));
+      if (!filters.length) return !state.hidden;
+      return filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : false);
+    }).map(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
     });
@@ -113,7 +118,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
-  return { setActive(feature) {
+  return { setFilters(values) { filters = values || []; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
