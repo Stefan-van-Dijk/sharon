@@ -412,7 +412,23 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   const onGestureEnd = event => {
     if (!gesture || gesture.id !== event.pointerId) return;
+    const wasMoving = gesture.mode === 'move';
     clearGesture();
+    if (wasMoving) {
+      // Snap to a predictable 3 x 3 grid. Keep the complete Board in view.
+      const xPositions = window.innerWidth >= 760 ? [23, 50, 77] : [50];
+      const maxY = Math.max(8, Math.min(75, 100 - (Number(layout.height) || defaults.height) - 2));
+      const yPositions = [8, Math.max(8, (8 + maxY) / 2), maxY];
+      const nearest = (value, points) => points.reduce((best, p) =>
+        Math.abs(p - value) < Math.abs(best - value) ? p : best, points[0]);
+      layout.x = nearest(Number(layout.x) || defaults.x, xPositions);
+      layout.y = nearest(Number(layout.y) || defaults.y, yPositions);
+      plate.style.transition = 'top 320ms ease, left 320ms ease';
+      deck.style.transition = 'top 320ms ease, left 320ms ease';
+      applyLayout();
+      notifyLayout();
+      window.setTimeout(() => { plate.style.transition = ''; deck.style.transition = ''; }, 350);
+    }
     saveLayout();
   };
   const beginGesture = (handle, kind, event) => {
@@ -423,23 +439,17 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       y:event.clientY, lastY:event.clientY,
       startX:Number(layout.x) || defaults.x, startY:Number(layout.y) || defaults.y, timer:null };
     const id = event.pointerId;
-    // Physical pickup: the shadows rise and the offset cards slide under
-    // the reader over the full two-second hold, not only at the end.
-    plate.style.transition = 'transform 2000ms ease-in-out, box-shadow 2000ms ease-in-out';
-    deck.style.transition = 'transform 2000ms ease-in-out, filter 2000ms ease-in-out';
-    plate.style.transform = 'scale(1.03) translateY(-4px)';
-    plate.style.boxShadow = '0 28px 65px rgba(0,0,0,.24), 0 9px 24px rgba(0,0,0,.12)';
-    deck.style.transform = 'scale(1.03) translateY(-4px)';
-    deck.style.filter = 'drop-shadow(0 16px 22px rgba(0,0,0,.12))';
-    cards.forEach((card, i) => {
-      card.style.transition = 'transform 2000ms ease-in-out';
-      card.style.transform = 'translate(' + ((i + 1) * -7) + 'px, ' + ((i + 1) * -7) + 'px) rotate(' + ((i + 1) * -.8) + 'deg)';
-    });
+    // On iPad do not scale/translate the active card during the hold.
+    // Visual motion on the active card breaks finger-to-position correspondence.
+    plate.style.transition = 'box-shadow 2000ms ease';
+    plate.style.boxShadow = '0 22px 55px rgba(0,0,0,.19)';
     gesture.timer = window.setTimeout(() => {
       if (!gesture || gesture.id !== id || gesture.mode !== 'pending') return;
       gesture.mode = 'move';
       plate.classList.add('is-board-moving-together');
       deck.classList.add('is-board-moving-together');
+      plate.style.transition = 'none';
+      deck.style.transition = 'none';
       // The completed lifted stack now follows the pointer.
       if (navigator.vibrate) navigator.vibrate(25);
     }, 2000);
