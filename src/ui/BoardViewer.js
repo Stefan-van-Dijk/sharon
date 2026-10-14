@@ -359,7 +359,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const motion = [plate, deck, ...cards];
   const resetStack = () => {
     for (const el of motion) {
-      el.style.transition = 'transform 420ms cubic-bezier(.2,1.25,.35,1), box-shadow 420ms ease, filter 420ms ease';
+      el.style.transition = 'none';
       el.style.transform = '';
       el.style.boxShadow = '';
       el.style.filter = '';
@@ -410,23 +410,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   const onGestureEnd = event => {
     if (!gesture || gesture.id !== event.pointerId) return;
-    const wasMoving = gesture.mode === 'move';
     clearGesture();
-    if (wasMoving) {
-      // Snap to a predictable 3 x 3 grid. Keep the complete Board in view.
-      const xPositions = window.innerWidth >= 760 ? [23, 50, 77] : [50];
-      const maxY = Math.max(8, Math.min(75, 100 - (Number(layout.height) || defaults.height) - 2));
-      const yPositions = [8, Math.max(8, (8 + maxY) / 2), maxY];
-      const nearest = (value, points) => points.reduce((best, p) =>
-        Math.abs(p - value) < Math.abs(best - value) ? p : best, points[0]);
-      layout.x = nearest(Number(layout.x) || defaults.x, xPositions);
-      layout.y = nearest(Number(layout.y) || defaults.y, yPositions);
-      plate.style.transition = 'top 320ms ease, left 320ms ease';
-      deck.style.transition = 'top 320ms ease, left 320ms ease';
-      applyLayout();
-      notifyLayout();
-      window.setTimeout(() => { plate.style.transition = ''; deck.style.transition = ''; }, 350);
-    }
     saveLayout();
   };
   const beginGesture = (handle, kind, event) => {
@@ -439,8 +423,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const id = event.pointerId;
     // On iPad do not scale/translate the active card during the hold.
     // Visual motion on the active card breaks finger-to-position correspondence.
-    plate.style.transition = 'box-shadow 2000ms ease';
-    plate.style.boxShadow = '0 22px 55px rgba(0,0,0,.19)';
+    plate.style.transition = 'none';
+    deck.style.transition = 'none';
     gesture.timer = window.setTimeout(() => {
       if (!gesture || gesture.id !== id || gesture.mode !== 'pending') return;
       gesture.mode = 'move';
