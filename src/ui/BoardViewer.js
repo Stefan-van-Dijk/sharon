@@ -171,7 +171,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const plate = document.createElement('div');
   plate.className = 'sh-board-plate';
   const layoutKey = 'sharon.board.layout.v1';
-  const defaults = { map: 32, photo: 26, side: 'center' };
+  const defaults = { map: 32, photo: 26, side: 'center', x: 50, y: 32 };
   let layout = { ...defaults };
   try { layout = { ...defaults, ...JSON.parse(localStorage.getItem(layoutKey) || '{}') }; } catch {}
   const applyLayout = () => {
@@ -179,6 +179,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const photo = Math.max(14, Math.min(48, Number(layout.photo) || defaults.photo));
     plate.style.setProperty('--sh-board-map-space', map + 'vh');
     plate.style.setProperty('--sh-board-photo-size', photo + 'vh');
+    plate.style.setProperty('--sh-board-position-x', Math.max(5, Math.min(95, Number(layout.x) || 50)) + '%');
+    plate.style.setProperty('--sh-board-position-y', Math.max(12, Math.min(75, Number(layout.y) || 32)) + 'vh');
+    deck.style.setProperty('--sh-board-position-x', Math.max(5, Math.min(95, Number(layout.x) || 50)) + '%');
+    deck.style.setProperty('--sh-board-position-y', Math.max(12, Math.min(75, Number(layout.y) || 32)) + 'vh');
     plate.dataset.boardSide = ['left','right','top','bottom'].includes(layout.side) ? layout.side : 'center';
   };
   const saveLayout = () => {
@@ -249,7 +253,12 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const chapterRail = document.createElement('nav');
   chapterRail.className = 'sh-board-chapters';
   chapterRail.setAttribute('aria-label', 'Hoofdstukken');
-  plate.append(mapSizer, photoHeader, photoSizer, scroller, chapterRail);
+  const moveHandle = document.createElement('button');
+  moveHandle.type = 'button';
+  moveHandle.className = 'sh-board-move-handle';
+  moveHandle.setAttribute('aria-label', 'Verplaats Board');
+  moveHandle.title = 'Sleep om Board te verplaatsen';
+  plate.append(moveHandle, mapSizer, photoHeader, photoSizer, scroller, chapterRail);
   overlay.append(deck, plate);
   plate.classList.add('is-board-entering');
   document.body.append(overlay);
@@ -291,6 +300,30 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     applyLayout();
   });
 
+  let moving = null;
+  moveHandle.addEventListener('pointerdown', event => {
+    moving = { id:event.pointerId, x:event.clientX, y:event.clientY, startX: Number(layout.x)||50, startY:Number(layout.y)||32 };
+    moveHandle.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  });
+  moveHandle.addEventListener('pointermove', event => {
+    if (!moving || moving.id !== event.pointerId) return;
+    if (window.innerWidth >= 760) layout.x = Math.max(15,Math.min(85,moving.startX + (event.clientX-moving.x)/window.innerWidth*100));
+    layout.y = Math.max(12,Math.min(75,moving.startY + (event.clientY-moving.y)/window.innerHeight*100));
+    applyLayout();
+  });
+  const stopMoving = () => { if (moving) { moving = null; saveLayout(); } };
+  moveHandle.addEventListener('pointerup', stopMoving);
+  moveHandle.addEventListener('pointercancel', stopMoving);
+  moveHandle.addEventListener('keydown', event => {
+    if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'ArrowUp') layout.y -= 2;
+    if (event.key === 'ArrowDown') layout.y += 2;
+    if (event.key === 'ArrowLeft') layout.x -= 2;
+    if (event.key === 'ArrowRight') layout.x += 2;
+    saveLayout();
+  });
   // On wider screens a double tap/click on the map divider cycles the reader
   // from centred to left and right, leaving the map visible alongside it.
   mapSizer.addEventListener('dblclick', () => {
@@ -434,7 +467,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   };
   plate.addEventListener('touchstart', event => {
     if ((!onNext && !onPrevious) || transitioning || event.touches.length !== 1 ||
-        event.target.closest('button,a,.sh-board-compass')) return;
+        event.target.closest('button,a,.sh-board-compass,.sh-board-move-handle')) return;
     const t = event.touches[0];
     swipe = { x:t.clientX, y:t.clientY, dx:0, direction:null };
   }, { passive:true });
