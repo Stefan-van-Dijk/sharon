@@ -5,6 +5,10 @@ const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
   const places = objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates);
   let index = places.findIndex(item => String(item.id) === String(selected.properties?.id));
+  if (index < 0) {
+    const [lng, lat] = selected.geometry?.coordinates || [];
+    index = places.findIndex(item => Math.abs(Number(item.data.coordinates.lng) - Number(lng)) < 0.00001 && Math.abs(Number(item.data.coordinates.lat) - Number(lat)) < 0.00001);
+  }
   if (index < 0) return () => {};
   let expanded = false, page = 0, sources = [], image = '', closeViewer = null, disposed = false, replacing = false, sequence = 0;
   const current = () => places[index];
@@ -29,7 +33,11 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
   const complete = id => { try {localStorage.setItem('sharon.board.lesson.v2.'+id,'done');}catch{} };
   const show = async () => {
     const ticket = ++sequence, item = current();
-    const [links, record] = await Promise.all([getPrivateWebSources(store,item.id),store.get('meta',IMAGE_KEY+item.id)]);
+    // A missing optional source/image must never prevent the location Board from opening.
+    const [links, record] = await Promise.all([
+      getPrivateWebSources(store,item.id).catch(() => []),
+      store.get('meta',IMAGE_KEY+item.id).catch(() => null)
+    ]);
     if (disposed || ticket !== sequence) return;
     sources = links;
     image = typeof record?.value === 'string' ? record.value : '';
