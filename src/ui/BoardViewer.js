@@ -291,6 +291,39 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
   footer.append(credits);
+  if (!isLocal) {
+    const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
+    const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
+    let feedback = {read:false, liked:false};
+    try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
+    const actions = document.createElement('div');
+    actions.className = 'sh-board-feedback';
+    actions.style.cssText = 'display:flex;gap:10px;align-items:center;justify-content:center;margin:14px 0 8px';
+    const readButton = document.createElement('button');
+    const likeButton = document.createElement('button');
+    for (const button of [readButton,likeButton]) {
+      button.type = 'button';
+      button.style.cssText = 'border:1px solid rgba(100,115,125,.22);border-radius:999px;background:rgba(255,255,255,.4);padding:9px 15px;font:inherit;cursor:pointer';
+    }
+    const renderFeedback = () => {
+      readButton.textContent = feedback.read ? '✓ Gelezen' : '✓ Markeer gelezen';
+      likeButton.textContent = feedback.liked ? '♥ Leuk gevonden' : '♡ Leuk';
+      readButton.setAttribute('aria-pressed',String(feedback.read));
+      likeButton.setAttribute('aria-pressed',String(feedback.liked));
+      readButton.style.fontWeight = feedback.read ? '700' : '400';
+      likeButton.style.fontWeight = feedback.liked ? '700' : '400';
+    };
+    const persistFeedback = () => {
+      try { localStorage.setItem(feedbackKey,JSON.stringify(feedback)); } catch {}
+      window.dispatchEvent(new CustomEvent('sharon-wiki-feedback-changed',{detail:{id:articleId,...feedback}}));
+      renderFeedback();
+    };
+    readButton.addEventListener('click', () => { feedback.read = !feedback.read; persistFeedback(); });
+    likeButton.addEventListener('click', () => { feedback.liked = !feedback.liked; persistFeedback(); });
+    renderFeedback();
+    actions.append(readButton,likeButton);
+    footer.prepend(actions);
+  }
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
   source.classList.add('sh-board-photo-source');
   if (!isLocal) photoHeader.append(source);
