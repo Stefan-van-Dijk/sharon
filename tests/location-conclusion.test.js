@@ -67,7 +67,7 @@ test('one-line conclusion replaces multi-question heading and categories scroll 
   assert.ok(styles.includes('.sh-location-reference-types{'));
   assert.ok(styles.includes('scroll-snap-type:x proximity'));
   assert.ok(styles.includes('border-right:1px solid'));
-  assert.ok(shell.includes("outlet.querySelector('.location-editor-view [data-back]')"));
+  assert.ok(shell.includes("outlet.querySelector('.location-editor-view[data-stage]')"));
   assert.ok(swipe.includes('[data-type-chips]'));
 });
 
