@@ -12,6 +12,10 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     removeEventListener: name => listeners.delete(key + name),
     classList: { contains: () => false, toggle: () => {} },
     setAttribute: () => {},
+    getAttribute: () => null,
+    style: { setProperty: () => {} },
+    dataset: {},
+    parentElement: { hidden: false },
     querySelectorAll: () => []
   });
   const nodes = new Map(['[data-maplibre-map]', '[data-map-readout]', '[data-map-scale]',
@@ -21,7 +25,7 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
   globalThis.window = { location: { search: '' } };
   globalThis.document = { querySelector: () => ({} ) };
   try {
-    const cleanup = openEnvironmentView({ innerHTML: '', querySelector: key => nodes.get(key) }, {
+    const cleanup = openEnvironmentView({ innerHTML: '', querySelector: key => nodes.get(key) || fake(key), querySelectorAll: () => [] }, {
       location: { latest: null }, events: {}, store: { get: async () => null },
       loadRenderer: () => renderer
     });
@@ -61,6 +65,10 @@ test('shared map controls are mounted immediately and cleaned up before a late r
     removeEventListener: name => listeners.delete(key + name),
     classList: { contains: () => false, toggle: () => {} },
     setAttribute: () => {},
+    getAttribute: () => null,
+    style: { setProperty: () => {} },
+    dataset: {},
+    parentElement: { hidden: false },
     querySelectorAll: () => []
   });
   const nodes = new Map([
@@ -77,7 +85,7 @@ test('shared map controls are mounted immediately and cleaned up before a late r
   globalThis.document = { querySelector: () => ({}) };
   globalThis.cancelAnimationFrame = () => {};
   try {
-    const cleanup = openEnvironmentView({ innerHTML:'', querySelector: key => nodes.get(key) }, {
+    const cleanup = openEnvironmentView({ innerHTML:'', querySelector: key => nodes.get(key) || fake(key), querySelectorAll: () => [] }, {
       headerActions,
       location: { latest: null },
       events: {},
