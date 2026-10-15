@@ -291,7 +291,25 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   if (!isLocal) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
-  footer.append(credits);
+  const attribution = document.createElement('div');
+  attribution.className = 'sh-board-attribution';
+  attribution.append(credits);
+  if (!isLocal) {
+    const names = Array.isArray(feature?.properties?.categories) ? feature.properties.categories : [];
+    const categoryText = names.join(' ').toLowerCase();
+    const groups = [];
+    if (/monument|histor|erfgoed|kasteel|kerk|archeolog|oorlog|geschiedenis/.test(categoryText)) groups.push('Erfgoed');
+    if (/gebouw|architect|brug|toren|bouwwerk|constructie/.test(categoryText)) groups.push('Bouwwerken');
+    if (/natuur|bos|park|rivier|meer|landschap|flora|fauna/.test(categoryText)) groups.push('Natuur');
+    if (/kunst|museum|cultuur|theater|beeld|muziek/.test(categoryText)) groups.push('Cultuur');
+    if (/spoor|station|weg|vervoer|haven|infrastructuur|kanaal/.test(categoryText)) groups.push('Vervoer');
+    const category = document.createElement('small');
+    category.className = 'sh-board-category';
+    category.textContent = groups.length ? groups.join(' · ') : 'Overig';
+    category.title = names.join(' · ') || 'Geen Wikipedia-categorie beschikbaar';
+    attribution.append(category);
+  }
+  footer.append(attribution);
   if (!isLocal) {
     const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
     const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
