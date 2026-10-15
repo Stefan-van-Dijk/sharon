@@ -65,7 +65,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     const features = [...knownFeatures.values()].filter(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       if (!filters.length && !categoryFilters.length) return !state.hidden;
-      const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : false);
+      const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : filter === 'disliked' ? !!state.disliked && !state.hidden : false);
       const categoryMatch = !state.hidden && categoryFilters.some(group => categoriesFor(feature).includes(group));
       return statusMatch || categoryMatch;
     }).map(feature => {
