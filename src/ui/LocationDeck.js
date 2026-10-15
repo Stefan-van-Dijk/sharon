@@ -1,5 +1,5 @@
-import { openBoardViewer } from './BoardViewer.js?v=0.3.12';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.12';
+import { openBoardViewer } from './BoardViewer.js?v=0.3.13';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.13';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
