@@ -223,7 +223,7 @@ export function openEnvironmentView(root, {
         </div>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
-          <header><strong>Wikipedia</strong><button type="button" data-source-sheet-close aria-label="Sluit bronfilters">×</button></header>
+          <header><strong>Wikipedia</strong></header>
           <p>Toon een artikel wanneer minstens één gekozen voorwaarde klopt.</p>
           <strong>Status</strong>
           <div class="environment-source-filter-grid">
@@ -485,6 +485,12 @@ export function openEnvironmentView(root, {
   setFilterMode(false);
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   listenEarly(wikipediaToggle, "click", () => {
+    if (root.querySelector("[data-source-sheet]")?.classList.contains("is-open")) {
+      root.querySelector("[data-source-sheet]").classList.remove("is-open");
+      root.querySelector("[data-source-sheet]").setAttribute("aria-hidden","true");
+      root.querySelector("[data-wiki-settings]")?.setAttribute("aria-expanded","false");
+      return;
+    }
     wikipediaEnabled = !wikipediaEnabled;
     wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
     wikipediaLayer?.setEnabled(wikipediaEnabled);
@@ -510,7 +516,6 @@ export function openEnvironmentView(root, {
     sourceSettings.setAttribute('aria-expanded',String(value));
   };
   listenEarly(sourceSettings,'click',()=>toggleSourceSheet(!sourceSheet.classList.contains('is-open')));
-  listenEarly(root.querySelector('[data-source-sheet-close]'),'click',()=>toggleSourceSheet(false));
   for (const [attribute,selection] of [['data-wiki-filter',activeWikiFilters],['data-wiki-category',activeWikiCategories]]) {
     for (const button of root.querySelectorAll('['+attribute+']')) listenEarly(button,'click',()=>{
       const value = button.getAttribute(attribute);
