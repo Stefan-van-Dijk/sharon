@@ -24,7 +24,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     header();
     const cards = await records();
     outlet.innerHTML = `
-      <section class="module-view" style="padding:20px 0 40px">
+      <section class="module-view sh-card-view">
         <p style="color:#74747a;font-size:14px;margin:0 0 24px">
           Bewaar je klanten- en spaarpassen op één plek.
         </p>
@@ -48,7 +48,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     title(card ? 'Kaart aanpassen' : 'Nieuwe kaart');
     header();
     outlet.innerHTML = `
-      <section class="module-view" style="padding:22px 0 44px">
+      <section class="module-view sh-card-view">
         <form data-card-form>
           <label for="card-name" style="display:block;font-size:13px;color:#777;margin-bottom:10px">Naam van de winkel of organisatie</label>
           <input id="card-name" name="name" maxlength="100" autocomplete="organization" required
