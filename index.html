@@ -613,6 +613,18 @@
     .environment-source-label{font:500 12px system-ui,sans-serif;color:#555}
     .environment-source-options .environment-source-settings{min-width:36px;width:36px;height:36px;min-height:36px!important;border-radius:50%;padding:0;justify-content:center;font:24px system-ui,sans-serif}
     .environment-source-settings.has-active-filters:after{content:'';width:5px;height:5px;border-radius:50%;background:#a76abd;position:absolute;margin:25px 0 0 25px}
+
+    .sh-board-attribution{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-width:0;flex:1}
+    .sh-board-plate .sh-board-footer .sh-board-category{font:400 9px/1.3 system-ui,sans-serif;color:#88919a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .environment-source-options{justify-content:flex-start;overflow:visible;position:relative;gap:0;padding-left:8px}
+    .environment-source-options .environment-source-circle{position:relative;z-index:2;transition:border-color .25s,transform .25s,box-shadow .25s}
+    .environment-source-options .environment-source-circle[aria-pressed="true"]{box-shadow:0 0 0 3px rgba(183,123,197,.08);animation:sh-source-awake .42s ease-out}
+    @keyframes sh-source-awake{0%{transform:scale(.9)}55%{transform:scale(1.07)}100%{transform:scale(1)}}
+    .environment-source-options .environment-source-settings{position:absolute;left:12px;top:-13px;z-index:1;width:44px;min-width:44px;height:29px;min-height:29px!important;border-radius:50% 50% 0 0;border:1.5px solid #bcb1c5;border-bottom:0;background:rgba(255,255,255,.76);padding:0;transition:top .22s ease,background .22s ease}
+    .environment-source-options .environment-source-settings span{display:none}
+    .environment-source-options .environment-source-settings:hover,.environment-source-options .environment-source-settings[aria-expanded="true"]{top:-18px;background:#f6f0f8}
+    .environment-source-settings.has-active-filters:after{margin:0;position:absolute;right:4px;top:5px}
+    @media(prefers-reduced-motion:reduce){.environment-source-options .environment-source-circle[aria-pressed="true"]{animation:none}}
     .environment-source-sheet{position:absolute;z-index:12;left:12px;right:12px;bottom:calc(105px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;padding:12px 18px 20px;border-radius:24px;background:rgba(255,255,255,.96);box-shadow:0 10px 42px #0002;backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(28px);transition:opacity .22s,transform .26s,visibility .26s;max-height:65vh;overflow-y:auto}
     .environment-source-sheet.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
     .environment-source-sheet-handle{width:38px;height:4px;border-radius:5px;background:#c4c4c8;margin:0 auto 12px}
