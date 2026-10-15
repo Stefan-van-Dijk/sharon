@@ -565,11 +565,16 @@ export function createEnvironmentAppearanceEditor(root, store, {
     },250);
   };
   const saveChanges = category => {
-    overrides = isStandardScenario(scenarioDeck) ? {} :
-      sanitizeEnvironmentAppearance(overrides);
+    // Standaard is an immutable reference style. When someone edits it,
+    // continue in Eigen instead of silently discarding the adjustment.
+    if (isStandardScenario(scenarioDeck)) {
+      scenarioDeck = { ...scenarioDeck, active: 0 };
+    }
+    overrides = sanitizeEnvironmentAppearance(overrides);
     if (scenarioDeck) scenarioDeck = saveEnvironmentScenario(scenarioDeck,overrides);
     notify(category);
     render();
+    renderScenario();
     setStatus('Direct zichtbaar op de kaart · lokaal opgeslagen');
     persist();
   };
