@@ -1,3 +1,5 @@
+import { renderStrip } from './Strip.js?v=0.2.60';
+import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
 import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.20';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -9,36 +11,66 @@ const compareName = value => normalizeName(value).toLocaleLowerCase('nl-NL');
 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
+  let sort = 'alpha';
+  let releaseRows = null;
   const title = value => { if (typeof setTitle === 'function') setTitle(value); };
   const header = () => { if (headerActions) headerActions.replaceChildren(); };
 
   async function records() {
     const all = await store.getAll('objects');
-    return all.filter(item => item.type === 'card').sort((a, b) =>
-      (a.name || '').localeCompare(b.name || '', 'nl'));
+    return all.filter(item => item.type === 'card');
   }
 
   async function showList() {
     editingId = null;
     title('Kaarten');
+    releaseRows?.();
+    releaseRows = null;
     header();
+    if (headerActions) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'sh-location-header-add';
+      add.setAttribute('aria-label', 'Kaart toevoegen');
+      add.textContent = '+';
+      add.addEventListener('click', () => showForm());
+      headerActions.append(add);
+    }
     const cards = await records();
+    cards.sort(sort === 'recent'
+      ? (a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+      : (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl'));
     outlet.innerHTML = `
-      <section class="module-view sh-card-view">
-        <p style="color:#74747a;font-size:14px;margin:0 0 24px">
-          Bewaar je klanten- en spaarpassen op één plek.
-        </p>
-        <button type="button" data-create-card style="width:100%;border:1px solid #171717;border-radius:10px;background:#171717;color:white;padding:15px;text-align:left">+ Kaart toevoegen</button>
-        <div style="margin-top:24px" data-card-list>
-          ${cards.length ? cards.map(card => `
-            <button type="button" data-card-id="${escapeHtml(card.id)}" style="display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-bottom:1px solid #e9e9ec;background:transparent;padding:18px 2px;text-align:left;color:inherit">
-              <span>${escapeHtml(card.name)}</span><span aria-hidden="true" style="color:#999">›</span>
-            </button>`).join('') : '<p style="color:#89898e;font-size:14px">Je hebt nog geen kaarten toegevoegd.</p>'}
+      <section class="module-view locations-view sh-card-view">
+        <div class="sh-locations-sort" aria-label="Kaarten sorteren">
+          <button type="button" data-card-sort="recent" ${sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
+          <button type="button" data-card-sort="alpha" ${sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
+        </div>
+        <div class="sh-locations-list swipe-list" data-card-list>
+          ${cards.length ? cards.map(card => renderStrip({
+            id: card.id,
+            className: 'sh-location-strip',
+            surfaceClassName: 'sh-location-row',
+            variant: 'location',
+            ariaLabel: card.name,
+            leadingHtml: '<span class="sh-location-kind" aria-hidden="true">▤</span>',
+            bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong></span>',
+            trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
+            actions: [{ kind: 'delete', label: 'Verwijder' }]
+          })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
-    outlet.querySelector('[data-create-card]').addEventListener('click', () => showForm());
-    outlet.querySelectorAll('[data-card-id]').forEach(button =>
-      button.addEventListener('click', () => showForm(button.dataset.cardId)));
+    releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
+      onOpen: id => showForm(id),
+      onDelete: async id => {
+        const card = await store.get('objects', id);
+        if (!card || card.type !== 'card' || !confirm('Wil je deze kaart verwijderen?')) return;
+        await store.delete('objects', id);
+        await showList();
+      }
+    });
+    outlet.querySelectorAll('[data-card-sort]').forEach(button =>
+      button.addEventListener('click', () => { sort = button.dataset.cardSort; showList(); }));
   }
 
   async function showForm(id = null) {
@@ -46,19 +78,25 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     if (id && (!card || card.type !== 'card')) return showList();
     editingId = card?.id || null;
     title(card ? 'Kaart aanpassen' : 'Nieuwe kaart');
+    releaseRows?.();
+    releaseRows = null;
     header();
     outlet.innerHTML = `
-      <section class="module-view sh-card-view">
-        <form data-card-form>
+      <section class="module-view sh-card-view sh-location-dialog">
+        <form data-card-form class="sh-card-form">
+          <div class="sh-location-question">
+          <h2 class="sh-location-question-title">Hoe heet deze kaart?</h2>
           <label for="card-name" style="display:block;font-size:13px;color:#777;margin-bottom:10px">Naam van de winkel of organisatie</label>
           <input id="card-name" name="name" maxlength="100" autocomplete="organization" required
             value="${escapeHtml(card?.name || '')}"
             placeholder="Bijvoorbeeld Jumbo" style="width:100%;border:0;border-bottom:1px solid #d6d6da;border-radius:0;padding:10px 0;font-size:21px;background:transparent;outline:none">
           <p data-card-error role="alert" style="min-height:22px;color:#ad3030;font-size:13px"></p>
-          <p style="font-size:13px;color:#777;line-height:1.5">We bewaren de naam zoals je hem invoert. Een koppeling met een officiële organisatie en OpenStreetMap voegen we later toe.</p>
-          <button type="submit" style="width:100%;margin-top:18px;background:#171717;border:0;border-radius:10px;padding:15px;color:white">Opslaan</button>
-          <button type="button" data-cancel style="width:100%;margin-top:10px;background:none;border:0;padding:14px;color:#777">Annuleren</button>
-          ${card ? '<button type="button" data-delete style="width:100%;margin-top:12px;background:none;border:0;padding:14px;color:#ad3030">Kaart verwijderen</button>' : ''}
+          </div>
+          <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
+            <button type="button" data-cancel class="story-text-action" style="background:none;border:0">Annuleren</button>
+            <button type="submit" class="sh-location-simple-submit">Opslaan</button>
+          </div></div>
+          ${card ? '<button type="button" data-delete style="margin-top:10px;background:none;border:0;color:#a33">Kaart verwijderen</button>' : ''}
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
