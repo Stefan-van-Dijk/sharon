@@ -223,23 +223,24 @@ export function openEnvironmentView(root, {
         </div>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
-          <header><strong>Wikipedia</strong></header>
+          <header><strong>Wikipedia</strong><small data-wiki-available>0 Boards gevonden</small></header>
           <p>Toon een artikel wanneer minstens één gekozen voorwaarde klopt.</p>
           <strong>Status</strong>
           <div class="environment-source-filter-grid">
-            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen</button>
-            <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen</button>
-            <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk</button>
-            <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen</button>
+            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen <small data-wiki-global="unread"></small></button>
+            <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen <small data-wiki-global="read"></small></button>
+            <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk <small data-wiki-global="liked"></small></button>
+            <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen <small data-wiki-global="hidden"></small></button>
           </div>
-          <strong>Categorieën</strong>
+          <div class="environment-wiki-global-note">Persoonlijke totalen op dit apparaat, ongeacht de kaartpositie · <span data-wiki-disliked>0 niet leuk</span></div>
+          <strong>Categorieën <small>gevonden · gelezen · leuk · niet leuk</small></strong>
           <div class="environment-source-filter-grid">
-            <button type="button" data-wiki-category="erfgoed" aria-pressed="false">Erfgoed</button>
-            <button type="button" data-wiki-category="bouw" aria-pressed="false">Bouwwerken</button>
-            <button type="button" data-wiki-category="natuur" aria-pressed="false">Natuur</button>
-            <button type="button" data-wiki-category="cultuur" aria-pressed="false">Cultuur</button>
-            <button type="button" data-wiki-category="vervoer" aria-pressed="false">Vervoer</button>
-            <button type="button" data-wiki-category="overig" aria-pressed="false">Overig</button>
+            <button type="button" data-wiki-category="erfgoed" aria-pressed="false">Erfgoed<small data-wiki-category-count="erfgoed">0 · 0 · 0 · 0</small></button>
+            <button type="button" data-wiki-category="bouw" aria-pressed="false">Bouwwerken<small data-wiki-category-count="bouw">0 · 0 · 0 · 0</small></button>
+            <button type="button" data-wiki-category="natuur" aria-pressed="false">Natuur<small data-wiki-category-count="natuur">0 · 0 · 0 · 0</small></button>
+            <button type="button" data-wiki-category="cultuur" aria-pressed="false">Cultuur<small data-wiki-category-count="cultuur">0 · 0 · 0 · 0</small></button>
+            <button type="button" data-wiki-category="vervoer" aria-pressed="false">Vervoer<small data-wiki-category-count="vervoer">0 · 0 · 0 · 0</small></button>
+            <button type="button" data-wiki-category="overig" aria-pressed="false">Overig<small data-wiki-category-count="overig">0 · 0 · 0 · 0</small></button>
           </div>
           <small>Categorieën worden voorlopig afgeleid uit Wikipedia. Meerdere keuzes werken met OF.</small>
         </section>
@@ -495,6 +496,38 @@ export function openEnvironmentView(root, {
     wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
     wikipediaLayer?.setEnabled(wikipediaEnabled);
   });
+  const refreshGlobalWikiCounts = () => {
+    const totals = {read:0,unread:0,liked:0,disliked:0,hidden:0};
+    try {
+      for (let i=0;i<localStorage.length;i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith('sharon.wiki.feedback.v1:')) continue;
+        let state; try { state=JSON.parse(localStorage.getItem(key)||'{}'); } catch {continue;}
+        if (state.read) totals.read++; else totals.unread++;
+        if (state.liked) totals.liked++;
+        if (state.disliked) totals.disliked++;
+        if (state.hidden) totals.hidden++;
+      }
+    } catch {}
+    for (const [key,value] of Object.entries(totals)) {
+      const target=root.querySelector('[data-wiki-global="'+key+'"]');
+      if(target) target.textContent=String(value);
+    }
+    const disliked=root.querySelector('[data-wiki-disliked]');
+    if(disliked) disliked.textContent=totals.disliked+' niet leuk';
+  };
+  const refreshWikiCategoryCounts = event => {
+    const detail=event.detail||{};
+    const available=root.querySelector('[data-wiki-available]');
+    if(available) available.textContent=(detail.total||0)+' Boards gevonden';
+    for (const [key,count] of Object.entries(detail.groups||{})) {
+      const node=root.querySelector('[data-wiki-category-count="'+key+'"]');
+      if(node) node.textContent=[count.total,count.read,count.liked,count.disliked].join(' · ');
+    }
+  };
+  listenEarly(window,'sharon-wiki-counts-changed',refreshWikiCategoryCounts);
+  listenEarly(window,'sharon-wiki-feedback-changed',refreshGlobalWikiCounts);
+  refreshGlobalWikiCounts();
   const sourceSheet = root.querySelector('[data-source-sheet]');
   const sourceSettings = root.querySelector('[data-wiki-settings]');
   const savedSourceFilters = (() => {
