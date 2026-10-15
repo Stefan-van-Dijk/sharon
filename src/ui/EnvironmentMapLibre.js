@@ -227,13 +227,13 @@ export function openEnvironmentView(root, {
           <p>Toon een artikel wanneer minstens één gekozen voorwaarde klopt.</p>
           <strong>Status</strong>
           <div class="environment-source-filter-grid">
-            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen <small data-wiki-global="unread"></small></button>
+            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen</button>
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen <small data-wiki-global="read"></small></button>
             <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk <small data-wiki-global="liked"></small></button>
             <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen <small data-wiki-global="hidden"></small></button>
             <button type="button" data-wiki-filter="disliked" aria-pressed="false">♧ Niet leuk <small data-wiki-global="disliked"></small></button>
           </div>
-          <div class="environment-wiki-global-note">Opgeslagen beoordelingen op dit apparaat, onafhankelijk van de kaartpositie. Ongelezen is alleen bekend voor eerder beoordeelde Boards.</div>
+          <div class="environment-wiki-global-note">Persoonlijke totalen op dit apparaat, onafhankelijk van de kaartpositie. Ongelezen is alleen een filter.</div>
           <strong>Categorieën <small>gevonden · gelezen · leuk · niet leuk</small></strong>
           <div class="environment-source-filter-grid">
             <button type="button" data-wiki-category="erfgoed" aria-pressed="false">Erfgoed<small data-wiki-category-count="erfgoed">0 · 0 · 0 · 0</small></button>
@@ -498,13 +498,13 @@ export function openEnvironmentView(root, {
     wikipediaLayer?.setEnabled(wikipediaEnabled);
   });
   const refreshGlobalWikiCounts = () => {
-    const totals = {read:0,unread:0,liked:0,disliked:0,hidden:0};
+    const totals = {read:0,liked:0,disliked:0,hidden:0};
     try {
       for (let i=0;i<localStorage.length;i++) {
         const key = localStorage.key(i);
         if (!key?.startsWith('sharon.wiki.feedback.v1:')) continue;
         let state; try { state=JSON.parse(localStorage.getItem(key)||'{}'); } catch {continue;}
-        if (state.read) totals.read++; else totals.unread++;
+        if (state.read) totals.read++;
         if (state.liked) totals.liked++;
         if (state.disliked) totals.disliked++;
         if (state.hidden) totals.hidden++;
