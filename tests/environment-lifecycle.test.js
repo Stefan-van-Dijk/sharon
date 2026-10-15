@@ -21,7 +21,7 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
   globalThis.window = { location: { search: '' } };
   globalThis.document = { querySelector: () => ({} ) };
   try {
-    const cleanup = openEnvironmentView({ innerHTML: '', querySelector: key => nodes.get(key) }, {
+    const cleanup = openEnvironmentView({ innerHTML: '', querySelector: key => nodes.get(key), querySelectorAll: () => [] }, {
       location: { latest: null }, events: {}, store: { get: async () => null },
       loadRenderer: () => renderer
     });
@@ -77,7 +77,7 @@ test('shared map controls are mounted immediately and cleaned up before a late r
   globalThis.document = { querySelector: () => ({}) };
   globalThis.cancelAnimationFrame = () => {};
   try {
-    const cleanup = openEnvironmentView({ innerHTML:'', querySelector: key => nodes.get(key) }, {
+    const cleanup = openEnvironmentView({ innerHTML:'', querySelector: key => nodes.get(key), querySelectorAll: () => [] }, {
       headerActions,
       location: { latest: null },
       events: {},
