@@ -482,6 +482,11 @@ export function openEnvironmentView(root, {
   listenEarly(filterBack, 'click', () => setFilterMode(false));
   setFilterMode(false);
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
+  const setWikipediaLoadState = state => {
+    wikipediaToggle.classList.toggle("is-fetching",state==="loading");
+    wikipediaToggle.setAttribute("aria-busy",String(state==="loading"));
+    wikipediaToggle.title = state==="loading" ? "Wikipedia-gegevens ophalen" : "Wikipedia · omhoog slepen voor filters";
+  };
   listenEarly(wikipediaToggle, "click", () => {
     if (root.querySelector("[data-source-sheet]")?.classList.contains("is-open")) {
       root.querySelector("[data-source-sheet]").classList.remove("is-open");
@@ -703,7 +708,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard });
+      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
