@@ -22,6 +22,7 @@ const CORE = [
   './src/ui/Story.js?v=0.3.19',
   './src/ui/LocationTypeSphere.js?v=0.3.19',
   './src/ui/LocationsView.js?v=0.3.19',
+  './src/ui/CardsView.js?v=0.3.19',
   './src/core/location/LocationWebSources.js',
   './src/ui/LocationOnboardingFlow.js?v=0.3.19',
   './src/ui/LocationConclusion.js?v=0.3.19',
