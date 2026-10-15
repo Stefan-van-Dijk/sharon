@@ -313,7 +313,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   if (!isLocal) {
     const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
     const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
-    let feedback = {read:false, liked:false, hidden:false, category:''};
+    let feedback = {read:false, liked:false, disliked:false, hidden:false, category:''};
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
     const actions = document.createElement('div');
     actions.className = 'sh-board-feedback';
@@ -321,14 +321,20 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const readButton = document.createElement('button');
     const likeButton = document.createElement('button');
     const hideButton = document.createElement('button');
+    const dislikeButton = document.createElement('button');
     const square = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/>';
     const heart = '<svg viewBox="0 0 24 24" width="21" height="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"/></svg>';
-    for (const button of [readButton,likeButton,hideButton]) {
+    for (const button of [readButton,likeButton,dislikeButton,hideButton]) {
       button.type = 'button';
       button.style.cssText = 'display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#697580;padding:7px;cursor:pointer;touch-action:manipulation';
     }
     const renderFeedback = () => {
       readButton.innerHTML = square + (feedback.read ? '<path d="m7.5 12 3 3 6-6"/>' : '') + '</svg>';
+      dislikeButton.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V2H6.8a2 2 0 0 0-1.9 1.4L2.5 11a2 2 0 0 0 1.9 2.6H9l-1 6.1a2 2 0 0 0 2.6 2.1L17 14ZM17 3h4v11h-4"/></svg>';
+      dislikeButton.setAttribute('aria-label',feedback.disliked ? 'Niet leuk verwijderen' : 'Niet leuk');
+      dislikeButton.title = dislikeButton.getAttribute('aria-label');
+      dislikeButton.setAttribute('aria-pressed',String(feedback.disliked));
+      dislikeButton.style.color = feedback.disliked ? '#9b6271' : '#88949e';
       hideButton.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c5.4 0 9.3 4.5 10 7a12.5 12.5 0 0 1-3.1 4.5M6.1 6.2A12.4 12.4 0 0 0 2 12c.7 2.5 4.6 7 10 7a10 10 0 0 0 4.1-.9"/></svg>';
       hideButton.setAttribute('aria-label',feedback.hidden ? 'Toon dit artikel weer op de kaart' : 'Verberg dit artikel op de kaart');
       hideButton.title = hideButton.getAttribute('aria-label');
@@ -350,10 +356,11 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       renderFeedback();
     };
     readButton.addEventListener('click', () => { feedback.read = !feedback.read; persistFeedback(); });
-    likeButton.addEventListener('click', () => { feedback.liked = !feedback.liked; persistFeedback(); });
+    likeButton.addEventListener('click', () => { feedback.liked = !feedback.liked; if(feedback.liked) feedback.disliked = false; persistFeedback(); });
+    dislikeButton.addEventListener('click', () => { feedback.disliked = !feedback.disliked; if(feedback.disliked) feedback.liked = false; persistFeedback(); });
     hideButton.addEventListener('click', () => { feedback.hidden = !feedback.hidden; persistFeedback(); });
     renderFeedback();
-    actions.append(readButton,likeButton,hideButton);
+    actions.append(readButton,likeButton,dislikeButton,hideButton);
     footer.append(actions);
   }
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
