@@ -37,7 +37,8 @@ test('map appearance changes fill, line paint, thickness and dots then resets co
   assert.equal(field('water-outline', 'line-width'), 2);
   assert.deepEqual(field('water-outline', 'line-dasharray'), [0.5, 2]);
   assert.deepEqual(field('highway_minor', 'line-dasharray'), [3, 2]);
-  assert.deepEqual(field('highway_minor', 'line-width')[0], '*');
+  assert.deepEqual(field('highway_minor', 'line-width')[0], 'interpolate');
+  assert.deepEqual(field('highway_minor', 'line-width')[2], ['zoom']);
   calls.length = 0;
   applyEnvironmentAppearance(map, {}, 'water');
   assert.equal(field('water', 'fill-color'), '#f6f8fa');
