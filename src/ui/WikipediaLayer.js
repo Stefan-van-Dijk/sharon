@@ -24,7 +24,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const data = await response.json();
   return wikiFeatures(Object.values(data?.query?.pages || {}).map(page => ({ ...page, language: lang })));
 }
-export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null } = {}) {
+export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null, onLoadState = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
   let enabled = false, disposed = false, request = null, timeout = null, popup = null, lastCenter = null;
   let currentFeatures = [];
@@ -93,17 +93,20 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       paint: { 'circle-radius': 7, 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
   };
   const clear = () => { knownFeatures.clear(); currentFeatures = []; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
+  const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
     if (!enabled || disposed || !map.isStyleLoaded()) return;
     // At low zoom retain previously discovered markers; avoid massive global requests.
-    if (map.getZoom() < 11) { ensure(); redraw(); return; }
+    if (map.getZoom() < 11) { request?.abort(); request = null; reportLoad('idle'); ensure(); redraw(); return; }
     const center = map.getCenter();
     if (lastCenter && Math.abs(center.lat - lastCenter.lat) < 0.005 && Math.abs(center.lng - lastCenter.lng) < 0.005) return;
     request?.abort(); const controller = new AbortController(); request = controller;
+    reportLoad('loading');
     try {
       const data = await fetchWikipediaPlaces(center, { language, signal: controller.signal });
       if (enabled && !disposed && request === controller) { ensure(); data.features.forEach(f => knownFeatures.set(String(f.id), f)); redraw(); currentFeatures = [...knownFeatures.values()]; lastCenter = center; }
-    } catch (error) { if (error.name !== 'AbortError') console.warn('Wikipedia-laag:', error.message); }
+    } catch (error) { if (error.name !== 'AbortError') { console.warn('Wikipedia-laag:', error.message); if (request === controller) reportLoad('error'); } }
+    finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
   };
   const schedule = () => { clearTimeout(timeout); if (enabled) timeout = setTimeout(refresh, 450); };
   const click = event => {
@@ -148,7 +151,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   return { setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
-  }, setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
+  }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
