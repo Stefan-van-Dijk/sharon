@@ -48,6 +48,19 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
     catch { return {}; }
   };
+  const reportCounts = () => {
+    const features = [...knownFeatures.values()];
+    const groups = Object.fromEntries(['erfgoed','bouw','natuur','cultuur','vervoer','overig'].map(key => [key,{total:0,read:0,liked:0,disliked:0,hidden:0}]));
+    for (const feature of features) {
+      const state = feedback(String(feature.properties?.wikidata || feature.id));
+      for (const key of categoriesFor(feature)) {
+        const item = groups[key]; if (!item) continue;
+        item.total++; if (state.read) item.read++; if (state.liked) item.liked++;
+        if (state.disliked) item.disliked++; if (state.hidden) item.hidden++;
+      }
+    }
+    window.dispatchEvent(new CustomEvent('sharon-wiki-counts-changed',{detail:{groups,total:features.length}}));
+  };
   const redraw = () => {
     const features = [...knownFeatures.values()].filter(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
@@ -60,6 +73,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
     });
     map.getSource(sourceId)?.setData({type:'FeatureCollection', features});
+    reportCounts();
   };
   const pulse = () => {
     if (disposed || !enabled) return;
