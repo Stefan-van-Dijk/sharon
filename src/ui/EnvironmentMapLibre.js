@@ -225,12 +225,11 @@ export function openEnvironmentView(root, {
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
           <strong>Status</strong>
-          <div class="environment-source-filter-grid">
-            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen</button>
-            <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen <small data-wiki-global="read"></small></button>
-            <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk <small data-wiki-global="liked"></small></button>
-            <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen <small data-wiki-global="hidden"></small></button>
-            <button type="button" data-wiki-filter="disliked" aria-pressed="false">♧ Niet leuk <small data-wiki-global="disliked"></small></button>
+          <div class="environment-source-filter-grid environment-source-status-row">
+            <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
+            <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ <small data-wiki-global="liked"></small></button>
+            <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ <small data-wiki-global="hidden"></small></button>
+            <button type="button" data-wiki-filter="disliked" aria-pressed="false">♧ <small data-wiki-global="disliked"></small></button>
           </div>
           <strong>Categorieën</strong>
           <div class="environment-source-filter-grid">
@@ -509,7 +508,7 @@ export function openEnvironmentView(root, {
     } catch {}
     for (const [key,value] of Object.entries(totals)) {
       const target=root.querySelector('[data-wiki-global="'+key+'"]');
-      if(target) { target.textContent=value ? String(value) : ""; target.hidden=!value; }
+      if(target) { target.textContent=value ? String(value) : ""; target.hidden=!value; target.parentElement.hidden=!value; }
     }
     const disliked=root.querySelector('[data-wiki-disliked]');
     if(disliked) disliked.textContent=totals.disliked+' niet leuk';
@@ -524,7 +523,7 @@ export function openEnvironmentView(root, {
       if(total) total.textContent=count.total ? String(count.total) : '';
       if(node) {
         const parts=[['☑',count.read,'Gelezen'],['♡',count.liked,'Leuk'],['♧',count.disliked,'Niet leuk'],['◌',count.hidden,'Verborgen']].filter(([,value])=>value>0);
-        node.textContent=parts.map(([icon,value])=>icon+' '+value).join('  ');
+        node.textContent=parts.map(([icon,value])=>icon+' '+value).join('   ');
         node.title=parts.map(([,value,label])=>label+': '+value).join(', ');
         node.hidden=parts.length===0;
       }
@@ -539,7 +538,7 @@ export function openEnvironmentView(root, {
     try { return JSON.parse(localStorage.getItem('sharon.source.wikipedia.filters.v1') || '{}'); }
     catch { return {}; }
   })();
-  const activeWikiFilters = new Set(Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []);
+  const activeWikiFilters = new Set((Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []).filter(value=>value!=='unread'));
   const activeWikiCategories = new Set(Array.isArray(savedSourceFilters.categories) ? savedSourceFilters.categories : []);
   const syncWikiFilters = () => {
     for (const button of root.querySelectorAll('[data-wiki-filter]')) button.setAttribute('aria-pressed',String(activeWikiFilters.has(button.dataset.wikiFilter)));
