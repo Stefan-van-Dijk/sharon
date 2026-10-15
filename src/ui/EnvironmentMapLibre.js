@@ -231,8 +231,9 @@ export function openEnvironmentView(root, {
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen <small data-wiki-global="read"></small></button>
             <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk <small data-wiki-global="liked"></small></button>
             <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen <small data-wiki-global="hidden"></small></button>
+            <button type="button" data-wiki-filter="disliked" aria-pressed="false">♧ Niet leuk <small data-wiki-global="disliked"></small></button>
           </div>
-          <div class="environment-wiki-global-note">Persoonlijke totalen op dit apparaat, ongeacht de kaartpositie · <span data-wiki-disliked>0 niet leuk</span></div>
+          <div class="environment-wiki-global-note">Opgeslagen beoordelingen op dit apparaat, onafhankelijk van de kaartpositie. Ongelezen is alleen bekend voor eerder beoordeelde Boards.</div>
           <strong>Categorieën <small>gevonden · gelezen · leuk · niet leuk</small></strong>
           <div class="environment-source-filter-grid">
             <button type="button" data-wiki-category="erfgoed" aria-pressed="false">Erfgoed<small data-wiki-category-count="erfgoed">0 · 0 · 0 · 0</small></button>
