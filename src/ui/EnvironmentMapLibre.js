@@ -216,10 +216,9 @@ export function openEnvironmentView(root, {
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
-              <span class="environment-source-label">Wikipedia</span>
-              <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false">⌃</button>
+              <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
-            <small class="environment-filter-hint">Bronnen</small>
+
           </div>
         </div>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
