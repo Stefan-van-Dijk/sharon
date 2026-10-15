@@ -214,16 +214,36 @@ export function openEnvironmentView(root, {
           </div>
           <div class="environment-readout-filters" data-readout-filters aria-hidden="true">
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
-            <div class="environment-filter-options" role="group" aria-label="Kaartinformatielagen">
-              <button type="button" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia-plekken tonen of verbergen" title="Wikipedia op kaart">W <span>Wikipedia</span></button>
-              <button type="button" data-wiki-filter="unread" aria-pressed="false">Ongelezen</button>
-              <button type="button" data-wiki-filter="read" aria-pressed="false">Gelezen</button>
-              <button type="button" data-wiki-filter="liked" aria-pressed="false">♥</button>
-              <button type="button" data-wiki-filter="hidden" aria-pressed="false">Verborgen</button>
+            <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
+              <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
+              <span class="environment-source-label">Wikipedia</span>
+              <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false">⌃</button>
             </div>
-            <small class="environment-filter-hint">Filters</small>
+            <small class="environment-filter-hint">Bronnen</small>
           </div>
         </div>
+        <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
+          <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
+          <header><strong>Wikipedia</strong><button type="button" data-source-sheet-close aria-label="Sluit bronfilters">×</button></header>
+          <p>Toon een artikel wanneer minstens één gekozen voorwaarde klopt.</p>
+          <strong>Status</strong>
+          <div class="environment-source-filter-grid">
+            <button type="button" data-wiki-filter="unread" aria-pressed="false">□ Ongelezen</button>
+            <button type="button" data-wiki-filter="read" aria-pressed="false">☑ Gelezen</button>
+            <button type="button" data-wiki-filter="liked" aria-pressed="false">♡ Leuk</button>
+            <button type="button" data-wiki-filter="hidden" aria-pressed="false">◌ Verborgen</button>
+          </div>
+          <strong>Categorieën</strong>
+          <div class="environment-source-filter-grid">
+            <button type="button" data-wiki-category="erfgoed" aria-pressed="false">Erfgoed</button>
+            <button type="button" data-wiki-category="bouw" aria-pressed="false">Bouwwerken</button>
+            <button type="button" data-wiki-category="natuur" aria-pressed="false">Natuur</button>
+            <button type="button" data-wiki-category="cultuur" aria-pressed="false">Cultuur</button>
+            <button type="button" data-wiki-category="vervoer" aria-pressed="false">Vervoer</button>
+            <button type="button" data-wiki-category="overig" aria-pressed="false">Overig</button>
+          </div>
+          <small>Categorieën worden voorlopig afgeleid uit Wikipedia. Meerdere keuzes werken met OF.</small>
+        </section>
         <div class="environment-map-error" data-map-error hidden role="status"></div>
       </div>
     </section>
@@ -470,16 +490,57 @@ export function openEnvironmentView(root, {
     wikipediaToggle.setAttribute("aria-pressed", String(wikipediaEnabled));
     wikipediaLayer?.setEnabled(wikipediaEnabled);
   });
-  const activeWikiFilters = new Set();
-  for (const button of root.querySelectorAll('[data-wiki-filter]')) {
-    listenEarly(button,'click', () => {
-      const name = button.dataset.wikiFilter;
-      if (activeWikiFilters.has(name)) activeWikiFilters.delete(name);
-      else activeWikiFilters.add(name);
-      button.setAttribute('aria-pressed',String(activeWikiFilters.has(name)));
-      wikipediaLayer?.setFilters([...activeWikiFilters]);
+  const sourceSheet = root.querySelector('[data-source-sheet]');
+  const sourceSettings = root.querySelector('[data-wiki-settings]');
+  const savedSourceFilters = (() => {
+    try { return JSON.parse(localStorage.getItem('sharon.source.wikipedia.filters.v1') || '{}'); }
+    catch { return {}; }
+  })();
+  const activeWikiFilters = new Set(Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []);
+  const activeWikiCategories = new Set(Array.isArray(savedSourceFilters.categories) ? savedSourceFilters.categories : []);
+  const syncWikiFilters = () => {
+    for (const button of root.querySelectorAll('[data-wiki-filter]')) button.setAttribute('aria-pressed',String(activeWikiFilters.has(button.dataset.wikiFilter)));
+    for (const button of root.querySelectorAll('[data-wiki-category]')) button.setAttribute('aria-pressed',String(activeWikiCategories.has(button.dataset.wikiCategory)));
+    sourceSettings.classList.toggle('has-active-filters',activeWikiFilters.size + activeWikiCategories.size > 0);
+    wikipediaLayer?.setFilters([...activeWikiFilters],[...activeWikiCategories]);
+    try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
+  };
+  const toggleSourceSheet = value => {
+    sourceSheet.classList.toggle('is-open',value);
+    sourceSheet.setAttribute('aria-hidden',String(!value));
+    sourceSettings.setAttribute('aria-expanded',String(value));
+  };
+  listenEarly(sourceSettings,'click',()=>toggleSourceSheet(!sourceSheet.classList.contains('is-open')));
+  listenEarly(root.querySelector('[data-source-sheet-close]'),'click',()=>toggleSourceSheet(false));
+  for (const [attribute,selection] of [['data-wiki-filter',activeWikiFilters],['data-wiki-category',activeWikiCategories]]) {
+    for (const button of root.querySelectorAll('['+attribute+']')) listenEarly(button,'click',()=>{
+      const value = button.getAttribute(attribute);
+      if (selection.has(value)) selection.delete(value); else selection.add(value);
+      syncWikiFilters();
     });
   }
+  let sourceGesture = null;
+  listenEarly(wikipediaToggle,'touchstart',event=>{
+    const touch=event.touches[0]; if(touch) sourceGesture={y:touch.clientY,handled:false};
+  },{passive:true});
+  listenEarly(wikipediaToggle,'touchend',event=>{
+    if (!sourceGesture) return;
+    const touch=event.changedTouches[0];
+    if(touch && sourceGesture.y-touch.clientY>35) {
+      sourceGesture.handled=true;
+      toggleSourceSheet(true);
+    }
+  },{passive:true});
+  listenEarly(wikipediaToggle,'click',event=>{
+    if(sourceGesture?.handled) {event.stopImmediatePropagation();sourceGesture=null;}
+  },true);
+  let sheetGesture = null;
+  listenEarly(sourceSheet,'touchstart',event=>{const touch=event.touches[0];if(touch)sheetGesture=touch.clientY;},{passive:true});
+  listenEarly(sourceSheet,'touchend',event=>{
+    if(sheetGesture!==null && event.changedTouches[0]?.clientY-sheetGesture>70) toggleSourceSheet(false);
+    sheetGesture=null;
+  },{passive:true});
+  syncWikiFilters();
   let awaitingFirstPosition = !userPoint;
   let readoutFrame = 0;
   let saveTimer = null;
@@ -602,6 +663,7 @@ export function openEnvironmentView(root, {
       errorBanner.hidden = true;
       installSharonLayers(map);
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard });
+      syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
       unsubscribers.push(appearanceBinding);
