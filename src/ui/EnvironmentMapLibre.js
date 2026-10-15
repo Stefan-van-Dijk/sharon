@@ -482,6 +482,14 @@ export function openEnvironmentView(root, {
   listenEarly(filterBack, 'click', () => setFilterMode(false));
   setFilterMode(false);
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
+  const updateWikipediaZoomCue = () => {
+    if (!map) return;
+    const zoom = map.getZoom();
+    const strength = Math.max(0,Math.min(1,(zoom-7)/4));
+    wikipediaToggle.style.setProperty("--wiki-zoom-strength",String(strength));
+    wikipediaToggle.classList.toggle("is-zoom-distant",zoom<11);
+    wikipediaToggle.setAttribute("aria-description",zoom<11 ? "Zoom verder in om nieuwe Wikipedia-gegevens op te halen" : "Wikipedia kan op dit zoomniveau gegevens ophalen");
+  };
   const setWikipediaLoadState = state => {
     wikipediaToggle.classList.toggle("is-fetching",state==="loading");
     wikipediaToggle.setAttribute("aria-busy",String(state==="loading"));
@@ -678,7 +686,7 @@ export function openEnvironmentView(root, {
     map.addControl(createEnvironmentVisibilityControl(root.closest?.('.app-stage')), 'bottom-right');
 
     const render = () => {
-      if (!disposed && map) updateReadout(map, userPoint, scaleButton, readout);
+      if (!disposed && map) { updateReadout(map, userPoint, scaleButton, readout); updateWikipediaZoomCue(); }
     };
 
     const stopFollowing = () => {
@@ -705,6 +713,7 @@ export function openEnvironmentView(root, {
     map.on('load', () => {
       if (disposed) return;
       mapReady = true;
+      updateWikipediaZoomCue();
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
