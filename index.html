@@ -678,6 +678,13 @@
     .environment-source-sheet .environment-source-filter-grid:not(.environment-source-status-row) .environment-category-name{display:inline;flex:0 0 auto}
     .environment-source-sheet .environment-source-filter-grid:not(.environment-source-status-row) button small{display:inline;margin:0 0 0 auto;text-align:right;white-space:nowrap;font-size:11px}
     .environment-source-sheet .environment-source-filter-grid:not(.environment-source-status-row) button small[hidden]{display:none!important}
+
+    /* The source ring animates only while a real Wikipedia request is active. */
+    .environment-source-options .environment-source-circle.is-fetching{border-color:transparent!important}
+    .environment-source-options .environment-source-circle.is-fetching::before{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(183,123,197,.17);opacity:1;transform:none;animation:none}
+    .environment-source-options .environment-source-circle.is-fetching::after{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;border-top-color:#b77bc5;border-right-color:#b77bc5;opacity:1;transform:none;animation:sh-source-fetch-ring 1s linear infinite}
+    @keyframes sh-source-fetch-ring{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){.environment-source-options .environment-source-circle.is-fetching::after{animation:none;border-top-color:#b77bc5;border-right-color:#b77bc5}}
     .environment-source-sheet{position:absolute;z-index:12;left:12px;right:12px;bottom:calc(105px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;padding:12px 18px 20px;border-radius:24px;background:rgba(255,255,255,.96);box-shadow:0 10px 42px #0002;backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(28px);transition:opacity .22s,transform .26s,visibility .26s;max-height:65vh;overflow-y:auto}
     .environment-source-sheet.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
     .environment-source-sheet-handle{width:38px;height:4px;border-radius:5px;background:#c4c4c8;margin:0 auto 12px}
