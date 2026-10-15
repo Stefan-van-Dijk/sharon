@@ -1,15 +1,15 @@
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.16';
-import { EventBus } from './core/events/EventBus.js?v=0.3.16';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.16';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.3.16';
-import { LocationService } from './core/location/LocationService.js?v=0.3.16';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.16';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.16';
-import { InstallService } from './core/app/InstallService.js?v=0.3.16';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.16';
-import { createShell } from './ui/Shell.js?v=0.3.16';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.16';
-import { runStory } from './ui/Story.js?v=0.3.16';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.17';
+import { EventBus } from './core/events/EventBus.js?v=0.3.17';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.17';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.3.17';
+import { LocationService } from './core/location/LocationService.js?v=0.3.17';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.17';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.17';
+import { InstallService } from './core/app/InstallService.js?v=0.3.17';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.17';
+import { createShell } from './ui/Shell.js?v=0.3.17';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.17';
+import { runStory } from './ui/Story.js?v=0.3.17';
 
 export async function createApp() {
   const events = new EventBus();
