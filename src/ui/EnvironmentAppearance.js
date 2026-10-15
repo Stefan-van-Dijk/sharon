@@ -202,9 +202,22 @@ export function resolvedEnvironmentAppearance(data, groupId) {
     ...(clean[groupId] || {})
   };
 }
-function widthPaint(original, multiplier) {
+export function widthPaint(original, multiplier) {
   if (multiplier === 1) return original;
-  if (typeof original === 'number') return Math.round(original * multiplier * 1000) / 1000;
+  const scale = value => Math.round(value * multiplier * 1000) / 1000;
+  if (typeof original === 'number') return scale(original);
+  // MapLibre requires a camera/zoom expression at the top level of
+  // line-width. Wrapping interpolate in ['*', ...] makes it invalid.
+  if (Array.isArray(original) && original[0] === 'interpolate' &&
+      Array.isArray(original[2]) && original[2][0] === 'zoom') {
+    const scaled = original.slice(0, 3);
+    for (let i = 3; i < original.length; i += 2) {
+      scaled.push(original[i],
+        typeof original[i + 1] === 'number' ? scale(original[i + 1]) :
+          ['*', original[i + 1], multiplier]);
+    }
+    return scaled;
+  }
   return ['*', original, multiplier];
 }
 function affectedByCategory(group, category) {
