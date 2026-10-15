@@ -1,4 +1,4 @@
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.19';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.20';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
