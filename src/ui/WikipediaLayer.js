@@ -8,7 +8,7 @@ export function wikiFeatures(pages = []) {
     seen.add(id);
     return [{ type: 'Feature', id, geometry: { type: 'Point', coordinates: [point.lon, point.lat] }, properties: {
       wikidata: id, area: environmentIdForPoint({ lat: point.lat, lng: point.lon }, 6),
-      title: String(page.title || ''), image: /^https:\/\//.test(page.thumbnail?.source || '') ? page.thumbnail.source : '', description: String(page.extract || '').slice(0, 350),
+      title: String(page.title || ''), image: /^https:\/\//.test(page.thumbnail?.source || '') ? page.thumbnail.source : '', description: String(page.extract || '').slice(0, 350), categories: (page.categories || []).map(c => String(c.title || '').replace(/^Category:|^Categorie:/i,'')).slice(0,40),
       url: 'https://' + page.language + '.wikipedia.org/?curid=' + Number(page.pageid)
     }}];
   }) };
@@ -18,7 +18,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const lang = /^[a-z]{2,3}$/.test(language) ? language : 'nl';
   const params = new URLSearchParams({ action: 'query', format: 'json', origin: '*', generator: 'geosearch',
     ggscoord: center.lat + '|' + center.lng, ggsradius: '10000', ggslimit: '40',
-    prop: 'coordinates|pageprops|extracts|pageimages', pithumbsize: '480', exintro: '1', explaintext: '1', exsentences: '2', colimit: 'max' });
+    prop: 'coordinates|pageprops|extracts|pageimages|categories', cllimit: 'max', pithumbsize: '480', exintro: '1', explaintext: '1', exsentences: '2', colimit: 'max' });
   const response = await fetcher('https://' + lang + '.wikipedia.org/w/api.php?' + params, { signal });
   if (!response.ok) throw new Error('Wikipedia is tijdelijk niet bereikbaar');
   const data = await response.json();
@@ -33,6 +33,17 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
   let filters = [];
+  let categoryFilters = [];
+  const categoriesFor = feature => {
+    const text = (feature.properties?.categories || []).join(' ').toLowerCase();
+    const groups = [];
+    if (/monument|histor|erfgoed|kasteel|kerk|archeolog|oorlog|geschiedenis/.test(text)) groups.push('erfgoed');
+    if (/gebouw|architect|brug|toren|bouwwerk|constructie/.test(text)) groups.push('bouw');
+    if (/natuur|bos|park|rivier|meer|landschap|flora|fauna/.test(text)) groups.push('natuur');
+    if (/kunst|museum|cultuur|theater|beeld|muziek/.test(text)) groups.push('cultuur');
+    if (/spoor|station|weg|vervoer|haven|infrastructuur|kanaal/.test(text)) groups.push('vervoer');
+    return groups.length ? groups : ['overig'];
+  };
   const feedback = id => {
     try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
     catch { return {}; }
@@ -40,8 +51,10 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const redraw = () => {
     const features = [...knownFeatures.values()].filter(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
-      if (!filters.length) return !state.hidden;
-      return filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : false);
+      if (!filters.length && !categoryFilters.length) return !state.hidden;
+      const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : false);
+      const categoryMatch = !state.hidden && categoryFilters.some(group => categoriesFor(feature).includes(group));
+      return statusMatch || categoryMatch;
     }).map(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
@@ -118,7 +131,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
-  return { setFilters(values) { filters = values || []; redraw(); }, setActive(feature) {
+  return { setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); clearTimeout(timeout); lastCenter = null;
