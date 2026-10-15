@@ -642,6 +642,20 @@
     .environment-wiki-global-note{font:400 10px/1.45 system-ui,sans-serif;color:#8a8d93;margin-top:9px}
     .sh-board-feedback{gap:6px!important;flex:0 0 auto}
     .sh-board-feedback button{width:34px!important;height:34px!important;padding:6px!important}
+
+    /* Compact source statistics: only show nonzero reactions. */
+    .environment-source-sheet{padding:10px 14px 14px}
+    .environment-source-sheet-handle{margin-bottom:8px}
+    .environment-source-sheet header{margin-bottom:3px}
+    .environment-source-sheet>strong{margin:9px 0 6px}
+    .environment-source-filter-grid{gap:6px}
+    .environment-source-filter-grid button{padding:8px 10px;min-height:36px;border-radius:11px;font-size:12px}
+    .environment-source-filter-grid button small{font-size:10px;margin:0;line-height:1.2}
+    .environment-source-filter-grid button small:empty,.environment-source-filter-grid button small[hidden]{display:none!important}
+    .environment-source-filter-grid .environment-category-name{display:block;white-space:nowrap}
+    .environment-source-filter-grid .environment-category-name b{font-weight:500;color:#8b8992;margin-left:2px}
+    .environment-source-filter-grid button:has(.environment-category-name){gap:2px}
+    .environment-source-filter-grid button:has(.environment-category-name) small{white-space:pre-wrap;color:#8c8995}
     .environment-source-sheet{position:absolute;z-index:12;left:12px;right:12px;bottom:calc(105px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;padding:12px 18px 20px;border-radius:24px;background:rgba(255,255,255,.96);box-shadow:0 10px 42px #0002;backdrop-filter:blur(18px);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(28px);transition:opacity .22s,transform .26s,visibility .26s;max-height:65vh;overflow-y:auto}
     .environment-source-sheet.is-open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
     .environment-source-sheet-handle{width:38px;height:4px;border-radius:5px;background:#c4c4c8;margin:0 auto 12px}
