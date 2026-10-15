@@ -1,3 +1,4 @@
+import { openCardsView } from './CardsView.js?v=0.3.19';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.19';
 import { openSettings } from './SettingsView.js?v=0.1.90';
@@ -274,6 +275,15 @@ export function createShell(root, {
     }), { animate });
   };
 
+  const openCards = async ({ animate = true } = {}) => {
+    setHeaderMode('detail', 'Kaarten', 'cards');
+    await swapView(() => openCardsView(outlet, {
+      store,
+      setTitle: setDetailTitle,
+      headerActions
+    }), { animate });
+  };
+
   const openSettingsView = async ({ animate = true } = {}) => {
     setHeaderMode('detail', 'Instellingen', 'settings');
     await swapView(() => openSettings(outlet, {
@@ -299,6 +309,11 @@ export function createShell(root, {
       await openEnvironment({
         animate: options.animate !== false
       });
+      return;
+    }
+
+    if (module.id === 'cards') {
+      await openCards({ animate: options.animate !== false });
       return;
     }
 
