@@ -1,3 +1,4 @@
+import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
@@ -101,7 +102,8 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         stopScanner = null;
         const existing = (await records()).filter(item => item.codeValue === result.value && item.codeFormat === result.format);
         if (existing.length === 1) return showDetail(existing[0].id);
-        return showForm(null, result);
+        const shared = result.format === 'QR_CODE' ? parseCardPayload(result.value) : null;
+        return showForm(null, shared || result);
       }
     });
   }
@@ -135,9 +137,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     const codeHost = outlet.querySelector('[data-card-code]');
     if (codeHost) renderCardCode(codeHost, card.codeFormat || 'QR_CODE', card.codeValue).catch(error => { codeHost.textContent = error.message; });
     outlet.querySelector('[data-card-share]').addEventListener('click', async () => {
-      const payload = JSON.stringify({kind:'sharon-card',version:1,name:card.name,cardKind:card.cardKind || 'other',
-        cardNumber:card.cardNumber || '',color:card.color || '#489ff8',codeFormat:card.codeFormat || '',
-        codeValue:card.codeValue || '',fields:Array.isArray(card.fields) ? card.fields : []});
+      const payload = buildCardPayload(card);
       const output = outlet.querySelector('[data-card-share-output]');
       try { await renderCardCode(output, 'QR_CODE', payload); }
       catch(error) { output.textContent = error.message; }
@@ -146,6 +146,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
   }
 
   async function showForm(id = null, scanned = null) {
+    const imported = scanned?.name ? scanned : null;
     const card = id ? await store.get('objects', id) : null;
     if (id && (!card || card.type !== 'card')) return showList();
     editingId = card?.id || null;
@@ -161,22 +162,22 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           <h2 class="sh-location-question-title">Hoe heet deze kaart?</h2>
           <label for="card-name" style="display:block;font-size:13px;color:#777;margin-bottom:10px">Naam van de winkel of organisatie</label>
           <input id="card-name" name="name" maxlength="100" autocomplete="organization" required
-            value="${escapeHtml(card?.name || '')}"
+            value="${escapeHtml(card?.name || imported?.name || '')}"
             placeholder="Bijvoorbeeld Jumbo" style="width:100%;border:0;border-bottom:1px solid #d6d6da;border-radius:0;padding:10px 0;font-size:21px;background:transparent;outline:none">
           <label for="card-kind" style="display:block;margin-top:26px;font-size:13px;color:#777">Soort kaart</label>
           <select name="cardKind" id="card-kind" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:#fff;font-size:18px">
-            ${Object.entries(kindLabels).map(([key,label]) => `<option value="${key}" ${(card?.cardKind || "other") === key ? "selected" : ""}>${label}</option>`).join("")}
+            ${Object.entries(kindLabels).map(([key,label]) => `<option value="${key}" ${(card?.cardKind || imported?.cardKind || "other") === key ? "selected" : ""}>${label}</option>`).join("")}
           </select>
           <label for="card-number" style="display:block;margin-top:24px;font-size:13px;color:#777">Kaartnummer (optioneel)</label>
-          <input id="card-number" name="cardNumber" maxlength="200" value="${escapeHtml(card?.cardNumber || "")}" placeholder="Nummer op de pas" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:transparent;font-size:18px">
+          <input id="card-number" name="cardNumber" maxlength="200" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}" placeholder="Nummer op de pas" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:transparent;font-size:18px">
           <label for="card-color" style="display:block;margin-top:24px;font-size:13px;color:#777">Herkenningskleur</label>
-          <input id="card-color" name="color" type="color" value="${/^#[0-9a-f]{6}$/i.test(card?.color || "") ? card.color : "#489ff8"}">
+          <input id="card-color" name="color" type="color" value="${/^#[0-9a-f]{6}$/i.test(card?.color || imported?.color || "") ? (card?.color || imported?.color) : "#489ff8"}">
           <label for="card-format" style="display:block;margin-top:24px;font-size:13px;color:#777">Codetype</label>
           <select id="card-format" name="codeFormat" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Geen code</option>
-            ${Object.entries(CARD_FORMATS).map(([value,label]) => `<option value="${value}" ${(card?.codeFormat || scanned?.format || "") === value ? "selected" : ""}>${label}</option>`).join("")}
+            ${Object.entries(CARD_FORMATS).map(([value,label]) => `<option value="${value}" ${(card?.codeFormat || scanned?.codeFormat || scanned?.format || "") === value ? "selected" : ""}>${label}</option>`).join("")}
           </select>
           <label for="card-value" style="display:block;margin-top:24px;font-size:13px;color:#777">Code-inhoud</label>
-          <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="3" style="display:block;width:100%;border:1px solid #ddd;border-radius:8px;padding:12px">${escapeHtml(card?.codeValue || scanned?.value || "")}</textarea>
+          <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="3" style="display:block;width:100%;border:1px solid #ddd;border-radius:8px;padding:12px">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
           <div data-card-code-preview style="margin-top:12px;background:#fff"></div>
           <label for="card-location" style="display:block;margin-top:24px;font-size:13px;color:#777">Locatie</label>
           <select id="card-location" name="locationId" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Zonder locatie</option>
@@ -209,7 +210,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       row.querySelector('button').addEventListener('click', () => row.remove());
       fieldHost.append(row);
     };
-    (Array.isArray(card?.fields) ? card.fields : []).forEach(field => addField(field.label, field.value));
+    (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field => addField(field.label, field.value));
     form.querySelector('[data-add-card-field]').addEventListener('click', () => addField());
     const previewHost = form.querySelector('[data-card-code-preview]');
     let previewGeneration = 0;
@@ -237,6 +238,15 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           validateCardCode(format, value);
           await renderCardCode(document.createElement('div'), format, value);
         } catch (cause) { error.textContent = cause.message; return; }
+      }
+      if (format && value) {
+        const duplicate = (await records()).find(item => item.id !== editingId &&
+          item.codeFormat === format && item.codeValue === value &&
+          String(item.locationId || '') === String(form.elements.locationId.value || ''));
+        if (duplicate) {
+          error.textContent = 'Deze code is voor deze locatie al opgeslagen als ' + duplicate.name + '.';
+          return;
+        }
       }
       const now = new Date().toISOString();
       const record = {
