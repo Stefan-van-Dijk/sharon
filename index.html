@@ -1450,7 +1450,17 @@
       .sh-location-guided-progress span{transition:none}
     }
 
-    /* Locations: two choices, editable details, sticky keyboard actions. */
+    /* Private web links are secondary information in a location detail. */
+    .sh-location-web-sources{margin:5px 0 12px;border-top:1px solid #ececef;border-bottom:1px solid #ececef}
+    .sh-location-web-sources>summary{cursor:pointer;list-style:none;min-height:52px;padding:14px 1px;display:flex;align-items:center;gap:6px;color:#74747a;font-size:14px}
+    .sh-location-web-sources>summary::-webkit-details-marker{display:none}
+    .sh-location-web-sources>summary::after{content:'›';margin-left:auto;font-size:23px;color:#aaa;transform:rotate(90deg)}
+    .sh-location-web-sources[open]>summary::after{transform:rotate(-90deg)}
+    .sh-location-web-sources-content{padding:0 1px 18px}
+    .sh-location-web-source-form{display:flex;align-items:center;gap:12px;margin-top:14px}
+    .sh-location-web-source-form input{flex:1;min-width:0;max-width:100%;border:0;border-bottom:1px solid #ddd;padding:10px 0;background:transparent}
+    .sh-location-web-sources [data-web-source-count]{color:#a1a1a6}
+        /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
     .sh-locations-toolbar button{min-width:44px;min-height:44px;font-size:26px}
