@@ -1460,6 +1460,35 @@
     .sh-location-web-source-form{display:flex;align-items:center;gap:12px;margin-top:14px}
     .sh-location-web-source-form input{flex:1;min-width:0;max-width:100%;border:0;border-bottom:1px solid #ddd;padding:10px 0;background:transparent}
     .sh-location-web-sources [data-web-source-count]{color:#a1a1a6}
+        /* Cards: compact, single scrolling editor with existing Sharon footer. */
+    .sh-card-compact{padding-bottom:125px!important}
+    .sh-card-compact .sh-card-form{max-width:620px;margin:auto}
+    .sh-card-compact [hidden]{display:none!important}
+    .sh-card-head{display:flex;align-items:start;justify-content:space-between;gap:14px;margin:18px 0 22px}
+    .sh-card-question{margin:0;font-size:clamp(22px,5.8vw,28px);font-weight:300;line-height:1.4;letter-spacing:-.03em}
+    .sh-card-head input[type=color]{width:33px;height:33px;border:0;padding:0;background:transparent;flex-shrink:0}
+    .sh-card-name-row{display:flex;align-items:center;gap:14px;border-bottom:1px solid #ddd}
+    .sh-card-name-row input{flex:1;min-width:0;height:49px;border:0;background:transparent;font-size:20px;outline:none}
+    .sh-card-name-row button{width:48px;height:48px;border:0;background:transparent;font-size:27px}
+    .sh-card-kind-options,.sh-card-code-options{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}
+    .sh-card-kind-options button,.sh-card-code-options button{padding:10px 12px;background:#f6f6f7;border:0;color:#444;font-size:13px}
+    .sh-card-kind-options button[aria-pressed=true],.sh-card-code-options button[aria-pressed=true]{background:#111;color:white}
+    .sh-card-code-options button:disabled{opacity:.3}
+    .sh-card-section{margin-top:24px;border-top:1px solid #eee;padding-top:17px}
+    .sh-card-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+    .sh-card-section-head strong{font-size:15px;font-weight:500}
+    .sh-card-section-head>button,.sh-card-code-switch button{border:0;background:transparent;color:#444;font-size:13px;padding:8px}
+    .sh-card-code-switch{display:flex;gap:5px}
+    .sh-card-code-switch button[aria-pressed=true]{color:#111;border-bottom:2px solid #111}
+    .sh-card-preview{min-height:115px;max-height:250px;display:grid;place-items:center;padding:12px;margin:12px 0;background:#fff;border:1px solid #f1f1f1}
+    .sh-card-preview svg{max-height:215px}
+    .sh-card-section label{font-size:13px;color:#777;display:block;margin:10px 0 7px}
+    .sh-card-section textarea{display:block;box-sizing:border-box;width:100%;resize:vertical;min-height:68px;border:0;border-bottom:1px solid #ddd;padding:10px 0;font-size:16px;background:transparent}
+    .sh-card-section select,.sh-card-extra input{width:100%;min-height:44px;border:0;border-bottom:1px solid #ddd;background:transparent;font-size:16px}
+    .sh-card-hint,.sh-card-error{font-size:12px;color:#888;margin:9px 0}
+    .sh-card-error{color:#a33}
+    .sh-card-extra{margin-top:14px;color:#777;font-size:13px}
+    .sh-card-extra summary{padding:12px 0;cursor:pointer}
         /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
