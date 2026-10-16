@@ -323,6 +323,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
+    const setTyping = () => {
+      const active = document.activeElement;
+      form.classList.toggle('is-typing', active === form.elements.name || active === form.elements.codeValue);
+    };
+    form.addEventListener('focusin', setTyping);
+    form.addEventListener('focusout', () => setTimeout(() => { if (form.isConnected) setTyping(); }, 0));
     const input = form.elements.name;
     const fieldHost = form.querySelector('[data-card-fields]');
     const addField = (label = '', value = '') => {
