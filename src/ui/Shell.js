@@ -1,11 +1,11 @@
-import { openCardsView } from './CardsView.js?v=0.3.31';
+import { openCardsView } from './CardsView.js?v=0.3.32';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.31';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.32';
 import { openSettings } from './SettingsView.js?v=0.1.90';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
-const APP_VERSION = '0.3.31';
+const APP_VERSION = '0.3.32';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
