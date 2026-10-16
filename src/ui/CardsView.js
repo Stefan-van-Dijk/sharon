@@ -1,3 +1,4 @@
+import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
@@ -12,6 +13,7 @@ const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 
 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
+  let stopScanner = null;
   let sort = 'alpha';
   let releaseRows = null;
   const title = value => { if (typeof setTitle === 'function') setTitle(value); };
@@ -23,6 +25,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
   }
 
   async function showList() {
+    stopScanner?.(); stopScanner = null;
     editingId = null;
     title('Kaarten');
     releaseRows?.();
@@ -38,11 +41,14 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       headerActions.append(add);
     }
     const cards = await records();
+    const locationItems = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
     cards.sort(sort === 'recent'
       ? (a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
       : (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl'));
     outlet.innerHTML = `
       <section class="module-view locations-view sh-card-view">
+        <div style="display:flex;gap:10px;margin-bottom:18px"><button type="button" data-card-scan style="flex:1;border:0;background:#111;color:#fff;min-height:46px">Code scannen</button><button type="button" data-card-create style="flex:1;border:1px solid #ddd;background:white;min-height:46px">+ Nieuwe kaart</button></div>
+        <label style="display:block;font-size:13px;color:#888;margin-bottom:18px">Zoeken<input data-card-search type="search" placeholder="Kaart zoeken" style="display:block;width:100%;height:42px;border:0;border-bottom:1px solid #ddd;background:transparent"></label>
         <div class="sh-locations-sort" aria-label="Kaarten sorteren">
           <button type="button" data-card-sort="recent" ${sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
           <button type="button" data-card-sort="alpha" ${sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
@@ -55,7 +61,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             variant: 'location',
             ariaLabel: card.name,
             leadingHtml: '<span class="sh-location-kind" aria-hidden="true">▤</span>',
-            bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + '</small></span>',
+            bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'delete', label: 'Verwijder' }]
           })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
@@ -70,8 +76,34 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         await showList();
       }
     });
+    outlet.querySelector('[data-card-scan]').addEventListener('click', showScanner);
+    outlet.querySelector('[data-card-create]').addEventListener('click', () => showForm());
+    outlet.querySelector('[data-card-search]').addEventListener('input', event => {
+      const q = event.target.value.trim().toLocaleLowerCase('nl');
+      outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row => {
+        const card = cards.find(item => item.id === row.dataset.swipeRow);
+        row.hidden = Boolean(q) && !String(card?.name || '').toLocaleLowerCase('nl').includes(q)
+          && !String(card?.codeValue || '').toLocaleLowerCase('nl').includes(q);
+      });
+    });
     outlet.querySelectorAll('[data-card-sort]').forEach(button =>
       button.addEventListener('click', () => { sort = button.dataset.cardSort; showList(); }));
+  }
+
+  function showScanner() {
+    title('Code scannen');
+    header();
+    releaseRows?.(); releaseRows = null;
+    stopScanner?.();
+    stopScanner = mountCardScanner(outlet, {
+      onClose: showList,
+      onResult: async result => {
+        stopScanner = null;
+        const existing = (await records()).filter(item => item.codeValue === result.value && item.codeFormat === result.format);
+        if (existing.length === 1) return showDetail(existing[0].id);
+        return showForm(null, result);
+      }
+    });
   }
 
   async function showDetail(id) {
@@ -113,7 +145,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     outlet.querySelector('[data-card-back]').addEventListener('click', showList);
   }
 
-  async function showForm(id = null) {
+  async function showForm(id = null, scanned = null) {
     const card = id ? await store.get('objects', id) : null;
     if (id && (!card || card.type !== 'card')) return showList();
     editingId = card?.id || null;
@@ -141,10 +173,10 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           <input id="card-color" name="color" type="color" value="${/^#[0-9a-f]{6}$/i.test(card?.color || "") ? card.color : "#489ff8"}">
           <label for="card-format" style="display:block;margin-top:24px;font-size:13px;color:#777">Codetype</label>
           <select id="card-format" name="codeFormat" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Geen code</option>
-            ${Object.entries(CARD_FORMATS).map(([value,label]) => `<option value="${value}" ${(card?.codeFormat || "") === value ? "selected" : ""}>${label}</option>`).join("")}
+            ${Object.entries(CARD_FORMATS).map(([value,label]) => `<option value="${value}" ${(card?.codeFormat || scanned?.format || "") === value ? "selected" : ""}>${label}</option>`).join("")}
           </select>
           <label for="card-value" style="display:block;margin-top:24px;font-size:13px;color:#777">Code-inhoud</label>
-          <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="3" style="display:block;width:100%;border:1px solid #ddd;border-radius:8px;padding:12px">${escapeHtml(card?.codeValue || "")}</textarea>
+          <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="3" style="display:block;width:100%;border:1px solid #ddd;border-radius:8px;padding:12px">${escapeHtml(card?.codeValue || scanned?.value || "")}</textarea>
           <div data-card-code-preview style="margin-top:12px;background:#fff"></div>
           <label for="card-location" style="display:block;margin-top:24px;font-size:13px;color:#777">Locatie</label>
           <select id="card-location" name="locationId" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Zonder locatie</option>
