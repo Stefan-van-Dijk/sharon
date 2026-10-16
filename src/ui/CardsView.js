@@ -87,7 +87,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }],
-            doubleSwipe: true
+            doubleSwipe: false
           })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
