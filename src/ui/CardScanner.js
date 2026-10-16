@@ -1,9 +1,9 @@
 import { loadCardScanner, createCardReader, decodedCard } from './CardCodes.js';
 
-export function mountCardScanner(host, { onResult, onClose }) {
+export function mountCardScanner(host, { onResult, onClose, autoStart = false, photoFirst = false }) {
   let stopped = false, stream = null, timer = null, reader = null, token = 0;
   host.innerHTML = '<section class="module-view sh-card-view">' +
-    '<button data-scan-close type="button" style="border:0;background:none;padding:14px 0">‹ Kaarten</button>' +
+    '<button data-scan-close type="button" style="border:0;background:none;color:#222;padding:14px 0">‹ Kaarten</button>' +
     '<h2 style="font-weight:350">Code scannen</h2>' +
     '<p style="font-size:14px;color:#777">Scan een QR-code of barcode, of kies een foto.</p>' +
     '<video data-scan-video playsinline muted autoplay style="width:100%;max-height:45dvh;background:#171717;border-radius:12px"></video>' +
@@ -111,5 +111,10 @@ export function mountCardScanner(host, { onResult, onClose }) {
   host.querySelector('[data-scan-close]').addEventListener('click', () => { cleanup(); onClose(); });
   document.addEventListener('visibilitychange', hidden);
   window.addEventListener('pagehide', cleanup);
+  if (autoStart) openCamera();
+  if (photoFirst) {
+    status.textContent = 'Kies een foto met een code.';
+    host.querySelector('[data-scan-photo]').focus();
+  }
   return cleanup;
 }
