@@ -1581,6 +1581,13 @@
     .sh-card-view .sh-card-swipe-row .swipe-actions{width:176px;display:grid;grid-template-columns:88px 88px;z-index:1}
     .sh-card-view .sh-card-swipe-row .swipe-actions button{width:88px;min-width:0}
     .sh-card-view .sh-card-swipe-row .swipe-surface{position:relative;z-index:2;box-sizing:border-box;display:flex;width:100%;min-width:0;touch-action:pan-y;background:#fff;will-change:transform}
+
+    /* Card scanner belongs to the code field, not to the list search. */
+    .sh-card-code-entry{position:relative;display:flex;align-items:flex-start;gap:9px}
+    .sh-card-code-entry textarea{flex:1;min-width:0;min-height:65px;margin-top:0}
+    .sh-card-code-entry [data-editor-scan]{flex:0 0 44px;height:48px;display:grid;place-items:center;border:0;background:transparent;color:#6f747b;cursor:pointer}
+    .sh-card-editor-scanner-overlay{position:fixed;inset:0;z-index:9500;background:#fff;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) 22px max(22px,env(safe-area-inset-bottom))}
+    .sh-card-editor-scanner-overlay .module-view{padding-top:20px}
     /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
