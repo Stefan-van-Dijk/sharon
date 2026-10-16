@@ -8,7 +8,6 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
 
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
-const compareName = value => normalizeName(value).toLocaleLowerCase('nl-NL');
 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
@@ -159,11 +158,6 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       const name = normalizeName(input.value);
       const error = form.querySelector('[data-card-error]');
       if (!name) { error.textContent = 'Vul eerst een naam in.'; return; }
-      const all = await records();
-      if (false && all.some(item => item.id !== editingId && compareName(item.name) === compareName(name))) {
-        error.textContent = 'Deze kaart bestaat al in je verzameling.';
-        return;
-      }
       const now = new Date().toISOString();
       const record = {
         ...(card || {}),
