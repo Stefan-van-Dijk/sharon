@@ -1588,6 +1588,16 @@
     .sh-card-code-entry [data-editor-scan]{flex:0 0 44px;height:48px;display:grid;place-items:center;border:0;background:transparent;color:#6f747b;cursor:pointer}
     .sh-card-editor-scanner-overlay{position:fixed;inset:0;z-index:9500;background:#fff;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) 22px max(22px,env(safe-area-inset-bottom))}
     .sh-card-editor-scanner-overlay .module-view{padding-top:20px}
+
+    /* Cards: remove redundant separators and keep optional information secondary. */
+    .sh-card-compact .sh-card-section{border-top:0!important}
+    .sh-card-compact .sh-card-unified{border-bottom:0!important}
+    .sh-card-compact .sh-card-more{margin-top:clamp(72px,15vh,185px)!important;border-top:0!important}
+    .sh-card-compact .sh-card-form.is-typing .sh-card-more{visibility:hidden;pointer-events:none}
+    .sh-card-compact .sh-card-code-entry{display:flex;flex-direction:row;align-items:center;gap:10px;touch-action:pan-y}
+    .sh-card-compact .sh-card-code-entry textarea{order:0;flex:1;width:100%;min-width:0}
+    .sh-card-compact .sh-card-code-entry [data-editor-scan]{order:1;flex-shrink:0;min-width:44px;color:#555}
+    .sh-card-editor-scanner-overlay [data-scan-close]{color:#292929!important}
     /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
