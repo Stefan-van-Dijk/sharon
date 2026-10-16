@@ -147,7 +147,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           </div>
           <div class="sh-card-kind-options" data-kind-options hidden>
             <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
-            ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}">${escapeHtml(label)}</button>`).join("")}
+            ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(label)}</button>`).join("")}
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
@@ -232,6 +232,9 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     const kindToggle = form.querySelector('[data-kind-toggle]');
     const kindOptions = form.querySelector('[data-kind-options]');
+    form.querySelectorAll('[data-kind-choice-icon]').forEach(element => {
+      element.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">' + (icons[element.dataset.kindChoiceIcon] || icons.other) + '</svg>';
+    });
     const updateKind = () => {
       form.querySelector('[data-kind-icon]').innerHTML =
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -239,7 +242,8 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     const colorInput = form.elements.color;
     const swatch = form.querySelector('[data-card-color-swatch]');
-    const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value; };
+    const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value;
+      kindToggle.style.backgroundColor = colorInput.value + '26'; };
     colorInput.addEventListener('input', updateSwatch);
     updateSwatch();
     updateKind();
