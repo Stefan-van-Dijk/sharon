@@ -150,15 +150,15 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Code</strong><button type="button" data-code-type-toggle class="sh-card-code-type" aria-label="Codetype kiezen" aria-expanded="false"><span data-code-icon>▦</span> <span data-code-label>QR-code</span> <span aria-hidden="true">⌄</span></button></div>
+            <div class="sh-card-section-head"><strong>Code</strong></div>
             <div class="sh-card-code-options" data-code-options hidden>
               ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
             </div>
-            <div class="sh-card-preview" data-card-code-preview aria-live="polite"><span>Je code verschijnt hier zodra je inhoud invoert.</span></div>
+            <button type="button" class="sh-card-preview" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span><span class="sh-card-preview-label"><span data-code-icon></span><span data-code-label>QR / Barcode</span>⌄</span></button>
             <label for="card-value">Inhoud van de code</label>
             <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
-            <p data-code-hint class="sh-card-hint">QR of barcode wordt automatisch gekozen.</p>
+
           </div>
           <div class="sh-card-section sh-card-more">
             <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="${Boolean((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId)}"><span>Extra informatie aanvullen</span><span aria-hidden="true">＋</span></button>
@@ -280,7 +280,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       if (!value) previewHost.textContent = 'Je code verschijnt hier zodra je inhoud invoert.';
       else if (format) { try { await renderCardCode(previewHost, format, value); }
         catch(error) { if (generation === previewGeneration) previewHost.textContent = error.message; } }
-      form.querySelector('[data-code-hint]').textContent = format ? CARD_FORMATS[format] : 'Voer de code-inhoud in.';
+
       form.querySelectorAll('[data-code-option]').forEach(button => {
         const valid = compatible(button.dataset.codeOption, value);
         button.disabled = !valid;
