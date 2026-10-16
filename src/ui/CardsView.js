@@ -1,11 +1,11 @@
-import { openCardBoard } from './CardBoard.js?v=0.3.30';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.30';
+import { openCardBoard } from './CardBoard.js?v=0.3.31';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.31';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.30';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.31';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -13,6 +13,18 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
 
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
+
+const icons = {
+  loyalty: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  membership: '<circle cx="12" cy="8" r="3"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/>',
+  access: '<circle cx="8" cy="9" r="4"/><path d="M11 12 21 22"/>',
+  ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/>',
+  other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
+};
+const cardIcon = card => '<span class="sh-card-row-kind" style="background:' +
+  (/^#[0-9a-f]{6}$/i.test(card.color || '') ? card.color + '22' : '#e9e9ed') +
+  '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  (icons[card.cardKind] || icons.other) + '</svg></span>';
 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
@@ -43,6 +55,13 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       add.setAttribute('aria-label', 'Kaart toevoegen');
       add.textContent = '+';
       add.addEventListener('click', () => showForm());
+      const scan = document.createElement('button');
+      scan.type = 'button';
+      scan.className = 'sh-card-header-scan';
+      scan.setAttribute('aria-label', 'Code scannen');
+      scan.innerHTML = '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M7 12h10M9 9v6m6-6v6"/></svg>';
+      scan.addEventListener('click', showScanner);
+      headerActions.append(scan);
       headerActions.append(add);
     }
     const cards = await records();
@@ -52,9 +71,8 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       : (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'nl'));
     outlet.innerHTML = `
       <section class="module-view locations-view sh-card-view">
-        <div style="display:flex;gap:10px;margin-bottom:18px"><button type="button" data-card-scan style="flex:1;border:0;background:#111;color:#fff;min-height:46px">Code scannen</button><button type="button" data-card-create style="flex:1;border:1px solid #ddd;background:white;min-height:46px">+ Nieuwe kaart</button></div>
-        <label style="display:block;font-size:13px;color:#888;margin-bottom:18px">Zoeken<input data-card-search type="search" placeholder="Kaart zoeken" style="display:block;width:100%;height:42px;border:0;border-bottom:1px solid #ddd;background:transparent"></label>
-        <div class="sh-locations-sort" aria-label="Kaarten sorteren">
+        <label class="sh-card-search-row"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input data-card-search type="search" aria-label="Kaart zoeken" placeholder="Zoek een kaart"></label>
+        <div class="sh-locations-sort sh-card-sort" aria-label="Kaarten sorteren">
           <button type="button" data-card-sort="recent" ${sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
           <button type="button" data-card-sort="alpha" ${sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
         </div>
@@ -65,11 +83,11 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             surfaceClassName: 'sh-location-row',
             variant: 'location',
             ariaLabel: card.name,
-            leadingHtml: '<span class="sh-location-kind" aria-hidden="true">▤</span>',
+            leadingHtml: cardIcon(card),
             bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }],
-            doubleSwipe: true
+            doubleSwipe: false
           })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
@@ -83,8 +101,6 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         await showList();
       }
     });
-    outlet.querySelector('[data-card-scan]').addEventListener('click', showScanner);
-    outlet.querySelector('[data-card-create]').addEventListener('click', () => showForm());
     outlet.querySelector('[data-card-search]').addEventListener('input', event => {
       const q = event.target.value.trim().toLocaleLowerCase('nl');
       outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row => {
