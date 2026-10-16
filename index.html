@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.24">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.24">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.25">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.25">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1489,7 +1489,24 @@
     .sh-card-error{color:#a33}
     .sh-card-extra{margin-top:14px;color:#777;font-size:13px}
     .sh-card-extra summary{padding:12px 0;cursor:pointer}
-        /* Locations: two choices, editable details, sticky keyboard actions. */
+    
+    /* Kaarten: optional information and clear, unified icons. */
+    .sh-card-compact [hidden]{display:none!important}
+    .sh-card-extra-toggle{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 0;border:0;background:transparent;text-align:left;color:#111;font-size:15px;font-weight:500}
+    .sh-card-more [data-extra-panel]{padding-bottom:12px}
+    .sh-card-extras-choices{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 17px}
+    .sh-card-extras-choices button{border:1px solid #ececef;background:#fff;padding:10px 12px;font-size:13px;color:#555;border-radius:8px}
+    .sh-card-more [data-number-field],.sh-card-more [data-location-field]{padding:10px 0}
+    .sh-card-more [data-number-field] input{width:100%;height:44px;border:0;border-bottom:1px solid #ddd;background:transparent}
+    .sh-card-name-row [data-kind-toggle]{display:flex;align-items:center;justify-content:center;gap:2px;width:55px;color:#222}
+    .sh-card-name-row [data-kind-icon] svg{display:block;width:24px;height:24px}
+    .sh-card-dropdown-arrow{font-size:13px;color:#999;align-self:flex-end;padding-bottom:11px}
+    .sh-card-color-picker{position:relative;display:grid;place-items:center;width:38px;height:38px;flex-shrink:0;cursor:pointer}
+    .sh-card-color-swatch{display:block;width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #d4d4d8}
+    .sh-card-color-picker input{position:absolute!important;inset:0;width:100%!important;height:100%!important;opacity:0;cursor:pointer}
+    .sh-card-code-type{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:#222;font-size:13px;padding:8px 0}
+    .sh-card-code-type [data-code-icon] svg{display:block;width:23px;height:23px}
+    /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
     .sh-locations-toolbar button{min-width:44px;min-height:44px;font-size:26px}
@@ -2550,16 +2567,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.24#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.24#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.24#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.24#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.24#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.25#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.25#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.25#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.25#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.25#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.24"></script>
+  <script type="module" src="./src/main.js?v=0.3.25"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.24';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.25';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.24';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.25';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -163,21 +163,18 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         <form data-card-form class="sh-card-form">
           <div class="sh-card-head">
             <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
-            <input type="color" name="color" aria-label="Herkenningskleur" title="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}">
+            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
           </div>
           <div class="sh-card-name-row">
             <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
-            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span></button>
+            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span><span class="sh-card-dropdown-arrow" aria-hidden="true">⌄</span></button>
           </div>
           <div class="sh-card-kind-options" data-kind-options hidden>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}">${escapeHtml(label)}</button>`).join("")}
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Code</strong><div class="sh-card-code-switch">
-              <button type="button" data-code-family="QR" aria-label="QR-code kiezen">▦ QR</button>
-              <button type="button" data-code-family="BAR" aria-label="Barcode kiezen">▥ Barcode</button>
-            </div></div>
+            <div class="sh-card-section-head"><strong>Code</strong><button type="button" data-code-type-toggle class="sh-card-code-type" aria-label="Codetype kiezen" aria-expanded="false"><span data-code-icon>▦</span> <span data-code-label>QR-code</span> <span aria-hidden="true">⌄</span></button></div>
             <div class="sh-card-code-options" data-code-options hidden>
               ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
             </div>
@@ -187,18 +184,27 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
             <p data-code-hint class="sh-card-hint">QR of barcode wordt automatisch gekozen.</p>
           </div>
-          <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Eigen informatie</strong><button type="button" data-add-card-field>+ Toevoegen</button></div>
-            <div data-card-fields></div>
-            <details class="sh-card-extra"><summary>Zichtbaar pasnummer toevoegen</summary>
-              <input name="cardNumber" maxlength="200" aria-label="Zichtbaar pasnummer" placeholder="Alleen als dit afwijkt van de code" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}">
-            </details>
-          </div>
-          <div class="sh-card-section">
-            <label for="card-location">Locatie</label>
-            <select id="card-location" name="locationId"><option value="">Zonder locatie</option>
-              ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
-            </select>
+          <div class="sh-card-section sh-card-more">
+            <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="${Boolean((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId)}"><span>Extra informatie aanvullen</span><span aria-hidden="true">＋</span></button>
+            <div data-extra-panel ${((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId) ? "" : "hidden"}>
+              <div class="sh-card-extras-choices">
+                ${['Overige paskenmerken','Keten','Link','Notities'].map(label => `<button type="button" data-field-preset="${label}">${label}</button>`).join('')}
+                <button type="button" data-add-card-field>+ Eigen veld</button>
+                <button type="button" data-extra-number>Zichtbaar pasnummer</button>
+                <button type="button" data-extra-location>Locatie koppelen</button>
+              </div>
+              <div data-card-fields></div>
+              <div data-number-field ${card?.cardNumber || imported?.cardNumber ? "" : "hidden"}>
+                <label for="card-number">Zichtbaar pasnummer</label>
+                <input id="card-number" name="cardNumber" maxlength="200" placeholder="Alleen als dit afwijkt van de code" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}">
+              </div>
+              <div data-location-field ${card?.locationId ? "" : "hidden"}>
+                <label for="card-location">Locatie</label>
+                <select id="card-location" name="locationId"><option value="">Zonder locatie</option>
+                  ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
+                </select>
+              </div>
+            </div>
           </div>
           <p data-card-error role="alert" class="sh-card-error"></p>
           <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
@@ -222,12 +228,43 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       fieldHost.append(row);
     };
     (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field => addField(field.label, field.value));
-    form.querySelector('[data-add-card-field]').addEventListener('click', () => addField());
+    const extraPanel = form.querySelector('[data-extra-panel]');
+    const extraToggle = form.querySelector('[data-extra-toggle]');
+    const openExtras = () => { extraPanel.hidden = false; extraToggle.setAttribute('aria-expanded', 'true'); };
+    extraToggle.addEventListener('click', () => {
+      extraPanel.hidden = !extraPanel.hidden;
+      extraToggle.setAttribute('aria-expanded', String(!extraPanel.hidden));
+    });
+    form.querySelector('[data-add-card-field]').addEventListener('click', () => { openExtras(); addField(); });
+    form.querySelectorAll('[data-field-preset]').forEach(button => button.addEventListener('click', () => {
+      openExtras(); addField(button.dataset.fieldPreset);
+    }));
+    form.querySelector('[data-extra-number]').addEventListener('click', () => {
+      openExtras(); form.querySelector('[data-number-field]').hidden = false; form.elements.cardNumber.focus();
+    });
+    form.querySelector('[data-extra-location]').addEventListener('click', () => {
+      openExtras(); form.querySelector('[data-location-field]').hidden = false; form.elements.locationId.focus();
+    });
     const formKind = form.elements.cardKind;
-    const icons = {loyalty:'▤',membership:'♧',access:'⚿',ticket:'▧',other:'◇'};
+    const icons = {
+      loyalty: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+      membership: '<circle cx="12" cy="8" r="3"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/>',
+      access: '<circle cx="8" cy="9" r="4"/><path d="M11 12 21 22m-3-3 2-2m-5-1 2-2"/>',
+      ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/><path d="M12 5v14" stroke-dasharray="2 2"/>',
+      other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
+    };
     const kindToggle = form.querySelector('[data-kind-toggle]');
     const kindOptions = form.querySelector('[data-kind-options]');
-    const updateKind = () => { form.querySelector('[data-kind-icon]').textContent = icons[formKind.value] || '◇'; };
+    const updateKind = () => {
+      form.querySelector('[data-kind-icon]').innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        (icons[formKind.value] || icons.other) + '</svg>';
+    };
+    const colorInput = form.elements.color;
+    const swatch = form.querySelector('[data-card-color-swatch]');
+    const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value; };
+    colorInput.addEventListener('input', updateSwatch);
+    updateSwatch();
     updateKind();
     kindToggle.addEventListener('click', () => { kindOptions.hidden = !kindOptions.hidden; kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden)); });
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
@@ -273,20 +310,21 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         button.disabled = !valid;
         button.setAttribute('aria-pressed', String(button.dataset.codeOption === format));
       });
-      form.querySelectorAll('[data-code-family]').forEach(button =>
-        button.setAttribute('aria-pressed', String(format && (button.dataset.codeFamily === 'QR' ? format === 'QR_CODE' : format !== 'QR_CODE'))));
+      form.querySelector('[data-code-icon]').innerHTML = format === 'QR_CODE'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14v3h3v4M20 14v2M14 20h2M20 19v2"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5v14M6 5v14M10 5v14M13 5v14M15 5v14M19 5v14M22 5v14"/></svg>';
+      form.querySelector('[data-code-label]').textContent = format ? CARD_FORMATS[format] : 'QR / Barcode';
     };
-    form.querySelectorAll('[data-code-family]').forEach(button => button.addEventListener('click', () => {
+    const codeToggle = form.querySelector('[data-code-type-toggle]');
+    codeToggle.addEventListener('click', () => {
       codeOptions.hidden = !codeOptions.hidden;
-      form.querySelectorAll('[data-code-option]').forEach(option => {
-        option.hidden = button.dataset.codeFamily === 'QR' ? option.dataset.codeOption !== 'QR_CODE' : option.dataset.codeOption === 'QR_CODE';
-      });
+      codeToggle.setAttribute('aria-expanded', String(!codeOptions.hidden));
       updateCodePreview();
-    }));
+    });
     form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
       if (button.disabled) return;
       formatInput.value = button.dataset.codeOption; manuallySelected = true;
-      codeOptions.hidden = true; updateCodePreview();
+      codeOptions.hidden = true; codeToggle.setAttribute('aria-expanded','false'); updateCodePreview();
     }));
     valueInput.addEventListener('input', updateCodePreview);
     updateCodePreview();
