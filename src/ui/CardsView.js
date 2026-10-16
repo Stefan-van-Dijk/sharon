@@ -228,12 +228,43 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       fieldHost.append(row);
     };
     (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field => addField(field.label, field.value));
-    form.querySelector('[data-add-card-field]').addEventListener('click', () => addField());
+    const extraPanel = form.querySelector('[data-extra-panel]');
+    const extraToggle = form.querySelector('[data-extra-toggle]');
+    const openExtras = () => { extraPanel.hidden = false; extraToggle.setAttribute('aria-expanded', 'true'); };
+    extraToggle.addEventListener('click', () => {
+      extraPanel.hidden = !extraPanel.hidden;
+      extraToggle.setAttribute('aria-expanded', String(!extraPanel.hidden));
+    });
+    form.querySelector('[data-add-card-field]').addEventListener('click', () => { openExtras(); addField(); });
+    form.querySelectorAll('[data-field-preset]').forEach(button => button.addEventListener('click', () => {
+      openExtras(); addField(button.dataset.fieldPreset);
+    }));
+    form.querySelector('[data-extra-number]').addEventListener('click', () => {
+      openExtras(); form.querySelector('[data-number-field]').hidden = false; form.elements.cardNumber.focus();
+    });
+    form.querySelector('[data-extra-location]').addEventListener('click', () => {
+      openExtras(); form.querySelector('[data-location-field]').hidden = false; form.elements.locationId.focus();
+    });
     const formKind = form.elements.cardKind;
-    const icons = {loyalty:'▤',membership:'♧',access:'⚿',ticket:'▧',other:'◇'};
+    const icons = {
+      loyalty: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+      membership: '<circle cx="12" cy="8" r="3"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/>',
+      access: '<circle cx="8" cy="9" r="4"/><path d="M11 12 21 22m-3-3 2-2m-5-1 2-2"/>',
+      ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/><path d="M12 5v14" stroke-dasharray="2 2"/>',
+      other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
+    };
     const kindToggle = form.querySelector('[data-kind-toggle]');
     const kindOptions = form.querySelector('[data-kind-options]');
-    const updateKind = () => { form.querySelector('[data-kind-icon]').textContent = icons[formKind.value] || '◇'; };
+    const updateKind = () => {
+      form.querySelector('[data-kind-icon]').innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        (icons[formKind.value] || icons.other) + '</svg>';
+    };
+    const colorInput = form.elements.color;
+    const swatch = form.querySelector('[data-card-color-swatch]');
+    const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value; };
+    colorInput.addEventListener('input', updateSwatch);
+    updateSwatch();
     updateKind();
     kindToggle.addEventListener('click', () => { kindOptions.hidden = !kindOptions.hidden; kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden)); });
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
@@ -279,20 +310,21 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         button.disabled = !valid;
         button.setAttribute('aria-pressed', String(button.dataset.codeOption === format));
       });
-      form.querySelectorAll('[data-code-family]').forEach(button =>
-        button.setAttribute('aria-pressed', String(format && (button.dataset.codeFamily === 'QR' ? format === 'QR_CODE' : format !== 'QR_CODE'))));
+      form.querySelector('[data-code-icon]').innerHTML = format === 'QR_CODE'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14v3h3v4M20 14v2M14 20h2M20 19v2"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5v14M6 5v14M10 5v14M13 5v14M15 5v14M19 5v14M22 5v14"/></svg>';
+      form.querySelector('[data-code-label]').textContent = format ? CARD_FORMATS[format] : 'QR / Barcode';
     };
-    form.querySelectorAll('[data-code-family]').forEach(button => button.addEventListener('click', () => {
+    const codeToggle = form.querySelector('[data-code-type-toggle]');
+    codeToggle.addEventListener('click', () => {
       codeOptions.hidden = !codeOptions.hidden;
-      form.querySelectorAll('[data-code-option]').forEach(option => {
-        option.hidden = button.dataset.codeFamily === 'QR' ? option.dataset.codeOption !== 'QR_CODE' : option.dataset.codeOption === 'QR_CODE';
-      });
+      codeToggle.setAttribute('aria-expanded', String(!codeOptions.hidden));
       updateCodePreview();
-    }));
+    });
     form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
       if (button.disabled) return;
       formatInput.value = button.dataset.codeOption; manuallySelected = true;
-      codeOptions.hidden = true; updateCodePreview();
+      codeOptions.hidden = true; codeToggle.setAttribute('aria-expanded','false'); updateCodePreview();
     }));
     valueInput.addEventListener('input', updateCodePreview);
     updateCodePreview();
