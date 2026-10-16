@@ -1558,6 +1558,16 @@
     .sh-card-unified+.sh-card-kind-options{margin-top:8px}
     .sh-card-compact .sh-card-section:first-of-type{margin-top:13px}
     .sh-card-compact .sh-card-section textarea{margin-top:9px}
+    /* Cards list: same restrained dimensions as Locations, actions in header. */
+    .sh-card-header-scan{display:grid;place-items:center;width:40px;height:40px;background:transparent;border:0;color:inherit;cursor:pointer}
+    .sh-card-view .sh-card-search-row{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 2px;border-bottom:1px solid #e9e9eb;color:#939397;margin:2px 0 5px}
+    .sh-card-search-row input{flex:1;min-width:0;width:100%;height:44px;border:0;background:transparent;outline:0;font-size:16px;color:inherit}
+    .sh-card-search-row input::placeholder{color:#a0a0a4}
+    .sh-card-view .sh-card-sort{margin-top:6px;margin-bottom:4px;padding:0}
+    .sh-card-view .sh-locations-list{margin-top:0}
+    .sh-card-row-kind{display:grid;place-items:center;flex-shrink:0;width:38px;height:38px;border-radius:10px;color:#28282c}
+    .sh-card-row-kind svg{width:22px;height:22px}
+    .sh-card-view .sh-location-row{min-height:76px}
     /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
