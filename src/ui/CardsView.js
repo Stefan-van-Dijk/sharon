@@ -1,3 +1,4 @@
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
@@ -234,7 +235,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
-    const questions = ['Hoe heet deze kaart?', 'Welke pas wil je bewaren?', 'Hoe herken jij deze kaart?', 'Welke kaart voeg je toe?', 'Van wie is deze pas?'];
+    const questions = CARD_NAME_QUESTIONS;
     const question = form.querySelector('[data-card-question]');
     const selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
     question.textContent = '';
