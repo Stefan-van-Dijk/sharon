@@ -284,11 +284,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             </div>
             <button type="button" class="sh-card-preview" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span><span class="sh-card-preview-label"><span data-code-icon></span><span data-code-label>QR / Barcode</span>⌄</span></button>
 
-            <div class="sh-card-code-entry">
+            <div class="sh-card-code-entry" data-code-swipe>
+
+            <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
               <button type="button" data-editor-scan aria-label="Scan de code van deze pas met de camera" title="Code scannen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M7 12h10M9 9v6m6-6v6"/></svg>
               </button>
-            <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
             </div>
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
 
@@ -474,7 +475,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     form.addEventListener('sharon:navigate-back', backHandler);
     // Keep the sentence visible on entry; focus only after an explicit tap.
     const scannerButton = form.querySelector('[data-editor-scan]');
-    scannerButton.addEventListener('click', () => {
+    const openEditorScanner = (photoFirst = false) => {
       const overlay = document.createElement('div');
       overlay.className = 'sh-card-editor-scanner-overlay';
       overlay.setAttribute('role', 'dialog');
@@ -484,6 +485,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       let cleanup = () => {};
       const close = () => { cleanup(); overlay.remove(); };
       const stop = mountCardScanner(overlay, {
+        autoStart: !photoFirst, photoFirst,
         onClose: close,
         onResult: result => {
           close();
@@ -493,7 +495,21 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         }
       });
       cleanup = stop;
-    });
+    };
+    scannerButton.addEventListener('click', () => openEditorScanner());
+    const swipeArea = form.querySelector('[data-code-swipe]');
+    let scanStart = null;
+    swipeArea.addEventListener('touchstart', event => {
+      if (event.touches.length === 1) scanStart = {x:event.touches[0].clientX,y:event.touches[0].clientY};
+    }, {passive:true});
+    swipeArea.addEventListener('touchend', event => {
+      if (!scanStart || event.changedTouches.length !== 1) return;
+      const dx = event.changedTouches[0].clientX - scanStart.x;
+      const dy = event.changedTouches[0].clientY - scanStart.y;
+      scanStart = null;
+      if (dx < -145 && Math.abs(dx) > Math.abs(dy)*1.25) openEditorScanner(true);
+      else if (dx < -44 && Math.abs(dx) > Math.abs(dy)*1.25) openEditorScanner();
+    }, {passive:true});
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const name = normalizeName(input.value);
