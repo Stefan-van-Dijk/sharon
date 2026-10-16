@@ -217,11 +217,11 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     outlet.innerHTML = `
       <section class="module-view sh-card-view sh-card-compact">
         <form data-card-form class="sh-card-form">
-          <div class="sh-card-head">
+          <div class="sh-card-head sh-card-swipe-line" data-phrase-line role="group" aria-label="Veeg naar links voor de zinnenbibliotheek">
             <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
             
           </div>
-          <div class="sh-card-name-row">
+          <div class="sh-card-name-row sh-card-swipe-line" data-kind-line aria-label="Veeg naar links om kaartsoort en kleur te kiezen">
             <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
             <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span><span class="sh-card-dropdown-arrow" aria-hidden="true">⌄</span></button>
           </div>
@@ -327,7 +327,32 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     colorInput.addEventListener('input', updateSwatch);
     updateSwatch();
     updateKind();
-    kindToggle.addEventListener('click', () => { kindOptions.hidden = !kindOptions.hidden; kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden)); });
+    const toggleKindOptions = () => {
+      kindOptions.hidden = !kindOptions.hidden;
+      kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden));
+    };
+    kindToggle.addEventListener('click', toggleKindOptions);
+    const attachSwipe = (line, action) => {
+      let start = null;
+      line.addEventListener('touchstart', event => {
+        if (event.touches.length !== 1) { start = null; return; }
+        start = {x:event.touches[0].clientX, y:event.touches[0].clientY};
+      }, {passive:true});
+      line.addEventListener('touchend', event => {
+        if (!start || event.changedTouches.length !== 1) return;
+        const dx = event.changedTouches[0].clientX - start.x;
+        const dy = event.changedTouches[0].clientY - start.y;
+        start = null;
+        if (dx < -42 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+          event.preventDefault();
+          action();
+        }
+      }, {passive:false});
+      line.addEventListener('touchcancel', () => { start = null; });
+    };
+    attachSwipe(form.querySelector('[data-kind-line]'), () => {
+      if (kindOptions.hidden) toggleKindOptions();
+    });
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
       formKind.value = button.dataset.kind; kindOptions.hidden = true;
       kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
@@ -348,14 +373,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
     else typeQuestion();
     const openQuestionEditor = () => { clearTimeout(questionTimer); showQuestionLibrary(id); };
-    let phraseSwipeX = null;
-    question.addEventListener('touchstart', event => { phraseSwipeX = event.touches[0]?.clientX ?? null; }, {passive:true});
-    question.addEventListener('touchend', event => {
-      if (phraseSwipeX === null) return;
-      const dx = (event.changedTouches[0]?.clientX ?? phraseSwipeX) - phraseSwipeX;
-      phraseSwipeX = null;
-      if (Math.abs(dx) > 42) openQuestionEditor();
-    }, {passive:true});
+    attachSwipe(form.querySelector('[data-phrase-line]'), openQuestionEditor);
     question.addEventListener('click', openQuestionEditor);
     const previewHost = form.querySelector('[data-card-code-preview]');
     const codeOptions = form.querySelector('[data-code-options]');
