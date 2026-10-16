@@ -163,21 +163,18 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         <form data-card-form class="sh-card-form">
           <div class="sh-card-head">
             <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
-            <input type="color" name="color" aria-label="Herkenningskleur" title="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}">
+            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
           </div>
           <div class="sh-card-name-row">
             <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
-            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span></button>
+            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span><span class="sh-card-dropdown-arrow" aria-hidden="true">⌄</span></button>
           </div>
           <div class="sh-card-kind-options" data-kind-options hidden>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}">${escapeHtml(label)}</button>`).join("")}
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Code</strong><div class="sh-card-code-switch">
-              <button type="button" data-code-family="QR" aria-label="QR-code kiezen">▦ QR</button>
-              <button type="button" data-code-family="BAR" aria-label="Barcode kiezen">▥ Barcode</button>
-            </div></div>
+            <div class="sh-card-section-head"><strong>Code</strong><button type="button" data-code-type-toggle class="sh-card-code-type" aria-label="Codetype kiezen" aria-expanded="false"><span data-code-icon>▦</span> <span data-code-label>QR-code</span> <span aria-hidden="true">⌄</span></button></div>
             <div class="sh-card-code-options" data-code-options hidden>
               ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
             </div>
@@ -187,18 +184,27 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
             <p data-code-hint class="sh-card-hint">QR of barcode wordt automatisch gekozen.</p>
           </div>
-          <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Eigen informatie</strong><button type="button" data-add-card-field>+ Toevoegen</button></div>
-            <div data-card-fields></div>
-            <details class="sh-card-extra"><summary>Zichtbaar pasnummer toevoegen</summary>
-              <input name="cardNumber" maxlength="200" aria-label="Zichtbaar pasnummer" placeholder="Alleen als dit afwijkt van de code" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}">
-            </details>
-          </div>
-          <div class="sh-card-section">
-            <label for="card-location">Locatie</label>
-            <select id="card-location" name="locationId"><option value="">Zonder locatie</option>
-              ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
-            </select>
+          <div class="sh-card-section sh-card-more">
+            <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="${Boolean((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId)}"><span>Extra informatie aanvullen</span><span aria-hidden="true">＋</span></button>
+            <div data-extra-panel ${((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId) ? "" : "hidden"}>
+              <div class="sh-card-extras-choices">
+                ${['Overige paskenmerken','Keten','Link','Notities'].map(label => `<button type="button" data-field-preset="${label}">${label}</button>`).join('')}
+                <button type="button" data-add-card-field>+ Eigen veld</button>
+                <button type="button" data-extra-number>Zichtbaar pasnummer</button>
+                <button type="button" data-extra-location>Locatie koppelen</button>
+              </div>
+              <div data-card-fields></div>
+              <div data-number-field ${card?.cardNumber || imported?.cardNumber ? "" : "hidden"}>
+                <label for="card-number">Zichtbaar pasnummer</label>
+                <input id="card-number" name="cardNumber" maxlength="200" placeholder="Alleen als dit afwijkt van de code" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}">
+              </div>
+              <div data-location-field ${card?.locationId ? "" : "hidden"}>
+                <label for="card-location">Locatie</label>
+                <select id="card-location" name="locationId"><option value="">Zonder locatie</option>
+                  ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
+                </select>
+              </div>
+            </div>
           </div>
           <p data-card-error role="alert" class="sh-card-error"></p>
           <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
