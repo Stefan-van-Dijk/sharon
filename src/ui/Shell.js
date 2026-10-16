@@ -334,6 +334,12 @@ export function createShell(root, {
     if (currentView !== 'detail') return false;
     // The editor owns its guided steps. Never discard a form by returning Home.
     const editor = outlet.querySelector('.location-editor-view[data-stage]');
+    const cardEditor = outlet.querySelector('.sh-card-form');
+    if (cardEditor) {
+      const request = new Event('sharon:navigate-back', { cancelable: true });
+      cardEditor.dispatchEvent(request);
+      if (request.defaultPrevented) return true;
+    }
     if (editor) {
       const request = new Event('sharon:navigate-back', { cancelable: true });
       editor.dispatchEvent(request);
