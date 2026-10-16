@@ -114,7 +114,7 @@ export function mountCardScanner(host, { onResult, onClose, autoStart = false, p
   if (autoStart) openCamera();
   if (photoFirst) {
     status.textContent = 'Kies een foto met een code.';
-    host.querySelector('[data-scan-photo]').focus();
+    host.querySelector('[data-scan-photo]').click();
   }
   return cleanup;
 }
