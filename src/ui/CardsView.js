@@ -255,7 +255,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     }));
     const questions = CARD_NAME_QUESTIONS;
     const question = form.querySelector('[data-card-question]');
-    const selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
+    let selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
     question.textContent = '';
     let qIndex = 0, questionTimer = null;
     const typeQuestion = () => {
@@ -265,6 +265,34 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
     else typeQuestion();
+    const phraseMenu = document.createElement('div');
+    phraseMenu.className = 'sh-card-phrase-menu';
+    phraseMenu.hidden = true;
+    for (const [index, phrase] of questions.entries()) {
+      const choice = document.createElement('button');
+      choice.type = 'button';
+      choice.textContent = phrase;
+      choice.addEventListener('click', () => {
+        clearTimeout(questionTimer);
+        qIndex = 0;
+        question.textContent = '';
+        selectedQuestion = questions[index];
+        phraseMenu.hidden = true;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
+        else typeQuestion();
+      });
+      phraseMenu.append(choice);
+    }
+    question.after(phraseMenu);
+    let phraseSwipeX = null;
+    question.addEventListener('touchstart', event => { phraseSwipeX = event.touches[0]?.clientX ?? null; }, {passive:true});
+    question.addEventListener('touchend', event => {
+      if (phraseSwipeX === null) return;
+      const dx = (event.changedTouches[0]?.clientX ?? phraseSwipeX) - phraseSwipeX;
+      phraseSwipeX = null;
+      if (Math.abs(dx) > 42) phraseMenu.hidden = !phraseMenu.hidden;
+    }, {passive:true});
+    question.addEventListener('click', () => { phraseMenu.hidden = !phraseMenu.hidden; });
     const previewHost = form.querySelector('[data-card-code-preview]');
     const codeOptions = form.querySelector('[data-code-options]');
     const formatInput = form.elements.codeFormat, valueInput = form.elements.codeValue;
