@@ -1,12 +1,12 @@
 import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.2.60';
-import { openCardBoard } from './CardBoard.js?v=0.3.32';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.32';
+import { openCardBoard } from './CardBoard.js?v=0.3.33';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.33';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.32';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.33';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -83,7 +83,6 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       <section class="module-view locations-view sh-card-view">
         <div class="sh-card-search-toolbar">
           <label class="sh-card-search-row"><input data-card-search type="search" aria-label="Kaart zoeken" placeholder="Zoek een kaart"></label>
-          <button type="button" data-card-scan aria-label="Code scannen" title="Code scannen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M7 12h10M9 9v6m6-6v6"/></svg></button>
           <div class="sh-card-sort-icons" aria-label="Kaarten sorteren">
             <button type="button" data-card-sort="recent" aria-label="Recent" title="Recent" ${sort === 'recent' ? 'aria-pressed="true"' : ''}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg></button>
             <button type="button" data-card-sort="alpha" aria-label="A tot Z" title="A–Z" ${sort === 'alpha' ? 'aria-pressed="true"' : ''}><span aria-hidden="true">A–Z</span></button>
@@ -116,7 +115,6 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         await showList();
       }
     });
-    outlet.querySelector('[data-card-scan]').addEventListener('click', showScanner);
     outlet.querySelector('[data-card-search]').addEventListener('input', event => {
       const q = event.target.value.trim().toLocaleLowerCase('nl');
       outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row => {
@@ -286,7 +284,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             </div>
             <button type="button" class="sh-card-preview" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span><span class="sh-card-preview-label"><span data-code-icon></span><span data-code-label>QR / Barcode</span>⌄</span></button>
 
+            <div class="sh-card-code-entry">
+              <button type="button" data-editor-scan aria-label="Scan de code van deze pas met de camera" title="Code scannen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M7 12h10M9 9v6m6-6v6"/></svg>
+              </button>
             <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
+            </div>
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
 
           </div>
@@ -469,7 +472,28 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     // Going back discards the editor and returns to the card overview.
     const backHandler = event => { if (!outlet.contains(form)) return; event.preventDefault(); clearTimeout(questionTimer); showList(); };
     form.addEventListener('sharon:navigate-back', backHandler);
-    input.focus();
+    // Keep the sentence visible on entry; focus only after an explicit tap.
+    const scannerButton = form.querySelector('[data-editor-scan]');
+    scannerButton.addEventListener('click', () => {
+      const overlay = document.createElement('div');
+      overlay.className = 'sh-card-editor-scanner-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Code van kaart scannen');
+      document.body.append(overlay);
+      let cleanup = () => {};
+      const close = () => { cleanup(); overlay.remove(); };
+      const stop = mountCardScanner(overlay, {
+        onClose: close,
+        onResult: result => {
+          close();
+          form.elements.codeFormat.value = result.format;
+          form.elements.codeValue.value = result.value;
+          form.elements.codeValue.dispatchEvent(new Event('input', { bubbles:true }));
+        }
+      });
+      cleanup = stop;
+    });
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const name = normalizeName(input.value);
