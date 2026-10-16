@@ -1,13 +1,13 @@
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.21';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.22';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character]);
 
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
-const compareName = value => normalizeName(value).toLocaleLowerCase('nl-NL');
+const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
@@ -54,14 +54,14 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             variant: 'location',
             ariaLabel: card.name,
             leadingHtml: '<span class="sh-location-kind" aria-hidden="true">▤</span>',
-            bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong></span>',
+            bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'delete', label: 'Verwijder' }]
           })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
-      onOpen: id => showForm(id),
+      onOpen: id => showDetail(id),
       onDelete: async id => {
         const card = await store.get('objects', id);
         if (!card || card.type !== 'card' || !confirm('Wil je deze kaart verwijderen?')) return;
@@ -71,6 +71,32 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     });
     outlet.querySelectorAll('[data-card-sort]').forEach(button =>
       button.addEventListener('click', () => { sort = button.dataset.cardSort; showList(); }));
+  }
+
+  async function showDetail(id) {
+    const card = await store.get('objects', id);
+    if (!card || card.type !== 'card') return showList();
+    releaseRows?.(); releaseRows = null;
+    title('Kaart'); header();
+    if (headerActions) {
+      const edit = document.createElement('button');
+      edit.type = 'button'; edit.className = 'sh-location-header-save';
+      edit.textContent = 'Bewerk'; edit.addEventListener('click', () => showForm(id));
+      headerActions.append(edit);
+    }
+    const fields = Array.isArray(card.fields) ? card.fields : [];
+    outlet.innerHTML = `
+      <section class="module-view sh-card-view sh-location-detail-view">
+        <button type="button" data-card-back style="background:none;border:0;color:#777;padding:12px 0 22px">‹ Kaarten</button>
+        <div style="border-top:1px solid #ececef;padding:28px 0">
+          <p style="font-size:13px;color:#888">${kindLabels[card.cardKind] || 'Overige kaart'}</p>
+          <h2 style="font-size:30px;font-weight:350">${escapeHtml(card.name)}</h2>
+        </div>
+        ${card.cardNumber ? `<div style="padding:18px 0;border-top:1px solid #ececef"><small>Kaartnummer</small><p>${escapeHtml(card.cardNumber)}</p></div>` : ''}
+        ${fields.map(field => `<div style="padding:18px 0;border-top:1px solid #ececef"><small>${escapeHtml(field.label)}</small><p style="overflow-wrap:anywhere">${escapeHtml(field.value)}</p></div>`).join('')}
+        ${!card.cardNumber && !fields.length ? '<p style="color:#888">Nog geen eigen informatie. Tik op Bewerk om gegevens toe te voegen.</p>' : ''}
+      </section>`;
+    outlet.querySelector('[data-card-back]').addEventListener('click', showList);
   }
 
   async function showForm(id = null) {
@@ -90,6 +116,15 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           <input id="card-name" name="name" maxlength="100" autocomplete="organization" required
             value="${escapeHtml(card?.name || '')}"
             placeholder="Bijvoorbeeld Jumbo" style="width:100%;border:0;border-bottom:1px solid #d6d6da;border-radius:0;padding:10px 0;font-size:21px;background:transparent;outline:none">
+          <label for="card-kind" style="display:block;margin-top:26px;font-size:13px;color:#777">Soort kaart</label>
+          <select name="cardKind" id="card-kind" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:#fff;font-size:18px">
+            ${Object.entries(kindLabels).map(([key,label]) => `<option value="${key}" ${(card?.cardKind || "other") === key ? "selected" : ""}>${label}</option>`).join("")}
+          </select>
+          <label for="card-number" style="display:block;margin-top:24px;font-size:13px;color:#777">Kaartnummer (optioneel)</label>
+          <input id="card-number" name="cardNumber" maxlength="200" value="${escapeHtml(card?.cardNumber || "")}" placeholder="Nummer op de pas" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:transparent;font-size:18px">
+          <p style="margin-top:28px;font-size:15px">Eigen informatie</p>
+          <div data-card-fields></div>
+          <button type="button" data-add-card-field style="border:0;background:none;padding:12px 0">+ Informatieveld toevoegen</button>
           <p data-card-error role="alert" style="min-height:22px;color:#ad3030;font-size:13px"></p>
           </div>
           <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
@@ -101,30 +136,43 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
     const input = form.elements.name;
+    const fieldHost = form.querySelector('[data-card-fields]');
+    const addField = (label = '', value = '') => {
+      if (fieldHost.children.length >= 30) return;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;margin:12px 0';
+      row.innerHTML = '<input data-field-label maxlength="80" placeholder="Veldnaam" aria-label="Veldnaam" style="min-width:0;width:40%;padding:12px 2px;border:0;border-bottom:1px solid #ddd">' +
+        '<input data-field-value maxlength="1000" placeholder="Inhoud" aria-label="Inhoud" style="min-width:0;width:50%;padding:12px 2px;border:0;border-bottom:1px solid #ddd">' +
+        '<button type="button" aria-label="Veld verwijderen" style="border:0;background:none;font-size:22px">×</button>';
+      row.querySelector('[data-field-label]').value = label;
+      row.querySelector('[data-field-value]').value = value;
+      row.querySelector('button').addEventListener('click', () => row.remove());
+      fieldHost.append(row);
+    };
+    (Array.isArray(card?.fields) ? card.fields : []).forEach(field => addField(field.label, field.value));
+    form.querySelector('[data-add-card-field]').addEventListener('click', () => addField());
     input.focus();
-    form.querySelector('[data-cancel]').addEventListener('click', showList);
+    form.querySelector('[data-cancel]').addEventListener('click', () => card ? showDetail(card.id) : showList());
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const name = normalizeName(input.value);
       const error = form.querySelector('[data-card-error]');
       if (!name) { error.textContent = 'Vul eerst een naam in.'; return; }
-      const all = await records();
-      if (all.some(item => item.id !== editingId && compareName(item.name) === compareName(name))) {
-        error.textContent = 'Deze kaart bestaat al in je verzameling.';
-        return;
-      }
       const now = new Date().toISOString();
       const record = {
         ...(card || {}),
         id: card?.id || IdentifierService.create(),
         type: 'card',
         name,
+        cardKind: form.elements.cardKind.value,
+        cardNumber: form.elements.cardNumber.value.trim(),
+        fields: [...fieldHost.children].map(row => ({label: row.querySelector('[data-field-label]').value.trim(), value: row.querySelector('[data-field-value]').value.trim()})).filter(field => field.label && field.value),
         createdAt: card?.createdAt || now,
         updatedAt: now
       };
       try {
         await store.put('objects', record);
-        await showList();
+        await showDetail(record.id);
       } catch {
         error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';
       }
