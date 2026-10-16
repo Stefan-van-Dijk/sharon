@@ -370,6 +370,8 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const controls = story.querySelector('.sh-local-controls');
     if (controls) story.append(controls);
   }
+  // Footer must be mounted before insertBefore can use it as a reference node.
+  story.append(footer);
   if (isLocal) {
     const lessons = [
       ['swipe','Swipe horizontaal om een andere locatie te bekijken.'],
@@ -404,7 +406,6 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       type();
     }
   }
-  story.append(footer);
   const textGlass = document.createElement('div');
   textGlass.className = 'sh-board-text-glass';
   textGlass.setAttribute('aria-hidden', 'true');
