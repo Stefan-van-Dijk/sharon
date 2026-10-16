@@ -139,13 +139,14 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
         <form data-card-form class="sh-card-form">
           <div class="sh-card-head">
             <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
-            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
+            
           </div>
           <div class="sh-card-name-row">
             <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
             <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span><span class="sh-card-dropdown-arrow" aria-hidden="true">⌄</span></button>
           </div>
           <div class="sh-card-kind-options" data-kind-options hidden>
+            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}">${escapeHtml(label)}</button>`).join("")}
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
