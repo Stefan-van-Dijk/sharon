@@ -1,3 +1,4 @@
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.2.60';
 import { openCardBoard } from './CardBoard.js?v=0.3.31';
 import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.31';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
@@ -60,12 +61,10 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     }
     const cards = await records();
     const locationItems = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
+    const locationLookup = new Map(locationItems.map(item => [String(item.id),item]));
     const coordinateOf = card => {
-      const loc = locationItems.find(item => item.id === card.locationId);
-      const coords = loc?.data?.coordinates || loc?.coordinates;
-      const latitude = Number(coords?.lat ?? coords?.latitude);
-      const longitude = Number(coords?.lng ?? coords?.lon ?? coords?.longitude);
-      return Number.isFinite(latitude) && Number.isFinite(longitude) ? {latitude,longitude} : null;
+      const coordinates = resolveLocation(locationLookup.get(String(card.locationId)), locationLookup).coordinates;
+      return coordinates ? { latitude: coordinates.lat, longitude: coordinates.lng } : null;
     };
     const distance = card => {
       const point = coordinateOf(card);
@@ -129,7 +128,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     outlet.querySelectorAll('[data-card-sort]').forEach(button =>
       button.addEventListener('click', async () => {
         if (button.dataset.cardSort === 'near') {
-          const eligible = cards.filter(card => card.locationId && locationItems.some(loc => loc.id === card.locationId));
+          const eligible = cards.filter(card => coordinateOf(card));
           if (!eligible.length) {
             outlet.querySelector('[data-card-sort-status]').textContent = 'Koppel eerst een kaart aan een locatie om op afstand te sorteren.';
             return;
