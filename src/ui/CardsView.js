@@ -1,11 +1,11 @@
-import { openCardBoard } from './CardBoard.js?v=0.3.27';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.27';
+import { openCardBoard } from './CardBoard.js?v=0.3.28';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.28';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.27';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.28';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -120,6 +120,86 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     const locations = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
     closeBoard?.();
     closeBoard = openCardBoard(card, { locations, onClose: () => { closeBoard = null; } });
+  }
+
+  async function showQuestionLibrary(cardId = null) {
+    releaseRows?.(); releaseRows = null;
+    title('Zinnenbibliotheek');
+    header();
+    const saved = await store.get('meta', 'cards.nameQuestions');
+    let phrases = Array.isArray(saved?.value) ? saved.value.filter(value => typeof value === 'string' && value.trim()).slice(0, 40) : [...CARD_NAME_QUESTIONS];
+    outlet.innerHTML = `
+      <section class="module-view sh-sentence-editor sh-card-sentence-editor">
+        <div class="sh-location-editor-nav"><button type="button" data-question-back>‹ Kaart</button><span>Kaarten</span></div>
+        <h2 data-question-library-intro>Zo praat ik over jouw kaarten. Hier kun je mijn zinnen aanpassen of me iets nieuws leren.</h2>
+        <p class="clean-help">Veeg een regel naar links om die te bewerken of te verwijderen.</p>
+        <div data-question-rows class="swipe-list"></div>
+        <form data-question-form>
+          <label class="clean-field"><span data-question-label>Nieuwe zin</span>
+            <textarea name="phrase" rows="2" maxlength="300" required placeholder="Hoe heet deze kaart?"></textarea>
+          </label>
+          <div class="sh-card-question-actions">
+            <button type="button" data-question-cancel hidden>Annuleren</button>
+            <button type="submit" class="primary-line-action" data-question-submit>Zin toevoegen</button>
+          </div>
+        </form>
+        <p data-question-status role="status"></p>
+      </section>`;
+    const rows = outlet.querySelector('[data-question-rows]');
+    const form = outlet.querySelector('[data-question-form]');
+    const status = outlet.querySelector('[data-question-status]');
+    const textarea = form.elements.phrase;
+    let editing = -1, unbind = null;
+    const back = () => { unbind?.(); return showForm(cardId); };
+    outlet.querySelector('[data-question-back]').addEventListener('click', back);
+    const persist = async () => store.put('meta', {key:'cards.nameQuestions', value:phrases});
+    const reset = () => {
+      editing = -1; form.reset();
+      form.querySelector('[data-question-label]').textContent = 'Nieuwe zin';
+      form.querySelector('[data-question-submit]').textContent = 'Zin toevoegen';
+      form.querySelector('[data-question-cancel]').hidden = true;
+    };
+    form.querySelector('[data-question-cancel]').addEventListener('click', reset);
+    const draw = () => {
+      unbind?.(); unbind = null;
+      rows.innerHTML = phrases.map((phrase, index) => renderStrip({
+        id: String(index), variant:'location', surfaceClassName:'sh-location-row',
+        bodyHtml:'<span class="sh-location-copy"><strong>' + escapeHtml(phrase) + '</strong></span>',
+        actions:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}],
+        doubleSwipe:true
+      })).join('');
+      unbind = bindSwipeRows(rows, {
+        onEdit: id => {
+          editing = Number(id);
+          textarea.value = phrases[editing];
+          form.querySelector('[data-question-label]').textContent = 'Zin aanpassen';
+          form.querySelector('[data-question-submit]').textContent = 'Wijziging opslaan';
+          form.querySelector('[data-question-cancel]').hidden = false;
+          textarea.focus();
+        },
+        onDelete: async id => {
+          if (phrases.length <= 1) { status.textContent = 'Er moet minimaal één zin blijven staan.'; return; }
+          phrases.splice(Number(id),1);
+          try { await persist(); reset(); draw(); status.textContent = 'Zin verwijderd.'; }
+          catch { status.textContent = 'Verwijderen is niet gelukt.'; }
+        }
+      });
+    };
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const value = textarea.value.trim();
+      if (!value) return;
+      if (phrases.some((phrase,index) => index !== editing && phrase.toLocaleLowerCase('nl') === value.toLocaleLowerCase('nl'))) {
+        status.textContent = 'Deze zin bestaat al.'; return;
+      }
+      const next = [...phrases];
+      if (editing >= 0) next[editing] = value;
+      else if (next.length < 40) next.push(value);
+      else { status.textContent = 'Maximaal 40 zinnen.'; return; }
+      try { await store.put('meta',{key:'cards.nameQuestions',value:next}); phrases = next; reset(); draw(); status.textContent = 'Zin opgeslagen.'; }
+      catch { status.textContent = 'Opslaan is niet gelukt.'; }
+    });
+    draw();
   }
 
   async function showForm(id = null, scanned = null) {
@@ -253,46 +333,30 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
-    const questions = CARD_NAME_QUESTIONS;
+    const configured = await store.get('meta','cards.nameQuestions');
+    const questions = Array.isArray(configured?.value) && configured.value.some(value => typeof value === 'string' && value.trim())
+      ? configured.value.filter(value => typeof value === 'string' && value.trim()) : CARD_NAME_QUESTIONS;
     const question = form.querySelector('[data-card-question]');
-    let selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
+    const selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
     question.textContent = '';
     let qIndex = 0, questionTimer = null;
     const typeQuestion = () => {
       if (!question.isConnected) return;
-      question.textContent = selectedQuestion.slice(0, ++qIndex);
-      if (qIndex < selectedQuestion.length) questionTimer = setTimeout(typeQuestion, 28);
+      question.textContent = selectedQuestion.slice(0,++qIndex);
+      if (qIndex < selectedQuestion.length) questionTimer = setTimeout(typeQuestion,28);
     };
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
     else typeQuestion();
-    const phraseMenu = document.createElement('div');
-    phraseMenu.className = 'sh-card-phrase-menu';
-    phraseMenu.hidden = true;
-    for (const [index, phrase] of questions.entries()) {
-      const choice = document.createElement('button');
-      choice.type = 'button';
-      choice.textContent = phrase;
-      choice.addEventListener('click', () => {
-        clearTimeout(questionTimer);
-        qIndex = 0;
-        question.textContent = '';
-        selectedQuestion = questions[index];
-        phraseMenu.hidden = true;
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
-        else typeQuestion();
-      });
-      phraseMenu.append(choice);
-    }
-    question.after(phraseMenu);
+    const openQuestionEditor = () => { clearTimeout(questionTimer); showQuestionLibrary(id); };
     let phraseSwipeX = null;
     question.addEventListener('touchstart', event => { phraseSwipeX = event.touches[0]?.clientX ?? null; }, {passive:true});
     question.addEventListener('touchend', event => {
       if (phraseSwipeX === null) return;
       const dx = (event.changedTouches[0]?.clientX ?? phraseSwipeX) - phraseSwipeX;
       phraseSwipeX = null;
-      if (Math.abs(dx) > 42) phraseMenu.hidden = !phraseMenu.hidden;
+      if (Math.abs(dx) > 42) openQuestionEditor();
     }, {passive:true});
-    question.addEventListener('click', () => { phraseMenu.hidden = !phraseMenu.hidden; });
+    question.addEventListener('click', openQuestionEditor);
     const previewHost = form.querySelector('[data-card-code-preview]');
     const codeOptions = form.querySelector('[data-code-options]');
     const formatInput = form.elements.codeFormat, valueInput = form.elements.codeValue;
