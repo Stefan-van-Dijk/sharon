@@ -1,11 +1,11 @@
-import { openCardBoard } from './CardBoard.js?v=0.3.29';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.29';
+import { openCardBoard } from './CardBoard.js?v=0.3.30';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.30';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.29';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.30';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -122,15 +122,15 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     closeBoard = openCardBoard(card, { locations, onClose: () => { closeBoard = null; } });
   }
 
-  async function showQuestionLibrary(cardId = null) {
+  async function showQuestionLibrary(cardId = null, kind = 'loyalty') {
     releaseRows?.(); releaseRows = null;
     title('Zinnenbibliotheek');
     header();
-    const saved = await store.get('meta', 'cards.nameQuestions');
+    const saved = await store.get('meta', 'cards.nameQuestions.' + kind);
     let phrases = Array.isArray(saved?.value) ? saved.value.filter(value => typeof value === 'string' && value.trim()).slice(0, 40) : [...CARD_NAME_QUESTIONS];
     outlet.innerHTML = `
       <section class="module-view sh-sentence-editor sh-card-sentence-editor">
-        <div class="sh-location-editor-nav"><button type="button" data-question-back>‹ Kaart</button><span>Kaarten</span></div>
+        <div class="sh-location-editor-nav"><button type="button" data-question-back>‹ Kaart</button><span>${escapeHtml(kindLabels[kind] || 'Kaarten')}</span></div>
         <h2 data-question-library-intro>Zo praat ik over jouw kaarten. Hier kun je mijn zinnen aanpassen of me iets nieuws leren.</h2>
         <p class="clean-help">Veeg een regel naar links om die te bewerken of te verwijderen.</p>
         <div data-question-rows class="swipe-list"></div>
@@ -152,7 +152,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     let editing = -1, unbind = null;
     const back = () => { unbind?.(); return showForm(cardId); };
     outlet.querySelector('[data-question-back]').addEventListener('click', back);
-    const persist = async () => store.put('meta', {key:'cards.nameQuestions', value:phrases});
+    const persist = async () => store.put('meta', {key:'cards.nameQuestions.' + kind, value:phrases});
     const reset = () => {
       editing = -1; form.reset();
       form.querySelector('[data-question-label]').textContent = 'Nieuwe zin';
@@ -196,7 +196,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       if (editing >= 0) next[editing] = value;
       else if (next.length < 40) next.push(value);
       else { status.textContent = 'Maximaal 40 zinnen.'; return; }
-      try { await store.put('meta',{key:'cards.nameQuestions',value:next}); phrases = next; reset(); draw(); status.textContent = 'Zin opgeslagen.'; }
+      try { await store.put('meta',{key:'cards.nameQuestions.' + kind,value:next}); phrases = next; reset(); draw(); status.textContent = 'Zin opgeslagen.'; }
       catch { status.textContent = 'Opslaan is niet gelukt.'; }
     });
     draw();
@@ -217,13 +217,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     outlet.innerHTML = `
       <section class="module-view sh-card-view sh-card-compact">
         <form data-card-form class="sh-card-form">
-          <div class="sh-card-head sh-card-swipe-line" data-phrase-line role="group" aria-label="Veeg naar links voor de zinnenbibliotheek">
-            <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
-            
-          </div>
-          <div class="sh-card-name-row sh-card-swipe-line" data-kind-line aria-label="Veeg naar links om kaartsoort en kleur te kiezen">
-            <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
-            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span><span class="sh-card-dropdown-arrow" aria-hidden="true">⌄</span></button>
+          <div class="sh-card-unified sh-card-swipe-line" data-unified-line aria-label="Veeg links voor kaarttype; verder links voor zinnenbibliotheek">
+            <button type="button" data-kind-toggle aria-label="Soort pas en kleur kiezen" aria-expanded="false"><span data-kind-icon></span></button>
+            <div class="sh-card-unified-input">
+              <span data-card-question class="sh-card-question" aria-hidden="true">Hoe heet deze kaart?</span>
+              <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="" value="${escapeHtml(card?.name || imported?.name || "")}">
+            </div>
           </div>
           <div class="sh-card-kind-options" data-kind-options hidden>
             <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
@@ -231,12 +230,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
-            <div class="sh-card-section-head"><strong>Code</strong></div>
+
             <div class="sh-card-code-options" data-code-options hidden>
               ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
             </div>
             <button type="button" class="sh-card-preview" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span><span class="sh-card-preview-label"><span data-code-icon></span><span data-code-label>QR / Barcode</span>⌄</span></button>
-            <label for="card-value">Inhoud van de code</label>
+
             <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
 
@@ -332,49 +331,47 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
       kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden));
     };
     kindToggle.addEventListener('click', toggleKindOptions);
-    const attachSwipe = (line, action) => {
-      let start = null;
-      line.addEventListener('touchstart', event => {
-        if (event.touches.length !== 1) { start = null; return; }
-        start = {x:event.touches[0].clientX, y:event.touches[0].clientY};
-      }, {passive:true});
-      line.addEventListener('touchend', event => {
-        if (!start || event.changedTouches.length !== 1) return;
-        const dx = event.changedTouches[0].clientX - start.x;
-        const dy = event.changedTouches[0].clientY - start.y;
-        start = null;
-        if (dx < -42 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-          event.preventDefault();
-          action();
-        }
-      }, {passive:false});
-      line.addEventListener('touchcancel', () => { start = null; });
-    };
-    attachSwipe(form.querySelector('[data-kind-line]'), () => {
-      if (kindOptions.hidden) toggleKindOptions();
-    });
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
       formKind.value = button.dataset.kind; kindOptions.hidden = true;
       kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
-    const configured = await store.get('meta','cards.nameQuestions');
-    const questions = Array.isArray(configured?.value) && configured.value.some(value => typeof value === 'string' && value.trim())
-      ? configured.value.filter(value => typeof value === 'string' && value.trim()) : CARD_NAME_QUESTIONS;
+    const dictionaryKey = 'cards.nameQuestions.' + formKind.value;
+    const configured = await store.get('meta', dictionaryKey);
+    const legacy = await store.get('meta','cards.nameQuestions');
+    const questions = Array.isArray(configured?.value) && configured.value.length
+      ? configured.value : (Array.isArray(legacy?.value) && legacy.value.length ? legacy.value : CARD_NAME_QUESTIONS);
     const question = form.querySelector('[data-card-question]');
+    const inputWrap = form.querySelector('.sh-card-unified-input');
     const selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
     question.textContent = '';
     let qIndex = 0, questionTimer = null;
     const typeQuestion = () => {
       if (!question.isConnected) return;
-      question.textContent = selectedQuestion.slice(0,++qIndex);
-      if (qIndex < selectedQuestion.length) questionTimer = setTimeout(typeQuestion,28);
+      question.textContent = selectedQuestion.slice(0, ++qIndex);
+      if (qIndex < selectedQuestion.length) questionTimer = setTimeout(typeQuestion, 28);
     };
+    const syncName = () => inputWrap.classList.toggle('has-name', Boolean(input.value || document.activeElement === input));
+    input.addEventListener('input', syncName);
+    input.addEventListener('focus', syncName);
+    input.addEventListener('blur', syncName);
+    syncName();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
     else typeQuestion();
-    const openQuestionEditor = () => { clearTimeout(questionTimer); showQuestionLibrary(id); };
-    attachSwipe(form.querySelector('[data-phrase-line]'), openQuestionEditor);
-    question.addEventListener('click', openQuestionEditor);
+    const openQuestionEditor = () => { clearTimeout(questionTimer); showQuestionLibrary(id, formKind.value); };
+    const line = form.querySelector('[data-unified-line]');
+    let startTouch = null;
+    line.addEventListener('touchstart', event => {
+      if (event.touches.length === 1) startTouch = {x:event.touches[0].clientX,y:event.touches[0].clientY};
+    }, {passive:true});
+    line.addEventListener('touchend', event => {
+      if (!startTouch || event.changedTouches.length !== 1) return;
+      const dx = event.changedTouches[0].clientX - startTouch.x;
+      const dy = event.changedTouches[0].clientY - startTouch.y;
+      startTouch = null;
+      if (dx < -145 && Math.abs(dx) > Math.abs(dy) * 1.2) openQuestionEditor();
+      else if (dx < -40 && Math.abs(dx) > Math.abs(dy) * 1.2 && kindOptions.hidden) toggleKindOptions();
+    }, {passive:true});
     const previewHost = form.querySelector('[data-card-code-preview]');
     const codeOptions = form.querySelector('[data-code-options]');
     const formatInput = form.elements.codeFormat, valueInput = form.elements.codeValue;
