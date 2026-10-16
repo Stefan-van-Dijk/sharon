@@ -180,16 +180,18 @@ export async function openLocationsView(root, {
             actions: [{ kind: 'edit', label: 'Bewerk' }]
           })}
         </div>
-        <section class="sh-location-web-sources" data-location-web-sources style="padding:18px 20px;margin:12px 0;border:1px solid rgba(100,110,120,.16);border-radius:20px">
-          <h3>Webpagina’s bij deze plek</h3>
-          <p class="clean-help">Koppel een pagina aan deze locatie. De koppeling blijft privé op dit apparaat.</p>
-          <form data-web-source-add style="display:flex;gap:8px;flex-wrap:wrap">
-            <input name="url" type="url" required placeholder="https://website.nl/pagina" aria-label="Webpagina URL" style="flex:1;min-width:190px" />
-            <button type="submit" class="text-action">Koppel</button>
-          </form>
-          <p data-web-source-status role="status"></p>
-          <div data-web-source-list></div>
-        </section>
+        <details class="sh-location-web-sources" data-location-web-sources>
+          <summary>Webpagina’s <span data-web-source-count></span></summary>
+          <div class="sh-location-web-sources-content">
+            <div data-web-source-list></div>
+            <form data-web-source-add class="sh-location-web-source-form">
+              <input name="url" type="url" required placeholder="https://website.nl/pagina" aria-label="Webpagina URL" />
+              <button type="submit" class="text-action">Koppel</button>
+            </form>
+            <p data-web-source-status role="status"></p>
+            <p class="clean-help">Alleen zichtbaar op dit apparaat.</p>
+          </div>
+        </details>
         <div class="sh-location-reference-map-panel sh-location-detail-map-panel">
           <div class="sh-radius-map-host sh-location-reference-map" data-detail-map></div>
         </div>
@@ -200,6 +202,7 @@ export async function openLocationsView(root, {
     const sourceStatus = sourcePanel.querySelector('[data-web-source-status]');
     const renderSources = async () => {
       const sources = await getPrivateWebSources(store, item.id);
+      sourcePanel.querySelector('[data-web-source-count]').textContent = sources.length ? '· ' + sources.length : '';
       sourceList.replaceChildren();
       for (const source of sources) {
         const row = document.createElement('div');
