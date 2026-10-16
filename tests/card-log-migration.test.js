@@ -27,6 +27,6 @@ test('Sharing card QR transfers own details but not local identifiers or locatio
 test('Imported data rejects unknown and oversized schemas', () => {
   assert.equal(parseCardPayload('not-json'), null);
   assert.equal(parseCardPayload(JSON.stringify({kind:'log-code',version:1})), null);
-  const tooMuch = {name:'Kaart',fields:[{label:'Beschrijving',value:'x'.repeat(2500)}]};
+  const tooMuch = {name:'Kaart',fields:Array.from({length:20},(_,i)=>({label:'Beschrijving'+i,value:'x'.repeat(500)}))};
   assert.throws(() => buildCardPayload(tooMuch), /Te veel gegevens/);
 });
