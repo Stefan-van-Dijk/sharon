@@ -1,10 +1,11 @@
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.25';
+import { openCardBoard } from './CardBoard.js?v=0.3.26';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.26';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.25';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.26';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -16,6 +17,7 @@ const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 
 export async function openCardsView(outlet, { store, setTitle, headerActions }) {
   let editingId = null;
   let stopScanner = null;
+  let closeBoard = null;
   let sort = 'alpha';
   let releaseRows = null;
   const title = value => { if (typeof setTitle === 'function') setTitle(value); };
@@ -27,6 +29,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
   }
 
   async function showList() {
+    closeBoard?.(); closeBoard = null;
     stopScanner?.(); stopScanner = null;
     editingId = null;
     title('Kaarten');
@@ -65,12 +68,14 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             leadingHtml: '<span class="sh-location-kind" aria-hidden="true">▤</span>',
             bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
-            actions: [{ kind: 'delete', label: 'Verwijder' }]
+            actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }],
+            doubleSwipe: true
           })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
       onOpen: id => showDetail(id),
+      onEdit: id => showForm(id),
       onDelete: async id => {
         const card = await store.get('objects', id);
         if (!card || card.type !== 'card' || !confirm('Wil je deze kaart verwijderen?')) return;
@@ -112,38 +117,9 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
   async function showDetail(id) {
     const card = await store.get('objects', id);
     if (!card || card.type !== 'card') return showList();
-    releaseRows?.(); releaseRows = null;
-    title('Kaart'); header();
-    if (headerActions) {
-      const edit = document.createElement('button');
-      edit.type = 'button'; edit.className = 'sh-location-header-save';
-      edit.textContent = 'Bewerk'; edit.addEventListener('click', () => showForm(id));
-      headerActions.append(edit);
-    }
-    const fields = Array.isArray(card.fields) ? card.fields : [];
-    outlet.innerHTML = `
-      <section class="module-view sh-card-view sh-location-detail-view">
-        <button type="button" data-card-back style="background:none;border:0;color:#777;padding:12px 0 22px">‹ Kaarten</button>
-        <div style="border-top:1px solid #ececef;padding:28px 0">
-          <p style="font-size:13px;color:#888">${kindLabels[card.cardKind] || 'Overige kaart'}</p>
-          <h2 style="font-size:30px;font-weight:350">${escapeHtml(card.name)}</h2>
-        </div>
-        ${card.codeValue ? `<div data-card-code style="padding:18px;background:white"></div><details><summary>Code-inhoud</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(card.codeValue)}</pre></details>` : ''}
-        <button type="button" data-card-share style="border:1px solid #ddd;background:white;padding:14px;margin:14px 0">Kaartgegevens als QR-code</button>
-        <div data-card-share-output></div>
-        ${card.cardNumber ? `<div style="padding:18px 0;border-top:1px solid #ececef"><small>Kaartnummer</small><p>${escapeHtml(card.cardNumber)}</p></div>` : ''}
-        ${fields.map(field => `<div style="padding:18px 0;border-top:1px solid #ececef"><small>${escapeHtml(field.label)}</small><p style="overflow-wrap:anywhere">${escapeHtml(field.value)}</p></div>`).join('')}
-        ${!card.cardNumber && !fields.length ? '<p style="color:#888">Nog geen eigen informatie. Tik op Bewerk om gegevens toe te voegen.</p>' : ''}
-      </section>`;
-    const codeHost = outlet.querySelector('[data-card-code]');
-    if (codeHost) renderCardCode(codeHost, card.codeFormat || 'QR_CODE', card.codeValue).catch(error => { codeHost.textContent = error.message; });
-    outlet.querySelector('[data-card-share]').addEventListener('click', async () => {
-      const payload = buildCardPayload(card);
-      const output = outlet.querySelector('[data-card-share-output]');
-      try { await renderCardCode(output, 'QR_CODE', payload); }
-      catch(error) { output.textContent = error.message; }
-    });
-    outlet.querySelector('[data-card-back]').addEventListener('click', showList);
+    const locations = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
+    closeBoard?.();
+    closeBoard = openCardBoard(card, { locations, onClose: () => { closeBoard = null; } });
   }
 
   async function showForm(id = null, scanned = null) {
