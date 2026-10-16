@@ -1,9 +1,10 @@
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.24';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.23';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.24';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -155,44 +156,54 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     releaseRows = null;
     header();
     const locations = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
+    const chosenKind = card?.cardKind || imported?.cardKind || 'loyalty';
+    const chosenColor = card?.color || imported?.color || '#489ff8';
     outlet.innerHTML = `
-      <section class="module-view sh-card-view sh-location-dialog">
+      <section class="module-view sh-card-view sh-card-compact">
         <form data-card-form class="sh-card-form">
-          <div class="sh-location-question">
-          <h2 class="sh-location-question-title">Hoe heet deze kaart?</h2>
-          <label for="card-name" style="display:block;font-size:13px;color:#777;margin-bottom:10px">Naam van de winkel of organisatie</label>
-          <input id="card-name" name="name" maxlength="100" autocomplete="organization" required
-            value="${escapeHtml(card?.name || imported?.name || '')}"
-            placeholder="Bijvoorbeeld Jumbo" style="width:100%;border:0;border-bottom:1px solid #d6d6da;border-radius:0;padding:10px 0;font-size:21px;background:transparent;outline:none">
-          <label for="card-kind" style="display:block;margin-top:26px;font-size:13px;color:#777">Soort kaart</label>
-          <select name="cardKind" id="card-kind" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:#fff;font-size:18px">
-            ${Object.entries(kindLabels).map(([key,label]) => `<option value="${key}" ${(card?.cardKind || imported?.cardKind || "other") === key ? "selected" : ""}>${label}</option>`).join("")}
-          </select>
-          <label for="card-number" style="display:block;margin-top:24px;font-size:13px;color:#777">Kaartnummer (optioneel)</label>
-          <input id="card-number" name="cardNumber" maxlength="200" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}" placeholder="Nummer op de pas" style="width:100%;height:48px;border:0;border-bottom:1px solid #ddd;background:transparent;font-size:18px">
-          <label for="card-color" style="display:block;margin-top:24px;font-size:13px;color:#777">Herkenningskleur</label>
-          <input id="card-color" name="color" type="color" value="${/^#[0-9a-f]{6}$/i.test(card?.color || imported?.color || "") ? (card?.color || imported?.color) : "#489ff8"}">
-          <label for="card-format" style="display:block;margin-top:24px;font-size:13px;color:#777">Codetype</label>
-          <select id="card-format" name="codeFormat" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Geen code</option>
-            ${Object.entries(CARD_FORMATS).map(([value,label]) => `<option value="${value}" ${(card?.codeFormat || scanned?.codeFormat || scanned?.format || "") === value ? "selected" : ""}>${label}</option>`).join("")}
-          </select>
-          <label for="card-value" style="display:block;margin-top:24px;font-size:13px;color:#777">Code-inhoud</label>
-          <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="3" style="display:block;width:100%;border:1px solid #ddd;border-radius:8px;padding:12px">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
-          <div data-card-code-preview style="margin-top:12px;background:#fff"></div>
-          <label for="card-location" style="display:block;margin-top:24px;font-size:13px;color:#777">Locatie</label>
-          <select id="card-location" name="locationId" style="display:block;width:100%;height:46px;border:0;border-bottom:1px solid #ddd"><option value="">Zonder locatie</option>
-            ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
-          </select>
-          <p style="margin-top:28px;font-size:15px">Eigen informatie</p>
-          <div data-card-fields></div>
-          <button type="button" data-add-card-field style="border:0;background:none;padding:12px 0">+ Informatieveld toevoegen</button>
-          <p data-card-error role="alert" style="min-height:22px;color:#ad3030;font-size:13px"></p>
+          <div class="sh-card-head">
+            <h2 class="sh-card-question" data-card-question aria-live="polite">Hoe heet deze kaart?</h2>
+            <input type="color" name="color" aria-label="Herkenningskleur" title="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}">
           </div>
+          <div class="sh-card-name-row">
+            <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="Naam van je kaart" value="${escapeHtml(card?.name || imported?.name || "")}">
+            <button type="button" data-kind-toggle aria-label="Soort pas kiezen" aria-expanded="false"><span data-kind-icon></span></button>
+          </div>
+          <div class="sh-card-kind-options" data-kind-options hidden>
+            ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}">${escapeHtml(label)}</button>`).join("")}
+          </div>
+          <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
+          <div class="sh-card-section">
+            <div class="sh-card-section-head"><strong>Code</strong><div class="sh-card-code-switch">
+              <button type="button" data-code-family="QR" aria-label="QR-code kiezen">▦ QR</button>
+              <button type="button" data-code-family="BAR" aria-label="Barcode kiezen">▥ Barcode</button>
+            </div></div>
+            <div class="sh-card-code-options" data-code-options hidden>
+              ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
+            </div>
+            <div class="sh-card-preview" data-card-code-preview aria-live="polite"><span>Je code verschijnt hier zodra je inhoud invoert.</span></div>
+            <label for="card-value">Inhoud van de code</label>
+            <textarea id="card-value" name="codeValue" maxlength="2000" autocapitalize="off" spellcheck="false" rows="2" placeholder="Scan een code of vul de inhoud in">${escapeHtml(card?.codeValue || scanned?.codeValue || scanned?.value || "")}</textarea>
+            <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
+            <p data-code-hint class="sh-card-hint">QR of barcode wordt automatisch gekozen.</p>
+          </div>
+          <div class="sh-card-section">
+            <div class="sh-card-section-head"><strong>Eigen informatie</strong><button type="button" data-add-card-field>+ Toevoegen</button></div>
+            <div data-card-fields></div>
+            <details class="sh-card-extra"><summary>Zichtbaar pasnummer toevoegen</summary>
+              <input name="cardNumber" maxlength="200" aria-label="Zichtbaar pasnummer" placeholder="Alleen als dit afwijkt van de code" value="${escapeHtml(card?.cardNumber || imported?.cardNumber || "")}">
+            </details>
+          </div>
+          <div class="sh-card-section">
+            <label for="card-location">Locatie</label>
+            <select id="card-location" name="locationId"><option value="">Zonder locatie</option>
+              ${locations.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === card?.locationId ? "selected" : ""}>${escapeHtml(item.data?.title || "Locatie")}</option>`).join("")}
+            </select>
+          </div>
+          <p data-card-error role="alert" class="sh-card-error"></p>
           <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
-            <button type="button" data-cancel class="story-text-action" style="background:none;border:0">Annuleren</button>
-            <button type="submit" class="sh-location-simple-submit">Opslaan</button>
+            <button type="submit" class="sh-location-simple-submit">Akkoord</button>
           </div></div>
-          ${card ? '<button type="button" data-delete style="margin-top:10px;background:none;border:0;color:#a33">Kaart verwijderen</button>' : ''}
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
@@ -212,21 +223,77 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field => addField(field.label, field.value));
     form.querySelector('[data-add-card-field]').addEventListener('click', () => addField());
+    const formKind = form.elements.cardKind;
+    const icons = {loyalty:'▤',membership:'♧',access:'⚿',ticket:'▧',other:'◇'};
+    const kindToggle = form.querySelector('[data-kind-toggle]');
+    const kindOptions = form.querySelector('[data-kind-options]');
+    const updateKind = () => { form.querySelector('[data-kind-icon]').textContent = icons[formKind.value] || '◇'; };
+    updateKind();
+    kindToggle.addEventListener('click', () => { kindOptions.hidden = !kindOptions.hidden; kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden)); });
+    form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
+      formKind.value = button.dataset.kind; kindOptions.hidden = true;
+      kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
+      form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+    }));
+    const questions = CARD_NAME_QUESTIONS;
+    const question = form.querySelector('[data-card-question]');
+    const selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
+    question.textContent = '';
+    let qIndex = 0, questionTimer = null;
+    const typeQuestion = () => {
+      if (!question.isConnected) return;
+      question.textContent = selectedQuestion.slice(0, ++qIndex);
+      if (qIndex < selectedQuestion.length) questionTimer = setTimeout(typeQuestion, 28);
+    };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) question.textContent = selectedQuestion;
+    else typeQuestion();
     const previewHost = form.querySelector('[data-card-code-preview]');
+    const codeOptions = form.querySelector('[data-code-options]');
+    const formatInput = form.elements.codeFormat, valueInput = form.elements.codeValue;
+    const compatible = (format, value) => { if (!value) return true; try { validateCardCode(format, value); return true; } catch { return false; } };
+    const guessFormat = value => {
+      if (!value) return '';
+      if (/^[0-9]{13}$/.test(value) && compatible('EAN13', value)) return 'EAN13';
+      if (/^[0-9]{8}$/.test(value) && compatible('EAN8', value)) return 'EAN8';
+      return /^[\x20-\x7e]{1,80}$/.test(value) ? 'CODE128' : 'QR_CODE';
+    };
+    let manuallySelected = Boolean(card?.codeFormat || scanned?.codeFormat || scanned?.format);
     let previewGeneration = 0;
     const updateCodePreview = async () => {
-      const generation = ++previewGeneration, format = form.elements.codeFormat.value;
-      const value = form.elements.codeValue.value;
+      const value = valueInput.value, generation = ++previewGeneration;
+      if (!manuallySelected || !compatible(formatInput.value, value)) { formatInput.value = guessFormat(value); manuallySelected = false; }
+      const format = formatInput.value;
       previewHost.replaceChildren();
-      if (!format || !value) return;
-      try { await renderCardCode(previewHost, format, value); }
-      catch(error) { if (generation === previewGeneration) previewHost.textContent = error.message; }
+      if (!value) previewHost.textContent = 'Je code verschijnt hier zodra je inhoud invoert.';
+      else if (format) { try { await renderCardCode(previewHost, format, value); }
+        catch(error) { if (generation === previewGeneration) previewHost.textContent = error.message; } }
+      form.querySelector('[data-code-hint]').textContent = format ? CARD_FORMATS[format] : 'Voer de code-inhoud in.';
+      form.querySelectorAll('[data-code-option]').forEach(button => {
+        const valid = compatible(button.dataset.codeOption, value);
+        button.disabled = !valid;
+        button.setAttribute('aria-pressed', String(button.dataset.codeOption === format));
+      });
+      form.querySelectorAll('[data-code-family]').forEach(button =>
+        button.setAttribute('aria-pressed', String(format && (button.dataset.codeFamily === 'QR' ? format === 'QR_CODE' : format !== 'QR_CODE'))));
     };
-    form.elements.codeFormat.addEventListener('change', updateCodePreview);
-    form.elements.codeValue.addEventListener('input', updateCodePreview);
+    form.querySelectorAll('[data-code-family]').forEach(button => button.addEventListener('click', () => {
+      codeOptions.hidden = !codeOptions.hidden;
+      form.querySelectorAll('[data-code-option]').forEach(option => {
+        option.hidden = button.dataset.codeFamily === 'QR' ? option.dataset.codeOption !== 'QR_CODE' : option.dataset.codeOption === 'QR_CODE';
+      });
+      updateCodePreview();
+    }));
+    form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
+      if (button.disabled) return;
+      formatInput.value = button.dataset.codeOption; manuallySelected = true;
+      codeOptions.hidden = true; updateCodePreview();
+    }));
+    valueInput.addEventListener('input', updateCodePreview);
     updateCodePreview();
+    // Going back discards the editor and returns to the card overview.
+    const backHandler = event => { if (!outlet.contains(form)) return; event.preventDefault(); clearTimeout(questionTimer); showList(); };
+    form.addEventListener('sharon:navigate-back', backHandler);
     input.focus();
-    form.querySelector('[data-cancel]').addEventListener('click', () => card ? showDetail(card.id) : showList());
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const name = normalizeName(input.value);
