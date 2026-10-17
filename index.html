@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.44">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.44">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.45">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.45">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2734,6 +2734,20 @@
 .sh-skeleton-graph-edit form label{display:grid;gap:5px;font-size:13px}
 .sh-skeleton-graph-edit form select{font:inherit;min-height:42px;width:100%;border:1px solid #ddd;border-radius:6px;background:#fff}
 .sh-skeleton-graph-edit form button{border:0;background:#f1f1f2;border-radius:6px;padding:11px 14px}
+
+.sh-graph-settings{margin:10px 0 18px;border-top:1px solid #e7e7e9;border-bottom:1px solid #e7e7e9;padding:10px 0}
+.sh-graph-settings summary{cursor:pointer;padding:9px 0;font-size:15px}
+.sh-graph-inspector{display:grid;gap:12px;padding:10px 0}
+.sh-graph-inspector label{display:grid;gap:6px;font-size:13px;color:#666}
+.sh-graph-inspector select{width:100%;height:44px;padding:0 8px;background:transparent;border:1px solid #ddd;border-radius:7px;font:inherit;color:inherit}
+.sh-graph-summary{display:grid;gap:6px;background:#f5f5f6;padding:12px;border-radius:9px}
+.sh-graph-summary strong{font-size:16px}
+.sh-graph-summary small,.sh-graph-inspector-note{font-size:12px;color:#777}
+.sh-graph-links{display:grid}
+.sh-graph-connection{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #eee;font-size:14px}
+.sh-graph-connection span{min-width:0;overflow-wrap:anywhere}
+.sh-graph-connection small{display:block;font-size:12px;color:#777;margin-top:3px}
+.sh-graph-connection button{border:0;background:transparent;font-size:22px;padding:8px 12px}
 </style>
 </head>
 <body>
@@ -2747,16 +2761,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.44#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.44#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.44#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.44#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.44#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.45#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.45#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.45#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.45#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.45#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.44"></script>
+  <script type="module" src="./src/main.js?v=0.3.45"></script>
 </body>
 </html>
