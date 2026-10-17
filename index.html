@@ -575,7 +575,9 @@
       font-size:11px;
     }
     .app-header-actions .environment-map-top-actions button:disabled{opacity:.55}
-    .app-stage.is-environment{height:100dvh;min-height:100dvh;touch-action:auto}
+    /* Keep the map pinned to the actual iOS viewport, not a sometimes stale 100dvh box. */
+    .app-stage.is-environment{position:fixed;inset:0;width:100%;height:100%!important;min-height:100%!important;touch-action:auto}
+    .app-stage.is-environment .app-frame{height:100%!important;min-height:100%!important}
     .app-stage.is-environment .app-view{
       padding:0;overflow:hidden;transform:none;
     }
