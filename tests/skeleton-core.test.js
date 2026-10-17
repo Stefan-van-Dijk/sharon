@@ -4,7 +4,8 @@ import {demoDataset,validateSkeleton,relatedTo,removalAction,skeletonCapabilitie
 const store=()=>{const m=new Map();return {get:async(table,k)=>m.get(table+':'+k),put:async(table,v)=>m.set(table+':'+(v.key||v.id),v),delete:async(table,k)=>m.delete(table+':'+k)};};
 test('demo references are valid and isolated from live objects',()=>{
  const d=validateSkeleton(demoDataset());
- assert.equal(d.objects.length,7);
+ assert.equal(d.objects.length,8);
+ assert.ok(d.objects.some(o=>o.module==='environment'));
  assert.equal(relatedTo(d,'DemoCard0001').length,2);
  assert.equal(removalAction(d,'DemoCard0001'),'archive');
  assert.equal(removalAction(d,'DemoObject01'),'delete');
