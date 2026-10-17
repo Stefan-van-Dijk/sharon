@@ -1,7 +1,7 @@
 import { openCardsView } from './CardsView.js?v=0.3.36';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.36';
-import { openSettings } from './SettingsView.js?v=0.1.90';
+import { openSettings } from './SettingsView.js?v=0.3.37';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
