@@ -1,12 +1,12 @@
 import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.2.60';
-import { openCardBoard } from './CardBoard.js?v=0.3.35';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.35';
+import { openCardBoard } from './CardBoard.js?v=0.3.36';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.36';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.35';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.36';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -265,7 +265,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     outlet.innerHTML = `
       <section class="module-view sh-card-view sh-card-compact">
         <form data-card-form class="sh-card-form">
-          <div class="sh-card-unified sh-card-swipe-line" data-unified-line aria-label="Veeg links voor kaarttype; verder links voor zinnenbibliotheek">
+          <div class="sh-card-unified sh-card-swipe-line" data-unified-line data-swipe-short="Type en kleur" data-swipe-long="Zinnenbibliotheek" aria-label="Veeg links voor kaarttype; verder links voor zinnenbibliotheek">
             <button type="button" data-kind-toggle aria-label="Soort pas en kleur kiezen" aria-expanded="false"><span data-kind-icon></span></button>
             <div class="sh-card-unified-input">
               <span data-card-question class="sh-card-question" aria-hidden="true">Hoe heet deze kaart?</span>
@@ -275,6 +275,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
           <div class="sh-card-kind-options" data-kind-options hidden>
             <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(label)}</button>`).join("")}
+            <button type="button" data-kind-done class="sh-card-kind-done">Klaar</button>
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
@@ -396,10 +397,10 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     kindToggle.addEventListener('click', toggleKindOptions);
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
-      formKind.value = button.dataset.kind; kindOptions.hidden = true;
-      kindToggle.setAttribute('aria-expanded', 'false'); updateKind();
+      formKind.value = button.dataset.kind; updateKind();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
+    form.querySelector('[data-kind-done]').addEventListener('click', () => { kindOptions.hidden = true; kindToggle.setAttribute('aria-expanded', 'false'); });
     const dictionaryKey = 'cards.nameQuestions.' + formKind.value;
     const configured = await store.get('meta', dictionaryKey);
     const legacy = await store.get('meta','cards.nameQuestions');
@@ -426,19 +427,32 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     const line = form.querySelector('[data-unified-line]');
     const bindEditorSwipe = (element, shortAction, longAction) => {
       let pointer = null;
+      const reset = () => {
+        element.style.removeProperty('--sh-card-swipe');
+        element.removeAttribute('data-swipe-depth');
+        pointer = null;
+      };
       element.addEventListener('pointerdown', event => {
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         pointer = {id:event.pointerId,x:event.clientX,y:event.clientY};
       });
+      element.addEventListener('pointermove', event => {
+        if (!pointer || pointer.id !== event.pointerId) return;
+        const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
+        if (dx >= 0 || Math.abs(dx) < Math.abs(dy)*1.2) { element.style.removeProperty('--sh-card-swipe'); return; }
+        element.style.setProperty('--sh-card-swipe', Math.max(-155, dx) + 'px');
+        element.setAttribute('data-swipe-depth', dx < -125 ? 'long' : 'short');
+      }, {passive:true});
       element.addEventListener('pointerup', event => {
         if (!pointer || pointer.id !== event.pointerId) return;
-        const dx = event.clientX-pointer.x, dy=event.clientY-pointer.y;
-        pointer=null;
-        if (dx >= -45 || Math.abs(dx) < Math.abs(dy)*1.2) return;
-        if (dx < -125) longAction();
-        else shortAction();
+        const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y;
+        reset();
+        if (dx < -45 && Math.abs(dx) > Math.abs(dy)*1.2) {
+          if (dx < -125) longAction();
+          else shortAction();
+        }
       });
-      element.addEventListener('pointercancel', () => { pointer=null; });
+      element.addEventListener('pointercancel', reset);
     };
     bindEditorSwipe(line, () => { if(kindOptions.hidden) toggleKindOptions(); }, openQuestionEditor);
     const previewHost = form.querySelector('[data-card-code-preview]');
