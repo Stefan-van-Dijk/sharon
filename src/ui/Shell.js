@@ -1,13 +1,13 @@
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.40';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.40';
-import { openCardsView } from './CardsView.js?v=0.3.40';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.41';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.41';
+import { openCardsView } from './CardsView.js?v=0.3.41';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.40';
-import { openSettings } from './SettingsView.js?v=0.3.40';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.41';
+import { openSettings } from './SettingsView.js?v=0.3.41';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
-const APP_VERSION = '0.3.40';
+const APP_VERSION = '0.3.41';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -302,7 +302,7 @@ export function createShell(root, {
     if (demoMode && SKELETON_MODULES.includes(moduleId)) {
       const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
       setHeaderMode('detail',name,moduleId);
-      await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true}),{animate:options.animate!==false});
+      await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true,onTitleChange:setDetailTitle}),{animate:options.animate!==false});
       return;
     }
     const module = modules.get(moduleId);
@@ -342,6 +342,12 @@ export function createShell(root, {
   };
   const navigateBack = () => {
     if (currentView !== 'detail') return false;
+    // Let the active skeleton screen consume one internal navigation level.
+    if (demoMode && outlet.querySelector('.sh-skeleton-screen')) {
+      const request=new Event('sharon:navigate-back',{cancelable:true});
+      outlet.querySelector('.sh-skeleton-screen').dispatchEvent(request);
+      if(request.defaultPrevented)return true;
+    }
     // The editor owns its guided steps. Never discard a form by returning Home.
     const editor = outlet.querySelector('.location-editor-view[data-stage]');
     const cardEditor = outlet.querySelector('.sh-card-form');

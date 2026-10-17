@@ -1,21 +1,36 @@
 import { IdentifierService } from '../core/ids/IdentifierService.js';
 import { renderStrip } from './Strip.js';
 import { bindSwipeRows } from './SwipeRows.js';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,relatedTo,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
-export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false}={}) {
+export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
   let {enabled,data}=await demoWorkspace(store),module=initialModule,index=0,expanded=false,boardOpen=false;
   let disposed=false;
   let unbindRows=null;
   let editingId=null;
   let createOpen=false;
+  const objectHistory=[];
+  const stepBack=()=>{
+    if(createOpen){createOpen=false;editingId=null;draw();return true;}
+    if(expanded){expanded=false;draw();return true;}
+    if(objectHistory.length){const previous=objectHistory.pop();module=previous.module;index=previous.index;boardOpen=previous.boardOpen;expanded=previous.expanded;draw();return true;}
+    if(boardOpen){boardOpen=false;draw();return true;}
+    return false;
+  };
+  const onNavigateBack=event=>{if(stepBack())event.preventDefault();};
+  root.addEventListener('sharon:navigate-back',onNavigateBack,true);
   const draw=()=>{
     if(disposed || !root.isConnected) return;
     unbindRows?.(); unbindRows=null;
+    if(fullScreen)onTitleChange(titles[module]);
     const list=enabled?data.objects.filter(o=>o.module===module):[];
     const current=list[Math.min(index,Math.max(0,list.length-1))];
     const caps=current?skeletonCapabilities(data,current.id):null;
+    const links=current ? relatedTo(data,current.id).map(relation=>{
+      const target=data.objects.find(o=>o.id===(relation.from===current.id?relation.to:relation.from));
+      return target?{relation,target}:null;
+    }).filter(Boolean):[];
     root.innerHTML=(fullScreen ? '<section class="module-view sh-skeleton-screen">' : '<div class="sh-skeleton-toggle"><label><input type="checkbox" data-demo-toggle '+(enabled?'checked':'')+'> Testgegevens gebruiken</label>'+
       '<small>Afgescheiden voorbeelden. Je eigen objecten veranderen niet.</small></div>')+
       (enabled?'<div class="sh-skeleton-workspace"><p class="sh-skeleton-label">Skeletproef · fictieve gegevens</p>'+
@@ -33,14 +48,22 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        (current && (!fullScreen || boardOpen)?'<div class="sh-skeleton-board">'+
        '<div class="sh-skeleton-boardslide"><button type="button" data-demo-prev aria-label="Vorig object">‹</button><div><small>'+esc(titles[module])+' · '+(index+1)+'/'+list.length+'</small><strong>'+esc(current.title)+'</strong></div><button type="button" data-demo-next aria-label="Volgend object">›</button></div>'+
        '<div class="sh-skeleton-boardbuttons"><button type="button" data-demo-expand aria-expanded="'+expanded+'">'+(expanded?'Compact Board':'Board uitbreiden')+'</button></div>'+
-       (expanded?'<div class="sh-skeleton-details"><p>Status: '+esc(current.status)+'</p><p>Relaties: '+caps.related+'</p>'+
+       (expanded?'<div class="sh-skeleton-details"><p>Status: '+esc(current.status)+'</p><h3>Relaties</h3>'+
+       (links.length?links.map(link=>'<button type="button" class="sh-skeleton-relation" data-demo-relation="'+esc(link.target.id)+'"><strong>'+esc(link.target.title)+'</strong><span>'+esc(titles[link.target.module])+' · '+esc(link.relation.type)+'</span></button>').join(''):'<p>Geen relaties</p>')+
        Object.entries(current.fields||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('')+'</div>':'')+
        '</div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
        (fullScreen?'':'<button type="button" data-demo-reset>Herstel alle voorbeeldgegevens</button>')+'</div>':'')+(fullScreen?'</section>':'');
     root.querySelector('[data-demo-toggle]')?.addEventListener('change',async e=>{
       ({enabled,data}=await setDemoEnabled(store,e.target.checked));index=0;expanded=false;draw();
     });
-    root.querySelector('[data-demo-back]')?.addEventListener('click',()=>{boardOpen=false;expanded=false;draw();});
+    root.querySelector('[data-demo-back]')?.addEventListener('click',stepBack);
+    root.querySelectorAll('[data-demo-relation]').forEach(button=>button.addEventListener('click',()=>{
+      const target=data.objects.find(o=>o.id===button.dataset.demoRelation);
+      if(!target)return;
+      objectHistory.push({module,index,boardOpen,expanded});
+      module=target.module;index=data.objects.filter(o=>o.module===module).findIndex(o=>o.id===target.id);
+      expanded=false;boardOpen=true;draw();
+    }));
     const listRoot=root.querySelector('.sh-skeleton-object-list');
     if(listRoot) unbindRows=bindSwipeRows(listRoot,{
       onOpen:id=>{index=list.findIndex(o=>o.id===id);boardOpen=true;expanded=false;draw();},
@@ -75,5 +98,5 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     root.querySelector('[data-demo-reset]')?.addEventListener('click',async()=>{data=await resetDemoDataset(store);index=0;expanded=false;draw();});
   };
   draw();
-  return ()=>{disposed=true;unbindRows?.();};
+  return ()=>{disposed=true;unbindRows?.();root.removeEventListener('sharon:navigate-back',onNavigateBack,true);};
 }

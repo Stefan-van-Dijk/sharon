@@ -1,4 +1,4 @@
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.40';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.41';
 export function openSettings(root, {
   settings,
   install,
