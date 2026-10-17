@@ -1,12 +1,12 @@
 import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.2.60';
-import { openCardBoard } from './CardBoard.js?v=0.3.34';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.34';
+import { openCardBoard } from './CardBoard.js?v=0.3.35';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.35';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.34';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.35';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -294,6 +294,10 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
 
           </div>
+          <div class="sh-card-form-actions">
+            <button type="button" data-card-cancel>Annuleren</button>
+            <button type="submit" class="sh-card-form-save">Kaart toevoegen</button>
+          </div>
           <div class="sh-card-section sh-card-more">
             <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="${Boolean((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId)}"><span>Extra informatie aanvullen</span><span aria-hidden="true">＋</span></button>
             <div data-extra-panel ${((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId) ? "" : "hidden"}>
@@ -317,12 +321,12 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             </div>
           </div>
           <p data-card-error role="alert" class="sh-card-error"></p>
-          <div class="sh-location-simple-footer"><div class="sh-location-simple-footer-inner">
-            <button type="submit" class="sh-location-simple-submit">Akkoord</button>
-          </div></div>
+          
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
+    form.querySelector('[data-card-cancel]').addEventListener('click', showList);
+    if (card) form.querySelector('.sh-card-form-save').textContent = 'Wijzigingen opslaan';
     const setTyping = () => {
       const active = document.activeElement;
       form.classList.toggle('is-typing', active === form.elements.name || active === form.elements.codeValue);
@@ -420,18 +424,23 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     else typeQuestion();
     const openQuestionEditor = () => { clearTimeout(questionTimer); showQuestionLibrary(id, formKind.value); };
     const line = form.querySelector('[data-unified-line]');
-    let startTouch = null;
-    line.addEventListener('touchstart', event => {
-      if (event.touches.length === 1) startTouch = {x:event.touches[0].clientX,y:event.touches[0].clientY};
-    }, {passive:true});
-    line.addEventListener('touchend', event => {
-      if (!startTouch || event.changedTouches.length !== 1) return;
-      const dx = event.changedTouches[0].clientX - startTouch.x;
-      const dy = event.changedTouches[0].clientY - startTouch.y;
-      startTouch = null;
-      if (dx < -145 && Math.abs(dx) > Math.abs(dy) * 1.2) openQuestionEditor();
-      else if (dx < -40 && Math.abs(dx) > Math.abs(dy) * 1.2 && kindOptions.hidden) toggleKindOptions();
-    }, {passive:true});
+    const bindEditorSwipe = (element, shortAction, longAction) => {
+      let pointer = null;
+      element.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        pointer = {id:event.pointerId,x:event.clientX,y:event.clientY};
+      });
+      element.addEventListener('pointerup', event => {
+        if (!pointer || pointer.id !== event.pointerId) return;
+        const dx = event.clientX-pointer.x, dy=event.clientY-pointer.y;
+        pointer=null;
+        if (dx >= -45 || Math.abs(dx) < Math.abs(dy)*1.2) return;
+        if (dx < -125) longAction();
+        else shortAction();
+      });
+      element.addEventListener('pointercancel', () => { pointer=null; });
+    };
+    bindEditorSwipe(line, () => { if(kindOptions.hidden) toggleKindOptions(); }, openQuestionEditor);
     const previewHost = form.querySelector('[data-card-code-preview]');
     const codeOptions = form.querySelector('[data-code-options]');
     const formatInput = form.elements.codeFormat, valueInput = form.elements.codeValue;
@@ -504,18 +513,7 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
     };
     scannerButton.addEventListener('click', () => openEditorScanner());
     const swipeArea = form.querySelector('[data-code-swipe]');
-    let scanStart = null;
-    swipeArea.addEventListener('touchstart', event => {
-      if (event.touches.length === 1) scanStart = {x:event.touches[0].clientX,y:event.touches[0].clientY};
-    }, {passive:true});
-    swipeArea.addEventListener('touchend', event => {
-      if (!scanStart || event.changedTouches.length !== 1) return;
-      const dx = event.changedTouches[0].clientX - scanStart.x;
-      const dy = event.changedTouches[0].clientY - scanStart.y;
-      scanStart = null;
-      if (dx < -145 && Math.abs(dx) > Math.abs(dy)*1.25) openEditorScanner(true);
-      else if (dx < -44 && Math.abs(dx) > Math.abs(dy)*1.25) openEditorScanner();
-    }, {passive:true});
+    bindEditorSwipe(swipeArea, () => openEditorScanner(), () => openEditorScanner(true));
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const name = normalizeName(input.value);

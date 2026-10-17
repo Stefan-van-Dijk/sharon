@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.34">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.34">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.35">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.35">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -1602,6 +1602,14 @@
     .sh-card-compact .sh-card-kind-options{display:flex;flex-flow:row nowrap;overflow-x:auto;overflow-y:hidden;gap:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;padding:6px 0 12px}
     .sh-card-compact .sh-card-kind-options>button,.sh-card-compact .sh-card-kind-options>.sh-card-color-picker{flex:0 0 auto;scroll-snap-align:start;white-space:nowrap}
     .sh-card-compact .sh-card-kind-options[hidden]{display:none!important}
+    /* Card editor: action buttons below input; optional fields follow them. */
+    .sh-card-compact .sh-card-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:16px 0 12px}
+    .sh-card-form-actions button{min-height:46px;padding:0 14px;border:0;font-size:15px}
+    .sh-card-form-actions [data-card-cancel]{background:transparent;color:#555}
+    .sh-card-form-actions .sh-card-form-save{background:#111;color:white;font-weight:550}
+    .sh-card-compact .sh-card-more{margin-top:0!important;border-top:0!important}
+    .sh-card-compact .sh-card-form.is-typing .sh-card-more{visibility:visible;pointer-events:auto}
+    .sh-card-compact .sh-card-code-entry{touch-action:pan-y}
     /* Locations: two choices, editable details, sticky keyboard actions. */
     .app-header-actions .sh-location-header-add{min-width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:#111;font-size:29px;font-weight:300;cursor:pointer}
     .sh-locations-toolbar{justify-content:space-between}
@@ -2663,16 +2671,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.34#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.34#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.34#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.34#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.34#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.35#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.35#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.35#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.35#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.35#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.34"></script>
+  <script type="module" src="./src/main.js?v=0.3.35"></script>
 </body>
 </html>
