@@ -2695,6 +2695,16 @@
 .sh-skeleton-object-list strong{font-size:16px;font-weight:500}
 .sh-skeleton-object-list span{font-size:22px;color:#999}
 .settings-row [data-skeleton-toggle]{width:20px;height:20px;accent-color:#222;margin-left:15px}
+
+/* Skelet screens use the regular Sharon detail safe area and one screen at a time. */
+.sh-skeleton-screen{box-sizing:border-box;min-height:100%;padding-bottom:max(32px,env(safe-area-inset-bottom))}
+.sh-skeleton-screen .sh-skeleton-workspace{margin:0;border:0;border-radius:0;padding:0}
+.sh-skeleton-screen .sh-skeleton-label{margin:0 0 14px}
+.sh-skeleton-screen .sh-skeleton-object-list{margin:0}
+.sh-skeleton-screen .sh-skeleton-object-list button{min-height:77px;padding:14px 4px;background:transparent}
+.sh-skeleton-screen .sh-skeleton-object-list button[aria-pressed=true]{background:transparent}
+.sh-skeleton-screen .sh-skeleton-board{margin-top:12px}
+.sh-skeleton-screen .sh-skeleton-back{border:0;background:none;font:inherit;color:#555;padding:12px 0}
 </style>
 </head>
 <body>
