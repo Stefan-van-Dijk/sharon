@@ -54,6 +54,7 @@ const CORE = [
   './src/ui/EnvironmentPosition.js?v=0.3.42',
   './src/ui/SettingsView.js?v=0.3.42',
   './src/ui/SkeletonDemoView.js?v=0.3.42',
+  './src/core/skeleton/GraphService.js',
   './src/core/skeleton/SkeletonCore.js?v=0.3.42',
   './src/ui/SwipeRows.js?v=0.3.42',
   './src/ui/SwipeHome.js?v=0.3.42',
