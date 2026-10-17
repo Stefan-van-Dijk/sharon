@@ -302,7 +302,7 @@ export function createShell(root, {
     if (demoMode && SKELETON_MODULES.includes(moduleId)) {
       const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
       setHeaderMode('detail',name,moduleId);
-      await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true}),{animate:options.animate!==false});
+      await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true,onTitleChange:setDetailTitle}),{animate:options.animate!==false});
       return;
     }
     const module = modules.get(moduleId);
