@@ -35,7 +35,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        '<div class="sh-skeleton-boardbuttons"><button type="button" data-demo-expand aria-expanded="'+expanded+'">'+(expanded?'Compact Board':'Board uitbreiden')+'</button></div>'+
        (expanded?'<div class="sh-skeleton-details"><p>Status: '+esc(current.status)+'</p><p>Relaties: '+caps.related+'</p>'+
        Object.entries(current.fields||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('')+'</div>':'')+
-       '</div></div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
+       '</div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
        (fullScreen?'':'<button type="button" data-demo-reset>Herstel alle voorbeeldgegevens</button>')+'</div>':'')+(fullScreen?'</section>':'');
     root.querySelector('[data-demo-toggle]')?.addEventListener('change',async e=>{
       ({enabled,data}=await setDemoEnabled(store,e.target.checked));index=0;expanded=false;draw();
