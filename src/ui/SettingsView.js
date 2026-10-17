@@ -1,3 +1,4 @@
+import {mountGraphInspector} from './GraphInspector.js';
 import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.44';
 export function openSettings(root, {
   settings,
@@ -63,6 +64,7 @@ export function openSettings(root, {
           <input id="sh-skeleton-test-toggle" data-skeleton-toggle type="checkbox" aria-label="Testomgeving gebruiken">
         </label>
         <p class="privacy-note" data-skeleton-explanation>Je eigen gegevens blijven bewaard. De app herstart in de gekozen omgeving.</p>
+        <details class="sh-graph-settings" data-graph-settings hidden><summary>Graphinspectie</summary><div data-graph-inspector></div></details>
 
         <button type="button" class="settings-row" data-reset-onboarding>
           <span><strong>Onboarding opnieuw starten</strong><small>Behoud locaties en overige gegevens.</small></span>
@@ -92,7 +94,17 @@ export function openSettings(root, {
 
   if (store) {
     const demoToggle = root.querySelector('[data-skeleton-toggle]');
-    demoWorkspace(store).then(({enabled}) => { if (demoToggle.isConnected) demoToggle.checked=enabled; });
+    demoWorkspace(store).then(({enabled}) => {
+      if (!demoToggle.isConnected) return;
+      demoToggle.checked=enabled;
+      const inspector=root.querySelector('[data-graph-settings]');
+      inspector.hidden=!enabled;
+      inspector.addEventListener('toggle',()=>{
+        if(inspector.open) mountGraphInspector(root.querySelector('[data-graph-inspector]'),store).catch(()=>{
+          root.querySelector('[data-graph-inspector]').textContent='Graphinspectie is niet beschikbaar.';
+        });
+      });
+    });
     demoToggle.addEventListener('change',async event => {
       demoToggle.disabled=true;
       try {
