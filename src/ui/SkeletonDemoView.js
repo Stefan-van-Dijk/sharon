@@ -10,9 +10,11 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
   let unbindRows=null;
   let editingId=null;
   let createOpen=false;
+  const objectHistory=[];
   const stepBack=()=>{
     if(createOpen){createOpen=false;editingId=null;draw();return true;}
     if(expanded){expanded=false;draw();return true;}
+    if(objectHistory.length){const previous=objectHistory.pop();module=previous.module;index=previous.index;boardOpen=previous.boardOpen;expanded=previous.expanded;draw();return true;}
     if(boardOpen){boardOpen=false;draw();return true;}
     return false;
   };
@@ -57,6 +59,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     root.querySelectorAll('[data-demo-relation]').forEach(button=>button.addEventListener('click',()=>{
       const target=data.objects.find(o=>o.id===button.dataset.demoRelation);
       if(!target)return;
+      objectHistory.push({module,index,boardOpen,expanded});
       module=target.module;index=data.objects.filter(o=>o.module===module).findIndex(o=>o.id===target.id);
       expanded=false;boardOpen=true;draw();
     }));
