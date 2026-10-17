@@ -342,6 +342,12 @@ export function createShell(root, {
   };
   const navigateBack = () => {
     if (currentView !== 'detail') return false;
+    // Let the active skeleton screen consume one internal navigation level.
+    if (demoMode && outlet.querySelector('.sh-skeleton-screen')) {
+      const request=new Event('sharon:navigate-back',{cancelable:true});
+      outlet.querySelector('.sh-skeleton-screen').dispatchEvent(request);
+      if(request.defaultPrevented)return true;
+    }
     // The editor owns its guided steps. Never discard a form by returning Home.
     const editor = outlet.querySelector('.location-editor-view[data-stage]');
     const cardEditor = outlet.querySelector('.sh-card-form');
