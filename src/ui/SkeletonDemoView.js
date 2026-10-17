@@ -24,7 +24,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        (caps.delete?'<button type="button" data-demo-lifecycle="delete">Verwijder</button>':'')+
        (caps.archive?'<button type="button" data-demo-lifecycle="archive">Archiveer</button>':'')+
        (caps.restore?'<button type="button" data-demo-lifecycle="restore">Herstel</button>':'')+
-       '</div></div>':'<p>Geen voorbeeldobjecten meer in deze module.</p>')+
+       '</div></div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
        (fullScreen?'':'<button type="button" data-demo-reset>Herstel alle voorbeeldgegevens</button>')+'</div>':'')+(fullScreen?'</section>':'');
     root.querySelector('[data-demo-toggle]')?.addEventListener('change',async e=>{
       ({enabled,data}=await setDemoEnabled(store,e.target.checked));index=0;expanded=false;draw();
