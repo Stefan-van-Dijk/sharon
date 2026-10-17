@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {demoDataset,validateSkeleton,relatedTo,removalAction,skeletonCapabilities,applySkeletonAction,setDemoEnabled,demoWorkspace,saveDemoDataset,resetDemoDataset} from '../src/core/skeleton/SkeletonCore.js';
+import {demoDataset,validateSkeleton,relatedTo,removalAction,skeletonCapabilities,applySkeletonAction,setDemoEnabled,demoWorkspace,saveDemoDataset,resetDemoDataset,addSkeletonObject,renameSkeletonObject} from '../src/core/skeleton/SkeletonCore.js';
 const store=()=>{const m=new Map();return {get:async(table,k)=>m.get(table+':'+k),put:async(table,v)=>m.set(table+':'+(v.key||v.id),v),delete:async(table,k)=>m.delete(table+':'+k)};};
 test('demo references are valid and isolated from live objects',()=>{
  const d=validateSkeleton(demoDataset());
@@ -39,4 +39,17 @@ test('demo toggle and edits never touch live objects',async()=>{
  assert.equal((await demoWorkspace(db)).data.objects[0].title,'Voorbeeldomgeving');
  await setDemoEnabled(db,false);
  assert.equal((await demoWorkspace(db)).data,null);
+});
+
+test('create and edit example objects with unique IDs, preserving relations',()=>{
+ const first=demoDataset();
+ const added=addSkeletonObject(first,{id:'TestNewObj01',module:'cards',title:'Tweede pas'});
+ assert.equal(added.objects.find(o=>o.id==='TestNewObj01').title,'Tweede pas');
+ assert.equal(first.objects.some(o=>o.id==='TestNewObj01'),false);
+ assert.equal(removalAction(added,'TestNewObj01'),'delete');
+ assert.throws(()=>addSkeletonObject(added,{id:'TestNewObj01',module:'cards',title:'Dubbel'}));
+ const renamed=renameSkeletonObject(added,'DemoCard0001','Nieuwe naam');
+ assert.equal(renamed.objects.find(o=>o.id==='DemoCard0001').title,'Nieuwe naam');
+ assert.equal(renamed.relations.length,first.relations.length);
+ assert.equal(removalAction(renamed,'DemoCard0001'),'archive');
 });

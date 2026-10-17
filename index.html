@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.39">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.39">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.40">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.40">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2705,6 +2705,21 @@
 .sh-skeleton-screen .sh-skeleton-object-list button[aria-pressed=true]{background:transparent}
 .sh-skeleton-screen .sh-skeleton-board{margin-top:12px}
 .sh-skeleton-screen .sh-skeleton-back{border:0;background:none;font:inherit;color:#555;padding:12px 0}
+
+/* Skelet: controls belong to the object strips; Boards only display data. */
+.sh-skeleton-screen .sh-skeleton-toolbar{display:flex;justify-content:flex-end;padding:4px 0 14px}
+.sh-skeleton-screen .sh-skeleton-toolbar button{border:0;background:transparent;color:#171717;min-height:44px;padding:0 7px;font-size:16px}
+.sh-skeleton-screen .sh-skeleton-editor{padding:13px 0 20px;border-bottom:1px solid #eee}
+.sh-skeleton-screen .sh-skeleton-editor label{display:block;color:#555;font-size:14px}
+.sh-skeleton-screen .sh-skeleton-editor input{display:block;width:100%;height:48px;margin-top:8px;padding:0 7px;font-size:17px;border:0;border-bottom:1px solid #ddd;background:transparent}
+.sh-skeleton-screen .sh-skeleton-editor>div{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+.sh-skeleton-screen .sh-skeleton-editor button{min-height:44px;padding:0 13px;border:0;background:#f1f1f2}
+.sh-skeleton-screen .sh-skeleton-editor button[type=submit]{background:#171717;color:#fff}
+.sh-skeleton-screen .sh-skeleton-object-list{overflow:hidden}
+.sh-skeleton-screen .sh-skeleton-row{position:relative;overflow:hidden}
+.sh-skeleton-screen .sh-skeleton-row .swipe-actions{display:flex;width:176px;right:0}
+.sh-skeleton-screen .sh-skeleton-row .swipe-actions button{width:88px;flex:0 0 88px}
+.sh-skeleton-screen .sh-skeleton-row .swipe-surface{position:relative;width:100%;min-height:76px;box-sizing:border-box;background:#fff;touch-action:pan-y}
 </style>
 </head>
 <body>
@@ -2718,16 +2733,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.39#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.39#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.39#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.39#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.39#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.40#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.40#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.40#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.40#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.40#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.39"></script>
+  <script type="module" src="./src/main.js?v=0.3.40"></script>
 </body>
 </html>
