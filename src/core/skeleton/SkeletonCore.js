@@ -68,7 +68,12 @@ export async function demoWorkspace(store) {
   const enabled=Boolean((await store.get('meta',SKELETON_DEMO_KEY))?.value);
   if(!enabled) return {enabled:false,data:null};
   const stored=(await store.get('meta',SKELETON_DEMO_DATA_KEY))?.value;
-  return {enabled:true,data:validateSkeleton(stored || demoDataset())};
+  const data = structuredClone(stored || demoDataset());
+  // Existing test workspaces gain the new module without resetting edits.
+  if (!data.objects.some(object => object.module === 'environment')) {
+    data.objects.unshift({...baseObjects[0],fields:{...baseObjects[0].fields}});
+  }
+  return {enabled:true,data:validateSkeleton(data)};
 }
 export async function setDemoEnabled(store,enabled) {
   await store.put('meta',{key:SKELETON_DEMO_KEY,value:Boolean(enabled)});
