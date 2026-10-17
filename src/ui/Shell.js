@@ -1,3 +1,5 @@
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js';
+import { mountSkeletonDemo } from './SkeletonDemoView.js';
 import { openCardsView } from './CardsView.js?v=0.3.37';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.37';
@@ -25,6 +27,7 @@ export function createShell(root, {
   let currentView = 'home';
   let viewChange = 0;
   let viewCleanup = null;
+  let demoMode = false;
 
   document.body.classList.add('sharon-shell-active');
 
@@ -170,7 +173,7 @@ export function createShell(root, {
     outlet.innerHTML = `
       <div class="home-view">
         <nav class="module-list" aria-label="Onderdelen">
-          ${list.map(module => `
+          ${(demoMode ? SKELETON_MODULES.map(id => ({id,title:({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[id]})) : list).map(module => `
             <button class="module-row" data-module="${module.id}">
               <span>${module.title}</span>
               ${chevron()}
@@ -183,6 +186,7 @@ export function createShell(root, {
           </button>
         </nav>
 
+        ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
         <footer class="shell-footer">
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
           <span class="shell-footer-meta">
@@ -295,6 +299,12 @@ export function createShell(root, {
   };
 
   const openModule = async (moduleId, options = {}) => {
+    if (demoMode && SKELETON_MODULES.includes(moduleId)) {
+      const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
+      setHeaderMode('detail',name,moduleId);
+      await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true}),{animate:options.animate!==false});
+      return;
+    }
     const module = modules.get(moduleId);
     if (!module) return;
 
@@ -391,7 +401,10 @@ export function createShell(root, {
   });
 
   setHeaderMode('home');
-  renderHome();
+  demoWorkspace(store).then(({enabled}) => {
+    demoMode=enabled;
+    if (currentView === 'home') renderHome();
+  }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);renderHome(); });
 
   if (initialModule === 'locations' && initialLocationId) {
     queueMicrotask(() => {
