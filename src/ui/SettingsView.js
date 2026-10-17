@@ -1,4 +1,4 @@
-import { mountSkeletonDemo } from './SkeletonDemoView.js';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.38';
 export function openSettings(root, {
   settings,
   install,
@@ -58,7 +58,11 @@ export function openSettings(root, {
 
       <section class="settings-section">
         <span class="settings-kicker">Testen / ontwikkeling</span>
-        <div data-skeleton-demo></div>
+        <label class="settings-row" for="sh-skeleton-test-toggle">
+          <span><strong>Testomgeving gebruiken</strong><small>Wissel de volledige app naar afzonderlijke voorbeeldgegevens.</small></span>
+          <input id="sh-skeleton-test-toggle" data-skeleton-toggle type="checkbox" aria-label="Testomgeving gebruiken">
+        </label>
+        <p class="privacy-note" data-skeleton-explanation>Je eigen gegevens blijven bewaard. De app herstart in de gekozen omgeving.</p>
 
         <button type="button" class="settings-row" data-reset-onboarding>
           <span><strong>Onboarding opnieuw starten</strong><small>Behoud locaties en overige gegevens.</small></span>
@@ -86,7 +90,21 @@ export function openSettings(root, {
     </section>
   `;
 
-  if (store) mountSkeletonDemo(root.querySelector('[data-skeleton-demo]'),store).catch(error=>{ const host=root.querySelector('[data-skeleton-demo]'); if(host)host.textContent='Testomgeving niet beschikbaar: '+error.message; });
+  if (store) {
+    const demoToggle = root.querySelector('[data-skeleton-toggle]');
+    demoWorkspace(store).then(({enabled}) => { if (demoToggle.isConnected) demoToggle.checked=enabled; });
+    demoToggle.addEventListener('change',async event => {
+      demoToggle.disabled=true;
+      try {
+        await setDemoEnabled(store,event.target.checked);
+        window.location.reload();
+      } catch {
+        demoToggle.checked=!event.target.checked;
+        demoToggle.disabled=false;
+        root.querySelector('[data-skeleton-explanation]').textContent='Omschakelen is niet gelukt. Probeer het opnieuw.';
+      }
+    });
+  }
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
