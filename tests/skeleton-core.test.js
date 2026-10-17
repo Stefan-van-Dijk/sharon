@@ -36,7 +36,7 @@ test('demo toggle and edits never touch live objects',async()=>{
  assert.equal((await demoWorkspace(db)).data.objects[0].title,'Modified demo');
  assert.equal((await db.get('objects','RealObject01')).name,'Real');
  await resetDemoDataset(db);
- assert.equal((await demoWorkspace(db)).data.objects[0].title,'Voorbeeldwinkel');
+ assert.equal((await demoWorkspace(db)).data.objects[0].title,'Voorbeeldomgeving');
  await setDemoEnabled(db,false);
  assert.equal((await demoWorkspace(db)).data,null);
 });
