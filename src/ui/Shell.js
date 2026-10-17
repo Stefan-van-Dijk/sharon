@@ -173,7 +173,7 @@ export function createShell(root, {
     outlet.innerHTML = `
       <div class="home-view">
         <nav class="module-list" aria-label="Onderdelen">
-          ${(demoMode ? SKELETON_MODULES.map(id => ({id,title:({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[id]})) : list).map(module => `
+          ${(demoMode ? SKELETON_MODULES.map(id => ({id,title:({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[id]})) : list).map(module => `
             <button class="module-row" data-module="${module.id}">
               <span>${module.title}</span>
               ${chevron()}
