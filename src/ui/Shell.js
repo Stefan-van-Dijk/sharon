@@ -1,13 +1,13 @@
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.38';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.38';
-import { openCardsView } from './CardsView.js?v=0.3.38';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.39';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.39';
+import { openCardsView } from './CardsView.js?v=0.3.39';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.38';
-import { openSettings } from './SettingsView.js?v=0.3.38';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.39';
+import { openSettings } from './SettingsView.js?v=0.3.39';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
-const APP_VERSION = '0.3.38';
+const APP_VERSION = '0.3.39';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
