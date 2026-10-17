@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {demoDataset,validateSkeleton,relatedTo,removalAction,skeletonCapabilities,applySkeletonAction,setDemoEnabled,demoWorkspace,saveDemoDataset,resetDemoDataset} from '../src/core/skeleton/SkeletonCore.js';
-const store=()=>{const m=new Map();return {get:async(_,k)=>m.get(k),put:async(_,v)=>m.set(v.key,v),delete:async(_,k)=>m.delete(k)};};
+const store=()=>{const m=new Map();return {get:async(table,k)=>m.get(table+':'+k),put:async(table,v)=>m.set(table+':'+(v.key||v.id),v),delete:async(table,k)=>m.delete(table+':'+k)};};
 test('demo references are valid and isolated from live objects',()=>{
  const d=validateSkeleton(demoDataset());
  assert.equal(d.objects.length,7);
