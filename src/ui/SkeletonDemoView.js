@@ -19,7 +19,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     return false;
   };
   const onNavigateBack=event=>{if(stepBack())event.preventDefault();};
-  root.addEventListener('sharon:navigate-back',onNavigateBack);
+  root.addEventListener('sharon:navigate-back',onNavigateBack,true);
   const draw=()=>{
     if(disposed || !root.isConnected) return;
     unbindRows?.(); unbindRows=null;
@@ -97,5 +97,5 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     root.querySelector('[data-demo-reset]')?.addEventListener('click',async()=>{data=await resetDemoDataset(store);index=0;expanded=false;draw();});
   };
   draw();
-  return ()=>{disposed=true;unbindRows?.();root.removeEventListener('sharon:navigate-back',onNavigateBack);};
+  return ()=>{disposed=true;unbindRows?.();root.removeEventListener('sharon:navigate-back',onNavigateBack,true);};
 }
