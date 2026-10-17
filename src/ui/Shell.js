@@ -298,7 +298,26 @@ export function createShell(root, {
     }), { animate });
   };
 
+  // Public map renderer is shared; private object data and camera preferences are not.
+  const testEnvironmentStore = {
+    getAll: async table => table === 'objects' ? [] : [],
+    get: async (table,key) => table === 'meta'
+      ? store.get('meta','skeleton.environment.' + key) : null,
+    put: async (table,value) => {
+      if(table !== 'meta' || !value?.key) throw new Error('Testkaart schrijft niet naar live objecten.');
+      return store.put('meta',{...value,key:'skeleton.environment.' + value.key});
+    },
+    delete: async () => { throw new Error('Verwijderen is in de testkaart niet beschikbaar.'); }
+  };
+
   const openModule = async (moduleId, options = {}) => {
+    if (demoMode && moduleId === 'environment') {
+      setHeaderMode('detail','Omgeving','environment');
+      await swapView(() => openEnvironmentView(outlet,{
+        store:testEnvironmentStore,location,events,setTitle:setDetailTitle,headerActions
+      }),{animate:options.animate!==false});
+      return;
+    }
     if (demoMode && SKELETON_MODULES.includes(moduleId)) {
       const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
       setHeaderMode('detail',name,moduleId);
