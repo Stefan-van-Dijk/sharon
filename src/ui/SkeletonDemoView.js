@@ -4,7 +4,7 @@ import { bindSwipeRows } from './SwipeRows.js';
 import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,relatedTo,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
-export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false}={}) {
+export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
   let {enabled,data}=await demoWorkspace(store),module=initialModule,index=0,expanded=false,boardOpen=false;
   let disposed=false;
   let unbindRows=null;
@@ -23,6 +23,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
   const draw=()=>{
     if(disposed || !root.isConnected) return;
     unbindRows?.(); unbindRows=null;
+    if(fullScreen)onTitleChange(titles[module]);
     const list=enabled?data.objects.filter(o=>o.module===module):[];
     const current=list[Math.min(index,Math.max(0,list.length-1))];
     const caps=current?skeletonCapabilities(data,current.id):null;
