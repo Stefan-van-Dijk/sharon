@@ -87,3 +87,24 @@ export async function resetDemoDataset(store) {
   await store.delete('meta',SKELETON_DEMO_DATA_KEY);
   return demoDataset();
 }
+
+export function addSkeletonObject(data, object) {
+  validateSkeleton(data);
+  if (!safeId(object?.id) || data.objects.some(item => item.id === object.id) ||
+      !SKELETON_MODULES.includes(object.module) || !String(object.title || '').trim()) {
+    throw new Error('Ongeldig of dubbel object.');
+  }
+  const next=structuredClone(data);
+  next.objects.push({id:object.id,module:object.module,title:String(object.title).trim(),
+    status:'active',fields:object.fields && typeof object.fields==='object' ? {...object.fields} : {}});
+  return validateSkeleton(next);
+}
+export function renameSkeletonObject(data,id,title) {
+  validateSkeleton(data);
+  if(!String(title||'').trim()) throw new Error('Vul een naam in.');
+  const next=structuredClone(data);
+  const object=next.objects.find(item=>item.id===id);
+  if(!object) throw new Error('Object bestaat niet.');
+  object.title=String(title).trim().slice(0,100);
+  return validateSkeleton(next);
+}
