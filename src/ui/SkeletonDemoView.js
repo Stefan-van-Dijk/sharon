@@ -56,6 +56,23 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     root.querySelector('[data-demo-toggle]')?.addEventListener('change',async e=>{
       ({enabled,data}=await setDemoEnabled(store,e.target.checked));index=0;expanded=false;draw();
     });
+    // Downward gesture closes the Board completely; horizontal Back retains navigation history.
+    const board=root.querySelector('.sh-skeleton-board');
+    let boardTouch=null;
+    board?.addEventListener('touchstart',event=>{
+      if(event.touches.length!==1)return;
+      boardTouch={x:event.touches[0].clientX,y:event.touches[0].clientY};
+    },{passive:true});
+    board?.addEventListener('touchend',event=>{
+      if(!boardTouch || event.changedTouches.length!==1)return;
+      const dx=event.changedTouches[0].clientX-boardTouch.x;
+      const dy=event.changedTouches[0].clientY-boardTouch.y;
+      boardTouch=null;
+      if(dy>70 && Math.abs(dy)>Math.abs(dx)*1.4){
+        expanded=false;boardOpen=false;objectHistory.length=0;draw();
+      }
+    },{passive:true});
+    board?.addEventListener('touchcancel',()=>{boardTouch=null;});
     root.querySelector('[data-demo-back]')?.addEventListener('click',stepBack);
     root.querySelectorAll('[data-demo-relation]').forEach(button=>button.addEventListener('click',()=>{
       const target=data.objects.find(o=>o.id===button.dataset.demoRelation);
