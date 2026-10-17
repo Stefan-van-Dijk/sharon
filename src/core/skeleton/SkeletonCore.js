@@ -1,11 +1,12 @@
 // Sharon Skelet: module-neutral object relations, lifecycle and deterministic demo workspace.
 // The demo never writes into the production 'objects' store.
-export const SKELETON_MODULES = Object.freeze(['locations','cards','persons','objects','rides','tasks','actions']);
+export const SKELETON_MODULES = Object.freeze(['environment','locations','cards','persons','objects','rides','tasks','actions']);
 export const SKELETON_DEMO_KEY = 'skeleton.demo.enabled';
 export const SKELETON_DEMO_DATA_KEY = 'skeleton.demo.dataset';
 export const SKELETON_VERSION = 1;
 const safeId = id => typeof id === 'string' && /^[A-Za-z0-9_-]{12}$/.test(id);
 const baseObjects = Object.freeze([
+  {id:'DemoEnv00001',module:'environment',title:'Voorbeeldomgeving',status:'active',fields:{type:'kaartweergave'}},
   {id:'DemoPlace001',module:'locations',title:'Voorbeeldwinkel',status:'active',fields:{type:'winkel'}},
   {id:'DemoCard0001',module:'cards',title:'Voorbeeldpas',status:'active',fields:{type:'klantenpas'}},
   {id:'DemoPerson01',module:'persons',title:'Voorbeeldpersoon',status:'active',fields:{}},
@@ -67,7 +68,12 @@ export async function demoWorkspace(store) {
   const enabled=Boolean((await store.get('meta',SKELETON_DEMO_KEY))?.value);
   if(!enabled) return {enabled:false,data:null};
   const stored=(await store.get('meta',SKELETON_DEMO_DATA_KEY))?.value;
-  return {enabled:true,data:validateSkeleton(stored || demoDataset())};
+  const data = structuredClone(stored || demoDataset());
+  // Existing test workspaces gain the new module without resetting edits.
+  if (!data.objects.some(object => object.module === 'environment')) {
+    data.objects.unshift({...baseObjects[0],fields:{...baseObjects[0].fields}});
+  }
+  return {enabled:true,data:validateSkeleton(data)};
 }
 export async function setDemoEnabled(store,enabled) {
   await store.put('meta',{key:SKELETON_DEMO_KEY,value:Boolean(enabled)});
