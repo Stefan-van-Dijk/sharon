@@ -1,12 +1,12 @@
 import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.2.60';
-import { openCardBoard } from './CardBoard.js?v=0.3.36';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.36';
+import { openCardBoard } from './CardBoard.js?v=0.3.37';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.37';
 import { buildCardPayload, parseCardPayload } from './CardPayload.js';
 import { mountCardScanner } from './CardScanner.js';
 import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js';
 import { renderStrip } from './Strip.js?v=0.2.60';
 import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.36';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.37';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

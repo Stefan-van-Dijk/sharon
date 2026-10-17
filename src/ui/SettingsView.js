@@ -1,8 +1,10 @@
+import { mountSkeletonDemo } from './SkeletonDemoView.js';
 export function openSettings(root, {
   settings,
   install,
   events,
-  settingsStore = null
+  settingsStore = null,
+  store = null
 }) {
   const state = settings.get();
   const installState = install.getState();
@@ -56,6 +58,7 @@ export function openSettings(root, {
 
       <section class="settings-section">
         <span class="settings-kicker">Testen / ontwikkeling</span>
+        <div data-skeleton-demo></div>
 
         <button type="button" class="settings-row" data-reset-onboarding>
           <span><strong>Onboarding opnieuw starten</strong><small>Behoud locaties en overige gegevens.</small></span>
@@ -83,6 +86,7 @@ export function openSettings(root, {
     </section>
   `;
 
+  if (store) mountSkeletonDemo(root.querySelector('[data-skeleton-demo]'),store).catch(error=>{ const host=root.querySelector('[data-skeleton-demo]'); if(host)host.textContent='Testomgeving niet beschikbaar: '+error.message; });
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');
