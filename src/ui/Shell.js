@@ -19,7 +19,8 @@ const MODULE_GUIDE = Object.freeze({
   agenda: ['Plan afspraken en gebeurtenissen, alleen of met anderen.', 'Verbindt met Personen, Locaties, Acties en Tijd.'],
   time: ['Leg vast waaraan je tijd besteedt.', 'Verbindt met Acties, Agenda, Ritten en Thema\'s.'],
   rides: ['Registreer verplaatsingen tussen plekken.', 'Verbindt met Locaties, Tijd, Acties en Agenda.'],
-  codes: ['Scan en beheer QR-codes en barcodes als verwijzingen.', 'Verbindt met Kaarten, Objecten, Personen en Acties.']
+  codes: ['Scan en beheer QR-codes en barcodes als verwijzingen.', 'Verbindt met Kaarten, Objecten, Personen en Acties.'],
+  settings: ['Stel Sharon, privacy en gegevensbeheer naar wens in.', 'Deze keuzes gelden voor alle modules.']
 });
 const MENU_ORDER = ['environment','locations','cards','persons','objects','themes','actions','notes','agenda','time','rides','codes'];
 const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
@@ -228,10 +229,15 @@ export function createShell(root, {
               </div>`;
           }).join('')}
 
-          <button class="module-row settings-home-row" data-settings>
-            <span>Instellingen</span>
-            ${chevron()}
-          </button>
+          <div class="sh-home-module-item" data-guide-item>
+            <div class="sh-home-module-line">
+              <button type="button" class="module-row settings-home-row" data-settings>
+                <span>Instellingen</span>${chevron()}
+              </button>
+              <button type="button" class="sh-home-module-info" data-module-guide="settings" aria-label="Uitleg over Instellingen" aria-expanded="false">i</button>
+            </div>
+            <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
+          </div>
         </nav>
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
