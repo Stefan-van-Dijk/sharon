@@ -2799,6 +2799,13 @@
     .sh-module-example-guide{white-space:pre-line;font-size:13px;color:#737379;line-height:1.55;margin:12px 0 18px}
     .sh-module-example-guide[hidden]{display:none}
 
+
+    /* Swipe affordance: move the strip to expose an info action behind it. */
+    .sh-home-module-line{position:relative;overflow:hidden}
+    .sh-home-module-line .module-row{position:relative;z-index:1;flex:0 0 100%;width:100%;background:#fff;transition:transform .22s cubic-bezier(.22,.61,.36,1);touch-action:pan-y}
+    .sh-home-module-line.is-dragging .module-row{transition:none}
+    .sh-home-swipe-reveal{position:absolute;right:0;top:0;width:72px;height:100%;display:grid;place-items:center;font-size:17px;font-weight:500;color:#64646b;background:#f3f3f5;opacity:0;pointer-events:none;border-bottom:1px solid #ececef}
+
 </style>
 </head>
 <body>

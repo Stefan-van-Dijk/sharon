@@ -220,6 +220,7 @@ export function createShell(root, {
             return `
               <div class="sh-home-module-item" data-guide-item>
                 <div class="sh-home-module-line">
+                  <span class="sh-home-swipe-reveal" aria-hidden="true">i</span>
                   <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" data-guide-id="${id}" ${previewOnly ? 'data-preview-only="true"' : ''}>
                     <span>${title}</span></button>
                   
@@ -230,6 +231,7 @@ export function createShell(root, {
 
           <div class="sh-home-module-item" data-guide-item>
             <div class="sh-home-module-line">
+              <span class="sh-home-swipe-reveal" aria-hidden="true">i</span>
               <button type="button" class="module-row settings-home-row" data-settings>
                 <span>Instellingen</span>
               </button>
@@ -317,26 +319,52 @@ export function createShell(root, {
       }, 17);
     };
     outlet.querySelectorAll('[data-guide-item]').forEach(item => {
+      const line = item.querySelector('.sh-home-module-line');
+      const row = line?.querySelector('.module-row');
+      const reveal = line?.querySelector('.sh-home-swipe-reveal');
       let start = null;
+      let tracking = false;
+      const reset = () => {
+        start = null;
+        tracking = false;
+        line.classList.remove('is-dragging');
+        row.style.removeProperty('transform');
+        reveal.style.removeProperty('opacity');
+      };
       item.addEventListener('touchstart', event => {
         if (event.touches.length !== 1) return;
         start = {x:event.touches[0].clientX, y:event.touches[0].clientY};
+        tracking = false;
       }, {passive:true});
+      item.addEventListener('touchmove', event => {
+        if (!start || event.touches.length !== 1) return;
+        const dx = event.touches[0].clientX - start.x;
+        const dy = event.touches[0].clientY - start.y;
+        if (!tracking && Math.abs(dy) > Math.abs(dx)) { reset(); return; }
+        if (!tracking && Math.abs(dx) > 9) tracking = true;
+        if (!tracking) return;
+        event.preventDefault();
+        const distance = Math.min(72, Math.max(0, -dx));
+        line.classList.add('is-dragging');
+        row.style.transform = 'translateX(' + (-distance) + 'px)';
+        reveal.style.opacity = String(Math.min(1,distance/40));
+      }, {passive:false});
       item.addEventListener('touchend', event => {
-        if (!start || event.changedTouches.length !== 1) return;
+        if (!start || event.changedTouches.length !== 1) { reset(); return; }
         const dx = event.changedTouches[0].clientX - start.x;
         const dy = event.changedTouches[0].clientY - start.y;
-        start = null;
-        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-          event.preventDefault();
-          toggleGuide(item);
+        const activate = tracking && dx < -48 && Math.abs(dx) > Math.abs(dy)*1.3;
+        if (tracking) {
           item.dataset.justSwiped = 'true';
           setTimeout(() => { delete item.dataset.justSwiped; }, 350);
+          event.preventDefault();
         }
+        reset();
+        if (activate) toggleGuide(item);
       }, {passive:false});
-      item.addEventListener('touchcancel', () => { start = null; });
+      item.addEventListener('touchcancel',reset);
       item.addEventListener('keydown', event => {
-        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        if (event.key === 'ArrowLeft') {
           event.preventDefault();
           toggleGuide(item);
         }
