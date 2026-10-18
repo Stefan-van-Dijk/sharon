@@ -133,7 +133,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
         const results=suggestConnections(data,editingId,{search:connectionQuery}).filter(r=>!r.linked).slice(0,12);
         const box=connectionForm.querySelector('[data-context-results]');
         if(!results.some(r=>r.object.id===chosenTarget))chosenTarget='';
-        box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+(r.linked?'Al verbonden':esc(r.reason))+''</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
+        box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+(r.linked?'Al verbonden':esc(r.reason))+'</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
         box.querySelectorAll('[data-connect-target]').forEach(b=>b.addEventListener('click',()=>{
           chosenTarget=b.dataset.connectTarget;
           const selected=results.find(r=>r.object.id===chosenTarget);
