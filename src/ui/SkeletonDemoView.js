@@ -42,9 +42,9 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        (fullScreen && boardOpen ? '<button type="button" data-demo-back class="sh-skeleton-back">‹ '+esc(titles[module])+'</button>' : '')+
        (fullScreen && !boardOpen ? '<div class="sh-skeleton-toolbar"><button type="button" data-demo-add aria-label="Object toevoegen">+ Toevoegen</button></div>'+
        (createOpen ? '<form data-demo-form class="sh-skeleton-editor"><label>'+ (editingId ? 'Naam aanpassen':'Nieuw object') +'<input name="title" maxlength="100" required autocomplete="off" placeholder="Naam van het object" value="'+esc(editingId ? data.objects.find(o=>o.id===editingId)?.title || '' : '')+'"></label><div><button type="button" data-demo-cancel>Annuleren</button><button type="submit">'+(editingId?'Opslaan':'Toevoegen')+'</button></div></form>' : '')+
-       (editingId ? '<div class="sh-skeleton-graph-edit"><strong>Relaties van '+esc(data.objects.find(o=>o.id===editingId)?.title)+'</strong>'+
+       (editingId ? '<div class="sh-skeleton-graph-edit"><strong>Extra informatie bij '+esc(data.objects.find(o=>o.id===editingId)?.title)+'</strong>'+
        graphConnections(data,editingId).map(link=>'<div class="sh-skeleton-graph-link"><span>'+esc(link.target.title)+' · '+esc(link.label)+'</span><button type="button" data-graph-remove="'+esc(link.relationId)+'" aria-label="Relatie verwijderen">×</button></div>').join('')+
-       '<form data-graph-add class="sh-context-connect"><strong>Verbinden</strong><small>Zoek een bestaand onderdeel. Sharon stelt een relatie voor; niets wordt automatisch gekoppeld.</small>'+
+       '<form data-graph-add class="sh-context-connect"><strong>Verbinden</strong><small>Kies wat hierbij hoort. Je kunt dit ook later doen.</small>'+
        '<label>Zoek iemand, een plek of een voorwerp<input data-context-search type="search" placeholder="Begin met typen…" value="'+esc(connectionQuery)+'" autocomplete="off"></label>'+
        '<div data-context-results></div><p data-context-relation class="sh-context-relation" hidden></p>'+
        '<input name="predicate" type="hidden" value="related-to">'+
@@ -130,10 +130,10 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     const connectionForm=root.querySelector('[data-graph-add]');
     if(connectionForm) {
       const paint=()=>{
-        const results=suggestConnections(data,editingId,{search:connectionQuery}).slice(0,12);
+        const results=suggestConnections(data,editingId,{search:connectionQuery}).filter(r=>!r.linked).slice(0,12);
         const box=connectionForm.querySelector('[data-context-results]');
         if(!results.some(r=>r.object.id===chosenTarget))chosenTarget='';
-        box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+esc(r.reason)+(r.linked?' · Al gekoppeld':'')+'</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
+        box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+(r.linked?'Al verbonden':esc(r.reason))+''</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
         box.querySelectorAll('[data-connect-target]').forEach(b=>b.addEventListener('click',()=>{
           chosenTarget=b.dataset.connectTarget;
           const selected=results.find(r=>r.object.id===chosenTarget);
