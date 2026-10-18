@@ -364,12 +364,29 @@ export function createShell(root, {
   const openPlaceholder = async module => {
     setHeaderMode('detail', module.title, module.id);
     await swapView(() => {
+      const item = Object.entries(MENU_TITLES).find(([, title]) => title === module.title);
+      const [purpose, links] = MODULE_GUIDE[item?.[0]] || ['Leg informatie vast en verbind deze later met andere onderdelen.',''];
       outlet.innerHTML = `
         <section class="module-view placeholder-copy">
-          <p>${escapeHtml(module.title)} wordt hier verder opgebouwd.</p>
+          <button type="button" class="sh-module-example" data-module-example><span>Voorbeeld · ${escapeHtml(module.title)}</span><small>Veeg of tik om te ontdekken wat je hier kunt vastleggen</small></button>
+          <p class="sh-module-example-guide" data-example-copy hidden></p>
         </section>
       `;
+      const example = outlet.querySelector('[data-module-example]');
+      const copy = outlet.querySelector('[data-example-copy]');
+      const reveal = () => { copy.hidden = !copy.hidden; copy.textContent = [purpose,links].filter(Boolean).join('\\n'); };
+      example.addEventListener('click',reveal);
+      let touch = null;
+      example.addEventListener('touchstart',e=>{touch={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+      example.addEventListener('touchend',e=>{if(!touch)return; const dx=e.changedTouches[0].clientX-touch.x; const dy=e.changedTouches[0].clientY-touch.y;touch=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){e.preventDefault();reveal();}},{passive:false});
     });
+    if (module.id !== 'environment') {
+      headerActions.innerHTML = '<button type="button" class="sh-module-add" aria-label="Toevoegen" title="Toevoegen">+</button>';
+      headerActions.querySelector('button').addEventListener('click',()=>{
+        const copy=outlet.querySelector('[data-example-copy]');
+        if(copy){copy.hidden=false;copy.textContent='Deze module is in voorbereiding. Je kunt straks direct iets vastleggen en later relaties toevoegen.';}
+      });
+    }
   };
 
   const openLocations = async (locationId = '', { animate = true } = {}) => {
@@ -439,6 +456,10 @@ export function createShell(root, {
       const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
       setHeaderMode('detail',name,moduleId);
       await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true,onTitleChange:setDetailTitle}),{animate:options.animate!==false});
+      headerActions.innerHTML = '<button type="button" class="sh-module-add" aria-label="Toevoegen" title="Toevoegen">+</button>';
+      headerActions.querySelector('button').addEventListener('click', () => {
+        outlet.querySelector('[data-demo-add]')?.click();
+      });
       return;
     }
     const module = modules.get(moduleId);
