@@ -27,6 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Bron, tests, release-assets en opstartketens
+        shell: bash # Explicit bash enables pipefail, including through tee.
         run: npm run verify 2>&1 | tee verification.log
       - name: Ongewijzigd getest pakket
         run: node scripts/verify-site.mjs
