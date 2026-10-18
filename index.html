@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.48">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.48">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.49">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.49">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -494,6 +494,21 @@
 
     @keyframes locationPulse{0%{opacity:.62;transform:scale(.55)}70%,100%{opacity:0;transform:scale(1.6)}}
 
+
+    /* Shared iOS viewport measurement for Home, modules and map.
+       --sharon-viewport-height is refreshed on visual viewport changes. */
+    html,body{min-height:var(--sharon-viewport-height,100dvh)}
+    body.sharon-shell-active,#app{min-height:var(--sharon-viewport-height,100dvh)}
+    .sharon-shell-active .app-stage{min-height:var(--sharon-viewport-height,100dvh)}
+    .sharon-shell-active .app-frame{min-height:calc(var(--sharon-viewport-height,100dvh) - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)))}
+    .app-stage[data-view="detail"],.app-stage[data-view="detail"] .app-frame{
+      height:var(--sharon-viewport-height,100dvh)!important;
+      min-height:var(--sharon-viewport-height,100dvh)!important;
+    }
+    body.sharon-shell-active.sharon-detail-active,#app:has(.app-stage[data-view="detail"]){
+      height:var(--sharon-viewport-height,100dvh);
+    }
+    .app-stage.is-environment{height:var(--sharon-viewport-height,100dvh)!important;min-height:var(--sharon-viewport-height,100dvh)!important}
 
     /* Detail scroll owns the scroll position; the outer iOS viewport never does.
        This prevents the fixed logo/title from being scrolled out of view. */
@@ -2750,6 +2765,16 @@
 .sh-graph-connection span{min-width:0;overflow-wrap:anywhere}
 .sh-graph-connection small{display:block;font-size:12px;color:#777;margin-top:3px}
 .sh-graph-connection button{border:0;background:transparent;font-size:22px;padding:8px 12px}
+
+    /* Final sizing authority: avoid later legacy 100dvh declarations winning. */
+    body.sharon-shell-active .app-stage{min-height:var(--sharon-viewport-height,100dvh)}
+    body.sharon-shell-active .app-stage[data-view="detail"],
+    body.sharon-shell-active .app-stage[data-view="detail"] .app-frame{
+      height:var(--sharon-viewport-height,100dvh)!important;
+      min-height:var(--sharon-viewport-height,100dvh)!important;
+    }
+    body.sharon-shell-active.sharon-detail-active,
+    body.sharon-shell-active #app:has(.app-stage[data-view="detail"]){height:var(--sharon-viewport-height,100dvh)}
 </style>
 </head>
 <body>
@@ -2763,16 +2788,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.48#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.48#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.48#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.48#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.48#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.49#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.49#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.49#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.49#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.49#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.48"></script>
+  <script type="module" src="./src/main.js?v=0.3.49"></script>
 </body>
 </html>
