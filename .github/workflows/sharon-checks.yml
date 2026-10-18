@@ -4,16 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'service-worker.js'
-      - 'index.html'
-      - 'scripts/**'
-      - '.github/workflows/sharon-checks.yml'
   pull_request:
 
+# PRs have their own group; a new main run cancels a superseded release.
 concurrency:
   group: sharon-controles-${{ github.ref }}
   cancel-in-progress: true
@@ -23,19 +16,56 @@ permissions:
 
 jobs:
   controle:
+    name: Sharon releasecontrole
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - name: JavaScript syntax
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Bron, tests, release-assets en opstartketens
+        shell: bash # Explicit bash enables pipefail, including through tee.
+        run: npm run verify 2>&1 | tee verification.log
+      - name: Ongewijzigd getest pakket
+        run: node scripts/verify-site.mjs
+      - name: Controlebewijs bewaren
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controle-${{ github.sha }}
+          path: |
+            verification.log
+            _site/release.json
+      - name: Alleen het gecontroleerde pakket klaarzetten
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: GitHub Pages publiceren
+    needs: controle
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Alleen de huidige hoofdbranch mag publiceren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          find src -type f -name '*.js' -print0 | xargs -0 -n 1 node --check
-          node --check service-worker.js
-      - name: Tests
-        run: npm test
-      - name: Moduleverwijzingen
-        run: node scripts/check-imports.mjs
-      - name: PWA-versie
-        run: node scripts/check-version.mjs
+          CURRENT_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$CURRENT_SHA" = "$EXPECTED_SHA" || { echo 'Nieuwere hoofdbranch gevonden; publicatie geweigerd.'; exit 1; }
+      # No checkout or rebuild: deploy the artifact tested by the dependency job.
+      - name: Gecontroleerd artifact publiceren
+        id: deployment
+        uses: actions/deploy-pages@v4

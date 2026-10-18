@@ -45,3 +45,11 @@ npm test
 ```
 
 Zie ook `docs/ARCHITECTURE.md` en `docs/MIGRATION.md`.
+
+## Kwaliteitscontrole en publicatie
+
+Gebruik Node uit `.nvmrc`, voer `npm ci` uit en daarna `npm run verify`.
+De bestaande unit-/brontests blijven afzonderlijk bereikbaar via `npm test`.
+De nieuwe DOM-/opslagketens testen het gebouwde `_site` via `npm run test:integration`.
+Zie [releasecontrole en testdekking](docs/Releasecontrole-en-testdekking.md) voor
+begrenzingen, de twintig auditscenario's en de benodigde Pages-/branchinstellingen.
