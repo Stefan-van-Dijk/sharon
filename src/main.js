@@ -1,3 +1,17 @@
+// Use one measured viewport height throughout Sharon. iOS standalone PWAs can
+// report a stale CSS 100dvh after opening, resuming or rotating the device.
+const syncViewportHeight = () => {
+  const height = window.visualViewport?.height || window.innerHeight;
+  if (height > 0) document.documentElement.style.setProperty('--sharon-viewport-height', height + 'px');
+};
+syncViewportHeight();
+window.addEventListener('resize', syncViewportHeight, {passive:true});
+window.visualViewport?.addEventListener('resize', syncViewportHeight, {passive:true});
+window.addEventListener('pageshow', syncViewportHeight, {passive:true});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) syncViewportHeight();
+});
+
 import { createApp } from './app.js?v=0.3.48';
 
 // Register before the intro: app.start can finish after the window load event.
