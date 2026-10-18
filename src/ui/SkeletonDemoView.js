@@ -45,11 +45,9 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        (editingId ? '<div class="sh-skeleton-graph-edit"><strong>Relaties van '+esc(data.objects.find(o=>o.id===editingId)?.title)+'</strong>'+
        graphConnections(data,editingId).map(link=>'<div class="sh-skeleton-graph-link"><span>'+esc(link.target.title)+' · '+esc(link.label)+'</span><button type="button" data-graph-remove="'+esc(link.relationId)+'" aria-label="Relatie verwijderen">×</button></div>').join('')+
        '<form data-graph-add class="sh-context-connect"><strong>Verbinden</strong><small>Zoek een bestaand onderdeel. Sharon stelt een relatie voor; niets wordt automatisch gekoppeld.</small>'+
-       '<label>Situatie <select data-context-case>'+CONTEXT_CASES.map(c=>'<option value="'+esc(c.id)+'" '+(contextCase===c.id?'selected':'')+'>'+esc(c.label)+'</option>').join('')+'</select></label>'+
-       '<label>Contextobject (optioneel) <select data-context-focus><option value="">Geen context gekozen</option>'+
-       data.objects.filter(o=>o.id!==editingId && (contextCase==='at-place'?o.module==='locations':contextCase==='on-ride'?o.module==='rides':false)).map(o=>'<option value="'+esc(o.id)+'" '+(contextFocus===o.id?'selected':'')+'>'+esc(o.title)+'</option>').join('')+
-       '</select></label><label>Zoeken <input data-context-search type="search" placeholder="Zoek persoon, locatie of rit" value="'+esc(connectionQuery)+'" autocomplete="off"></label>'+
-       '<div data-context-results></div><label>Voorgestelde relatie <select name="predicate">'+Object.entries(RELATION_TYPES).map(([key,value])=>'<option value="'+esc(key)+'">'+esc(value.label)+'</option>').join('')+'</select></label>'+
+       '<label>Zoek iemand, een plek of een voorwerp<input data-context-search type="search" placeholder="Begin met typen…" value="'+esc(connectionQuery)+'" autocomplete="off"></label>'+
+       '<div data-context-results></div><p data-context-relation class="sh-context-relation" hidden></p>'+
+       '<input name="predicate" type="hidden" value="related-to">'+
        '<input name="to" type="hidden" value="'+esc(chosenTarget)+'"><button type="submit" '+(!chosenTarget?'disabled':'')+'>Verbinding bevestigen</button></form></div>' : '')+
        '<div class="sh-skeleton-object-list swipe-list" aria-label="Objecten in '+esc(titles[module])+'">'+
        (list.length<3 && !boardOpen ? '<button type="button" class="sh-module-example" data-module-example><span>Voorbeeld · '+esc(titles[module])+'</span><small>Zo ontdek je wat je hier kunt vastleggen en verbinden</small></button><p class="sh-module-example-guide" data-example-copy hidden>Maak een '+esc(titles[module]).toLowerCase()+' aan zonder verplichte koppelingen. Verbind later met andere modules.</p>' : '')+
@@ -132,7 +130,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     const connectionForm=root.querySelector('[data-graph-add]');
     if(connectionForm) {
       const paint=()=>{
-        const results=suggestConnections(data,editingId,{caseId:contextCase,focusId:contextFocus,search:connectionQuery}).slice(0,12);
+        const results=suggestConnections(data,editingId,{search:connectionQuery}).slice(0,12);
         const box=connectionForm.querySelector('[data-context-results]');
         if(!results.some(r=>r.object.id===chosenTarget))chosenTarget='';
         box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+esc(r.reason)+(r.linked?' · Al gekoppeld':'')+'</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
@@ -141,18 +139,16 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
           const selected=results.find(r=>r.object.id===chosenTarget);
           connectionForm.elements.to.value=chosenTarget;
           connectionForm.elements.predicate.value=selected?.predicate || 'related-to';
+          const relation=connectionForm.querySelector('[data-context-relation]');
+          relation.hidden=false;
+          relation.textContent='Koppeling: '+(RELATION_TYPES[selected?.predicate]?.label || 'is verbonden met')+' '+selected.object.title;
           connectionForm.querySelector('[type=submit]').disabled=false;
           paint();
         }));
         connectionForm.elements.to.value=chosenTarget;
+        connectionForm.querySelector('[data-context-relation]').hidden=!chosenTarget;
         connectionForm.querySelector('[type=submit]').disabled=!chosenTarget;
       };
-      connectionForm.querySelector('[data-context-case]').addEventListener('change',e=>{
-        contextCase=e.target.value;contextFocus='';chosenTarget='';draw();
-      });
-      connectionForm.querySelector('[data-context-focus]').addEventListener('change',e=>{
-        contextFocus=e.target.value;chosenTarget='';paint();
-      });
       connectionForm.querySelector('[data-context-search]').addEventListener('input',e=>{
         connectionQuery=e.target.value;paint();
       });
