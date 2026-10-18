@@ -147,6 +147,24 @@ export function createShell(root, {
     }
   };
 
+  // iOS standalone PWA may report 100dvh/100% shorter than its visible viewport.
+  // Measure the actual viewport and keep the map stage and its canvas in sync.
+  let viewportFrame = 0;
+  const syncEnvironmentViewport = () => {
+    if (!stage.classList.contains('is-environment')) return;
+    const vv = window.visualViewport;
+    const measured = Math.max(window.innerHeight || 0, vv ? vv.height + vv.offsetTop : 0);
+    if (measured > 0) stage.style.setProperty('--environment-viewport-height', measured + 'px');
+    viewportFrame = requestAnimationFrame(() => {
+      viewportFrame = 0;
+      outlet.querySelector('[data-maplibre-map]')?.dispatchEvent(new Event('sharon:viewport-resize'));
+    });
+  };
+  window.addEventListener('resize', syncEnvironmentViewport);
+  window.addEventListener('orientationchange', syncEnvironmentViewport);
+  window.visualViewport?.addEventListener('resize', syncEnvironmentViewport);
+  window.visualViewport?.addEventListener('scroll', syncEnvironmentViewport);
+
   const setHeaderMode = (mode, viewTitle = '', moduleId = '') => {
     const detail = mode === 'detail';
     const environment = detail && moduleId === 'environment';
@@ -158,6 +176,8 @@ export function createShell(root, {
     stage.dataset.module = detail ? moduleId : '';
     frame.dataset.view = currentView;
     stage.classList.toggle('is-environment', environment);
+    if (environment) requestAnimationFrame(syncEnvironmentViewport);
+    else { stage.style.removeProperty('--environment-viewport-height'); if(viewportFrame)cancelAnimationFrame(viewportFrame); }
     frame.classList.toggle('is-environment', environment);
     if (!environment) headerActions.replaceChildren();
     header.classList.toggle('is-detail', detail);
