@@ -1,3 +1,4 @@
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js';
 import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js';
 import { IdentifierService } from '../core/ids/IdentifierService.js';
 import { renderStrip } from './Strip.js';
@@ -12,6 +13,10 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
   let editingId=null;
   let createOpen=false;
   let relationEditId=null;
+  let contextCase='from-object';
+  let contextFocus='';
+  let connectionQuery='';
+  let chosenTarget='';
   const objectHistory=[];
   const stepBack=()=>{
     if(createOpen){createOpen=false;editingId=null;draw();return true;}
@@ -39,9 +44,13 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        (createOpen ? '<form data-demo-form class="sh-skeleton-editor"><label>'+ (editingId ? 'Naam aanpassen':'Nieuw object') +'<input name="title" maxlength="100" required autocomplete="off" placeholder="Naam van het object" value="'+esc(editingId ? data.objects.find(o=>o.id===editingId)?.title || '' : '')+'"></label><div><button type="button" data-demo-cancel>Annuleren</button><button type="submit">'+(editingId?'Opslaan':'Toevoegen')+'</button></div></form>' : '')+
        (editingId ? '<div class="sh-skeleton-graph-edit"><strong>Relaties van '+esc(data.objects.find(o=>o.id===editingId)?.title)+'</strong>'+
        graphConnections(data,editingId).map(link=>'<div class="sh-skeleton-graph-link"><span>'+esc(link.target.title)+' · '+esc(link.label)+'</span><button type="button" data-graph-remove="'+esc(link.relationId)+'" aria-label="Relatie verwijderen">×</button></div>').join('')+
-       '<form data-graph-add><label>Koppel aan <select name="to" required><option value="">Kies object</option>'+
-       data.objects.filter(o=>o.id!==editingId).map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+' ('+esc(titles[o.module])+')</option>').join('')+
-       '</select></label><label>Relatie <select name="predicate">'+Object.entries(RELATION_TYPES).map(([key,value])=>'<option value="'+esc(key)+'">'+esc(value.label)+'</option>').join('')+'</select></label><button type="submit">Relatie toevoegen</button></form></div>' : '')+
+       '<form data-graph-add class="sh-context-connect"><strong>Verbinden</strong><small>Zoek een bestaand onderdeel. Sharon stelt een relatie voor; niets wordt automatisch gekoppeld.</small>'+
+       '<label>Situatie <select data-context-case>'+CONTEXT_CASES.map(c=>'<option value="'+esc(c.id)+'" '+(contextCase===c.id?'selected':'')+'>'+esc(c.label)+'</option>').join('')+'</select></label>'+
+       '<label>Contextobject (optioneel) <select data-context-focus><option value="">Geen context gekozen</option>'+
+       data.objects.filter(o=>o.id!==editingId && (contextCase==='at-place'?o.module==='locations':contextCase==='on-ride'?o.module==='rides':false)).map(o=>'<option value="'+esc(o.id)+'" '+(contextFocus===o.id?'selected':'')+'>'+esc(o.title)+'</option>').join('')+
+       '</select></label><label>Zoeken <input data-context-search type="search" placeholder="Zoek persoon, locatie of rit" value="'+esc(connectionQuery)+'" autocomplete="off"></label>'+
+       '<div data-context-results></div><label>Voorgestelde relatie <select name="predicate">'+Object.entries(RELATION_TYPES).map(([key,value])=>'<option value="'+esc(key)+'">'+esc(value.label)+'</option>').join('')+'</select></label>'+
+       '<input name="to" type="hidden" value="'+esc(chosenTarget)+'"><button type="submit" '+(!chosenTarget?'disabled':'')+'>Verbinding bevestigen</button></form></div>' : '')+
        '<div class="sh-skeleton-object-list swipe-list" aria-label="Objecten in '+esc(titles[module])+'">'+
        (list.length<3 && !boardOpen ? '<button type="button" class="sh-module-example" data-module-example><span>Voorbeeld · '+esc(titles[module])+'</span><small>Zo ontdek je wat je hier kunt vastleggen en verbinden</small></button><p class="sh-module-example-guide" data-example-copy hidden>Maak een '+esc(titles[module]).toLowerCase()+' aan zonder verplichte koppelingen. Verbind later met andere modules.</p>' : '')+
        list.map(object=>{
@@ -104,7 +113,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     const listRoot=root.querySelector('.sh-skeleton-object-list');
     if(listRoot) unbindRows=bindSwipeRows(listRoot,{
       onOpen:id=>{index=list.findIndex(o=>o.id===id);boardOpen=true;expanded=false;draw();},
-      onEdit:id=>{editingId=id;createOpen=true;draw();root.querySelector('[data-demo-form] input')?.focus();},
+      onEdit:id=>{editingId=id;createOpen=true;contextCase='from-object';contextFocus='';connectionQuery='';chosenTarget='';draw();root.querySelector('[data-demo-form] input')?.focus();},
       onDelete:async id=>{
         const action=['archive','restore','delete'].find(kind=>{
           try { return skeletonCapabilities(data,id)?.[kind]; } catch {return false;}
@@ -120,6 +129,35 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
       try{data=removeGraphRelation(data,button.dataset.graphRemove);await saveDemoDataset(store,data);draw();}
       catch(error){alert(error.message);}
     }));
+    const connectionForm=root.querySelector('[data-graph-add]');
+    if(connectionForm) {
+      const paint=()=>{
+        const results=suggestConnections(data,editingId,{caseId:contextCase,focusId:contextFocus,search:connectionQuery}).slice(0,12);
+        const box=connectionForm.querySelector('[data-context-results]');
+        if(!results.some(r=>r.object.id===chosenTarget))chosenTarget='';
+        box.innerHTML=results.map(r=>'<button type="button" class="sh-context-result" data-connect-target="'+esc(r.object.id)+'" aria-pressed="'+(chosenTarget===r.object.id)+'"><strong>'+esc(r.object.title)+'</strong><small>'+esc(titles[r.object.module]||r.object.module)+' · '+esc(r.reason)+(r.linked?' · Al gekoppeld':'')+'</small></button>').join('') || '<p>Geen bestaande onderdelen gevonden.</p>';
+        box.querySelectorAll('[data-connect-target]').forEach(b=>b.addEventListener('click',()=>{
+          chosenTarget=b.dataset.connectTarget;
+          const selected=results.find(r=>r.object.id===chosenTarget);
+          connectionForm.elements.to.value=chosenTarget;
+          connectionForm.elements.predicate.value=selected?.predicate || 'related-to';
+          connectionForm.querySelector('[type=submit]').disabled=false;
+          paint();
+        }));
+        connectionForm.elements.to.value=chosenTarget;
+        connectionForm.querySelector('[type=submit]').disabled=!chosenTarget;
+      };
+      connectionForm.querySelector('[data-context-case]').addEventListener('change',e=>{
+        contextCase=e.target.value;contextFocus='';chosenTarget='';draw();
+      });
+      connectionForm.querySelector('[data-context-focus]').addEventListener('change',e=>{
+        contextFocus=e.target.value;chosenTarget='';paint();
+      });
+      connectionForm.querySelector('[data-context-search]').addEventListener('input',e=>{
+        connectionQuery=e.target.value;paint();
+      });
+      paint();
+    }
     root.querySelector('[data-graph-add]')?.addEventListener('submit',async event=>{
       event.preventDefault();const fields=new FormData(event.currentTarget);
       try {
