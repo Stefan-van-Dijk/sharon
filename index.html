@@ -2787,6 +2787,18 @@
     .sh-home-module-guide:not([hidden])::after{content:'|';margin-left:2px;color:#a5a5aa;animation:sh-location-caret 800ms steps(1,end) infinite}
     .sh-home-module-item + .settings-home-row{border-top:0}
 
+
+    /* Compact menu: swipe horizontally on a strip for an explanation. */
+    .sh-home-module-line .module-row{min-height:58px}
+    .sh-home-module-info{display:none!important}
+    .sh-module-add{width:42px;height:42px;border:0;background:transparent;color:#202025;font-size:29px;font-weight:300;line-height:1;cursor:pointer}
+    .sh-skeleton-screen .sh-skeleton-toolbar{display:none}
+    .sh-module-example{width:100%;min-height:70px;border:0;border-bottom:1px solid #ececef;background:transparent;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:left;color:#777;cursor:pointer;padding:12px 1px}
+    .sh-module-example span{font-size:15px;color:#4f4f55}
+    .sh-module-example small{font-size:12px;color:#96969c}
+    .sh-module-example-guide{white-space:pre-line;font-size:13px;color:#737379;line-height:1.55;margin:12px 0 18px}
+    .sh-module-example-guide[hidden]{display:none}
+
 </style>
 </head>
 <body>
