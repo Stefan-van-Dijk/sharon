@@ -1,9 +1,9 @@
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.50';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.50';
-import { openCardsView } from './CardsView.js?v=0.3.50';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.51';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.51';
+import { openCardsView } from './CardsView.js?v=0.3.51';
 import { openLocationsView } from './LocationsView.js?v=0.2.86';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.50';
-import { openSettings } from './SettingsView.js?v=0.3.50';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.51';
+import { openSettings } from './SettingsView.js?v=0.3.51';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
@@ -27,7 +27,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.50';
+const APP_VERSION = '0.3.51';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
