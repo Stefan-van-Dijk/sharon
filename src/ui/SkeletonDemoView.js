@@ -42,7 +42,9 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        '<form data-graph-add><label>Koppel aan <select name="to" required><option value="">Kies object</option>'+
        data.objects.filter(o=>o.id!==editingId).map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+' ('+esc(titles[o.module])+')</option>').join('')+
        '</select></label><label>Relatie <select name="predicate">'+Object.entries(RELATION_TYPES).map(([key,value])=>'<option value="'+esc(key)+'">'+esc(value.label)+'</option>').join('')+'</select></label><button type="submit">Relatie toevoegen</button></form></div>' : '')+
-       '<div class="sh-skeleton-object-list swipe-list" aria-label="Objecten in '+esc(titles[module])+'">'+list.map(object=>{
+       '<div class="sh-skeleton-object-list swipe-list" aria-label="Objecten in '+esc(titles[module])+'">'+
+       (list.length<3 && !boardOpen ? '<button type="button" class="sh-module-example" data-module-example><span>Voorbeeld · '+esc(titles[module])+'</span><small>Zo ontdek je wat je hier kunt vastleggen en verbinden</small></button><p class="sh-module-example-guide" data-example-copy hidden>Maak een '+esc(titles[module]).toLowerCase()+' aan zonder verplichte koppelingen. Verbind later met andere modules.</p>' : '')+
+       list.map(object=>{
         const cap=skeletonCapabilities(data,object.id);
         const operation=cap.archive?'Archiveer':cap.restore?'Herstel':'Verwijder';
         return renderStrip({id:object.id,variant:'location',className:'sh-skeleton-row',title:object.title,
@@ -57,6 +59,20 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        Object.entries(current.fields||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('')+'</div>':'')+
        '</div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
        (fullScreen?'':'<button type="button" data-demo-reset>Herstel alle voorbeeldgegevens</button>')+'</div>':'')+(fullScreen?'</section>':'');
+    const example = root.querySelector('[data-module-example]');
+    const exampleCopy = root.querySelector('[data-example-copy]');
+    if(example && exampleCopy) {
+      let down=null;
+      const toggle=()=>{ exampleCopy.hidden = !exampleCopy.hidden; };
+      example.addEventListener('click',toggle);
+      example.addEventListener('touchstart',e=>{down={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+      example.addEventListener('touchend',e=>{
+        if(!down)return;
+        const dx=e.changedTouches[0].clientX-down.x,dy=e.changedTouches[0].clientY-down.y;
+        down=null;
+        if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){e.preventDefault();toggle();}
+      },{passive:false});
+    }
     root.querySelector('[data-demo-toggle]')?.addEventListener('change',async e=>{
       ({enabled,data}=await setDemoEnabled(store,e.target.checked));index=0;expanded=false;draw();
     });
