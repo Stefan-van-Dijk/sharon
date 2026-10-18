@@ -2775,6 +2775,18 @@
     }
     body.sharon-shell-active.sharon-detail-active,
     body.sharon-shell-active #app:has(.app-stage[data-view="detail"]){height:var(--sharon-viewport-height,100dvh)}
+
+    /* Home module guides: preserve navigation and show optional contextual explanations. */
+    .sh-home-module-item{border-bottom:1px solid #ececef}
+    .sh-home-module-line{display:flex;align-items:stretch;min-width:0}
+    .sh-home-module-line .module-row{border-bottom:0;width:auto;flex:1;min-width:0}
+    .sh-home-module-info{flex:0 0 42px;align-self:center;width:34px;height:34px;margin-left:4px;border:1px solid #e5e5e9;border-radius:50%;background:transparent;color:#92929a;font-size:14px;font-weight:450;cursor:pointer}
+    .sh-home-module-info[aria-expanded="true"]{color:#222;border-color:#aaaab0}
+    .sh-home-module-guide{white-space:pre-line;min-height:0;padding:0 15px 16px 2px;color:#737379;font-size:13px;line-height:1.55;letter-spacing:0;overflow-wrap:anywhere}
+    .sh-home-module-guide[hidden]{display:none}
+    .sh-home-module-guide:not([hidden])::after{content:'|';margin-left:2px;color:#a5a5aa;animation:sh-location-caret 800ms steps(1,end) infinite}
+    .sh-home-module-item + .settings-home-row{border-top:0}
+
 </style>
 </head>
 <body>

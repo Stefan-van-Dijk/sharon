@@ -7,6 +7,26 @@ import { openSettings } from './SettingsView.js?v=0.3.49';
 import { sharonWordmark } from './Brand.js?v=0.1.90';
 import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
 
+const MODULE_GUIDE = Object.freeze({
+  environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
+  locations: ['Leg plekken vast, herken ze bij aankomst en voeg sublocaties toe.', 'Verbindt met Ritten, Acties, Agenda, Personen en Objecten.'],
+  cards: ['Bewaar passen en gebruik ze op de juiste plek.', 'Verbindt met Locaties, Codes, Personen en relevante organisaties.'],
+  persons: ['Bewaar contacten en zie wat je met iemand hebt afgesproken.', 'Verbindt met Acties, Agenda, Notities en gedeelde boards.'],
+  objects: ['Leg voorwerpen vast en bekijk hun informatie en geschiedenis.', 'Verbindt met Locaties, Codes, Acties en Notities.'],
+  themes: ['Breng onderwerpen en interesses bij elkaar.', 'Verbindt met Acties, Notities, Agenda en externe boards.'],
+  actions: ['Leg direct vast wat je wilt doen, ook zonder planning of koppeling.', 'Verbindt later met Personen, Thema\'s, Agenda, Tijd en Locaties.'],
+  notes: ['Bewaar een gedachte of informatie zonder vooraf een structuur te kiezen.', 'Verbindt later met Acties, Personen, Objecten en Thema\'s.'],
+  agenda: ['Plan afspraken en gebeurtenissen, alleen of met anderen.', 'Verbindt met Personen, Locaties, Acties en Tijd.'],
+  time: ['Leg vast waaraan je tijd besteedt.', 'Verbindt met Acties, Agenda, Ritten en Thema\'s.'],
+  rides: ['Registreer verplaatsingen tussen plekken.', 'Verbindt met Locaties, Tijd, Acties en Agenda.'],
+  codes: ['Scan en beheer QR-codes en barcodes als verwijzingen.', 'Verbindt met Kaarten, Objecten, Personen en Acties.'],
+  settings: ['Stel Sharon, privacy en gegevensbeheer naar wens in.', 'Deze keuzes gelden voor alle modules.']
+});
+const MENU_ORDER = ['environment','locations','cards','persons','objects','themes','actions','notes','agenda','time','rides','codes'];
+const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
+const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
+const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
+
 const APP_VERSION = '0.3.49';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -193,17 +213,31 @@ export function createShell(root, {
     outlet.innerHTML = `
       <div class="home-view">
         <nav class="module-list" aria-label="Onderdelen">
-          ${(demoMode ? SKELETON_MODULES.map(id => ({id,title:({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[id]})) : list).map(module => `
-            <button class="module-row" data-module="${module.id}">
-              <span>${module.title}</span>
-              ${chevron()}
-            </button>
-          `).join('')}
+          ${MENU_ORDER.map(id => {
+            const moduleId = demoMode ? (MENU_TEST_ID[id] || id) : (id === 'persons' ? 'people' : id);
+            const previewOnly = MENU_PREVIEW_ONLY.has(id) || (demoMode && !SKELETON_MODULES.includes(moduleId) && !['environment','locations','cards'].includes(moduleId));
+            const title = MENU_TITLES[id];
+            return `
+              <div class="sh-home-module-item" data-guide-item>
+                <div class="sh-home-module-line">
+                  <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" ${previewOnly ? 'data-preview-only="true"' : ''}>
+                    <span>${title}</span>${chevron()}
+                  </button>
+                  <button type="button" class="sh-home-module-info" data-module-guide="${id}" aria-label="Uitleg over ${title}" aria-expanded="false">i</button>
+                </div>
+                <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
+              </div>`;
+          }).join('')}
 
-          <button class="module-row settings-home-row" data-settings>
-            <span>Instellingen</span>
-            ${chevron()}
-          </button>
+          <div class="sh-home-module-item" data-guide-item>
+            <div class="sh-home-module-line">
+              <button type="button" class="module-row settings-home-row" data-settings>
+                <span>Instellingen</span>${chevron()}
+              </button>
+              <button type="button" class="sh-home-module-info" data-module-guide="settings" aria-label="Uitleg over Instellingen" aria-expanded="false">i</button>
+            </div>
+            <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
+          </div>
         </nav>
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
@@ -251,9 +285,47 @@ export function createShell(root, {
       openSettingsView();
     });
 
+    let guideInterval = null;
+    const closeGuide = () => {
+      if (guideInterval) clearInterval(guideInterval);
+      guideInterval = null;
+      outlet.querySelectorAll('[data-guide-item]').forEach(item => {
+        item.querySelector('[data-guide-panel]').hidden = true;
+        item.querySelector('[data-module-guide]').setAttribute('aria-expanded', 'false');
+      });
+    };
+    outlet.querySelectorAll('[data-module-guide]').forEach(info => {
+      info.addEventListener('click', () => {
+        const item = info.closest('[data-guide-item]');
+        const panel = item.querySelector('[data-guide-panel]');
+        const wasOpen = !panel.hidden;
+        closeGuide();
+        if (wasOpen) return;
+        panel.hidden = false;
+        info.setAttribute('aria-expanded', 'true');
+        const [purpose, links] = MODULE_GUIDE[info.dataset.moduleGuide] || [];
+        const copy = [purpose, links].filter(Boolean).join('\n');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          panel.textContent = copy;
+          return;
+        }
+        let position = 0;
+        guideInterval = setInterval(() => {
+          if (!panel.isConnected || panel.hidden) { clearInterval(guideInterval); guideInterval = null; return; }
+          position = Math.min(copy.length, position + 2);
+          panel.textContent = copy.slice(0, position);
+          if (position >= copy.length) { clearInterval(guideInterval); guideInterval = null; }
+        }, 17);
+      });
+    });
     outlet.querySelectorAll('[data-module]').forEach(button => {
       button.addEventListener('click', () => {
-        openModule(button.dataset.module);
+        closeGuide();
+        if (button.dataset.previewOnly === 'true') {
+          openPlaceholder({id:button.dataset.module, title:button.dataset.previewTitle});
+        } else {
+          openModule(button.dataset.module);
+        }
       });
     });
   };
