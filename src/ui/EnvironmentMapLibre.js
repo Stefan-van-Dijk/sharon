@@ -370,6 +370,8 @@ export function openEnvironmentView(root, {
   let objectsRevision = 0;
   let mapReady = false;
   let resizeObserver = null;
+  const onViewportResize = () => { if (!disposed && map) map.resize(); };
+  root.querySelector('[data-maplibre-map]')?.addEventListener('sharon:viewport-resize',onViewportResize);
   const unsubscribers = [];
   let popup = null;
   let closeLocationDeck = null;
@@ -848,6 +850,7 @@ export function openEnvironmentView(root, {
 
   return () => {
     disposed = true;
+    mapElement.removeEventListener('sharon:viewport-resize',onViewportResize);
     for (const detach of earlyListeners) detach();
     root.closest?.('.app-stage')?.classList.remove('is-map-clean');
     if (headerActions && topActions?.parentNode === headerActions) topActions.remove();
