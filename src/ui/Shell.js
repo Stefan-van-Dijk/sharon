@@ -220,10 +220,9 @@ export function createShell(root, {
             return `
               <div class="sh-home-module-item" data-guide-item>
                 <div class="sh-home-module-line">
-                  <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" ${previewOnly ? 'data-preview-only="true"' : ''}>
-                    <span>${title}</span>${chevron()}
-                  </button>
-                  <button type="button" class="sh-home-module-info" data-module-guide="${id}" aria-label="Uitleg over ${title}" aria-expanded="false">i</button>
+                  <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" data-guide-id="${id}" ${previewOnly ? 'data-preview-only="true"' : ''}>
+                    <span>${title}</span></button>
+                  
                 </div>
                 <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
               </div>`;
@@ -232,9 +231,9 @@ export function createShell(root, {
           <div class="sh-home-module-item" data-guide-item>
             <div class="sh-home-module-line">
               <button type="button" class="module-row settings-home-row" data-settings>
-                <span>Instellingen</span>${chevron()}
+                <span>Instellingen</span>
               </button>
-              <button type="button" class="sh-home-module-info" data-module-guide="settings" aria-label="Uitleg over Instellingen" aria-expanded="false">i</button>
+              
             </div>
             <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
           </div>
@@ -287,39 +286,65 @@ export function createShell(root, {
 
     let guideInterval = null;
     const closeGuide = () => {
-      if (guideInterval) clearInterval(guideInterval);
+      clearInterval(guideInterval);
       guideInterval = null;
       outlet.querySelectorAll('[data-guide-item]').forEach(item => {
         item.querySelector('[data-guide-panel]').hidden = true;
-        item.querySelector('[data-module-guide]').setAttribute('aria-expanded', 'false');
       });
     };
-    outlet.querySelectorAll('[data-module-guide]').forEach(info => {
-      info.addEventListener('click', () => {
-        const item = info.closest('[data-guide-item]');
-        const panel = item.querySelector('[data-guide-panel]');
-        const wasOpen = !panel.hidden;
-        closeGuide();
-        if (wasOpen) return;
-        panel.hidden = false;
-        info.setAttribute('aria-expanded', 'true');
-        const [purpose, links] = MODULE_GUIDE[info.dataset.moduleGuide] || [];
-        const copy = [purpose, links].filter(Boolean).join('\n');
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          panel.textContent = copy;
-          return;
+    const toggleGuide = item => {
+      const panel = item.querySelector('[data-guide-panel]');
+      const isOpen = !panel.hidden;
+      closeGuide();
+      if (isOpen) return;
+      const id = item.querySelector('[data-module-guide]')?.dataset.moduleGuide
+        || item.querySelector('[data-module]')?.dataset.guideId
+        || (item.querySelector('[data-settings]') ? 'settings' : '');
+      const [purpose, links] = MODULE_GUIDE[id] || [];
+      if (!purpose) return;
+      panel.hidden = false;
+      const copy = [purpose, links].filter(Boolean).join('\\n');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        panel.textContent = copy;
+        return;
+      }
+      let position = 0;
+      guideInterval = setInterval(() => {
+        if (!panel.isConnected || panel.hidden) { clearInterval(guideInterval); return; }
+        position = Math.min(copy.length, position + 2);
+        panel.textContent = copy.slice(0, position);
+        if (position >= copy.length) { clearInterval(guideInterval); guideInterval = null; }
+      }, 17);
+    };
+    outlet.querySelectorAll('[data-guide-item]').forEach(item => {
+      let start = null;
+      item.addEventListener('touchstart', event => {
+        if (event.touches.length !== 1) return;
+        start = {x:event.touches[0].clientX, y:event.touches[0].clientY};
+      }, {passive:true});
+      item.addEventListener('touchend', event => {
+        if (!start || event.changedTouches.length !== 1) return;
+        const dx = event.changedTouches[0].clientX - start.x;
+        const dy = event.changedTouches[0].clientY - start.y;
+        start = null;
+        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+          event.preventDefault();
+          toggleGuide(item);
+          item.dataset.justSwiped = 'true';
+          setTimeout(() => { delete item.dataset.justSwiped; }, 350);
         }
-        let position = 0;
-        guideInterval = setInterval(() => {
-          if (!panel.isConnected || panel.hidden) { clearInterval(guideInterval); guideInterval = null; return; }
-          position = Math.min(copy.length, position + 2);
-          panel.textContent = copy.slice(0, position);
-          if (position >= copy.length) { clearInterval(guideInterval); guideInterval = null; }
-        }, 17);
+      }, {passive:false});
+      item.addEventListener('touchcancel', () => { start = null; });
+      item.addEventListener('keydown', event => {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+          event.preventDefault();
+          toggleGuide(item);
+        }
       });
     });
     outlet.querySelectorAll('[data-module]').forEach(button => {
       button.addEventListener('click', () => {
+        if (button.closest('[data-guide-item]')?.dataset.justSwiped) return;
         closeGuide();
         if (button.dataset.previewOnly === 'true') {
           openPlaceholder({id:button.dataset.module, title:button.dataset.previewTitle});
