@@ -1,4 +1,4 @@
-import { renderCardCode } from './CardCodes.js?v=0.3.57';
+import { renderCardCode } from './CardCodes.js?v=0.3.58';
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = {loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
 export function openCardBoard(card,{locations=[],onClose=()=>{}}={}) {

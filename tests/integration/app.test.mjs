@@ -45,7 +45,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.57');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.58');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -95,7 +95,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.57');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.58');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';
@@ -175,5 +175,35 @@ test('Dichtbij sorteren gebruikt de centrale locatie en sluit een kaart bij verl
   app.document.querySelector('[data-brand-control]').click();
   await until(()=>app.document.querySelector('.home-view'));
   assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
+  assert.deepEqual(app.errors,[]);
+});
+
+test('Testlocaties openen dezelfde editor als live en bewaren GPS, type en straal zonder privédata te wijzigen', async t => {
+  const app=await appHarness({demo:true});t.after(()=>app.close());
+  const before=JSON.stringify(await app.store.getAll('objects'));
+  app.window.navigator.geolocation.getCurrentPosition=success=>success({coords:{latitude:52,longitude:6,accuracy:10},timestamp:Date.now()});
+  await app.boot();
+  (await until(()=>app.document.querySelector('[data-module="locations"]'))).click();
+  (await until(()=>app.document.querySelector('[data-create-location]'))).click();
+  const form=await until(()=>app.document.querySelector('[data-location-form]'));
+  await until(()=>form.dataset.guided==='1');
+  assert.ok(app.document.querySelector('.sh-location-reference-page'));
+  assert.equal(app.document.querySelector('[data-demo-form]'),null);
+  form.elements.title.value='Testlocatie Zwolle';
+  form.elements.lat.value='52.1';form.elements.lng.value='6.1';
+  form.elements.kind.value='shop';form.elements.radiusM.value='150';
+  form.elements.address.value='Zwolle';
+  form.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
+  const dataset=async()=>(await app.store.get('meta','skeleton.demo.dataset'))?.value;
+  const saved=await until(async()=>(await dataset())?.objects.find(o=>o.title==='Testlocatie Zwolle'));
+  assert.deepEqual(JSON.parse(JSON.stringify(saved.fields.locationRecord.data.coordinates)),{lat:52.1,lng:6.1});
+  assert.equal(saved.fields.locationRecord.data.kind,'shop');
+  assert.equal(saved.fields.locationRecord.data.radiusM,150);
+  assert.equal(saved.fields.locationRecord.data.address.text,'Zwolle');
+  assert.equal(JSON.stringify(await app.store.getAll('objects')),before);
+  await until(()=>app.document.querySelector(`[data-swipe-row="${saved.id}"]`));
+  app.document.querySelector('[data-brand-control]').click();
+  (await until(()=>app.document.querySelector('.module-list [data-module="locations"]'))).click();
+  await until(()=>app.document.querySelector(`[data-swipe-row="${saved.id}"]`));
   assert.deepEqual(app.errors,[]);
 });

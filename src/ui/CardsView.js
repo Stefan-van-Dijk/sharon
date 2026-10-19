@@ -1,12 +1,12 @@
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.57';
-import { openCardBoard } from './CardBoard.js?v=0.3.57';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.57';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.57';
-import { mountCardScanner } from './CardScanner.js?v=0.3.57';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.57';
-import { renderStrip } from './Strip.js?v=0.3.57';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.57';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.57';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.58';
+import { openCardBoard } from './CardBoard.js?v=0.3.58';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.58';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.58';
+import { mountCardScanner } from './CardScanner.js?v=0.3.58';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.58';
+import { renderStrip } from './Strip.js?v=0.3.58';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.58';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.58';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
