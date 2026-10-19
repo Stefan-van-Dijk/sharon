@@ -1,5 +1,6 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.63';
-import { openCardBoard } from './CardBoard.js?v=0.3.63';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.64';
+import { openCardBoard } from './CardBoard.js?v=0.3.64';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.64';
 
 const VISIT_KEY = 'cards.context.visit';
 
@@ -66,6 +67,7 @@ function openChoice(suggestions, { onClose, onSelect }) {
   const layer = document.createElement('div');
   layer.className = 'sh-card-board-overlay';
   layer.innerHTML = '<section class="sh-card-board" role="dialog" aria-modal="true" aria-label="Kies een pas"><div class="sh-card-board-top"><h2>Welke pas wil je gebruiken?</h2><button type="button" data-close aria-label="Sluiten">×</button></div><div data-card-choices></div></section>';
+  wrapBoardSurface(layer, layer.querySelector('.sh-card-board'));
   let closed = false, startY = null;
   const close = () => { if (closed) return; closed = true; window.removeEventListener('keydown', key); layer.remove(); onClose(); };
   const key = event => { if (event.key === 'Escape') close(); };

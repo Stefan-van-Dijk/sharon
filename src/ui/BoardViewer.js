@@ -1,3 +1,4 @@
+import { createBoardDeck } from './BoardChrome.js?v=0.3.64';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -181,14 +182,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
 
   // The map remains visible behind the transparent backdrop. The staggered
   // cards behind the reader are visual hints, never duplicate map instances.
-  const deck = document.createElement('div');
-  deck.className = 'sh-board-deck';
-  deck.setAttribute('aria-hidden', 'true');
-  for (let n = 1; n <= 2; n++) {
-    const card = document.createElement('div');
-    card.className = 'sh-board-deck-card sh-board-deck-card-' + n;
-    deck.append(card);
-  }
+  const deck = createBoardDeck();
 
   const plate = document.createElement('div');
   plate.className = 'sh-board-plate';
