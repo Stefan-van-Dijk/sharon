@@ -1,14 +1,14 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
-import { sortList, moveInOrder } from '../core/storage/ListOrder.js?v=0.3.62';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.62';
-import { openCardBoard } from './CardBoard.js?v=0.3.62';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.62';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.62';
-import { mountCardScanner } from './CardScanner.js?v=0.3.62';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.62';
-import { renderStrip } from './Strip.js?v=0.3.62';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.63';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.63';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.63';
+import { openCardBoard } from './CardBoard.js?v=0.3.63';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.63';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.63';
+import { mountCardScanner } from './CardScanner.js?v=0.3.63';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.63';
+import { renderStrip } from './Strip.js?v=0.3.63';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.63';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.63';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -38,6 +38,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
   if (sort === 'near' && !nearPosition) sort = 'alpha';
   const savePrefs = () => store.put('meta', {key:'cards.list.preferences',value:{...prefs,sort}});
   let releaseRows = null;
+  let releaseOrder = null;
   const title = value => { if (typeof setTitle === 'function') setTitle(value); };
   const header = () => { if (headerActions) headerActions.replaceChildren(); };
 
@@ -47,6 +48,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
   }
 
   async function showList() {
+    releaseOrder?.(); releaseOrder = null;
     closeBoard?.(); closeBoard = null;
     stopScanner?.(); stopScanner = null;
     editingId = null;
@@ -120,7 +122,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
       });
     };
     applySearch();
-    bindListControls(outlet,{
+    releaseOrder = bindListControls(outlet,{
       onSearch:value=>{query=value;applySearch();},
       onSort:async mode=>{
         if(mode==='near'){
@@ -134,6 +136,10 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
         }
         if(mode==='custom'&&!prefs.order?.length)prefs.order=cards.map(card=>card.id);
         sort=mode;await savePrefs();await showList();
+      },
+      onMoveTo:async(id,targetId,after)=>{
+        prefs.order=moveToPosition(cards.map(card=>card.id),id,targetId,after);
+        await savePrefs();await showList();
       },
       onMove:async(id,direction)=>{
         prefs.order=moveInOrder(cards.map(card=>card.id),id,direction);
@@ -578,5 +584,5 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
   }
 
   await showList();
-  return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); header(); };
+  return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }

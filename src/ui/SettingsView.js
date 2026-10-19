@@ -1,5 +1,5 @@
-import {mountGraphInspector} from './GraphInspector.js?v=0.3.62';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.62';
+import {mountGraphInspector} from './GraphInspector.js?v=0.3.63';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.63';
 export function openSettings(root, {
   settings,
   install,

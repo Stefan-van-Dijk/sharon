@@ -1,11 +1,11 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
-import { sortList, moveInOrder } from '../core/storage/ListOrder.js?v=0.3.62';
-import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.62';
-import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.62';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
-import { renderStrip } from './Strip.js?v=0.3.62';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.62';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.63';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.63';
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.63';
+import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.63';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.63';
+import { renderStrip } from './Strip.js?v=0.3.63';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.63';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.63';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
@@ -15,6 +15,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
   const objectsFor=kind=>sortList(data.objects.filter(object=>object.module===kind),listPrefs[kind]||{});
   let disposed=false;
   let unbindRows=null;
+  let releaseOrder=null;
   let editingId=null;
   let createOpen=false;
   let relationEditId=null;
@@ -34,6 +35,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
   root.addEventListener('sharon:navigate-back',onNavigateBack,true);
   const draw=()=>{
     if(disposed || !root.isConnected) return;
+    releaseOrder?.();releaseOrder=null;
     unbindRows?.(); unbindRows=null;
     if(fullScreen)onTitleChange(titles[module]);
     const list=enabled?objectsFor(module):[];
@@ -81,11 +83,15 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
       });
     };
     applySearch();
-    bindListControls(root,{
+    releaseOrder=bindListControls(root,{
       onSearch:value=>{queries[module]=value;applySearch();},
       onSort:async sort=>{
         listPrefs[module]={...preference,sort,order:sort==='custom'&&!preference.order?.length?list.map(item=>item.id):preference.order};
         await store.put('meta',{key:'skeleton.list.preferences',value:listPrefs});index=0;draw();
+      },
+      onMoveTo:async(id,targetId,after)=>{
+        listPrefs[module]={...preference,order:moveToPosition(list.map(item=>item.id),id,targetId,after)};
+        await store.put('meta',{key:'skeleton.list.preferences',value:listPrefs});draw();
       },
       onMove:async(id,direction)=>{
         listPrefs[module]={...preference,order:moveInOrder(list.map(item=>item.id),id,direction)};
@@ -206,5 +212,5 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     root.querySelector('[data-demo-reset]')?.addEventListener('click',async()=>{data=await resetDemoDataset(store);index=0;expanded=false;draw();});
   };
   draw();
-  return ()=>{disposed=true;unbindRows?.();root.removeEventListener('sharon:navigate-back',onNavigateBack,true);};
+  return ()=>{disposed=true;unbindRows?.();releaseOrder?.();root.removeEventListener('sharon:navigate-back',onNavigateBack,true);};
 }

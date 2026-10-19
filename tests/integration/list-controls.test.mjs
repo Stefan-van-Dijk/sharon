@@ -7,7 +7,7 @@ test('kaarten: eigen volgorde opslaan, zoeken bij andere sortering en opnieuw op
   await app.boot();
   (await until(()=>app.document.querySelector('[data-module="cards"]'))).click();
   (await until(()=>app.document.querySelector('[data-list-sort="custom"]'))).click();
-  (await until(()=>app.document.querySelector('[data-list-move="ListCard0002"][data-direction="-1"]'))).click();
+  (await until(()=>app.document.querySelector('[data-list-drag="ListCard0002"]'))).dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true,cancelable:true}));
   await until(()=>app.document.querySelector('[data-card-list] [data-swipe-row]')?.dataset.swipeRow==='ListCard0002');
   const search=app.document.querySelector('[data-list-search]');search.value='Alpha';search.dispatchEvent(new app.window.Event('input',{bubbles:true}));
   app.document.querySelector('[data-list-sort="alpha"]').click();
