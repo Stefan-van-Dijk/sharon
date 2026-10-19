@@ -1,5 +1,5 @@
-import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.66';
-import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.66';
+import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.67';
+import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.67';
 
 export function cardDistanceLabel(card, locations, point, now = Date.now()) {
   if (!card.locationId) return 'Geen locatie';

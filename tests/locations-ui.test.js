@@ -91,7 +91,7 @@ test('locatielijst gebruikt de centrale herbruikbare strook zonder domeinregels 
   assert.ok(source.includes("import { renderStrip } from './Strip.js"));
   assert.ok(source.includes('renderStrip({'));
   assert.ok(source.includes("surfaceClassName: 'sh-location-row'"));
-  assert.ok(source.includes("actions: [{ kind: 'delete', label: 'Verwijder' }]"));
+  assert.ok(source.includes("actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }]"));
   assert.ok(source.includes("id: 'identity'"));
   assert.ok(source.includes("id: 'place'"));
   assert.ok(source.includes("doubleSwipe: true"));

@@ -1,15 +1,16 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.66';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.66';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.66';
-import { openCardBoard } from './CardBoard.js?v=0.3.66';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.66';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.66';
-import { mountCardScanner } from './CardScanner.js?v=0.3.66';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.66';
-import { renderStrip } from './Strip.js?v=0.3.66';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.66';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.66';
-import { cardSymbol } from './CardSymbols.js?v=0.3.66';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.67';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.67';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.67';
+import { openCardBoard } from './CardBoard.js?v=0.3.67';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.67';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.67';
+import { mountCardScanner } from './CardScanner.js?v=0.3.67';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.67';
+import { renderStrip } from './Strip.js?v=0.3.67';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.67';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.67';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.67';
+import { cardSymbol } from './CardSymbols.js?v=0.3.67';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -18,7 +19,6 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
-const cardIcon = card => '<span class="sh-card-row-kind" style="background:var(--strip-accent-soft,#e9e9ed);color:var(--strip-accent,#489ff8)">'+cardSymbol(card.cardKind)+'</span>';
 
 export async function openCardsView(outlet, { store, location, events, setTitle, headerActions }) {
   let editingId = null;
@@ -82,14 +82,14 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         ${renderListControls({placeholder:'Zoek een kaart',query,sort,near:true,cardHooks:true})}
         <p data-card-sort-status class="sh-card-sort-status" role="status"></p>
         <div class="sh-locations-list swipe-list" data-card-list>
-          ${cards.length ? cards.map((card,index) => '<div class="sh-list-item" data-list-item>' + renderStrip({
+          ${cards.length ? cards.map((card,index) => '<div class="sh-list-item" data-list-item>' + renderObjectStrip({
             id: card.id,
             className: 'sh-location-strip sh-card-swipe-row',
             surfaceClassName: 'sh-location-row',
             variant: 'location',
             ariaLabel: card.name,
             accentColor: /^#[0-9a-f]{6}$/i.test(card.color || '') ? card.color : '#489ff8',
-            leadingHtml: cardIcon(card),
+            iconHtml: cardSymbol(card.cardKind),
             bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }],

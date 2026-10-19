@@ -9,6 +9,12 @@ export function bindSwipeRows(container, {
   onSecondary
 } = {}) {
   const rows = [...container.querySelectorAll('[data-swipe-row]')];
+  const cleanups = [];
+  const listen = (target,type,handler,options) => {
+    if (!target) return;
+    target.addEventListener(type,handler,options);
+    cleanups.push(()=>target.removeEventListener(type,handler,options));
+  };
   let openRow = null;
 
   for (const row of rows) {
@@ -29,6 +35,11 @@ export function bindSwipeRows(container, {
     let currentX = 0;
     let dragging = false;
     let locked = '';
+    let suppressTimer;
+    const suppressClick = () => {
+      clearTimeout(suppressTimer);surface.dataset.swipeSuppressClick = '1';
+      suppressTimer=setTimeout(()=>{delete surface.dataset.swipeSuppressClick;},80);
+    };
 
     const setX = (value, animate = false) => {
       currentX = Math.max(-actionWidth(), Math.min(0, value));
@@ -46,6 +57,7 @@ export function bindSwipeRows(container, {
     const openSecond = (animate = true) => setX(-actionWidth(), animate);
 
     const pointerDown = event => {
+      if (pointerId !== null) return;
       if (event.pointerType === 'mouse' && event.button !== 0) return;
 
       if (openRow && openRow !== row) {
@@ -78,6 +90,7 @@ export function bindSwipeRows(container, {
       // available for the module-to-home gesture, matching Log's policy.
       if (startOffsetX === 0 && dx > 0) return;
 
+      if (!dragging) { try { surface.setPointerCapture?.(event.pointerId); } catch {} }
       dragging = true;
       event.preventDefault();
       setX(startOffsetX + dx);
@@ -86,8 +99,10 @@ export function bindSwipeRows(container, {
     const pointerUp = event => {
       if (pointerId !== event.pointerId) return;
       pointerId = null;
+      try { surface.releasePointerCapture?.(event.pointerId); } catch {}
 
       if (!dragging || locked !== 'x') {
+        if (locked === 'x' && Math.abs(event.clientX-startX)>OPEN_THRESHOLD_X) suppressClick();
         locked = '';
         dragging = false;
         return;
@@ -104,21 +119,23 @@ export function bindSwipeRows(container, {
         close(true);
       }
 
-      surface.dataset.swipeSuppressClick = '1';
-      setTimeout(() => {
-        if (surface.isConnected) delete surface.dataset.swipeSuppressClick;
-      }, 80);
+      suppressClick();
 
       locked = '';
       dragging = false;
     };
 
-    surface.addEventListener('pointerdown', pointerDown);
-    surface.addEventListener('pointermove', pointerMove, { passive: false });
-    surface.addEventListener('pointerup', pointerUp);
-    surface.addEventListener('pointercancel', pointerUp);
+    const pointerCancel = event => {
+      if (pointerId !== event.pointerId) return;
+      pointerId=null;dragging=false;locked='';setX(startOffsetX,true);suppressClick();
+      try {surface.releasePointerCapture?.(event.pointerId);} catch {}
+    };
+    listen(surface,'pointerdown',pointerDown);
+    listen(surface,'pointermove',pointerMove,{passive:false});
+    listen(surface,'pointerup',pointerUp);
+    listen(surface,'pointercancel',pointerCancel);
 
-    surface.addEventListener('click', event => {
+    listen(surface,'click', event => {
       if (surface.dataset.swipeSuppressClick === '1') {
         event.preventDefault();
         return;
@@ -133,25 +150,29 @@ export function bindSwipeRows(container, {
       onOpen?.(row.dataset.swipeRow, row);
     });
 
-    edit?.addEventListener('click', () => {
+    listen(edit,'click', () => {
       const id = row.dataset.swipeRow;
       close(false);
       onEdit?.(id, row);
     });
 
-    secondary?.addEventListener('click', () => {
+    listen(secondary,'click', () => {
       const id = row.dataset.swipeRow;
       close(false);
       onSecondary?.(id, row);
     });
 
-    remove?.addEventListener('click', () => {
+    listen(remove,'click', () => {
       const id = row.dataset.swipeRow;
       onDelete?.(id, row);
     });
 
-    row.addEventListener('swipe.close', () => close(true));
-    row.addEventListener('swipe.reset', () => close(true));
+    listen(row,'swipe.close', () => close(true));
+    listen(row,'swipe.reset', () => close(true));
+    cleanups.push(()=>{
+      if(pointerId!==null){try{surface.releasePointerCapture?.(pointerId);}catch{}}
+      pointerId=null;clearTimeout(suppressTimer);delete surface.dataset.swipeSuppressClick;close(false);
+    });
   }
 
   const closeAll = event => {
@@ -160,9 +181,9 @@ export function bindSwipeRows(container, {
     openRow.dispatchEvent(new CustomEvent('swipe.close'));
   };
 
-  container.addEventListener('pointerdown', closeAll);
+  listen(container,'pointerdown',closeAll);
 
   return () => {
-    container.removeEventListener('pointerdown', closeAll);
+    cleanups.splice(0).forEach(cleanup=>cleanup());
   };
 }

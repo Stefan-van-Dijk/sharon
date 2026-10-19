@@ -1,11 +1,11 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.66';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.66';
-import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.66';
-import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.66';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.66';
-import { renderStrip } from './Strip.js?v=0.3.66';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.66';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.66';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.67';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.67';
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.67';
+import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.67';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.67';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.67';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.67';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.67';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
@@ -63,7 +63,8 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        list.map(object=>{
         const cap=skeletonCapabilities(data,object.id);
         const operation=cap.archive?'Archiveer':cap.restore?'Herstel':'Verwijder';
-        return '<div data-list-item>'+renderStrip({id:object.id,variant:'location',className:'sh-skeleton-row',title:object.title,
+        return '<div data-list-item>'+renderObjectStrip({id:object.id,module,className:'sh-skeleton-row',title:object.title,
+          accentColor:object.fields?.color || object.color,
           subtitle:object.status==='archived'?'Gearchiveerd':'',
           actions:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:operation}]})+(preference.sort==='custom'?renderOrderControls(object.id):'')+'</div>';
        }).join('')+'</div>' : '')+
