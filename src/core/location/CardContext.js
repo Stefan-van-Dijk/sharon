@@ -1,7 +1,21 @@
-import { resolveLocation } from './LocationHierarchy.js?v=0.3.60';
-import { distanceBetween } from './LocationTriggerService.js?v=0.3.60';
+import { resolveLocation } from './LocationHierarchy.js?v=0.3.61';
+import { distanceBetween } from './LocationTriggerService.js?v=0.3.61';
 
 export const CARD_CONTEXT_MAX_AGE_MS = 120_000;
+
+export function hasLeftCardLocation(objects, cardId, point, now = Date.now()) {
+  if (!point || point.lat == null || point.lng == null || !Number.isFinite(Number(point.lat)) ||
+      !Number.isFinite(Number(point.lng)) || Math.abs(Number(point.lat)) > 90 || Math.abs(Number(point.lng)) > 180 ||
+      !Number.isFinite(point.at) || point.at > now || now - point.at >= CARD_CONTEXT_MAX_AGE_MS ||
+      !Number.isFinite(Number(point.accuracy)) || Number(point.accuracy) < 0) return false;
+  const card = objects.find(item => item.type === 'card' && item.id === cardId);
+  const places = new Map(objects.filter(item => item.type === 'location' && !item.deletedAt).map(item => [String(item.id), item]));
+  const place = places.get(String(card?.locationId || ''));
+  if (!place) return false;
+  const coordinates = resolveLocation(place, places).coordinates;
+  const radius = Math.min(2000, Math.max(20, Number(place.data?.radiusM) || 100));
+  return Boolean(coordinates && distanceBetween(point, coordinates) - Number(point.accuracy) > radius);
+}
 
 // Uses only explicit, local card/location links. No name guessing or GPS polling.
 export function suggestCards(objects, point, now = Date.now()) {

@@ -1,14 +1,15 @@
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.60';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.60';
-import { syncViewportHeight } from './Viewport.js?v=0.3.60';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.60';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.60';
-import { openCardsView } from './CardsView.js?v=0.3.60';
-import { openLocationsView } from './LocationsView.js?v=0.3.60';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.60';
-import { openSettings } from './SettingsView.js?v=0.3.60';
-import { sharonWordmark } from './Brand.js?v=0.3.60';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.60';
+import { mountCardArrival } from './CardArrival.js?v=0.3.61';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.61';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.61';
+import { syncViewportHeight } from './Viewport.js?v=0.3.61';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.61';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.61';
+import { openCardsView } from './CardsView.js?v=0.3.61';
+import { openLocationsView } from './LocationsView.js?v=0.3.61';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.61';
+import { openSettings } from './SettingsView.js?v=0.3.61';
+import { sharonWordmark } from './Brand.js?v=0.3.61';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.61';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -30,7 +31,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.60';
+const APP_VERSION = '0.3.61';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -172,9 +173,10 @@ export function createShell(root, {
     if (typeof cleanup === 'function') viewCleanup = cleanup;
 
     if (animate) {
-      requestAnimationFrame(() => outlet.classList.remove('is-changing'));
+      requestAnimationFrame(() => { outlet.classList.remove('is-changing'); events.emit('cards.context.check'); });
     } else {
       outlet.classList.remove('is-changing');
+      events.emit('cards.context.check');
     }
   };
 
@@ -594,6 +596,11 @@ export function createShell(root, {
   demoWorkspace(store).then(({enabled}) => {
     demoMode=enabled;
     if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
+    mountCardArrival({
+      store: activeStore(), location, events,
+      canOpen: () => !outlet.classList.contains('is-changing') &&
+        !outlet.querySelector('form') && !document.querySelector('[role="dialog"], .story-layer')
+    });
   }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);viewCleanup = renderHome(); });
 
   if (initialModule === 'locations' && initialLocationId) {

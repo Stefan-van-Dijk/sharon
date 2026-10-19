@@ -45,7 +45,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.60');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.61');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -95,7 +95,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.60');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.61');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';
@@ -138,8 +138,8 @@ test('Home toont het pasvoorstel vanuit de echte opstartketen', async t => {
   await app.store.put('objects',{id:'ShopCard0001',type:'card',name:'Mijn winkelpas',locationId:'ShopPlace001'});
   app.window.navigator.geolocation.getCurrentPosition = success => success({coords:{latitude:52,longitude:6,accuracy:10},timestamp:Date.now()});
   await app.boot();
-  (await until(()=>app.document.querySelector('[data-context-card]'))).click();
-  app.document.querySelector('.sh-card-board-overlay [data-close]').click();
+  await until(()=>app.document.querySelector('[data-context-card]'));
+  (await until(()=>app.document.querySelector('.sh-card-board-overlay [data-close]'))).click();
   app.document.querySelector('[data-module="cards"]').click();
   await until(()=>app.document.querySelector('[data-card-list]'));
   app.document.querySelector('[data-brand-control]').click();
@@ -166,6 +166,7 @@ test('Dichtbij sorteren gebruikt de centrale locatie en sluit een kaart bij verl
   let checks=0;
   app.window.navigator.geolocation.getCurrentPosition=success=>{checks++;success({coords:{latitude:52,longitude:6,accuracy:10},timestamp:Date.now()});};
   await app.boot();
+  (await until(()=>app.document.querySelector('.sh-card-board-overlay [data-close]'))).click();
   (await until(()=>app.document.querySelector('[data-module="cards"]'))).click();
   (await until(()=>app.document.querySelector('[data-card-sort="near"]'))).click();
   await until(()=>app.document.querySelector('[data-card-sort="near"][aria-pressed="true"]'));
@@ -238,8 +239,9 @@ test('Testomgeving: locatie vastleggen, pas koppelen en dezelfde context op Home
   const card=await until(async()=>(await data())?.objects.find(o=>o.title==='Mijn testpas'));
   (await until(()=>app.document.querySelector('.sh-card-board-overlay [data-close]'))).click();
   app.document.querySelector('[data-brand-control]').click();
-  (await until(()=>app.document.querySelector(`[data-context-card="${card.id}"]`))).click();
+  await until(()=>app.document.querySelector(`[data-context-card="${card.id}"]`));
   await until(()=>app.document.querySelector('[role="dialog"][aria-label="Kaart Mijn testpas"]'));
+  assert.equal(app.document.querySelectorAll('.sh-card-board-overlay').length,1);
   assert.ok((await data()).relations.some(r=>r.from===card.id&&r.to===place.id&&r.type==='usable-at'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')),privateObjects);
   assert.equal(JSON.stringify(await app.store.getAll('settings')),privateSettings);
