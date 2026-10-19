@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {appHarness,until} from '../helpers/app-harness.mjs';
+import {appHarness,until,dismissCardBoard} from '../helpers/app-harness.mjs';
 const active=app=>app.document.querySelector('[data-card-board][aria-hidden="false"]');
 function pointer(app,target,type,x,y=250){
   const event=new app.window.Event(type,{bubbles:true,cancelable:true});
@@ -25,6 +25,10 @@ test('real boards form one continuous deck with immediately visible information 
   assert.equal(stack.querySelector('.sh-board-deck'),null,'back plates are real boards');
   assert.equal(active(app).querySelector('[data-details]').hidden,false);
   assert.equal(stack.querySelector('[data-expand]'),null);
+  assert.equal(stack.querySelector('[data-close]'),null);
+  assert.equal(stack.querySelector('[data-deck-position]'),null);
+  assert.equal(active(app).querySelector('[data-deck-size="board"]').parentElement,active(app).querySelector('[data-card-media]'));
+  assert.equal(active(app).querySelector('[data-deck-size="media"]').parentElement,active(app).querySelector('[data-card-media]'));
   await until(()=>active(app).querySelector('[data-code] title')?.textContent==='code-a');
   swipe(app,active(app).querySelector('[data-card-media]'));
   assert.equal(active(app).dataset.cardId,'b');
@@ -33,9 +37,10 @@ test('real boards form one continuous deck with immediately visible information 
   swipe(app,active(app).querySelector('[data-card-media]'));
   assert.equal(active(app).dataset.detailIndex,'1');
   assert.match(active(app).querySelector('[data-details]').textContent,/Veld 4/);
-  swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.detailIndex,'1');
+  swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.cardId,'a','last board wraps to the first');
+  assert.equal(stack.querySelectorAll('[data-card-board]:not([hidden])').length,3,'back boards remain present through wrap');
   assert.equal(app.document.querySelectorAll('[role="dialog"]').length,1);
-  active(app).querySelector('[data-previous]').click();assert.equal(active(app).dataset.detailIndex,'0');
+  active(app).querySelector('[data-previous]').click();assert.equal(active(app).dataset.detailIndex,'1','previous from first wraps to last');
   assert.deepEqual(app.errors,[]);
 });
 
@@ -43,14 +48,14 @@ test('pill swipe gathers without moving, then drags the whole deck; both zone si
   const app=await appHarness();let close;t.after(()=>{close?.();app.close();});
   const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
   const {EventBus}=await app.load('./src/core/events/EventBus.js');const events=new EventBus();
-  const location={latest:{lat:52,lng:6,at:Date.now()}},locations=[{id:'place',data:{coordinates:{lat:52,lng:6}}}];
+  const location={latest:{lat:52,lng:6,at:Date.now()}},locations=[{id:'place',data:{title:'Winkel',coordinates:{lat:52,lng:6}}}];
   const cards=[{id:'a',name:'Alpha',locationId:'place'},{id:'b',name:'Beta'}];
   const options={cards,store:app.store,location,locations,events};
   close=openCardBoard(cards[0],options);
   const stack=active(app).parentElement;
-  assert.equal(active(app).querySelector('[data-distance]').textContent,'0 m');
+  assert.equal(active(app).querySelector('[data-distance]').textContent,'Winkel · 0 m');
   location.latest={lat:52.01,lng:6,at:Date.now()};events.emit('location.changed');
-  assert.equal(active(app).querySelector('[data-distance]').textContent,'1.1 km');
+  assert.equal(active(app).querySelector('[data-distance]').textContent,'Winkel · 1.1 km');
   const grab=active(app).querySelector('[data-deck-grab]');
   pointer(app,grab,'pointerdown',100,200);
   assert.equal(stack.classList.contains('is-card-deck-lifted'),false,'touch alone does not gather');
@@ -94,12 +99,12 @@ test('cards view swipes in the saved custom order and respects search',async t=>
   await app.boot();(await until(()=>app.document.querySelector('[data-module="cards"]'))).click();
   (await until(()=>app.document.querySelector('[data-swipe-row="DeckCard003"] .sh-location-row'))).click();
   await until(()=>active(app));swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.cardId,'DeckCard001');
-  active(app).querySelector('[data-close]').click();
+  await dismissCardBoard(app);
   const search=app.document.querySelector('[data-list-search]');search.value='Beta';search.dispatchEvent(new app.window.Event('input',{bubbles:true}));
   app.document.querySelector('[data-swipe-row="DeckCard002"] .sh-location-row').click();
-  await until(()=>active(app));assert.equal(active(app).querySelector('[data-deck-position]').textContent,'1 / 1');
+  await until(()=>active(app));assert.equal(active(app).querySelector('[data-deck-position]'),null);
   swipe(app,active(app).querySelector('[data-card-media]'),false);assert.equal(active(app).dataset.cardId,'DeckCard002');
-  active(app).querySelector('[data-close]').click();assert.deepEqual(app.errors,[]);
+  await dismissCardBoard(app);assert.deepEqual(app.errors,[]);
 });
 
 test('delayed generators keep each board code separate and a downward swipe closes the deck',async t=>{

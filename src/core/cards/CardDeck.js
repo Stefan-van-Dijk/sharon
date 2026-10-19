@@ -1,21 +1,26 @@
-import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.67';
-import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.67';
+import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.68';
+import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.68';
 
 export function cardDistanceLabel(card, locations, point, now = Date.now()) {
-  if (!card.locationId) return 'Geen locatie';
-  const lookup = new Map(locations.map(item => [String(item.id),item]));
-  const destination = resolveLocation(lookup.get(String(card.locationId)),lookup).coordinates;
-  if (!destination) return 'Locatie onbekend';
-  if (!point || point.lat == null || point.lng == null || !Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng)) || Math.abs(Number(point.lat))>90 || Math.abs(Number(point.lng))>180 || !Number.isFinite(point.at) || point.at>now || now-point.at>=120_000) return 'Afstand onbekend';
-  const metres=distanceBetween(point,destination);
-  return metres<1000 ? Math.round(metres)+' m' : (metres/1000).toFixed(metres<10000?1:0)+' km';
+  const lookup = new Map(locations.filter(item=>!item.deletedAt&&!item.archivedAt&&item.status!=='archived').map(item => [String(item.id),item]));
+  const linked=lookup.get(String(card.locationId));
+  const hasPosition=point&&point.lat!=null&&point.lng!=null&&Number.isFinite(Number(point.lat))&&Number.isFinite(Number(point.lng))&&Math.abs(Number(point.lat))<=90&&Math.abs(Number(point.lng))<=180&&Number.isFinite(point.at)&&point.at<=now&&now-point.at<120_000;
+  if(!hasPosition)return String(linked?.data?.title||'');
+  // This pill describes nearby saved context; it does not create a pass/location link.
+  const candidates=[...lookup.values()].flatMap(item=>{
+    const destination=resolveLocation(item,lookup).coordinates,name=String(item.data?.title||'').trim();
+    return destination&&name?[{item,name,metres:distanceBetween(point,destination)}]:[];
+  }).sort((a,b)=>a.metres-b.metres || Number(b.item.id===card.locationId)-Number(a.item.id===card.locationId) || a.name.localeCompare(b.name,'nl'));
+  if(!candidates.length)return String(linked?.data?.title||'');
+  const {name,metres}=candidates[0];
+  return name+' · '+(metres<1000 ? Math.round(metres)+' m' : (metres/1000).toFixed(metres<10000?1:0)+' km');
 }
 
 export function cardDetailPages(card, locations = []) {
   const location = locations.find(item => item.id === card.locationId);
   const rows = [
     ...(card.cardNumber ? [{label:'Pasnummer',value:String(card.cardNumber)}] : []),
-    ...(card.locationId ? [{label:'Locatie',value:location?.data?.title || 'Locatie niet beschikbaar'}] : []),
+    ...(location?.data?.title ? [{label:'Locatie',value:location.data.title}] : []),
     ...(Array.isArray(card.fields) ? card.fields.filter(field => field?.label && field?.value) : [])
   ];
   const pages = []; let page = [], size = 0;
@@ -44,7 +49,7 @@ export function createCardDeck(card, cards = [], locations = []) {
   return {
     get state() {return state();},
     swipe(direction) {
-      boardIndex=Math.max(0,Math.min(boards.length-1,boardIndex+direction));
+      boardIndex=((boardIndex+direction)%boards.length+boards.length)%boards.length;
       return state();
     }
   };

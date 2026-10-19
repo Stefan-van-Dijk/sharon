@@ -1,6 +1,6 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.67';
-import { openCardBoard } from './CardBoard.js?v=0.3.67';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.67';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.68';
+import { openCardBoard } from './CardBoard.js?v=0.3.68';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.68';
 
 const VISIT_KEY = 'cards.context.visit';
 
@@ -68,7 +68,7 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
 function openChoice(suggestions, { onClose, onSelect }) {
   const layer = document.createElement('div');
   layer.className = 'sh-card-board-overlay';
-  layer.innerHTML = '<section class="sh-card-board" role="dialog" aria-modal="true" aria-label="Kies een pas"><div class="sh-card-board-top"><h2>Welke pas wil je gebruiken?</h2><button type="button" data-close aria-label="Sluiten">×</button></div><div data-card-choices></div></section>';
+  layer.innerHTML = '<section class="sh-card-board" role="dialog" aria-modal="true" aria-label="Kies een pas" tabindex="-1"><div class="sh-card-board-top"><h2>Welke pas wil je gebruiken?</h2></div><div data-card-choices></div></section>';
   wrapBoardSurface(layer, layer.querySelector('.sh-card-board'));
   let closed = false, startY = null;
   const close = () => { if (closed) return; closed = true; window.removeEventListener('keydown', key); layer.remove(); onClose(); };
@@ -83,11 +83,11 @@ function openChoice(suggestions, { onClose, onSelect }) {
     button.addEventListener('click', () => onSelect(card));
     host.append(button);
   }
-  layer.querySelector('[data-close]').addEventListener('click', close);
+  layer.addEventListener('sharon:close-board',close);
   layer.addEventListener('click', event => { if (event.target === layer) close(); });
   layer.addEventListener('touchstart', event => { if (event.touches.length === 1) startY = event.touches[0].clientY; }, { passive: true });
   layer.addEventListener('touchend', event => { if (startY !== null && event.changedTouches[0]?.clientY - startY > 45) close(); startY = null; }, { passive: true });
   window.addEventListener('keydown', key); document.body.append(layer);
-  layer.querySelector('[data-close]').focus({ preventScroll: true });
+  layer.querySelector('[role="dialog"]').focus({ preventScroll: true });
   return close;
 }

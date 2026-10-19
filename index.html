@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.67">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.67">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.68">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.68">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2899,22 +2899,24 @@
 .sh-card-deck-board[data-depth="2"]{transform:translate(27px,-19px) scale(.975);opacity:.58;pointer-events:none}
 .sh-card-deck-board.is-card-deck-swiping{transition:none}
 .sh-card-deck-board .sh-card-board-accent{flex-shrink:0}
-.sh-card-deck-board .sh-board-resizer{flex-basis:22px;min-height:22px}
-.sh-card-deck-board .sh-card-media{position:relative;flex:0 0 var(--card-deck-media,290px);height:var(--card-deck-media,290px);min-height:0;width:auto;margin:0 10px;border-radius:28px 28px 23px 23px;background:#fff;touch-action:none;user-select:none}
-.sh-card-media .sh-card-media-close{position:absolute;right:10px;top:8px;width:35px;height:35px;z-index:2;font-size:25px}
-.sh-card-media .sh-card-board-code{margin:0;padding:43px 18px 52px;border-radius:28px;min-height:0;height:100%;box-sizing:border-box;overflow:hidden}
-.sh-card-media .sh-card-board-code>div{width:100%;height:100%;min-width:0;min-height:0;display:grid;place-items:center}
+.sh-card-media .sh-board-resizer{position:absolute;left:0;right:0;min-height:14px;height:14px;top:0}
+.sh-card-media .sh-board-resizer[data-deck-size="media"]{top:auto;bottom:0}
+.sh-card-deck-board .sh-card-media{position:relative;flex:0 0 var(--card-deck-media,290px);height:var(--card-deck-media,290px);min-height:0;width:100%;padding:0;margin:0;border-radius:28px 28px 23px 23px;background:#fff;touch-action:none;user-select:none}
+.sh-card-media .sh-card-board-code{display:grid;place-items:center;margin:0;padding:0;border-radius:28px;min-height:0;height:100%;width:100%;box-sizing:border-box;overflow:hidden}
+.sh-card-media .sh-card-board-code>div{width:calc(100% - 112px);height:calc(100% - 112px);min-width:0;min-height:0;display:grid;place-items:center}
 .sh-card-media .sh-card-board-code svg{display:block;margin:auto;max-height:100%!important;width:100%;height:100%;object-fit:contain}
 .sh-card-media .sh-card-deck-grab{position:absolute;left:13px;bottom:12px;display:flex;align-items:center;justify-content:center;gap:5px;height:35px;min-width:66px;padding:0 11px;border:1px solid #ffffffb3;border-radius:999px;background:#ffffffdb;box-shadow:0 1px 5px #0000001b;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);color:#1e354b;cursor:grab;touch-action:none;font:600 12px system-ui,sans-serif}
 .sh-card-deck-grab svg{width:17px;height:17px;flex-shrink:0}
+.sh-card-deck-grab [data-distance]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-card-media .sh-card-deck-grab{max-width:calc(100% - 74px);bottom:20px}
 .sh-card-media .sh-card-kind-badge{position:absolute;right:13px;bottom:12px;display:grid;place-items:center;box-sizing:border-box;width:35px;height:35px;padding:0;border:1px solid #ffffffb3;border-radius:50%;background:#ffffffdb;box-shadow:0 1px 5px #0000001b;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);color:#1e354b}
 .sh-card-kind-badge svg{display:block;width:22px;height:22px}
+.sh-card-media .sh-card-kind-badge{bottom:20px}
 .sh-card-deck-board .sh-card-board-details{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:0 22px 12px;border:0}
 .sh-card-detail-heading{padding:3px 0 9px}
 .sh-card-detail-heading h2{margin:0;font-size:clamp(20px,4.8vw,27px);font-weight:580;overflow-wrap:anywhere}
 .sh-card-board-navigation{display:flex;align-items:center;justify-content:center;gap:18px;flex:0 0 32px;font-size:11px;color:#7a838c}
 .sh-card-board-navigation button{display:grid;place-items:center;min-width:36px;height:30px;border:0;background:transparent;color:#526578;font-size:24px}
-.sh-card-board-navigation button:disabled{opacity:.25}
 .is-card-deck-lifted .sh-card-deck-board[data-depth="0"]{box-shadow:0 24px 54px #141e2d55}
 .is-card-deck-lifted .sh-card-deck-board[data-depth="1"]{transform:translate(-3px,-3px)}
 .is-card-deck-lifted .sh-card-deck-board[data-depth="2"]{transform:translate(-5px,-5px)}
@@ -2933,16 +2935,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.67#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.67#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.67#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.67#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.67#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.68#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.68#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.68#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.68#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.68#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.67"></script>
+  <script type="module" src="./src/main.js?v=0.3.68"></script>
 </body>
 </html>

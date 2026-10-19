@@ -57,7 +57,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   }
   let store;
   if (!storageFailure) {
-    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.67');
+    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.68');
     store = await new ObjectStore().open();
     if (!firstRun) await store.put('settings', { key: 'app', value: { profile: { name: 'Testgebruiker' }, onboarding: { storySeen: true } } });
     await store.put('objects', { id: 'TestPlace001', type: 'location', data: { title: 'Persoonlijke plek', kind: 'other', address: {} } });
@@ -77,4 +77,9 @@ export async function until(check, message = 'DOM niet gereed') {
     await new Promise(resolve => setTimeout(resolve, 10));
   }
   throw Error(message);
+}
+
+export async function dismissCardBoard(app) {
+  await until(()=>app.document.querySelector('.sh-card-board-overlay'));
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'Escape'}));
 }
