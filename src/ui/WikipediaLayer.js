@@ -1,4 +1,4 @@
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.3.59';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.3.60';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
