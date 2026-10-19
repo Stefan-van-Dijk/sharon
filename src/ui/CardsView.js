@@ -1,14 +1,14 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.64';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.64';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.64';
-import { openCardBoard } from './CardBoard.js?v=0.3.64';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.64';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.64';
-import { mountCardScanner } from './CardScanner.js?v=0.3.64';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.64';
-import { renderStrip } from './Strip.js?v=0.3.64';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.64';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.64';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.65';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.65';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.65';
+import { openCardBoard } from './CardBoard.js?v=0.3.65';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.65';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.65';
+import { mountCardScanner } from './CardScanner.js?v=0.3.65';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.65';
+import { renderStrip } from './Strip.js?v=0.3.65';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.65';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.65';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -34,6 +34,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
   let prefs = (await store.get('meta', 'cards.list.preferences'))?.value || {sort:'alpha',order:[]};
   let sort = prefs.sort || 'alpha';
   let query = '';
+  let deckIds = [];
   let nearPosition = location?.latest ? {latitude:location.latest.lat,longitude:location.latest.lng} : null;
   if (sort === 'near' && !nearPosition) sort = 'alpha';
   const savePrefs = () => store.put('meta', {key:'cards.list.preferences',value:{...prefs,sort}});
@@ -56,15 +57,6 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
     releaseRows?.();
     releaseRows = null;
     header();
-    if (headerActions) {
-      const add = document.createElement('button');
-      add.type = 'button';
-      add.className = 'sh-location-header-add';
-      add.setAttribute('aria-label', 'Kaart toevoegen');
-      add.textContent = '+';
-      add.addEventListener('click', () => showForm());
-      headerActions.append(add);
-    }
     const cards = await records();
     const locationItems = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
     const locationLookup = new Map(locationItems.map(item => [String(item.id),item]));
@@ -82,6 +74,16 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
       return 12742000 * Math.asin(Math.min(1,Math.sqrt(a)));
     };
     cards.splice(0,cards.length,...sortList(cards,{sort,order:prefs.order,distance}));
+    // Expose Add only when the asynchronous list load can no longer replace its form.
+    if (headerActions) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'sh-location-header-add';
+      add.setAttribute('aria-label', 'Kaart toevoegen');
+      add.textContent = '+';
+      add.addEventListener('click', () => showForm());
+      headerActions.append(add);
+    }
     outlet.innerHTML = `
       <section class="module-view locations-view sh-card-view">
         ${renderListControls({placeholder:'Zoek een kaart',query,sort,near:true,cardHooks:true})}
@@ -114,11 +116,13 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
     });
     const applySearch = () => {
       const q=query.trim().toLocaleLowerCase('nl');
+      deckIds = [];
       outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row=>{
         const card=cards.find(item=>item.id===row.dataset.swipeRow);
         const place=locationItems.find(item=>item.id===card?.locationId);
         const text=[card?.name,card?.codeValue,place?.data?.title].join(' ').toLocaleLowerCase('nl');
         row.closest('[data-list-item]').hidden=Boolean(q)&&!text.includes(q);
+        if (!row.closest('[data-list-item]').hidden) deckIds.push(card.id);
       });
     };
     applySearch();
@@ -170,7 +174,9 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
     if (!card || card.type !== 'card') return showList();
     const locations = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
     closeBoard?.();
-    closeBoard = openCardBoard(card, { locations, onClose: () => { closeBoard = null; } });
+    const available = new Map((await records()).map(item => [item.id,item]));
+    const cards = deckIds.map(key => available.get(key)).filter(Boolean);
+    closeBoard = openCardBoard(card, { cards, locations, store, onClose: () => { closeBoard = null; } });
   }
 
   async function showQuestionLibrary(cardId = null, kind = 'loyalty') {
