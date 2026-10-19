@@ -1,14 +1,15 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.65';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.65';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.65';
-import { openCardBoard } from './CardBoard.js?v=0.3.65';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.65';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.65';
-import { mountCardScanner } from './CardScanner.js?v=0.3.65';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.65';
-import { renderStrip } from './Strip.js?v=0.3.65';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.65';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.65';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.66';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.66';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.66';
+import { openCardBoard } from './CardBoard.js?v=0.3.66';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.66';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.66';
+import { mountCardScanner } from './CardScanner.js?v=0.3.66';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.66';
+import { renderStrip } from './Strip.js?v=0.3.66';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.66';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.66';
+import { cardSymbol } from './CardSymbols.js?v=0.3.66';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -17,17 +18,9 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
-const icons = {
-  loyalty: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
-  membership: '<circle cx="12" cy="8" r="3"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/>',
-  access: '<circle cx="8" cy="9" r="4"/><path d="M11 12 21 22"/>',
-  ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/>',
-  other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
-};
-const cardIcon = card => '<span class="sh-card-row-kind" style="background:var(--strip-accent-soft,#e9e9ed);color:var(--strip-accent,#489ff8)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  (icons[card.cardKind] || icons.other) + '</svg></span>';
+const cardIcon = card => '<span class="sh-card-row-kind" style="background:var(--strip-accent-soft,#e9e9ed);color:var(--strip-accent,#489ff8)">'+cardSymbol(card.cardKind)+'</span>';
 
-export async function openCardsView(outlet, { store, location, setTitle, headerActions }) {
+export async function openCardsView(outlet, { store, location, events, setTitle, headerActions }) {
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
@@ -176,7 +169,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
     closeBoard?.();
     const available = new Map((await records()).map(item => [item.id,item]));
     const cards = deckIds.map(key => available.get(key)).filter(Boolean);
-    closeBoard = openCardBoard(card, { cards, locations, store, onClose: () => { closeBoard = null; } });
+    closeBoard = openCardBoard(card, { cards, locations, store, location, events, onClose: () => { closeBoard = null; } });
   }
 
   async function showQuestionLibrary(cardId = null, kind = 'loyalty') {

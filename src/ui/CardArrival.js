@@ -1,6 +1,6 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.65';
-import { openCardBoard } from './CardBoard.js?v=0.3.65';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.65';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.66';
+import { openCardBoard } from './CardBoard.js?v=0.3.66';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.66';
 
 const VISIT_KEY = 'cards.context.visit';
 
@@ -36,7 +36,7 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
         if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       };
       const showCard = card => {
-        closePopup = openCardBoard(card, { cards: suggestions.map(item => item.card), store,
+        closePopup = openCardBoard(card, { cards: suggestions.map(item => item.card), store, location, events,
           onActiveCard: current => { openedIds = [current.id]; },
           locations: objects.filter(item => item.type === 'location' && !item.deletedAt), onClose });
         openedIds = [card.id];

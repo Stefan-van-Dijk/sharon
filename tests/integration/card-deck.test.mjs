@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {appHarness,until} from '../helpers/app-harness.mjs';
+const active=app=>app.document.querySelector('[data-card-board][aria-hidden="false"]');
 function pointer(app,target,type,x,y=250){
   const event=new app.window.Event(type,{bubbles:true,cancelable:true});
   Object.assign(event,{pointerId:1,button:0,clientX:x,clientY:y});target.dispatchEvent(event);
@@ -8,38 +9,81 @@ function pointer(app,target,type,x,y=250){
 function swipe(app,target,left=true){
   pointer(app,target,'pointerdown',left?300:100);pointer(app,target,'pointermove',left?100:300);pointer(app,target,'pointerup',left?100:300);
 }
-test('pasdeck changes codes compact, detail pages expanded, and preserves dragged layout',async t=>{
-  const app=await appHarness();let close;
-  t.after(()=>{close?.();app.close();});
-  // Minimal generator verifies each pass uses its own code host, without a network request.
+function generator(app){
   app.window.TextEncoder=TextEncoder;
   app.window.qrcode=()=>{let value;return{addData:text=>{value=text;},make(){},createSvgTag:()=>'<svg viewBox="0 0 100 100"><title>'+value+'</title></svg>'};};
+}
+
+test('real boards form one continuous deck with immediately visible information and pass icons',async t=>{
+  const app=await appHarness();let close;t.after(()=>{close?.();app.close();});generator(app);
   const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
   const cards=[{id:'a',name:'Alpha',cardKind:'loyalty',codeFormat:'QR_CODE',codeValue:'code-a'},
     {id:'b',name:'Beta',cardKind:'ticket',codeFormat:'QR_CODE',codeValue:'code-b',fields:Array.from({length:6},(_,i)=>({label:'Veld '+i,value:'Waarde '+i}))}];
   close=openCardBoard(cards[0],{cards,store:app.store});
-  const board=app.document.querySelector('.sh-card-deck-board'),media=board.querySelector('[data-card-media]'),grab=board.querySelector('[data-deck-grab]'),stack=board.parentElement;
-  await until(()=>board.querySelector('[data-code] title')?.textContent==='code-a');
-  assert.equal(board.querySelector('[data-details]').hidden,true);
-  swipe(app,media);
-  await until(()=>board.querySelector('[data-code] title')?.textContent==='code-b');
-  assert.equal(board.querySelector('[data-card-kind]').textContent,'Ticket');
-  board.querySelector('[data-expand]').click();swipe(app,media);
-  assert.equal(board.dataset.cardId,'b');assert.equal(board.dataset.detailIndex,'1');
-  assert.match(board.querySelector('[data-detail-rows]').textContent,/Veld 4/);
-  swipe(app,media);assert.equal(board.dataset.detailIndex,'1','last detail does not switch passes');
+  const stack=active(app).parentElement;
+  assert.equal(stack.querySelectorAll('[data-card-board]').length,3);
+  assert.equal(stack.querySelector('.sh-board-deck'),null,'back plates are real boards');
+  assert.equal(active(app).querySelector('[data-details]').hidden,false);
+  assert.equal(stack.querySelector('[data-expand]'),null);
+  await until(()=>active(app).querySelector('[data-code] title')?.textContent==='code-a');
+  swipe(app,active(app).querySelector('[data-card-media]'));
+  assert.equal(active(app).dataset.cardId,'b');
+  assert.equal(active(app).querySelector('[data-card-kind]').getAttribute('aria-label'),'Ticket');
+  assert.ok(active(app).querySelector('[data-card-media] [data-card-kind] svg'));
+  swipe(app,active(app).querySelector('[data-card-media]'));
+  assert.equal(active(app).dataset.detailIndex,'1');
+  assert.match(active(app).querySelector('[data-details]').textContent,/Veld 4/);
+  swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.detailIndex,'1');
+  assert.equal(app.document.querySelectorAll('[role="dialog"]').length,1);
+  active(app).querySelector('[data-previous]').click();assert.equal(active(app).dataset.detailIndex,'0');
+  assert.deepEqual(app.errors,[]);
+});
+
+test('pill swipe gathers without moving, then drags the whole deck; both zone sizes persist and cancel restores layout',async t=>{
+  const app=await appHarness();let close;t.after(()=>{close?.();app.close();});
+  const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
+  const {EventBus}=await app.load('./src/core/events/EventBus.js');const events=new EventBus();
+  const location={latest:{lat:52,lng:6,at:Date.now()}},locations=[{id:'place',data:{coordinates:{lat:52,lng:6}}}];
+  const cards=[{id:'a',name:'Alpha',locationId:'place'},{id:'b',name:'Beta'}];
+  const options={cards,store:app.store,location,locations,events};
+  close=openCardBoard(cards[0],options);
+  const stack=active(app).parentElement;
+  assert.equal(active(app).querySelector('[data-distance]').textContent,'0 m');
+  location.latest={lat:52.01,lng:6,at:Date.now()};events.emit('location.changed');
+  assert.equal(active(app).querySelector('[data-distance]').textContent,'1.1 km');
+  const grab=active(app).querySelector('[data-deck-grab]');
   pointer(app,grab,'pointerdown',100,200);
-  await until(()=>stack.classList.contains('is-card-deck-lifted'));
-  pointer(app,grab,'pointermove',140,220);pointer(app,grab,'pointerup',140,220);
-  await until(async()=>Boolean(await app.store.get('meta','cards.board.layout')));
-  const x=stack.style.getPropertyValue('--card-deck-x');assert.equal(x,'40px');
-  board.querySelector('[data-expand]').click();swipe(app,media,false);
-  assert.equal(board.dataset.cardId,'a');assert.equal(stack.style.getPropertyValue('--card-deck-x'),x);
-  pointer(app,grab,'pointerdown',100,200);await until(()=>stack.classList.contains('is-card-deck-lifted'));
-  pointer(app,grab,'pointermove',180,230);pointer(app,grab,'pointercancel',180,230);
-  assert.equal(stack.style.getPropertyValue('--card-deck-x'),x);
-  close();close=openCardBoard(cards[0],{cards,store:app.store});
-  await until(()=>app.document.querySelector('.sh-card-deck-stack').style.getPropertyValue('--card-deck-x')===x);
+  assert.equal(stack.classList.contains('is-card-deck-lifted'),false,'touch alone does not gather');
+  pointer(app,grab,'pointermove',80,200);
+  assert.equal(stack.classList.contains('is-card-deck-lifted'),false,'leftward movement does not gather');
+  pointer(app,grab,'pointermove',140,200);
+  assert.ok(stack.classList.contains('is-card-deck-lifted'));
+  assert.equal(stack.style.getPropertyValue('--card-deck-x'),'0px','gathering swipe is consumed without a jump');
+  pointer(app,grab,'pointermove',180,220);pointer(app,grab,'pointerup',180,220);
+  assert.equal(stack.classList.contains('is-card-deck-lifted'),false,'release puts the deck down');
+  assert.equal(active(app).dataset.cardId,'a','pill does not swipe to another pass');
+  assert.equal(stack.style.getPropertyValue('--card-deck-x'),'40px');
+  const mediaSizer=active(app).querySelector('[data-deck-size="media"]');
+  const beforeMedia=parseFloat(stack.style.getPropertyValue('--card-deck-media'));
+  pointer(app,mediaSizer,'pointerdown',200,300);pointer(app,mediaSizer,'pointermove',200,325);pointer(app,mediaSizer,'pointerup',200,325);
+  assert.equal(parseFloat(stack.style.getPropertyValue('--card-deck-media')),beforeMedia+25);
+  const boardSizer=active(app).querySelector('[data-deck-size="board"]');
+  const beforeHeight=parseFloat(stack.style.getPropertyValue('--card-deck-height'));
+  const beforeY=stack.style.getPropertyValue('--card-deck-y');
+  pointer(app,boardSizer,'pointerdown',200,200);pointer(app,boardSizer,'pointermove',200,180);pointer(app,boardSizer,'pointerup',200,180);
+  assert.equal(parseFloat(stack.style.getPropertyValue('--card-deck-height')),beforeHeight+20);
+  assert.equal(stack.style.getPropertyValue('--card-deck-y'),beforeY,'bottom anchor already accounts for the changed height');
+  const height=stack.style.getPropertyValue('--card-deck-height'),media=stack.style.getPropertyValue('--card-deck-media');
+  pointer(app,grab,'pointerdown',100,200);pointer(app,grab,'pointermove',140,200);pointer(app,grab,'pointermove',220,230);pointer(app,grab,'pointercancel',220,230);
+  assert.equal(stack.style.getPropertyValue('--card-deck-x'),'40px');
+  swipe(app,active(app).querySelector('[data-card-media]'));
+  assert.equal(stack.style.getPropertyValue('--card-deck-media'),media);
+  assert.equal(stack.style.getPropertyValue('--card-deck-height'),height);
+  await until(async()=>Boolean((await app.store.get('meta','cards.board.layout'))?.value.media));
+  close();close=openCardBoard(cards[0],options);
+  await until(()=>active(app).parentElement.style.getPropertyValue('--card-deck-height')===height);
+  assert.equal(active(app).parentElement.style.getPropertyValue('--card-deck-x'),'40px');
+  assert.equal(active(app).parentElement.style.getPropertyValue('--card-deck-media'),media);
   assert.deepEqual(app.errors,[]);
 });
 
@@ -48,35 +92,25 @@ test('cards view swipes in the saved custom order and respects search',async t=>
   for(const [id,name] of [['DeckCard001','Alpha'],['DeckCard002','Beta'],['DeckCard003','Charlie']])await app.store.put('objects',{id,type:'card',name});
   await app.store.put('meta',{key:'cards.list.preferences',value:{sort:'custom',order:['DeckCard003','DeckCard001','DeckCard002']}});
   await app.boot();(await until(()=>app.document.querySelector('[data-module="cards"]'))).click();
-  (await until(()=>app.document.querySelector('[data-swipe-row="DeckCard003"] [data-swipe-open]')||app.document.querySelector('[data-swipe-row="DeckCard003"] .sh-location-row'))).click();
-  let board=await until(()=>app.document.querySelector('.sh-card-deck-board'));
-  swipe(app,board.querySelector('[data-card-media]'));assert.equal(board.dataset.cardId,'DeckCard001');
-  board.querySelector('[data-close]').click();
+  (await until(()=>app.document.querySelector('[data-swipe-row="DeckCard003"] .sh-location-row'))).click();
+  await until(()=>active(app));swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.cardId,'DeckCard001');
+  active(app).querySelector('[data-close]').click();
   const search=app.document.querySelector('[data-list-search]');search.value='Beta';search.dispatchEvent(new app.window.Event('input',{bubbles:true}));
   app.document.querySelector('[data-swipe-row="DeckCard002"] .sh-location-row').click();
-  board=await until(()=>app.document.querySelector('.sh-card-deck-board'));
-  assert.equal(board.querySelector('[data-deck-position]').textContent,'1 / 1');
-  swipe(app,board.querySelector('[data-card-media]'),false);assert.equal(board.dataset.cardId,'DeckCard002');
-  board.querySelector('[data-close]').click();assert.deepEqual(app.errors,[]);
+  await until(()=>active(app));assert.equal(active(app).querySelector('[data-deck-position]').textContent,'1 / 1');
+  swipe(app,active(app).querySelector('[data-card-media]'),false);assert.equal(active(app).dataset.cardId,'DeckCard002');
+  active(app).querySelector('[data-close]').click();assert.deepEqual(app.errors,[]);
 });
 
-test('a delayed code generator cannot overwrite the newly selected pass',async t=>{
-  const app=await appHarness();let close;t.after(()=>{close?.();app.close();});
-  app.window.TextEncoder=TextEncoder;
+test('delayed generators keep each board code separate and a downward swipe closes the deck',async t=>{
+  const app=await appHarness();let close;t.after(()=>{close?.();app.close();});app.window.TextEncoder=TextEncoder;
   const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
   const cards=['a','b'].map(id=>({id,name:id,codeFormat:'QR_CODE',codeValue:id}));
-  close=openCardBoard(cards[0],{cards});
-  const board=app.document.querySelector('.sh-card-deck-board');
-  swipe(app,board.querySelector('[data-card-media]'));
-  app.window.qrcode=()=>{let value;return{addData:text=>{value=text;},make(){},createSvgTag:()=>'<svg><title>'+value+'</title></svg>'};};
-  app.document.querySelector('script[src*="qrcode"]').dispatchEvent(new app.window.Event('load'));
-  await until(()=>board.querySelector('[data-code] title')?.textContent==='b');
-  assert.equal(board.querySelectorAll('[data-code] svg').length,1);
-  // Vertical code gestures toggle details without changing the active pass.
-  const media=board.querySelector('[data-card-media]');
-  pointer(app,media,'pointerdown',200,300);pointer(app,media,'pointermove',200,200);pointer(app,media,'pointerup',200,200);
-  assert.equal(board.querySelector('[data-details]').hidden,false);assert.equal(board.dataset.cardId,'b');
+  close=openCardBoard(cards[0],{cards});swipe(app,active(app).querySelector('[data-card-media]'));
+  generator(app);app.document.querySelector('script[src*="qrcode"]').dispatchEvent(new app.window.Event('load'));
+  await until(()=>active(app).querySelector('[data-code] title')?.textContent==='b');
+  assert.equal(active(app).querySelectorAll('[data-code] svg').length,1);
+  const media=active(app).querySelector('[data-card-media]');
   pointer(app,media,'pointerdown',200,200);pointer(app,media,'pointermove',200,300);pointer(app,media,'pointerup',200,300);
-  assert.equal(board.querySelector('[data-details]').hidden,true);
-  assert.deepEqual(app.errors,[]);
+  assert.equal(active(app),null);assert.deepEqual(app.errors,[]);
 });
