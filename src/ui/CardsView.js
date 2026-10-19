@@ -1,12 +1,12 @@
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.56';
-import { openCardBoard } from './CardBoard.js?v=0.3.56';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.56';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.56';
-import { mountCardScanner } from './CardScanner.js?v=0.3.56';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.56';
-import { renderStrip } from './Strip.js?v=0.3.56';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.56';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.56';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.57';
+import { openCardBoard } from './CardBoard.js?v=0.3.57';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.57';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.57';
+import { mountCardScanner } from './CardScanner.js?v=0.3.57';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.57';
+import { renderStrip } from './Strip.js?v=0.3.57';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.57';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.57';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -27,7 +27,7 @@ const cardIcon = card => '<span class="sh-card-row-kind" style="background:' +
   '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   (icons[card.cardKind] || icons.other) + '</svg></span>';
 
-export async function openCardsView(outlet, { store, setTitle, headerActions }) {
+export async function openCardsView(outlet, { store, location, setTitle, headerActions }) {
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
@@ -131,14 +131,16 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
             outlet.querySelector('[data-card-sort-status]').textContent = 'Koppel eerst een kaart aan een locatie om op afstand te sorteren.';
             return;
           }
-          if (!navigator.geolocation) {
-            outlet.querySelector('[data-card-sort-status]').textContent = 'Locatiebepaling is niet beschikbaar.';
-            return;
-          }
-          navigator.geolocation.getCurrentPosition(position => {
-            nearPosition = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-            sort = 'near'; showList();
-          }, () => { outlet.querySelector('[data-card-sort-status]').textContent = 'Locatietoegang nodig om kaarten op afstand te sorteren.'; }, {enableHighAccuracy:false,timeout:8000,maximumAge:60000});
+          const status = outlet.querySelector('[data-card-sort-status]');
+          button.disabled = true;
+          try {
+            const point = await location.checkNow({ reason: 'cards-near', maxAgeMs: 60_000, highAccuracy: false });
+            nearPosition = { latitude: point.lat, longitude: point.lng };
+            if (!button.isConnected) return;
+            sort = 'near'; await showList();
+          } catch {
+            if (status?.isConnected) status.textContent = 'Locatietoegang nodig om kaarten op afstand te sorteren.';
+          } finally { button.disabled = false; }
           return;
         }
         sort = button.dataset.cardSort; showList();
@@ -581,4 +583,5 @@ export async function openCardsView(outlet, { store, setTitle, headerActions }) 
   }
 
   await showList();
+  return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); header(); };
 }

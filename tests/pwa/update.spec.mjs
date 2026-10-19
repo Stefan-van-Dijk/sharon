@@ -5,6 +5,9 @@ import { resolve, join, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { buildSite } from '../../scripts/build-site.mjs';
 
+const currentVersion = JSON.parse(readFileSync('package.json')).version;
+const nextVersion = currentVersion.replace(/\d+$/, value => Number(value) + 1);
+
 let server, base, root, current, next, legacy, serving, fault = '';
 test.beforeAll(async () => {
   root = mkdtempSync(resolve('.pwa-test-'));
@@ -13,7 +16,7 @@ test.beforeAll(async () => {
   for (const name of ['src','assets','vendor','index.html','manifest.webmanifest','service-worker.js','scripts','package.json','package-lock.json','tests/helpers','tests/integration']) {
     mkdirSync(resolve(source, name, '..'), {recursive:true}); cpSync(name, join(source, name), {recursive:true});
   }
-  execFileSync(process.execPath, ['scripts/set-version.mjs', '0.3.57'], {cwd:source});
+  execFileSync(process.execPath, ['scripts/set-version.mjs', nextVersion], {cwd:source});
   buildSite(source); next = join(source, '_site');
   legacy = join(root,'legacy'); mkdirSync(legacy);
   const archive = execFileSync('git',['archive','fb9761ab6b22bb803c24da46131751868cd8d8cf','src','assets','vendor','index.html','manifest.webmanifest','service-worker.js'], {maxBuffer:16*1024*1024});
@@ -48,7 +51,7 @@ test.beforeEach(async ({context}) => {
     Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(_ok,fail){queueMicrotask(()=>fail({code:1,message:'Test: GPS geweigerd'}));}}});
   });
 });
-async function install(page, version='0.3.56') {
+async function install(page, version=currentVersion) {
   await page.goto(base+'test-setup.html');
   await page.evaluate(async version => {
     const {ObjectStore}=await import('./src/core/storage/ObjectStore.js?v='+version);
@@ -93,18 +96,18 @@ test('complete update waits for both tabs, preserves a draft and data, then boot
   expect(await update(page)).toBe('installed');
   await expect(second.locator('[data-update-notice]')).toContainText('Sluit alle Sharon-vensters');
   await expect(page.getByRole('textbox',{name:'Naam van de kaart',exact:true})).toHaveValue('Niet verliezen');
-  await second.reload();await expect(second.locator('.app-version')).toHaveText('v0.3.56');
+  await second.reload();await expect(second.locator('.app-version')).toHaveText('v'+currentVersion);
   await second.close();
   expect(await page.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration()).waiting)).toBe(true);
   await page.close();await context.setOffline(true);
   const reopened=await context.newPage();await reopened.goto(base);
-  await expect(reopened.locator('.app-version')).toHaveText('v0.3.57');
+  await expect(reopened.locator('.app-version')).toHaveText('v'+nextVersion);
   expect((await storedCard(reopened)).name).toBe('Behouden pas');
   // Local generators/scanner are in the complete offline closure; external maps are not.
-  expect(await reopened.evaluate(async()=>{
-    const codes=await import('./src/ui/CardCodes.js?v=0.3.57');
+  expect(await reopened.evaluate(async version=>{
+    const codes=await import('./src/ui/CardCodes.js?v='+version);
     await codes.loadCardGenerator('QR_CODE');await codes.loadCardScanner();return !!globalThis.qrcode && !!globalThis.ZXing;
-  })).toBe(true);
+  },nextVersion)).toBe(true);
   expect(errors).toEqual([]);
 });
 for (const failure of ['missing','interrupted','hash']) test(`failed ${failure} update retains the old offline release`, async ({page,context}) => {
@@ -115,7 +118,7 @@ for (const failure of ['missing','interrupted','hash']) test(`failed ${failure} 
   expect(await page.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration()).waiting)).toBe(false);
   expect(await page.evaluate(()=>caches.keys())).toEqual(names);
   await context.setOffline(true);await page.reload();
-  await expect(page.locator('.app-version')).toHaveText('v0.3.56');
+  await expect(page.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(page)).name).toBe('Behouden pas');
 });
 test('migration from the published 0.3.55 retains private data on offline restart', async ({page,context}) => {
@@ -123,25 +126,25 @@ test('migration from the published 0.3.55 retains private data on offline restar
   serving=current;expect(await update(page)).toBe('installed');
   await page.close();await context.setOffline(true);
   const reopened=await context.newPage();await reopened.goto(base);
-  await expect(reopened.locator('.app-version')).toHaveText('v0.3.56');
+  await expect(reopened.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(reopened)).name).toBe('Behouden pas');
 });
 test('an explicit server rollback is staged and preserves data', async ({page,context}) => {
-  serving=next;await install(page,'0.3.57');
+  serving=next;await install(page,nextVersion);
   serving=current;expect(await update(page)).toBe('installed');
   await page.close();await context.setOffline(true);
   const reopened=await context.newPage();await reopened.goto(base);
-  await expect(reopened.locator('.app-version')).toHaveText('v0.3.56');
+  await expect(reopened.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(reopened)).name).toBe('Behouden pas');
 });
 
 test('an evicted module is repaired only with matching bytes from the same release', async ({page}) => {
   await install(page);
-  await page.evaluate(async () => {
+  await page.evaluate(async version => {
     for(const key of await caches.keys()) if(key.startsWith('sharon-shell-')) {
-      await (await caches.open(key)).delete(new URL('./src/ui/Brand.js?v=0.3.56',location.href));
+      await (await caches.open(key)).delete(new URL('./src/ui/Brand.js?v='+version,location.href));
     }
-  });
-  await page.reload();await expect(page.locator('.app-version')).toHaveText('v0.3.56');
+  },currentVersion);
+  await page.reload();await expect(page.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(page)).name).toBe('Behouden pas');
 });

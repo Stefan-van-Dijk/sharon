@@ -1,4 +1,4 @@
-import { renderCardCode } from './CardCodes.js?v=0.3.56';
+import { renderCardCode } from './CardCodes.js?v=0.3.57';
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = {loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
 export function openCardBoard(card,{locations=[],onClose=()=>{}}={}) {
@@ -32,7 +32,7 @@ export function openCardBoard(card,{locations=[],onClose=()=>{}}={}) {
  layer.addEventListener('click',e=>{if(e.target===layer)close();});
  toggle?.addEventListener('click',()=>setExpanded(!expanded));
  board.addEventListener('touchstart',e=>{if(e.touches.length===1)startY=e.touches[0].clientY;},{passive:true});
- board.addEventListener('touchend',e=>{if(startY===null||!e.changedTouches.length)return;const delta=e.changedTouches[0].clientY-startY;startY=null;if(Math.abs(delta)>45)setExpanded(delta<0);},{passive:true});
+ board.addEventListener('touchend',e=>{if(startY===null||!e.changedTouches.length)return;const delta=e.changedTouches[0].clientY-startY;startY=null;if(delta>45){if(expanded)setExpanded(false);else close();}else if(delta < -45)setExpanded(true);},{passive:true});
  window.addEventListener('keydown',key);
  document.body.append(layer);
  const host=layer.querySelector('[data-code]');

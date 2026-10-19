@@ -1,11 +1,13 @@
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.56';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.56';
-import { openCardsView } from './CardsView.js?v=0.3.56';
-import { openLocationsView } from './LocationsView.js?v=0.3.56';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.56';
-import { openSettings } from './SettingsView.js?v=0.3.56';
-import { sharonWordmark } from './Brand.js?v=0.3.56';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.56';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.57';
+import { syncViewportHeight } from './Viewport.js?v=0.3.57';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.57';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.57';
+import { openCardsView } from './CardsView.js?v=0.3.57';
+import { openLocationsView } from './LocationsView.js?v=0.3.57';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.57';
+import { openSettings } from './SettingsView.js?v=0.3.57';
+import { sharonWordmark } from './Brand.js?v=0.3.57';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.57';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -27,7 +29,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.56';
+const APP_VERSION = '0.3.57';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -177,9 +179,9 @@ export function createShell(root, {
   let viewportFrame = 0;
   const syncEnvironmentViewport = () => {
     if (!stage.classList.contains('is-environment')) return;
-    const vv = window.visualViewport;
-    const measured = Math.max(window.innerHeight || 0, vv ? vv.height + vv.offsetTop : 0);
-    if (measured > 0) stage.style.setProperty('--environment-viewport-height', measured + 'px');
+    syncViewportHeight();
+    stage.style.setProperty('--environment-viewport-height', document.documentElement.style.getPropertyValue('--sharon-viewport-height'));
+    if (viewportFrame) cancelAnimationFrame(viewportFrame);
     viewportFrame = requestAnimationFrame(() => {
       viewportFrame = 0;
       outlet.querySelector('[data-maplibre-map]')?.dispatchEvent(new Event('sharon:viewport-resize'));
@@ -217,6 +219,7 @@ export function createShell(root, {
   const renderHome = () => {
     outlet.innerHTML = `
       <div class="home-view">
+        <section class="sh-home-context" data-home-context aria-label="Passend bij deze plek" aria-live="polite" hidden></section>
         <nav class="module-list" aria-label="Onderdelen">
           ${MENU_ORDER.map(id => {
             const moduleId = demoMode ? (MENU_TEST_ID[id] || id) : (id === 'persons' ? 'people' : id);
@@ -258,6 +261,7 @@ export function createShell(root, {
       </div>
     `;
 
+    const cleanupContext = demoMode ? () => {} : mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store, location, events});
     const message = outlet.querySelector('[data-message]');
     const existing = location.latest;
 
@@ -387,6 +391,7 @@ export function createShell(root, {
         }
       });
     });
+    return () => { cleanupContext(); closeGuide(); };
   };
 
   const showHome = async ({ animate = true } = {}) => {
@@ -451,6 +456,7 @@ export function createShell(root, {
     setHeaderMode('detail', 'Kaarten', 'cards');
     await swapView(() => openCardsView(outlet, {
       store,
+      location,
       setTitle: setDetailTitle,
       headerActions
     }), { animate });
@@ -532,6 +538,8 @@ export function createShell(root, {
     }
   };
   const navigateBack = () => {
+    const cardClose = document.querySelector('.sh-card-board-overlay [data-close]');
+    if (cardClose) { cardClose.click(); return true; }
     if (currentView !== 'detail') return false;
     // Let the active skeleton screen consume one internal navigation level.
     if (demoMode && outlet.querySelector('.sh-skeleton-screen')) {
@@ -600,8 +608,8 @@ export function createShell(root, {
   setHeaderMode('home');
   demoWorkspace(store).then(({enabled}) => {
     demoMode=enabled;
-    if (currentView === 'home') renderHome();
-  }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);renderHome(); });
+    if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
+  }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);viewCleanup = renderHome(); });
 
   if (initialModule === 'locations' && initialLocationId) {
     queueMicrotask(() => {

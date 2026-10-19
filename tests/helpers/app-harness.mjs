@@ -28,7 +28,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   } } });
   // Skip waiting for visual animations; their duration/layout is a manual test.
   const timeout = w.setTimeout.bind(w);
-  w.setTimeout = (fn, ms, ...args) => timeout(fn, Math.min(ms, 5), ...args);
+  w.setTimeout = (fn, ms, ...args) => timeout(fn, (ms >= 60_000 ? ms : Math.min(ms, 5)), ...args);
   const modules = new Map();
   function getModule(url) {
     const key = url.href;
@@ -57,7 +57,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   }
   let store;
   if (!storageFailure) {
-    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.56');
+    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.57');
     store = await new ObjectStore().open();
     if (!firstRun) await store.put('settings', { key: 'app', value: { profile: { name: 'Testgebruiker' }, onboarding: { storySeen: true } } });
     await store.put('objects', { id: 'TestPlace001', type: 'location', data: { title: 'Persoonlijke plek', kind: 'other', address: {} } });
