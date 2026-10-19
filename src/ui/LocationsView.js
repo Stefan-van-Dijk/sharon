@@ -1,19 +1,19 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
-import { sortList } from '../core/storage/ListOrder.js?v=0.3.62';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.62';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.62';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.62';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
-import { renderStrip } from './Strip.js?v=0.3.62';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.62';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.62';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.62';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.62';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.63';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.63';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.63';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.63';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.63';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.63';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.63';
+import { renderStrip } from './Strip.js?v=0.3.63';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.63';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.63';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.63';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.63';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.62';
+} from '../core/location/LocationHierarchy.js?v=0.3.63';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -30,6 +30,7 @@ export async function openLocationsView(root, {
   let nearPoint = location.latest;
   if(prefs.sort==='near'&&!nearPoint)prefs.sort='alpha';
   let unbindSwipes = null;
+  let releaseOrder = null;
   let releaseEditor = null;
 
   async function reload() {
@@ -40,6 +41,7 @@ export async function openLocationsView(root, {
   await reload();
 
   async function list(status = '') {
+    releaseOrder?.(); releaseOrder = null;
     releaseEditor?.();
     releaseEditor = null;
     setTitle('Locaties');
@@ -69,7 +71,7 @@ export async function openLocationsView(root, {
             const secondary = own || (parent ? 'Onder ' + (parent.data?.title || 'locatie') : effective.address)
               || (effective.coordinates ? formatCoordinates(effective.coordinates) : 'Geen adres of GPS');
             const custom = prefs.sort === 'custom';
-            return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}">
+            return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}" data-order-group="${escapeAttribute(parentIdOf(item))}">
               ${renderStrip({
                 id: item.id,
                 className: 'sh-location-strip',
@@ -105,7 +107,7 @@ export async function openLocationsView(root, {
       root.querySelectorAll('[data-node]').forEach(node=>{node.hidden=!visible.has(node.dataset.node);});
     };
     applySearch();
-    bindListControls(root,{
+    releaseOrder = bindListControls(root,{
       onSearch:value=>{query=value;applySearch();},
       onSort:async mode=>{
         if(mode==='near'){
@@ -114,6 +116,16 @@ export async function openLocationsView(root, {
         }
         if(mode==='custom'&&!prefs.order?.length)prefs.order=rows.map(row=>row.item.id);
         prefs.sort=mode;await savePrefs();await list();
+      },
+      onMoveTo:async(id,targetId,after)=>{
+        const parentId=parentIdOf(byId.get(id));
+        if(parentIdOf(byId.get(targetId))!==parentId)return;
+        const all=orderedLocations(locations,'custom',prefs.order).map(row=>row.item.id);
+        const siblings=all.filter(key=>parentIdOf(byId.get(key))===parentId);
+        const reordered=moveToPosition(siblings,id,targetId,after);
+        const members=new Set(siblings);let index=0;
+        prefs.order=all.map(key=>members.has(key)?reordered[index++]:key);
+        await savePrefs();await list();
       },
       onMove:async(id,direction)=>{
       const parentId = parentIdOf(byId.get(id));
@@ -901,7 +913,7 @@ export async function openLocationsView(root, {
 
   if (initialLocationId && byId.has(initialLocationId)) await edit(byId.get(initialLocationId));
   else await list();
-  return () => { unbindSwipes?.(); releaseEditor?.(); };
+  return () => { unbindSwipes?.(); releaseEditor?.(); releaseOrder?.(); };
 }
 
 function radius(value) {

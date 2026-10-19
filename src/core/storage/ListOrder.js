@@ -16,3 +16,10 @@ export function moveInOrder(ids,id,direction) {
   [result[index],result[target]]=[result[target],result[index]];
   return result;
 }
+export function moveToPosition(ids,id,targetId,after=false) {
+  const result=[...new Set(ids)];
+  if(id===targetId||!result.includes(id)||!result.includes(targetId))return result;
+  result.splice(result.indexOf(id),1);
+  result.splice(result.indexOf(targetId)+(after?1:0),0,id);
+  return result;
+}
