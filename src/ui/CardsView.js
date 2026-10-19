@@ -1,14 +1,14 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.63';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.63';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.63';
-import { openCardBoard } from './CardBoard.js?v=0.3.63';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.63';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.63';
-import { mountCardScanner } from './CardScanner.js?v=0.3.63';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.63';
-import { renderStrip } from './Strip.js?v=0.3.63';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.63';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.63';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.64';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.64';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.64';
+import { openCardBoard } from './CardBoard.js?v=0.3.64';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.64';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.64';
+import { mountCardScanner } from './CardScanner.js?v=0.3.64';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.64';
+import { renderStrip } from './Strip.js?v=0.3.64';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.64';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.64';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
