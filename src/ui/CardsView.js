@@ -1,12 +1,12 @@
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.59';
-import { openCardBoard } from './CardBoard.js?v=0.3.59';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.59';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.59';
-import { mountCardScanner } from './CardScanner.js?v=0.3.59';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.59';
-import { renderStrip } from './Strip.js?v=0.3.59';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.59';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.59';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.60';
+import { openCardBoard } from './CardBoard.js?v=0.3.60';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.60';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.60';
+import { mountCardScanner } from './CardScanner.js?v=0.3.60';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.60';
+import { renderStrip } from './Strip.js?v=0.3.60';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.60';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.60';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -22,9 +22,7 @@ const icons = {
   ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/>',
   other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
 };
-const cardIcon = card => '<span class="sh-card-row-kind" style="background:' +
-  (/^#[0-9a-f]{6}$/i.test(card.color || '') ? card.color + '22' : '#e9e9ed') +
-  '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+const cardIcon = card => '<span class="sh-card-row-kind" style="background:var(--strip-accent-soft,#e9e9ed);color:var(--strip-accent,#489ff8)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   (icons[card.cardKind] || icons.other) + '</svg></span>';
 
 export async function openCardsView(outlet, { store, location, setTitle, headerActions }) {
@@ -97,6 +95,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
             surfaceClassName: 'sh-location-row',
             variant: 'location',
             ariaLabel: card.name,
+            accentColor: /^#[0-9a-f]{6}$/i.test(card.color || '') ? card.color : '#489ff8',
             leadingHtml: cardIcon(card),
             bodyHtml: '<span class="sh-location-copy"><strong>' + escapeHtml(card.name) + '</strong><small>' + (kindLabels[card.cardKind] || 'Overige kaart') + (card.locationId ? ' · ' + escapeHtml(locationItems.find(loc => loc.id === card.locationId)?.data?.title || 'Locatie niet beschikbaar') : '') + '</small></span>',
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
