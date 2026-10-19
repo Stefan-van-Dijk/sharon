@@ -26,3 +26,11 @@ test('sublocaties erven coördinaten; ontbrekende of cyclische locaties leveren 
   assert.deepEqual(suggestCards([card],point,now),[]);
   assert.deepEqual(suggestCards([{...place,data:{parentId:'shop'}},card],point,now),[]);
 });
+
+test('alleen nauwkeurig en recent bevestigd vertrek telt als een nieuw bezoek', async () => {
+  const {hasLeftCardLocation}=await import('../src/core/location/CardContext.js');
+  assert.equal(hasLeftCardLocation([place,card],'card',{...point,lat:53},now),true);
+  assert.equal(hasLeftCardLocation([place,card],'card',{...point,lat:52.001,accuracy:500},now),false);
+  assert.equal(hasLeftCardLocation([place,card],'card',{...point,lat:53,at:now-120001},now),false);
+  assert.equal(hasLeftCardLocation([place,card],'card',point,now),false);
+});
