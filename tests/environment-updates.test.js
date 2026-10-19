@@ -19,7 +19,7 @@ test('a navigation stays in its complete installed release, even while online', 
 });
 
 test('service worker registration still happens if the page loaded before the intro finished', async () => {
-  const source = (await readFile(new URL('../src/main.js', import.meta.url), 'utf8')).replace(/^import[^\n]+\n/, '');
+  const source = (await readFile(new URL('../src/main.js', import.meta.url), 'utf8')).replace(/^import[^\n]+\n/gm, '');
   const calls = [];
   const registration = { update: async () => calls.push('update') };
   const fn = new Function('navigator', 'document', 'window', 'performance', 'createApp',
