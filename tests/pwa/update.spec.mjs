@@ -16,7 +16,7 @@ test.beforeAll(async () => {
   execFileSync(process.execPath, ['scripts/set-version.mjs', '0.3.57'], {cwd:source});
   buildSite(source); next = join(source, '_site');
   legacy = join(root,'legacy'); mkdirSync(legacy);
-  const archive = execFileSync('git',['archive','fb9761ab6b22bb803c24da46131751868cd8d8cf','src','assets','vendor','index.html','manifest.webmanifest','service-worker.js']);
+  const archive = execFileSync('git',['archive','fb9761ab6b22bb803c24da46131751868cd8d8cf','src','assets','vendor','index.html','manifest.webmanifest','service-worker.js'], {maxBuffer:16*1024*1024});
   execFileSync('tar',['-x','-C',legacy],{input:archive});
   server = createServer((req,res) => {
     const url = new URL(req.url,'http://local');
