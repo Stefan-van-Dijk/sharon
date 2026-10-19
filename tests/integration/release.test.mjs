@@ -10,7 +10,7 @@ import { appHarness } from '../helpers/app-harness.mjs';
 function fixture(t) {
   const root = mkdtempSync(resolve('.release-test-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const name of ['src', 'assets', 'vendor', 'index.html', 'manifest.webmanifest', 'service-worker.js', 'package.json', 'scripts', 'tests']) cpSync(name, join(root, name), { recursive: true });
+  for (const name of ['src', 'assets', 'vendor', 'index.html', 'manifest.webmanifest', 'service-worker.js', 'package.json', 'package-lock.json', 'scripts', 'tests']) cpSync(name, join(root, name), { recursive: true });
   return root;
 }
 for (const failure of ['syntax', 'test']) test(`Releasepoort stopt vóór pakketbouw bij ${failure}fout`, t => {

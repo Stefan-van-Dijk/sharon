@@ -1,4 +1,4 @@
-import { createApp } from './app.js?v=0.3.55';
+import { createApp } from './app.js?v=0.3.56';
 // Use one measured viewport height throughout Sharon. iOS standalone PWAs can
 // report a stale CSS 100dvh after opening, resuming or rotating the device.
 const syncViewportHeight = () => {
@@ -15,15 +15,19 @@ if (document.documentElement) document.addEventListener('visibilitychange', () =
 
 
 
+const bootStartedAt = performance.now();
+const app = await createApp();
+
 // Register before the intro: app.start can finish after the window load event.
 if ('serviceWorker' in navigator) {
-  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.3.55', {
+  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.3.56', {
     updateViaCache: 'none'
-  }).then(registration => registration.update()).catch(console.error);
+  }).then(registration => {
+    app.services.install.watchUpdates(registration);
+    return registration.update();
+  }).catch(() => { /* Offline startup must not fail because an update is unavailable. */ });
   if (document.readyState === 'complete') register();
   else window.addEventListener('load', register, { once: true });
 }
 
-const bootStartedAt = performance.now();
-const app = await createApp();
 await app.start(document.querySelector('#app'), { bootStartedAt });

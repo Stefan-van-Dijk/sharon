@@ -1,11 +1,11 @@
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.55';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.55';
-import { openCardsView } from './CardsView.js?v=0.3.55';
-import { openLocationsView } from './LocationsView.js?v=0.2.86';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.55';
-import { openSettings } from './SettingsView.js?v=0.3.55';
-import { sharonWordmark } from './Brand.js?v=0.1.90';
-import { bindSwipeHome } from './SwipeHome.js?v=0.2.86';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.56';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.56';
+import { openCardsView } from './CardsView.js?v=0.3.56';
+import { openLocationsView } from './LocationsView.js?v=0.3.56';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.56';
+import { openSettings } from './SettingsView.js?v=0.3.56';
+import { sharonWordmark } from './Brand.js?v=0.3.56';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.56';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -27,7 +27,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.55';
+const APP_VERSION = '0.3.56';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -48,6 +48,11 @@ export function createShell(root, {
   let viewChange = 0;
   let viewCleanup = null;
   let demoMode = false;
+  const updateMessage = 'Update gereed. Sluit alle Sharon-vensters en open de app opnieuw.';
+  events.on('app.update.ready', () => {
+    const notice = root.querySelector('[data-update-notice]');
+    if (notice) { notice.hidden = false; notice.textContent = updateMessage; }
+  });
 
   document.body.classList.add('sharon-shell-active');
 
@@ -243,6 +248,7 @@ export function createShell(root, {
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
         <footer class="shell-footer">
+          <span data-update-notice role="status" ${install.getState().updateReady ? '' : 'hidden'}>${install.getState().updateReady ? updateMessage : ''}</span>
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
           <span class="shell-footer-meta">
             <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>

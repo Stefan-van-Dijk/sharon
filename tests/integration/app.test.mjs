@@ -2,6 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { appHarness, until } from '../helpers/app-harness.mjs';
 
+test('reeds wachtende update wordt na de intro getoond zonder herladen', async t => {
+  const app = await appHarness(); t.after(() => app.close());
+  let updates=0;
+  const registration = { waiting:{}, installing:null, addEventListener(){}, async update(){updates++;} };
+  Object.defineProperty(app.window.navigator,'serviceWorker',{value:{controller:{},async register(){return registration;}}});
+  await app.boot();
+  const notice=await until(()=>app.document.querySelector('[data-update-notice]'));
+  assert.equal(notice.hidden,false);
+  assert.match(notice.textContent,/Sluit alle Sharon-vensters/);
+  assert.equal(updates,1);
+  assert.deepEqual(app.errors,[]);
+});
+
 for (const demo of [false, true]) test(`Exact releasepakket start ${demo ? 'testomgeving' : 'reguliere omgeving'} offline en zonder GPS`, async t => {
   const app = await appHarness({ demo }); t.after(() => app.close());
   await app.boot();
@@ -32,7 +45,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.55');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.3.56');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -82,7 +95,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.55');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.3.56');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';

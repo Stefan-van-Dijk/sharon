@@ -1,17 +1,17 @@
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.2.81';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.2.60';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.2.60';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.2.60';
-import { bindSwipeRows } from './SwipeRows.js?v=0.2.60';
-import { renderStrip } from './Strip.js?v=0.2.60';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.2.60';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.2.60';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.2.60';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.2.60';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.56';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.56';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.56';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.56';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.56';
+import { renderStrip } from './Strip.js?v=0.3.56';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.56';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.56';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.56';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.56';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.2.60';
+} from '../core/location/LocationHierarchy.js?v=0.3.56';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);

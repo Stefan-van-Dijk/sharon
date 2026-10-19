@@ -13,7 +13,12 @@ const SCAN_FORMATS = Object.freeze({
   UPC_E: 'UPCE', CODE_39: 'CODE39', ITF: 'ITF', CODABAR: 'codabar'
 });
 const scripts = new Map();
-const asset = name => new URL('../../vendor/' + name, import.meta.url).href;
+const asset = name => {
+  const url = new URL('../../vendor/' + name, import.meta.url);
+  // The containing module and its local code libraries belong to one release.
+  url.search = new URL(import.meta.url).search;
+  return url.href;
+};
 function loadScript(name, globalName) {
   if (globalThis[globalName]) return Promise.resolve();
   if (!scripts.has(name)) scripts.set(name, new Promise((resolve, reject) => {

@@ -48,6 +48,9 @@ Zie ook `docs/ARCHITECTURE.md` en `docs/MIGRATION.md`.
 
 ## Kwaliteitscontrole en publicatie
 
+Vanaf v0.3.56: [PWA-releasebeleid, updateprocedure en testgrenzen](docs/PWA-releases.md).
+Een nieuwe appversie zet je samen door met `npm run version:app -- 0.3.56`.
+
 Gebruik Node uit `.nvmrc`, voer `npm ci` uit en daarna `npm run verify`.
 De bestaande unit-/brontests blijven afzonderlijk bereikbaar via `npm test`.
 De nieuwe DOM-/opslagketens testen het gebouwde `_site` via `npm run test:integration`.
