@@ -19,7 +19,7 @@ test('testlocaties gebruiken de bestaande graph en bewaren volledige locatiegege
   assert.equal(data.objects.find(o=>o.id===place.id).title,'Mijn testwinkel');
   assert.deepEqual(data.relations,demoDataset().relations);
   await adapter.put('objects',{...updated,id:'NewPlace0001',externalId:'NewPlace0001'});
-  assert.equal((await adapter.getAll('objects')).length,2);
+  assert.equal((await adapter.getAll('objects')).filter(item=>item.type==='location').length,2);
 });
 test('voorkeuren, instellingen en locatieacties blijven in de testopslag',async()=>{
   const {values,adapter}=fixture();
@@ -30,7 +30,7 @@ test('voorkeuren, instellingen en locatieacties blijven in de testopslag',async(
   const action={id:'TestAction01',type:'location-action',data:{locationId:'DemoPlace001',enabled:true}};
   await adapter.put('objects',action);
   assert.deepEqual(await adapter.get('objects',action.id),action);
-  await assert.rejects(adapter.put('objects',{id:'BadCard00001',type:'card'}),/Alleen testlocaties/);
+  await assert.rejects(adapter.put('objects',{id:'BadObject001',type:'unsupported'}),/niet ondersteund/);
 });
 test('verwijderen archiveert gekoppelde testlocatie en behoudt relaties; herstel blijft mogelijk',async()=>{
   const {values,adapter}=fixture();

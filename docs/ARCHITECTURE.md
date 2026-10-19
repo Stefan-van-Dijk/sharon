@@ -69,3 +69,7 @@ Samenwerking, personen en voertuigen worden op dezelfde kern aangesloten zodra o
 ## Share on
 
 Delen is geen opslagmodel van een losse module. Het wordt een generieke capability van Sharon. Daardoor kan hetzelfde mechanisme later voor kaarten, locaties, thema's, acties, personen en samenwerkingen worden gebruikt.
+
+## Werkruimte
+
+Locaties, Kaarten, Omgeving en Home ontvangen de bij appstart geselecteerde werkruimte. Dezelfde modulecode werkt met persoonlijke opslag of met de gedeelde testopslag. Ook locatieacties gebruiken deze selectie, zodat testen geen persoonlijke acties uitvoert. Bestaande skeletobjecten worden door één adapter vertaald, met behoud van identifiers en relaties. Zie [gedeelde werkruimte](Gedeelde-werkruimte.md) voor migratie, scope en praktijkscenario.
