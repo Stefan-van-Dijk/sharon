@@ -38,6 +38,9 @@ test('meerdere passende pasjes geven één keuzevenster, kiezen opent één pas'
   choice.querySelector('[data-arrival-choice="ArrivalCard2"]').click();
   await until(()=>app.document.querySelector('[aria-label="Kaart Tweede pas"]'));
   assert.equal(app.document.querySelectorAll('.sh-card-board-overlay').length,1);
+  // The selected pass stays part of the location's deck.
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'ArrowRight'}));
+  assert.ok(app.document.querySelector('[aria-label="Kaart Mijn pas"]'));
   app.location.latest={...app.location.latest,lat:53,at:Date.now()};app.events.emit('location.changed');
   await until(()=>!app.document.querySelector('.sh-card-board-overlay'));
   assert.deepEqual(app.errors,[]);
