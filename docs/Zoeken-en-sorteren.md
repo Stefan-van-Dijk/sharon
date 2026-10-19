@@ -1,4 +1,10 @@
-# Zoeken en sorteren — v0.3.62
+# Zoeken, sorteren en objectstroken — v0.3.67
+
+Kaarten, Locaties en de bestaande proefmodules gebruiken `renderObjectStrip` als gedeelde objectstrook. Een gekleurde rand beweegt mee met de strook; het icoon staat gecentreerd in een gekleurd vak. Titel, subtitel, afronding en hoogte volgen dezelfde opmaak. Links vegen toont Bewerk en Verwijder (of Archiveer/Herstel volgens de module). Tikken opent het item in de betreffende module. Een tweede strook openen of buiten de strook tikken sluit de eerste; rechts vegen sluit geopende acties. Een rechtswaartse veeg op een gesloten strook blijft beschikbaar voor navigatie naar Home. Verticaal scrollen blijft vrij.
+
+Locaties heeft nu ook Bewerk direct achter de lijststrook. Deze actie opent de bestaande locatie-editor. Onderliggende locaties behouden hun hoofdlocatie en eigen sortering blijft beperkt tot dezelfde groep. Handgrepen blijven uitsluitend de eigen volgorde bedienen; ze openen geen object en tonen geen swipeacties.
+
+Nieuwe modules met objectlijsten gebruiken dezelfde component. Modules zonder gegevenslijst krijgen hiermee geen extra functies. Detail- en invoerstroken houden hun eigen acties, zoals de zinnenbibliotheek. De gedeelde swipebediening herstelt de beginstand bij annuleren en verwijdert bij afsluiten alle listeners, zodat opnieuw binden geen dubbele acties veroorzaakt.
 
 De kaartbalk is nu een gedeelde component voor modulelijsten: zoekveld, Recent, A–Z, Dichtbij waar locatiegegevens van toepassing zijn, en Eigen volgorde.
 

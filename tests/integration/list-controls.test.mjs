@@ -41,12 +41,14 @@ test('proefmodules: zoekbalk en eigen volgorde per module opgeslagen in testmeta
   const app=await appHarness({demo:true});t.after(()=>app.close());
   await app.boot();
   (await until(()=>app.document.querySelector('[data-module="persons"]'))).click();
+  await until(()=>app.document.querySelector('.sh-object-strip .sh-strip-icon svg'));
   (await until(()=>app.document.querySelector('[data-list-sort="custom"]'))).click();
   await until(async()=>(await app.store.get('meta','skeleton.list.preferences'))?.value.persons?.sort==='custom');
   assert.equal(app.document.querySelector('[data-list-sort="near"]'),null);
   app.document.querySelector('[data-brand-control]').click();
   (await until(()=>app.document.querySelector('.module-list [data-module="actions"]'))).click();
   await until(()=>app.document.querySelector('[data-list-sort="alpha"][aria-pressed="true"]'));
+  assert.ok(app.document.querySelector('.sh-object-strip .sh-strip-icon svg'));
   assert.equal((await app.store.get('meta','skeleton.list.preferences')).value.actions,undefined);
   assert.deepEqual(app.errors,[]);
 });

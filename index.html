@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.66">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.66">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.67">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.67">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2791,6 +2791,18 @@
     .sh-card-view .sh-card-swipe-row .swipe-surface{border-radius:9px}
     .sh-card-view .sh-location-row>.sh-card-row-kind{display:grid;place-items:center}
     .sh-card-view .sh-card-row-kind svg{display:block;margin:0}
+    /* The Cards strip is the common object-list surface in every module. */
+    .sh-object-strip{border-radius:9px;margin-bottom:4px}
+    .sh-object-strip.sh-strip--location .sh-strip-surface{border-radius:9px;min-height:76px;padding:12px;justify-content:flex-start;gap:12px;background:#fff}
+    .sh-object-strip .swipe-actions{width:176px;display:grid;grid-template-columns:88px 88px}
+    .sh-object-strip .swipe-actions button{display:grid;place-items:center;min-height:0;height:100%;padding:0;border:0;font-size:13px}
+    .sh-object-strip .swipe-actions .swipe-action-edit{background:#f1f1f3;color:#333338}
+    .sh-object-strip .swipe-actions .swipe-action-delete{background:#b42318;color:#fff}
+    .sh-object-strip .sh-strip-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:10px;background:var(--strip-accent-soft);color:var(--strip-accent);font-size:22px;line-height:1}
+    .sh-object-strip .sh-strip-icon svg{display:block;width:22px;height:22px;margin:0}
+    .sh-object-strip .sh-strip-copy{display:flex;flex-direction:column;gap:5px;text-align:left;min-width:0}
+    .sh-object-strip .sh-strip-copy strong{font-size:15px;line-height:1.35;font-weight:500;color:#202025}
+    .sh-object-strip .sh-strip-copy small{font-size:12px;line-height:1.35;color:#96969d}
 
     [data-card-choices]{padding:0 20px 18px}
     [data-card-choices] .sh-context-card{border-bottom:1px solid #e5e5e9}
@@ -2804,7 +2816,7 @@
     .sh-list-controls .sh-card-sort-icons svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
     .sh-list-item,[data-list-item]{position:relative}
     .sh-list-order{position:absolute;z-index:4;right:5px;top:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;padding:0}
-    .sh-list-order button{display:grid;place-items:center;width:44px;min-height:48px;border:0;background:transparent;color:#737379;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+    .sh-list-order button,[data-list-item]>.sh-list-order button{display:grid;place-items:center;justify-content:center;width:44px;min-height:48px;padding:0;border:0;background:transparent;color:#737379;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
     .sh-list-order button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;pointer-events:none}
     .sh-list-order button:active{cursor:grabbing}
     [data-list-item]:has(>.sh-list-order) .sh-strip-surface,.sh-location-node:has(>.sh-list-order) .sh-strip-surface{padding-right:56px}
@@ -2921,16 +2933,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.66#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.66#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.66#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.66#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.66#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.67#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.67#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.67#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.67#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.67#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.66"></script>
+  <script type="module" src="./src/main.js?v=0.3.67"></script>
 </body>
 </html>
