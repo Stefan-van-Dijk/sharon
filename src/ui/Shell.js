@@ -1,14 +1,14 @@
-import { createDemoLocationStore } from '../core/skeleton/DemoLocationStore.js?v=0.3.58';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.58';
-import { syncViewportHeight } from './Viewport.js?v=0.3.58';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.58';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.58';
-import { openCardsView } from './CardsView.js?v=0.3.58';
-import { openLocationsView } from './LocationsView.js?v=0.3.58';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.58';
-import { openSettings } from './SettingsView.js?v=0.3.58';
-import { sharonWordmark } from './Brand.js?v=0.3.58';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.58';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.59';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.59';
+import { syncViewportHeight } from './Viewport.js?v=0.3.59';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.59';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.59';
+import { openCardsView } from './CardsView.js?v=0.3.59';
+import { openLocationsView } from './LocationsView.js?v=0.3.59';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.59';
+import { openSettings } from './SettingsView.js?v=0.3.59';
+import { sharonWordmark } from './Brand.js?v=0.3.59';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.59';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -30,7 +30,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.58';
+const APP_VERSION = '0.3.59';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -42,6 +42,7 @@ export function createShell(root, {
   store,
   settings,
   install,
+  workspace = null,
   initialModule = '',
   initialLocationId = ''
 }) {
@@ -50,7 +51,9 @@ export function createShell(root, {
   let currentView = 'home';
   let viewChange = 0;
   let viewCleanup = null;
-  let demoMode = false;
+  let demoMode = workspace?.testMode || false;
+  const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
+  const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
   const updateMessage = 'Update gereed. Sluit alle Sharon-vensters en open de app opnieuw.';
   events.on('app.update.ready', () => {
     const notice = root.querySelector('[data-update-notice]');
@@ -262,7 +265,7 @@ export function createShell(root, {
       </div>
     `;
 
-    const cleanupContext = demoMode ? () => {} : mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store, location, events});
+    const cleanupContext = mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store: activeStore(), location, events});
     const message = outlet.querySelector('[data-message]');
     const existing = location.latest;
 
@@ -432,7 +435,7 @@ export function createShell(root, {
   const openLocations = async (locationId = '', { animate = true } = {}) => {
     setHeaderMode('detail', locationId ? 'Locatie' : 'Locaties', 'locations');
     await swapView(() => openLocationsView(outlet, {
-      store,
+      store: activeStore(),
       location,
       geocoder,
       events,
@@ -445,7 +448,7 @@ export function createShell(root, {
   const openEnvironment = async ({ animate = true } = {}) => {
     setHeaderMode('detail', 'Omgeving', 'environment');
     await swapView(() => openEnvironmentView(outlet, {
-      store,
+      store: activeStore(),
       location,
       events,
       setTitle: setDetailTitle,
@@ -456,7 +459,7 @@ export function createShell(root, {
   const openCards = async ({ animate = true } = {}) => {
     setHeaderMode('detail', 'Kaarten', 'cards');
     await swapView(() => openCardsView(outlet, {
-      store,
+      store: activeStore(),
       location,
       setTitle: setDetailTitle,
       headerActions
@@ -473,37 +476,8 @@ export function createShell(root, {
     }), { animate });
   };
 
-  // Public map renderer is shared; private object data and camera preferences are not.
-  const testEnvironmentStore = {
-    getAll: async table => table === 'objects' ? [] : [],
-    get: async (table,key) => table === 'meta'
-      ? store.get('meta','skeleton.environment.' + key) : null,
-    put: async (table,value) => {
-      if(table !== 'meta' || !value?.key) throw new Error('Testkaart schrijft niet naar live objecten.');
-      return store.put('meta',{...value,key:'skeleton.environment.' + value.key});
-    },
-    delete: async () => { throw new Error('Verwijderen is in de testkaart niet beschikbaar.'); }
-  };
-
-  const testLocationStore = createDemoLocationStore(store);
   const openModule = async (moduleId, options = {}) => {
-    if (demoMode && moduleId === 'locations') {
-      setHeaderMode('detail', 'Locaties', 'locations');
-      await swapView(() => openLocationsView(outlet, {
-        store: testLocationStore, location, geocoder, events,
-        initialLocationId: options.locationId || '',
-        setTitle: setDetailTitle, headerActions
-      }), { animate: options.animate !== false });
-      return;
-    }
-    if (demoMode && moduleId === 'environment') {
-      setHeaderMode('detail','Omgeving','environment');
-      await swapView(() => openEnvironmentView(outlet,{
-        store:testEnvironmentStore,location,events,setTitle:setDetailTitle,headerActions
-      }),{animate:options.animate!==false});
-      return;
-    }
-    if (demoMode && SKELETON_MODULES.includes(moduleId)) {
+    if (demoMode && SKELETON_MODULES.includes(moduleId) && !['locations', 'cards', 'environment'].includes(moduleId)) {
       const name=({locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'})[moduleId];
       setHeaderMode('detail',name,moduleId);
       await swapView(() => mountSkeletonDemo(outlet,store,{initialModule:moduleId,fullScreen:true,onTitleChange:setDetailTitle}),{animate:options.animate!==false});

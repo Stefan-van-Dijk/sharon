@@ -1,12 +1,12 @@
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.58';
-import { openCardBoard } from './CardBoard.js?v=0.3.58';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.58';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.58';
-import { mountCardScanner } from './CardScanner.js?v=0.3.58';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.58';
-import { renderStrip } from './Strip.js?v=0.3.58';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.58';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.58';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.59';
+import { openCardBoard } from './CardBoard.js?v=0.3.59';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.59';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.59';
+import { mountCardScanner } from './CardScanner.js?v=0.3.59';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.59';
+import { renderStrip } from './Strip.js?v=0.3.59';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.59';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.59';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -39,7 +39,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
 
   async function records() {
     const all = await store.getAll('objects');
-    return all.filter(item => item.type === 'card');
+    return all.filter(item => item.type === 'card' && !item.deletedAt && !item.archivedAt && item.status !== 'archived');
   }
 
   async function showList() {
