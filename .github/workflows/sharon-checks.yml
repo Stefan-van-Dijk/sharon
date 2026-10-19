@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Published 0.3.55 is the browser migration fixture.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -29,7 +31,9 @@ jobs:
       - name: Bron, tests, release-assets en opstartketens
         shell: bash # Explicit bash enables pipefail, including through tee.
         run: npm run verify 2>&1 | tee verification.log
-      - name: Ongewijzigd getest pakket
+      - name: PWA-upgrade in Chromium
+        run: npx playwright install --with-deps chromium && npm run test:pwa
+      - name: Pakket na browsertests onveranderd
         run: node scripts/verify-site.mjs
       - name: Controlebewijs bewaren
         if: always()
@@ -39,6 +43,7 @@ jobs:
           path: |
             verification.log
             _site/release.json
+            test-results/
       - name: Alleen het gecontroleerde pakket klaarzetten
         uses: actions/upload-pages-artifact@v3
         with:

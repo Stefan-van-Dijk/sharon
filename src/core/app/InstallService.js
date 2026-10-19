@@ -1,6 +1,7 @@
 export class InstallService {
   #events;
   #deferredPrompt = null;
+  #updateReady = false;
 
   constructor({ events }) {
     this.#events = events;
@@ -21,9 +22,28 @@ export class InstallService {
     return {
       installed: this.isInstalled(),
       canPrompt: Boolean(this.#deferredPrompt),
+      updateReady: this.#updateReady,
       ios: isIos(),
       safari: isSafari()
     };
+  }
+
+  watchUpdates(registration) {
+    const notify = () => {
+      if (!registration.waiting || !navigator.serviceWorker.controller) return;
+      this.#updateReady = true;
+      this.#events.emit('app.update.ready', this.getState());
+    };
+    const installing = () => registration.installing?.addEventListener('statechange', notify);
+    registration.addEventListener('updatefound', installing);
+    installing();
+    notify();
+    let checkedAt = Date.now();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden || Date.now() - checkedAt < 5 * 60_000) return;
+      checkedAt = Date.now();
+      registration.update().catch(() => {});
+    });
   }
 
   isInstalled() {

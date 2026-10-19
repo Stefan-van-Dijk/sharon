@@ -3,6 +3,7 @@ import { resolve, relative, join, sep } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { offlineAssets } from './release-assets.mjs';
 export function buildSite(root = process.cwd(), output = resolve(root, '_site')) {
   root = resolve(root); output = resolve(output);
   if (output === root || !output.startsWith(root + sep)) throw Error('Uitvoer moet een submap van de bronmap zijn.');
@@ -18,6 +19,23 @@ export function buildSite(root = process.cwd(), output = resolve(root, '_site'))
     function walk(dir) {
       return readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]);
     }
+    const version = JSON.parse(readFileSync(join(root, 'package.json'))).version;
+    const hash = file => createHash('sha256').update(readFileSync(file)).digest('hex');
+    const assets = offlineAssets(root, version);
+    const declaredAssets = JSON.parse(readFileSync(join(output, 'service-worker.js'), 'utf8').match(/const CORE = (\[[\s\S]*?\]);/)?.[1] || 'null');
+    for (const url of declaredAssets || []) if (!existsSync(resolve(output, url.split('?')[0]))) throw Error(`Ontbrekend releasebestand: ${url}`);
+    const hashes = Object.fromEntries(assets.map(url => {
+      const file = resolve(output, url.split('?')[0]);
+      if (!existsSync(file)) throw Error(`Ontbrekend releasebestand: ${url}`);
+      return [url, hash(file)];
+    }));
+    const workerPath = join(output, 'service-worker.js');
+    const worker = readFileSync(workerPath, 'utf8');
+    const declared = JSON.parse(worker.match(/const CORE = (\[[\s\S]*?\]);/)?.[1] || 'null');
+    if (JSON.stringify(declared) !== JSON.stringify(assets)) throw Error('Offline-moduleclosure gewijzigd: voer scripts/set-version.mjs uit.');
+    const releaseId = createHash('sha256').update(worker + JSON.stringify(hashes)).digest('hex').slice(0, 20);
+    writeFileSync(workerPath, worker.replace('const ASSET_HASHES = null;', `const ASSET_HASHES = ${JSON.stringify(hashes)};`).replace('__SHARON_RELEASE_ID__', releaseId));
+    writeFileSync(join(output, 'offline-manifest.json'), JSON.stringify({ version, releaseId, assets: hashes }, null, 2) + '\n');
     const files = walk(output);
     for (const file of files.filter(f => /\.(js|html|webmanifest)$/.test(f) && !f.includes(`${sep}vendor${sep}`))) {
       const code = readFileSync(file, 'utf8');

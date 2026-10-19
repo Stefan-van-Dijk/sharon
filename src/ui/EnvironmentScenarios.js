@@ -1,4 +1,4 @@
-import {sanitizeEnvironmentAppearance} from './EnvironmentAppearance.js?v=0.1.90';
+import {sanitizeEnvironmentAppearance} from './EnvironmentAppearance.js?v=0.3.56';
 export const ENVIRONMENT_SCENARIOS_KEY='environment-style-scenarios:v1';
 export const STYLE_SCENARIOS=Object.freeze([
  {id:'eigen',label:'Eigen',defaults:{}},

@@ -3,3 +3,6 @@ node_modules/
 *.log
 _site/
 .release-test-*/
+.pwa-test-*/
+test-results/
+playwright-report/

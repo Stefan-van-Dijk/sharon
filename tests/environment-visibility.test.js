@@ -41,7 +41,7 @@ test('attribution-adjacent button toggles a single scoped clean-map state and cl
     const iconBefore = button.innerHTML;
     assert.ok(iconBefore.includes('class="environment-visibility-dot"'), 'visible mode starts as a subtle dot');
     assert.ok(iconBefore.includes('class="environment-visibility-logo"'));
-    assert.ok(iconBefore.includes('src="./assets/sharon-logo.svg?v=0.1.90"'));
+    assert.match(iconBefore, /src="\.\/assets\/sharon-logo\.svg\?v=\d+\.\d+\.\d+"/);
     assert.ok(iconBefore.includes('alt="" aria-hidden="true"'), 'mark is decorative; button label communicates intent');
     assert.ok(!iconBefore.includes('visibility-eye'), 'the eye icon is fully replaced');
     let stopped = 0;
