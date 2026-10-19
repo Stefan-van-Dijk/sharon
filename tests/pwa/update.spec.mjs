@@ -22,6 +22,7 @@ test.beforeAll(async () => {
     const url = new URL(req.url,'http://local');
     let path = decodeURIComponent(url.pathname).replace(/^\/sharon\//,'');
     if (!path) path = 'index.html';
+    if (path === 'test-setup.html') {res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Fictieve PWA-testgegevens</title>');return;}
     const file = resolve(serving,path);
     if (!file.startsWith(serving + sep) || !existsSync(file)) {res.writeHead(404).end(); return;}
     const types={js:'text/javascript',html:'text/html',css:'text/css',json:'application/json',webmanifest:'application/manifest+json',svg:'image/svg+xml',png:'image/png'};
@@ -48,17 +49,15 @@ test.beforeEach(async ({context}) => {
   });
 });
 async function install(page, version='0.3.56') {
+  await page.goto(base+'test-setup.html');
+  await page.evaluate(async version => {
+    const {ObjectStore}=await import('./src/core/storage/ObjectStore.js?v='+version);
+    const store=await new ObjectStore().open();
+    await store.put('settings',{key:'app',value:{profile:{name:'PWA-test'},onboarding:{storySeen:true}}});
+    await store.put('objects',{id:'UpgradeCard1',type:'card',name:'Behouden pas'});
+  },version);
   await page.goto(base);
   await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.evaluate(async () => {
-    const db = await new Promise((resolve,reject)=>{const r=indexedDB.open('sharon');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
-    await new Promise((resolve,reject)=>{
-      const tx=db.transaction(['settings','objects'],'readwrite');
-      tx.objectStore('settings').put({key:'app',value:{profile:{name:'PWA-test'},onboarding:{storySeen:true}}});
-      tx.objectStore('objects').put({id:'UpgradeCard1',type:'card',name:'Behouden pas'});
-      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
-    });db.close();
-  });
   await page.reload();
   await expect(page.locator('.app-version')).toHaveText('v'+version);
 }
@@ -86,6 +85,7 @@ test('complete update waits for both tabs, preserves a draft and data, then boot
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await install(page);
   const second=await context.newPage();await second.goto(base);
+  await second.setViewportSize({width:390,height:844});
   await page.locator('[data-module="cards"]').click();
   await page.getByRole('button',{name:'Kaart toevoegen',exact:true}).click();
   await page.getByRole('textbox',{name:'Naam van de kaart',exact:true}).fill('Niet verliezen');

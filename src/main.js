@@ -26,8 +26,7 @@ if ('serviceWorker' in navigator) {
     app.services.install.watchUpdates(registration);
     return registration.update();
   }).catch(() => { /* Offline startup must not fail because an update is unavailable. */ });
-  if (document.readyState === 'complete') register();
-  else window.addEventListener('load', register, { once: true });
+  register();
 }
 
 await app.start(document.querySelector('#app'), { bootStartedAt });
