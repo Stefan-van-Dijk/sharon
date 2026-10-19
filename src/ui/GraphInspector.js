@@ -1,5 +1,5 @@
-import {demoWorkspace} from '../core/skeleton/SkeletonCore.js?v=0.3.61';
-import {graphConnections} from '../core/skeleton/GraphService.js?v=0.3.61';
+import {demoWorkspace} from '../core/skeleton/SkeletonCore.js?v=0.3.62';
+import {graphConnections} from '../core/skeleton/GraphService.js?v=0.3.62';
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const moduleNames={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountGraphInspector(host,store){

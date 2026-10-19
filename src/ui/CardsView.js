@@ -1,12 +1,14 @@
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.61';
-import { openCardBoard } from './CardBoard.js?v=0.3.61';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.61';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.61';
-import { mountCardScanner } from './CardScanner.js?v=0.3.61';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.61';
-import { renderStrip } from './Strip.js?v=0.3.61';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.61';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.61';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
+import { sortList, moveInOrder } from '../core/storage/ListOrder.js?v=0.3.62';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.62';
+import { openCardBoard } from './CardBoard.js?v=0.3.62';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.62';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.62';
+import { mountCardScanner } from './CardScanner.js?v=0.3.62';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.62';
+import { renderStrip } from './Strip.js?v=0.3.62';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -29,8 +31,12 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
-  let sort = 'alpha';
-  let nearPosition = null;
+  let prefs = (await store.get('meta', 'cards.list.preferences'))?.value || {sort:'alpha',order:[]};
+  let sort = prefs.sort || 'alpha';
+  let query = '';
+  let nearPosition = location?.latest ? {latitude:location.latest.lat,longitude:location.latest.lng} : null;
+  if (sort === 'near' && !nearPosition) sort = 'alpha';
+  const savePrefs = () => store.put('meta', {key:'cards.list.preferences',value:{...prefs,sort}});
   let releaseRows = null;
   const title = value => { if (typeof setTitle === 'function') setTitle(value); };
   const header = () => { if (headerActions) headerActions.replaceChildren(); };
@@ -73,23 +79,13 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
       const a = Math.sin(dy/2)**2 + Math.cos(nearPosition.latitude*phi)*Math.cos(point.latitude*phi)*Math.sin(dx/2)**2;
       return 12742000 * Math.asin(Math.min(1,Math.sqrt(a)));
     };
-    cards.sort(sort === 'recent'
-      ? (a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
-      : sort === 'near' ? (a,b) => distance(a)-distance(b) || String(a.name||'').localeCompare(String(b.name||''),'nl')
-      : (a, b) => String(a.name || '').localeCompare(b.name || '', 'nl'));
+    cards.splice(0,cards.length,...sortList(cards,{sort,order:prefs.order,distance}));
     outlet.innerHTML = `
       <section class="module-view locations-view sh-card-view">
-        <div class="sh-card-search-toolbar">
-          <label class="sh-card-search-row"><input data-card-search type="search" aria-label="Kaart zoeken" placeholder="Zoek een kaart"></label>
-          <div class="sh-card-sort-icons" aria-label="Kaarten sorteren">
-            <button type="button" data-card-sort="recent" aria-label="Recent" title="Recent" ${sort === 'recent' ? 'aria-pressed="true"' : ''}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg></button>
-            <button type="button" data-card-sort="alpha" aria-label="A tot Z" title="A–Z" ${sort === 'alpha' ? 'aria-pressed="true"' : ''}><span aria-hidden="true">A–Z</span></button>
-            <button type="button" data-card-sort="near" aria-label="Dichtbij" title="Dichtbij" ${sort === 'near' ? 'aria-pressed="true"' : ''}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></button>
-          </div>
-        </div>
+        ${renderListControls({placeholder:'Zoek een kaart',query,sort,near:true,cardHooks:true})}
         <p data-card-sort-status class="sh-card-sort-status" role="status"></p>
         <div class="sh-locations-list swipe-list" data-card-list>
-          ${cards.length ? cards.map(card => renderStrip({
+          ${cards.length ? cards.map((card,index) => '<div class="sh-list-item" data-list-item>' + renderStrip({
             id: card.id,
             className: 'sh-location-strip sh-card-swipe-row',
             surfaceClassName: 'sh-location-row',
@@ -101,7 +97,7 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
             trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
             actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }],
             doubleSwipe: false
-          })).join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
+          }) + (sort==='custom' ? renderOrderControls(card.id,{first:index===0,last:index===cards.length-1}) : '') + '</div>').join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
@@ -114,36 +110,36 @@ export async function openCardsView(outlet, { store, location, setTitle, headerA
         await showList();
       }
     });
-    outlet.querySelector('[data-card-search]').addEventListener('input', event => {
-      const q = event.target.value.trim().toLocaleLowerCase('nl');
-      outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row => {
-        const card = cards.find(item => item.id === row.dataset.swipeRow);
-        row.hidden = Boolean(q) && !String(card?.name || '').toLocaleLowerCase('nl').includes(q)
-          && !String(card?.codeValue || '').toLocaleLowerCase('nl').includes(q);
+    const applySearch = () => {
+      const q=query.trim().toLocaleLowerCase('nl');
+      outlet.querySelectorAll('[data-card-list] [data-swipe-row]').forEach(row=>{
+        const card=cards.find(item=>item.id===row.dataset.swipeRow);
+        const place=locationItems.find(item=>item.id===card?.locationId);
+        const text=[card?.name,card?.codeValue,place?.data?.title].join(' ').toLocaleLowerCase('nl');
+        row.closest('[data-list-item]').hidden=Boolean(q)&&!text.includes(q);
       });
-    });
-    outlet.querySelectorAll('[data-card-sort]').forEach(button =>
-      button.addEventListener('click', async () => {
-        if (button.dataset.cardSort === 'near') {
-          const eligible = cards.filter(card => coordinateOf(card));
-          if (!eligible.length) {
-            outlet.querySelector('[data-card-sort-status]').textContent = 'Koppel eerst een kaart aan een locatie om op afstand te sorteren.';
-            return;
-          }
-          const status = outlet.querySelector('[data-card-sort-status]');
-          button.disabled = true;
+    };
+    applySearch();
+    bindListControls(outlet,{
+      onSearch:value=>{query=value;applySearch();},
+      onSort:async mode=>{
+        if(mode==='near'){
+          const status=outlet.querySelector('[data-card-sort-status]');
+          if(!cards.some(card=>coordinateOf(card))){status.textContent='Koppel eerst een kaart aan een locatie om op afstand te sorteren.';return;}
           try {
-            const point = await location.checkNow({ reason: 'cards-near', maxAgeMs: 60_000, highAccuracy: false });
-            nearPosition = { latitude: point.lat, longitude: point.lng };
-            if (!button.isConnected) return;
-            sort = 'near'; await showList();
-          } catch {
-            if (status?.isConnected) status.textContent = 'Locatietoegang nodig om kaarten op afstand te sorteren.';
-          } finally { button.disabled = false; }
-          return;
+            const point=await location.checkNow({reason:'cards-near',maxAgeMs:60_000,highAccuracy:false});
+            nearPosition={latitude:point.lat,longitude:point.lng};
+            if(!status.isConnected)return;
+          } catch {if(status.isConnected)status.textContent='Locatietoegang nodig om kaarten op afstand te sorteren.';return;}
         }
-        sort = button.dataset.cardSort; showList();
-      }));
+        if(mode==='custom'&&!prefs.order?.length)prefs.order=cards.map(card=>card.id);
+        sort=mode;await savePrefs();await showList();
+      },
+      onMove:async(id,direction)=>{
+        prefs.order=moveInOrder(cards.map(card=>card.id),id,direction);
+        await savePrefs();await showList();
+      }
+    });
   }
 
   function showScanner() {

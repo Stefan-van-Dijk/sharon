@@ -1,4 +1,4 @@
-import { locationPolicy } from './LocationPolicy.js?v=0.3.61';
+import { locationPolicy } from './LocationPolicy.js?v=0.3.62';
 
 export class LocationService {
   #events;
