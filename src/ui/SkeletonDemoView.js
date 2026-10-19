@@ -1,13 +1,18 @@
-import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.61';
-import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.61';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.61';
-import { renderStrip } from './Strip.js?v=0.3.61';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.61';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.61';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
+import { sortList, moveInOrder } from '../core/storage/ListOrder.js?v=0.3.62';
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.62';
+import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.62';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
+import { renderStrip } from './Strip.js?v=0.3.62';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.62';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
   let {enabled,data}=await demoWorkspace(store),module=initialModule,index=0,expanded=false,boardOpen=false;
+  const listPrefs=(await store.get('meta','skeleton.list.preferences'))?.value || {};
+  const queries={};
+  const objectsFor=kind=>sortList(data.objects.filter(object=>object.module===kind),listPrefs[kind]||{});
   let disposed=false;
   let unbindRows=null;
   let editingId=null;
@@ -31,7 +36,8 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
     if(disposed || !root.isConnected) return;
     unbindRows?.(); unbindRows=null;
     if(fullScreen)onTitleChange(titles[module]);
-    const list=enabled?data.objects.filter(o=>o.module===module):[];
+    const list=enabled?objectsFor(module):[];
+    const preference=listPrefs[module]||{sort:'alpha',order:[]};
     const current=list[Math.min(index,Math.max(0,list.length-1))];
     const caps=current?skeletonCapabilities(data,current.id):null;
     const links=current?graphConnections(data,current.id):[];
@@ -49,14 +55,15 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        '<div data-context-results></div><p data-context-relation class="sh-context-relation" hidden></p>'+
        '<input name="predicate" type="hidden" value="related-to">'+
        '<input name="to" type="hidden" value="'+esc(chosenTarget)+'"><button type="submit" '+(!chosenTarget?'disabled':'')+'>Verbinding bevestigen</button></form></div>' : '')+
+       (!boardOpen ? renderListControls({placeholder:'Zoek in '+titles[module],query:queries[module]||'',sort:preference.sort}) : '')+
        '<div class="sh-skeleton-object-list swipe-list" aria-label="Objecten in '+esc(titles[module])+'">'+
        (list.length<3 && !boardOpen ? '<button type="button" class="sh-module-example" data-module-example><span>Voorbeeld · '+esc(titles[module])+'</span><small>Zo ontdek je wat je hier kunt vastleggen en verbinden</small></button><p class="sh-module-example-guide" data-example-copy hidden>Maak een '+esc(titles[module]).toLowerCase()+' aan zonder verplichte koppelingen. Verbind later met andere modules.</p>' : '')+
        list.map(object=>{
         const cap=skeletonCapabilities(data,object.id);
         const operation=cap.archive?'Archiveer':cap.restore?'Herstel':'Verwijder';
-        return renderStrip({id:object.id,variant:'location',className:'sh-skeleton-row',title:object.title,
+        return '<div data-list-item>'+renderStrip({id:object.id,variant:'location',className:'sh-skeleton-row',title:object.title,
           subtitle:object.status==='archived'?'Gearchiveerd':'',
-          actions:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:operation}]});
+          actions:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:operation}]})+(preference.sort==='custom'?renderOrderControls(object.id):'')+'</div>';
        }).join('')+'</div>' : '')+
        (current && (!fullScreen || boardOpen)?'<div class="sh-skeleton-board">'+
        '<div class="sh-skeleton-boardslide"><button type="button" data-demo-prev aria-label="Vorig object">‹</button><div><small>'+esc(titles[module])+' · '+(index+1)+'/'+list.length+'</small><strong>'+esc(current.title)+'</strong></div><button type="button" data-demo-next aria-label="Volgend object">›</button></div>'+
@@ -66,6 +73,25 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
        Object.entries(current.fields||{}).map(([k,v])=>'<p>'+esc(k)+': '+esc(v)+'</p>').join('')+'</div>':'')+
        '</div>' : (list.length ? '' : '<p>Geen voorbeeldobjecten meer in deze module.</p>'))+
        (fullScreen?'':'<button type="button" data-demo-reset>Herstel alle voorbeeldgegevens</button>')+'</div>':'')+(fullScreen?'</section>':'');
+    const applySearch=()=>{
+      const query=(queries[module]||'').trim().toLocaleLowerCase('nl');
+      root.querySelectorAll('.sh-skeleton-object-list [data-swipe-row]').forEach(row=>{
+        const object=data.objects.find(item=>item.id===row.dataset.swipeRow);
+        row.closest('[data-list-item]').hidden=Boolean(query)&&!String(object?.title||'').toLocaleLowerCase('nl').includes(query);
+      });
+    };
+    applySearch();
+    bindListControls(root,{
+      onSearch:value=>{queries[module]=value;applySearch();},
+      onSort:async sort=>{
+        listPrefs[module]={...preference,sort,order:sort==='custom'&&!preference.order?.length?list.map(item=>item.id):preference.order};
+        await store.put('meta',{key:'skeleton.list.preferences',value:listPrefs});index=0;draw();
+      },
+      onMove:async(id,direction)=>{
+        listPrefs[module]={...preference,order:moveInOrder(list.map(item=>item.id),id,direction)};
+        await store.put('meta',{key:'skeleton.list.preferences',value:listPrefs});draw();
+      }
+    });
     const example = root.querySelector('[data-module-example]');
     const exampleCopy = root.querySelector('[data-example-copy]');
     if(example && exampleCopy) {
@@ -105,7 +131,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
       const target=data.objects.find(o=>o.id===button.dataset.demoRelation);
       if(!target)return;
       objectHistory.push({module,index,boardOpen,expanded});
-      module=target.module;index=data.objects.filter(o=>o.module===module).findIndex(o=>o.id===target.id);
+      module=target.module;index=objectsFor(module).findIndex(o=>o.id===target.id);
       expanded=false;boardOpen=true;draw();
     }));
     const listRoot=root.querySelector('.sh-skeleton-object-list');

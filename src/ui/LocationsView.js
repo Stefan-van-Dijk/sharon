@@ -1,17 +1,19 @@
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.61';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.61';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.61';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.61';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.61';
-import { renderStrip } from './Strip.js?v=0.3.61';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.61';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.61';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.61';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.61';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.62';
+import { sortList } from '../core/storage/ListOrder.js?v=0.3.62';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.62';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.62';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.62';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.62';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.62';
+import { renderStrip } from './Strip.js?v=0.3.62';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.62';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.62';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.62';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.62';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.61';
+} from '../core/location/LocationHierarchy.js?v=0.3.62';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -24,6 +26,9 @@ export async function openLocationsView(root, {
   let prefs = (await store.get('meta', PREF_KEY))?.value || { sort: 'alpha', order: [] };
   let sentenceLibrary = (await store.get('meta', 'locations.sentenceLibrary'))?.value || {};
   let lastSentence = '';
+  let query = '';
+  let nearPoint = location.latest;
+  if(prefs.sort==='near'&&!nearPoint)prefs.sort='alpha';
   let unbindSwipes = null;
   let releaseEditor = null;
 
@@ -50,15 +55,12 @@ export async function openLocationsView(root, {
       add.addEventListener('click', () => edit(null));
       headerActions.append(add);
     }
-    const rows = orderedLocations(locations, prefs.sort, prefs.order);
+    const nearOrder = prefs.sort==='near' ? sortList(locations,{sort:'near',distance:item=>{const coordinates=resolveLocation(item,byId).coordinates;return coordinates&&nearPoint?distanceBetween(nearPoint,coordinates):Infinity;}}).map(item=>item.id) : prefs.order;
+    const rows = orderedLocations(locations, prefs.sort==='near'?'custom':prefs.sort, nearOrder);
     root.innerHTML = `
       <section class="module-view locations-view">
         ${!headerActions ? `<div class="sh-locations-toolbar"><span>Locaties</span><button type="button" data-create-location>+</button></div>` : ""}
-        <div class="sh-locations-sort" aria-label="Locaties sorteren">
-          <button type="button" data-sort="recent" ${prefs.sort === 'recent' ? 'aria-pressed="true"' : ''}>Recent</button>
-          <button type="button" data-sort="alpha" ${prefs.sort === 'alpha' ? 'aria-pressed="true"' : ''}>A–Z</button>
-          <button type="button" data-sort="custom" ${prefs.sort === 'custom' ? 'aria-pressed="true"' : ''}>Eigen</button>
-        </div>
+        ${renderListControls({placeholder:'Zoek een locatie',query,sort:prefs.sort,near:true,locationHooks:true})}
         <div class="sh-locations-list swipe-list" data-swipe-list>
           ${rows.length ? rows.map(({ item, depth }, index) => {
             const effective = resolveLocation(item, byId);
@@ -79,7 +81,7 @@ export async function openLocationsView(root, {
                 trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
                 actions: [{ kind: 'delete', label: 'Verwijder' }]
               })}
-              ${custom ? `<div class="sh-location-order"><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="-1" aria-label="Omhoog">↑</button><button type="button" data-move="${escapeAttribute(item.id)}" data-direction="1" aria-label="Omlaag">↓</button></div>` : ''}
+              ${custom ? renderOrderControls(item.id) : ''}
               </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
         </div>
@@ -92,18 +94,32 @@ export async function openLocationsView(root, {
       onOpen: id => detail(byId.get(id)),
       onDelete: id => removeLocation(id)
     });
-    root.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', async () => {
-      prefs.sort = button.dataset.sort;
-      if (prefs.sort === 'custom' && !prefs.order?.length) prefs.order = locations.map(item => item.id);
-      await savePrefs();
-      list();
-    }));
-    root.querySelectorAll('[data-move]').forEach(button => button.addEventListener('click', async () => {
-      const id = button.dataset.move;
+    const applySearch = () => {
+      const q=query.trim().toLocaleLowerCase('nl'),visible=new Set();
+      for(const item of locations){
+        if(!q || [item.data?.title,resolveLocation(item,byId).address,TYPES.get(item.data?.kind)].join(' ').toLocaleLowerCase('nl').includes(q)){
+          let cursor=item;
+          while(cursor&&!visible.has(cursor.id)){visible.add(cursor.id);cursor=byId.get(parentIdOf(cursor));}
+        }
+      }
+      root.querySelectorAll('[data-node]').forEach(node=>{node.hidden=!visible.has(node.dataset.node);});
+    };
+    applySearch();
+    bindListControls(root,{
+      onSearch:value=>{query=value;applySearch();},
+      onSort:async mode=>{
+        if(mode==='near'){
+          try { nearPoint=await location.checkNow({reason:'locations-near',maxAgeMs:60_000,highAccuracy:false}); }
+          catch {const feedback=root.querySelector('[data-list-status]');if(feedback)feedback.textContent='Locatietoegang nodig om op afstand te sorteren.';return;}
+        }
+        if(mode==='custom'&&!prefs.order?.length)prefs.order=rows.map(row=>row.item.id);
+        prefs.sort=mode;await savePrefs();await list();
+      },
+      onMove:async(id,direction)=>{
       const parentId = parentIdOf(byId.get(id));
       const siblings = orderedLocations(locations, 'custom', prefs.order).map(x => x.item)
         .filter(x => parentIdOf(x) === parentId).map(x => x.id);
-      const index = siblings.indexOf(id), to = index + Number(button.dataset.direction);
+      const index = siblings.indexOf(id), to = index + direction;
       if (index < 0 || to < 0 || to >= siblings.length) return;
       const other = siblings[to];
       const all = [...new Set([...(prefs.order || []), ...locations.map(x => x.id)])];
@@ -111,8 +127,9 @@ export async function openLocationsView(root, {
       [all[i], all[j]] = [all[j], all[i]];
       prefs.order = all;
       await savePrefs();
-      list();
-    }));
+      await list();
+      }
+    });
   }
 
   async function savePrefs() {

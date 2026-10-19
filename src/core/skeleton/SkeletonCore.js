@@ -96,7 +96,7 @@ export function addSkeletonObject(data, object) {
   }
   const next=structuredClone(data);
   next.objects.push({id:object.id,module:object.module,title:String(object.title).trim(),
-    status:'active',fields:object.fields && typeof object.fields==='object' ? {...object.fields} : {}});
+    status:'active',createdAt:Date.now(),updatedAt:Date.now(),fields:object.fields && typeof object.fields==='object' ? {...object.fields} : {}});
   return validateSkeleton(next);
 }
 export function renameSkeletonObject(data,id,title) {
@@ -106,5 +106,6 @@ export function renameSkeletonObject(data,id,title) {
   const object=next.objects.find(item=>item.id===id);
   if(!object) throw new Error('Object bestaat niet.');
   object.title=String(title).trim().slice(0,100);
+  object.updatedAt=Date.now();
   return validateSkeleton(next);
 }

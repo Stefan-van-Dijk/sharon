@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.61">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.61">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.62">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.62">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2795,6 +2795,19 @@
     [data-card-choices]{padding:0 20px 18px}
     [data-card-choices] .sh-context-card{border-bottom:1px solid #e5e5e9}
 
+    /* One compact search/sort toolbar for every module list. */
+    .sh-list-controls{min-width:0;gap:4px}
+    .sh-list-controls .sh-list-search{display:flex;align-items:center;flex:1;min-width:0;margin:0;border:0;min-height:48px;padding:0 2px;color:#939397}
+    .sh-list-controls .sh-list-search input{width:100%;min-width:0;flex:1;height:44px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:inherit}
+    .sh-list-controls .sh-card-sort-icons{flex:0 0 auto;padding-left:3px;gap:0}
+    .sh-list-controls .sh-card-sort-icons button{min-width:30px;padding:0 4px}
+    .sh-list-controls .sh-card-sort-icons svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
+    .sh-list-order{display:flex;justify-content:flex-end;gap:8px;padding:2px 4px 6px}
+    .sh-list-order button{min-width:36px;min-height:32px;border:0;background:transparent;color:#737379;font-size:17px;cursor:pointer}
+    .sh-list-order button:disabled{opacity:.25;cursor:default}
+    [data-list-item][hidden],.sh-location-node[hidden]{display:none!important}
+    @media(max-width:360px){.sh-list-controls .sh-list-search input{font-size:14px}.sh-list-controls .sh-card-sort-icons button{min-width:27px;padding:0 3px}}
+
     /* Home module guides: preserve navigation and show optional contextual explanations. */
     .sh-home-module-item{border-bottom:1px solid #ececef}
     .sh-home-module-line{display:flex;align-items:stretch;min-width:0}
@@ -2852,16 +2865,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.61#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.61#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.61#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.61#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.61#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.62#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.62#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.62#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.62#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.62#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.61"></script>
+  <script type="module" src="./src/main.js?v=0.3.62"></script>
 </body>
 </html>
