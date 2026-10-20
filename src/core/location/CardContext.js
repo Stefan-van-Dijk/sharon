@@ -34,8 +34,8 @@ export function suggestCards(objects, point, now = Date.now()) {
     if (!coordinates) return [];
     const radiusM = Math.min(2000, Math.max(20, Number(place.data?.radiusM) || 100));
     const distanceM = distanceBetween(point, coordinates);
-    // Uncertain GPS must not claim arrival. The accuracy circle must fit inside.
-    if (distanceM + accuracy > radiusM) return [];
+    // GPS uncertainty overlapping a linked zone counts as potentially relevant.
+    if (distanceM > radiusM + accuracy) return [];
     return [{ card, location: place, distanceM, reason: 'linked-location' }];
   }).sort((a, b) => a.distanceM - b.distanceM || String(a.card.name || '').localeCompare(String(b.card.name || ''), 'nl'));
 }
