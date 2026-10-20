@@ -267,7 +267,8 @@ export function createShell(root, {
       </div>
     `;
 
-    const cleanupContext = mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store: activeStore(), location, events});
+    headerActions.innerHTML = '<button type="button" class="sh-home-board-stack" data-home-board-stack disabled aria-label="Geen relevante boards" title="Relevante boards"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>';
+    const cleanupContext = mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store: activeStore(), location, events, trigger: headerActions.querySelector('[data-home-board-stack]')});
     const message = outlet.querySelector('[data-message]');
     const existing = location.latest;
 

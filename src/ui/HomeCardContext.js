@@ -1,7 +1,7 @@
 import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.71';
 import { openCardBoard } from './CardBoard.js?v=0.3.71';
 
-export function mountHomeCardContext(host, { store, location, events }) {
+export function mountHomeCardContext(host, { store, location, events, trigger = null }) {
   let generation = 0, timer = null, closeBoard = null, openedId = null, disposed = false;
   const clear = () => {
     generation++;
@@ -22,7 +22,8 @@ export function mountHomeCardContext(host, { store, location, events }) {
         closeBoard?.(); closeBoard = null; openedId = null;
       }
       host.replaceChildren();
-      host.hidden = !suggestions.length;
+      host.hidden = true;
+      if (trigger) { trigger.disabled = !suggestions.length; trigger.setAttribute('aria-label', suggestions.length ? 'Open relevante boards' : 'Geen relevante boards'); }
       if (!suggestions.length) return;
       const label = document.createElement('p');
       label.className = 'sh-context-label';
@@ -52,13 +53,15 @@ export function mountHomeCardContext(host, { store, location, events }) {
       timer = setTimeout(clear, Math.max(1, point.at + CARD_CONTEXT_MAX_AGE_MS - Date.now()));
     } catch { if (!disposed && run === generation) clear(); }
   };
+  const openFromTrigger = () => host.querySelector('[data-context-card]')?.click();
+  trigger?.addEventListener('click', openFromTrigger);
   const unsubscribe = events.on('location.changed', refresh);
   const onVisibility = () => { if (document.hidden) clear(); else refresh(); };
   document.addEventListener('visibilitychange', onVisibility);
   refresh();
   return () => {
     if (disposed) return;
-    disposed = true; unsubscribe();
-    document.removeEventListener('visibilitychange', onVisibility); clear();
+    disposed = true; trigger?.removeEventListener('click', openFromTrigger); unsubscribe();
+    document.removeEventListener('visibilitychange', onVisibility); clear(); if (trigger) trigger.disabled = true;
   };
 }
