@@ -83,6 +83,37 @@ export class ObjectStore {
     });
   }
 
+  // Store a fetched page together with its cursor. Outgoing acknowledgements
+  // never advance that cursor: they may arrive ahead of unseen incoming messages.
+  async saveChatMessages(chatId, messages, cursor = null) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve,reject)=>{
+      const tx=this.#db.transaction(['objects','meta'],'readwrite');
+      const objects=tx.objectStore('objects'), meta=tx.objectStore('meta');
+      let failure=null;
+      for(const message of messages) {
+        const get=objects.get(message.id);
+        get.onsuccess=()=>{
+          const old=get.result;
+          if(old && (old.type!=='chat-message'||old.chatId!==chatId||
+              old.senderId!==message.senderId||old.text!==message.text)) {
+            failure=new Error('Dit bericht heeft een conflicterende identiteit.');
+            tx.abort();return;
+          }
+          objects.put(message);
+        };
+      }
+      if(cursor!==null) {
+        const key='connection.cursor.'+chatId;
+        const get=meta.get(key);
+        get.onsuccess=()=>meta.put({key,value:Math.max(get.result?.value||0,cursor)});
+      }
+      tx.oncomplete=()=>resolve();
+      tx.onabort=()=>reject(failure||tx.error||new Error('Opslaan is afgebroken.'));
+      tx.onerror=()=>reject(tx.error);
+    });
+  }
+
   async get(storeName, key) {
     return requestResult(this.#store(storeName).get(key));
   }

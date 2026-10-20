@@ -103,6 +103,10 @@ test('two isolated installations bootstrap, bind an invitation, chat, retry a lo
   const thirdInvite=await a.invite((await c.device()).personId);
   await c.activate(thirdInvite,'Derde');
   await assert.rejects(c.sync(contact.chatId),/chat is niet toegankelijk/);
+  await b.send(contact.chatId,'Nog niet opgehaald');
+  await a.send(contact.chatId,'Nieuw eigen bericht');
+  assert.ok((await a.sync(contact.chatId)).some(message=>message.text==='Nog niet opgehaald'),
+    'acknowledging an outgoing message must not skip unseen incoming messages');
   // A peer's chosen message ID cannot overwrite a local non-message object.
   const incoming=await b.send(contact.chatId,'Nieuw bericht');
   await owner.store.put('objects',{id:incoming.id,type:'location',data:{title:'Bewaren'}});

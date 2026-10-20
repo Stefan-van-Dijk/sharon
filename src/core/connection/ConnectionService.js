@@ -142,20 +142,19 @@ export class ConnectionService {
   }
   async sync(chatId) {
     IdentifierService.assert(chatId);
-    const cached=await this.cachedMessages(chatId);
-    let after=Math.max(0,...cached.map(m=>m.seq||0));
+    let after=(await this.store.get('meta','connection.cursor.'+chatId))?.value || 0;
     // Fetch at most 1000 per refresh; the next refresh resumes at the last seq.
     for(let page=0;page<10;page++) {
       const result=await this.request('messages',{chatId,after},await this.device());
       if(!Array.isArray(result.messages)||result.messages.length>100)throw Error('Ongeldig serverantwoord.');
+      const page=[];
       for(const m of result.messages) {
         if(m.chatId!==chatId||!IdentifierService.isValid(m.id)||!IdentifierService.isValid(m.senderId)||
             typeof m.text!=='string'||!Number.isSafeInteger(m.seq)||m.seq<=after)throw Error('Ongeldig serverantwoord.');
-        const existing=await this.store.get('objects',m.id);
-        if(existing && (existing.type!=='chat-message'||existing.chatId!==chatId||existing.senderId!==m.senderId))throw Error('Dit bericht heeft een conflicterende identiteit.');
-        await this.store.put('objects',{...m,type:'chat-message',delivery:'sent',createdAt:m.at,updatedAt:m.at});
+        page.push({...m,type:'chat-message',delivery:'sent',createdAt:m.at,updatedAt:m.at});
         after=m.seq;
       }
+      await this.store.saveChatMessages(chatId,page,after);
       if(result.messages.length<100)break;
     }
     return this.cachedMessages(chatId);
@@ -175,13 +174,13 @@ export class ConnectionService {
       do { id=IdentifierService.create(); } while(await this.store.get('objects',id));
       message={id,type:'chat-message',chatId,senderId:d.personId,text,
         createdAt:Date.now(),delivery:'pending'};
-      await this.store.put('objects',message);
+      await this.store.saveChatMessages(chatId,[message]);
     }
     const result=await this.request('send',{id:message.id,chatId,text:message.text},d);
     const m=result.message;
     if(m?.id!==message.id||m.chatId!==chatId||m.senderId!==d.personId||m.text!==message.text||!Number.isSafeInteger(m.seq))
       throw Error('De ontvangst is niet bevestigd. Je kunt hetzelfde bericht opnieuw proberen.');
-    await this.store.put('objects',{...message,...m,delivery:'sent',updatedAt:m.at});
+    await this.store.saveChatMessages(chatId,[{...message,...m,delivery:'sent',updatedAt:m.at}]);
     return m;
   }
 }
