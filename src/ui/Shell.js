@@ -76,7 +76,7 @@ export function createShell(root, {
           })}
         </button>
 
-        <h1 class="app-view-title" data-view-title></h1>
+        <span class="sh-header-status-slot" data-status-slot></span>\n        <h1 class="app-view-title" data-view-title></h1>
         <div class="app-header-actions" data-header-actions></div>
 
         <span
@@ -100,12 +100,12 @@ export function createShell(root, {
   const brandButton = root.querySelector('[data-brand-control]');
   const brand = root.querySelector('[data-app-brand]');
   const title = root.querySelector('[data-view-title]');
-  const status = root.querySelector('[data-location-status]');
+  const status = root.querySelector('[data-location-status]');\n  root.querySelector('[data-status-slot]').append(status);
   const headerActions = root.querySelector('[data-header-actions]');
   const toast = root.querySelector('[data-trigger-toast]');
   const outlet = root.querySelector('[data-view-outlet]');
 
-  const setSearching = () => {
+  // Keep the header opaque above the independently scrolling view.\n  header.style.backgroundColor = 'var(--surface, #fff)';\n  header.style.position = 'relative';\n  header.style.zIndex = '20';\n  header.style.isolation = 'isolate';\n  const statusSlot = root.querySelector('[data-status-slot]');\n  statusSlot.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;position:relative;';\n  status.style.position = 'relative';\n  status.style.inset = 'auto';\n  const setSearching = () => {
     if (!status?.isConnected) return;
     status.classList.remove('is-ready');
     status.classList.add('is-searching');
