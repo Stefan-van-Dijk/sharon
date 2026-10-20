@@ -94,3 +94,27 @@ Officiële bronnen:
 - https://developers.tiqets.dev/basics/openapi/content-api/products/get-single-product
 - https://developers.tiqets.dev/integration-guides/product-integration/how-to-comply-with-marketing-restrictions
 - https://portals.tiqets.com/static/distributorapi/postman/Tiqets%20Distributor%20API%20-%20Postman%20Collection.json
+
+## Verbinding met Kaarten
+
+Een expliciete knop 'Bewaar bij Kaarten' bewaart de geselecteerde ticketoptie
+als persoonlijke ticketverwijzing met een eigen vaste identifier. Bekende
+Tiqets-locaties worden op provider/place-ID hergebruikt; er wordt niet op
+vergelijkbare namen gegokt. Met geldige broncoördinaten krijgt de verwijzing
+automatisch een gekoppeld locatieobject. Zonder coördinaten kan zij zelfstandig
+bestaan. Testmodus gebruikt dezelfde bestaande opslagadapter en blijft gescheiden.
+
+Herhaald bewaren levert dezelfde kaart op. Bestaande naam, locatiekoppeling en
+later toegevoegde ticketcode worden niet overschreven. De broncatalogus wordt
+hiermee niet lokaal gekopieerd: alleen de expliciet bewaarde titel, bronlink,
+productreferentie en locatie worden onderdeel van de persoonlijke kaarten.
+
+Een verwijzing bevat geen QR/barcode en is geen toegangsbewijs. Kaarten toont
+'Verwijzing' zolang er geen code is toegevoegd. De gebruiker kan na aankoop
+de echte ticketcode via de bestaande kaarteditor invoeren of scannen.
+De affiliate-URL wordt nooit als toegangscode gerenderd. De bron blijft vanuit
+de kaart bereikbaar als herkenbare affiliatelink.
+
+Een affiliateboekingslink geeft Sharon niet automatisch het gekochte ticket
+terug. Automatische ontvangst vereist een afzonderlijke toegestane integratie;
+deze wijziging belooft geen toegang tot affiliateklantboekingen of tickets.

@@ -1,3 +1,5 @@
+import { saveTicketReference } from '../core/cards/TicketReferenceService.js?v=0.3.71';
+
 // Live Tiqets source. No IndexedDB/localStorage, user identifiers or API tokens.
 export const TIQETS_ENDPOINT = 'https://sharon.life/sources/tiqets.php';
 
@@ -43,17 +45,29 @@ export function tiqetsFeatures(products) {
     if (!groups.has(key)) groups.set(key, {
       type: 'Feature', id: 'tiqets-' + key, geometry: {type:'Point', coordinates},
       properties: {source:'tiqets', title:text(product.venue?.name) || item.title,
-        description:item.summary, image:images[0]?.url || '', url, products:[]}
+        description:item.summary, image:images[0]?.url || '', url, placeId:key, products:[]}
     });
     const feature = groups.get(key);
     if (!feature.properties.products.some(existing => existing.id === item.id)) feature.properties.products.push(item);
   }
   return {type:'FeatureCollection', features:[...groups.values()]};
 }
-export function tiqetsBoard(feature) {
+export function tiqetsBoard(feature, {store, events} = {}) {
   const products = feature.properties.products;
   return {
     label:'Tiqets', badge:'T', url:products[0]?.url || '', resolveImage:tiqetsImage,
+    onSave: store ? async index => {
+      const product = products[index];
+      if (!product) throw Error('Geen ticketoptie geselecteerd.');
+      const [lng,lat] = feature.geometry.coordinates;
+      const saved = await saveTicketReference(store, {
+        provider:'tiqets',label:'Tiqets',productId:product.id,
+        placeId:feature.properties.placeId,title:product.title,placeTitle:feature.properties.title,
+        url:product.url,coordinates:{lat,lng},address:product.address
+      });
+      events?.emit?.('environment.objects.changed');
+      return saved;
+    } : null,
     sections:products.map(product => ({
       title:product.title, text:[product.summary, product.address, product.city,
         product.included ? 'Inbegrepen\n' + product.included : '',

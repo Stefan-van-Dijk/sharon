@@ -446,7 +446,7 @@ export function openEnvironmentView(root, {
     }
     if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
-      sourceBoard: isTiqets ? tiqetsBoard(feature) : null,
+      sourceBoard: isTiqets ? tiqetsBoard(feature, {store, events}) : null,
       onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; wikipediaLayer?.setActive(null); },
       onLayout: alignVisibleMap,
       onNext: next ? () => showBoard(next, available) : null,

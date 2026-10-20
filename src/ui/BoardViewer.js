@@ -309,6 +309,37 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     attribution.append(category);
   }
   footer.append(attribution);
+  const savedSections = new Set();
+  let savingSection = null;
+  let saveButton = null;
+  if (external && typeof sourceBoard.onSave === 'function') {
+    saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'sh-board-save-card';
+    saveButton.textContent = 'Bewaar bij Kaarten';
+    const saveStatus = document.createElement('small');
+    saveStatus.setAttribute('role','status');
+    saveButton.addEventListener('click', async () => {
+      const index = activeChapter;
+      if (savingSection !== null) return;
+      savingSection = index; saveButton.disabled = true;
+      saveStatus.textContent = '';
+      try {
+        await sourceBoard.onSave(index);
+        savedSections.add(index);
+        if (!closed) saveStatus.textContent = 'Bewaard. Voeg na aankoop je ticketcode toe bij Kaarten.';
+      } catch {
+        if (!closed) saveStatus.textContent = 'Opslaan is niet gelukt. Probeer opnieuw.';
+      } finally {
+        savingSection = null;
+        if (!closed) {
+          saveButton.disabled = savedSections.has(activeChapter);
+          saveButton.textContent = savedSections.has(activeChapter) ? 'Bewaard bij Kaarten' : 'Bewaar bij Kaarten';
+        }
+      }
+    });
+    footer.append(saveButton,saveStatus);
+  }
   if (!isLocal && !external) {
     const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
     const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
@@ -834,6 +865,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const dots = [];
   let activeChapter = -1;
   const setActive = index => {
+    if (saveButton) {
+      saveButton.disabled = savingSection !== null || savedSections.has(index);
+      saveButton.textContent = savedSections.has(index) ? 'Bewaard bij Kaarten' : 'Bewaar bij Kaarten';
+    }
     if (external) {
       const section = sourceBoard.sections[index] || {};
       source.href = externalUrl(section.url || sourceBoard.url);

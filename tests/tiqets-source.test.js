@@ -113,3 +113,43 @@ test('PHP uses only verified nearby API parameters and keeps credentials out of 
   assert.ok(result.seen[1].includes('Authorization: Token private-test-token'));
   assert.ok(!JSON.stringify(result.result).includes('private-test-token'));
 });
+
+test('explicit save creates a ticket reference and one linked place, never a fake admission code', async () => {
+  const {saveTicketReference} = await import('../src/core/cards/TicketReferenceService.js');
+  const objects = new Map();
+  const store = {getAll:async()=>[...objects.values()],put:async(table,item)=>objects.set(item.id,structuredClone(item))};
+  const reference = {provider:'tiqets',label:'Tiqets',productId:'123',placeId:'venue-99',
+    title:'Museumticket',placeTitle:'Museum',url:product().product_url,coordinates:{lat:52.1,lng:5.1}};
+  const results = await Promise.all([saveTicketReference(store,reference),saveTicketReference(store,reference)]);
+  assert.equal(results[0].id,results[1].id);
+  assert.equal(objects.size,2);
+  const card=results[0];
+  assert.equal(card.cardKind,'ticket');
+  assert.equal(card.codeFormat,'');
+  assert.equal(card.codeValue,'');
+  assert.equal(objects.get(card.locationId).data.title,'Museum');
+  const enriched={...card,codeFormat:'QR_CODE',codeValue:'a-real-ticket-code',name:'Mijn museumticket'};
+  objects.set(card.id,enriched);
+  assert.deepEqual(await saveTicketReference(store,reference),enriched);
+  const second=await saveTicketReference(store,{...reference,productId:'124'});
+  assert.equal(second.locationId,card.locationId);
+  assert.equal(objects.size,3);
+});
+
+test('ticket references may stand alone and a retry reuses a place after a failed card write', async () => {
+  const {saveTicketReference}=await import('../src/core/cards/TicketReferenceService.js');
+  const objects=new Map();let fail=true;
+  const store={getAll:async()=>[...objects.values()],put:async(table,item)=>{
+    if(item.type==='card'&&fail)throw Error('disk full');
+    objects.set(item.id,item);
+  }};
+  const reference={provider:'tiqets',productId:'123',placeId:'venue-99',
+    title:'Museumticket',url:product().product_url,coordinates:{lat:52.1,lng:5.1}};
+  await assert.rejects(saveTicketReference(store,reference),/disk full/);
+  assert.equal(objects.size,1);
+  fail=false;
+  await saveTicketReference(store,reference);
+  assert.equal(objects.size,2);
+  const standalone=await saveTicketReference(store,{...reference,productId:'124',coordinates:null});
+  assert.equal(standalone.locationId,null);
+});

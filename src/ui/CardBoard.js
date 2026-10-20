@@ -27,6 +27,21 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
       '</div>'+
       '<div data-details class="sh-card-board-details sh-board-scroller"><div class="sh-card-detail-heading"><h2 data-card-title>'+esc(current.name)+'</h2></div>'+
       entry.rows.map(field=>'<div class="sh-card-board-detail-row"><span>'+esc(field.label)+'</span><strong>'+esc(field.value)+'</strong></div>').join('')+'</div>';
+    if (current.reference?.url) {
+      try {
+        const url = new URL(current.reference.url);
+        if (url.protocol === 'https:' && !url.username && !url.password) {
+          const source = document.createElement('a');
+          source.href = url.href;
+          source.target = '_blank';
+          source.rel = 'noopener noreferrer sponsored';
+          source.className = 'sh-ticket-source-link';
+          source.textContent = 'Bekijk op ' + (current.reference.label || 'de bron') + ' ↗';
+          source.title = 'Affiliatelink';
+          board.querySelector('.sh-card-detail-heading').append(source);
+        }
+      } catch {}
+    }
     board.querySelector('[data-card-accent]').style.background=/^#[0-9a-f]{6}$/i.test(current.color||'')?current.color:'#489ff8';
     return board;
   });
@@ -37,7 +52,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     if(board.dataset.codeReady)return;board.dataset.codeReady='true';
     const holder=document.createElement('div');board.querySelector('[data-code]').append(holder);
     if(current.codeValue&&current.codeFormat)renderCardCode(holder,current.codeFormat,current.codeValue,{fullWidth:true}).catch(error=>{if(!closed&&holder.isConnected)holder.textContent=error.message;});
-    else holder.textContent='Geen scanbare code opgeslagen.';
+    else holder.textContent=current.reference ? 'Nog geen toegangsbewijs. Voeg na aankoop je ticketcode toe.' : 'Geen scanbare code opgeslagen.';
   };
   const distances=()=>nodes.forEach((node,index)=>{
     const text=cardDistanceLabel(model.state.boards[index].card,locations,location?.latest);

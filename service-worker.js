@@ -13,6 +13,7 @@ const CORE = [
   "./src/app.js?v=0.3.71",
   "./src/core/app/InstallService.js?v=0.3.71",
   "./src/core/cards/CardDeck.js?v=0.3.71",
+  "./src/core/cards/TicketReferenceService.js?v=0.3.71",
   "./src/core/events/EventBus.js?v=0.3.71",
   "./src/core/ids/IdentifierService.js?v=0.3.71",
   "./src/core/location/CardContext.js?v=0.3.71",
