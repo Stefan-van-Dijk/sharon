@@ -16,6 +16,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     root.innerHTML='<style>'+css+'</style><section class="module-view sh-people">'+
       (back?'<button type="button" data-navigation-back>‹ Personen</button>':'')+body+
       '<p role="status" aria-live="polite" data-status></p></section>';
+    root.querySelectorAll('button').forEach(button=>button.disabled=busy);
     root.querySelector('[data-navigation-back]')?.addEventListener('click',()=>run(home));
   }
   const status = text => { const el=root.querySelector('[data-status]'); if(el&&!disposed)el.textContent=text; };
