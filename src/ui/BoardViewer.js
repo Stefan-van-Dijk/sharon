@@ -167,9 +167,14 @@ export function preloadWikipediaBoard(feature) {
 export function articleProgressDotCount(wordCount) {
   return Math.max(2, Math.min(13, Math.ceil(Math.max(1, Number(wordCount) || 1) / 180)));
 }
-export function openBoardViewer(feature, { location, events, onNext, onPrevious, onLayout = () => {}, onClose = () => {}, localBoard = null } = {}) {
+export function openBoardViewer(feature, { location, events, onNext, onPrevious, onLayout = () => {}, onClose = () => {}, localBoard = null, sourceBoard = null } = {}) {
   const abort = new AbortController();
   const isLocal = Boolean(localBoard);
+  const external = !isLocal && sourceBoard;
+  const externalUrl = value => {
+    try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : ''; }
+    catch { return ''; }
+  };
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
   const destination = coords?.length === 2 ? {lat: coords[1], lng: coords[0]} : null;
@@ -272,23 +277,23 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   status.textContent = 'Verhaal laden…';
   story.append(status);
   const source = document.createElement('a');
-  source.textContent = isLocal ? '↗' : 'W';
-  source.href = isLocal ? (localBoard.website || '#') : safeUrl(feature?.properties?.url);
+  source.textContent = external ? sourceBoard.badge : isLocal ? '↗' : 'W';
+  source.href = external ? externalUrl(sourceBoard.url) : isLocal ? (localBoard.website || '#') : safeUrl(feature?.properties?.url);
   source.target = '_blank';
-  source.rel = 'noopener noreferrer';
+  source.rel = external ? 'noopener noreferrer sponsored' : 'noopener noreferrer';
   source.className = 'sh-board-source';
-  source.setAttribute('aria-label', 'Open oorspronkelijk Wikipedia-artikel');
-  source.title = isLocal ? 'Open website' : 'Open Wikipedia';
+  source.setAttribute('aria-label', external ? 'Open ' + sourceBoard.label + ' · affiliatelink' : 'Open oorspronkelijk Wikipedia-artikel');
+  source.title = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? 'Open website' : 'Open Wikipedia';
   if (isLocal && !localBoard.website) source.hidden = true;
   const credits = document.createElement('small');
-  credits.textContent = isLocal ? 'Locatie · Sharon' : 'CC BY-SA';
-  if (!isLocal) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
+  credits.textContent = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? 'Locatie · Sharon' : 'CC BY-SA';
+  if (!isLocal && !external) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
   const attribution = document.createElement('div');
   attribution.className = 'sh-board-attribution';
   attribution.append(credits);
-  if (!isLocal) {
+  if (!isLocal && !external) {
     const names = Array.isArray(feature?.properties?.categories) ? feature.properties.categories : [];
     const categoryText = names.join(' ').toLowerCase();
     const groups = [];
@@ -304,7 +309,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     attribution.append(category);
   }
   footer.append(attribution);
-  if (!isLocal) {
+  if (!isLocal && !external) {
     const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
     const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
     let feedback = {read:false, liked:false, disliked:false, hidden:false, category:''};
@@ -614,7 +619,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   let photoAnimation = null;
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   const selectPhoto = image => {
-    const url = safeUrl(image, true);
+    const url = external ? (sourceBoard.resolveImage?.(image) || '') : safeUrl(image, true);
     if (!url || url === currentPhoto || url === pendingPhoto) return;
     const revision = ++imageRevision;
     pendingPhoto = url;
@@ -829,6 +834,14 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   const dots = [];
   let activeChapter = -1;
   const setActive = index => {
+    if (external) {
+      const section = sourceBoard.sections[index] || {};
+      source.href = externalUrl(section.url || sourceBoard.url);
+      const imageSection = section.image ? section : sourceBoard.sections.slice(0, index + 1).reverse().find(item => item.image);
+      credits.textContent = [sourceBoard.label + ' · affiliatelink', imageSection?.imageCredit].filter(Boolean).join(' · ');
+      photo.alt = imageSection?.imageAlt || '';
+      incomingPhoto.alt = imageSection?.imageAlt || '';
+    }
     if (index !== activeChapter) {
       activeChapter = index;
       const chosen = chapterImages[index] ||
@@ -895,6 +908,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     sections.forEach(addChapter);
     buildProgress(sections);
     setActive(0);
+  } else if (external) {
+    status.remove();
+    const sections = sourceBoard.sections || [];
+    sections.forEach(addChapter);
+    buildProgress(sections);
+    setActive(0);
+    updateCompass();
   } else preloadWikipediaBoard(feature).then(sections => {
     if (closed) return;
     status.remove();

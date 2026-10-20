@@ -85,6 +85,8 @@ const CORE = [
   "./src/ui/SwipeMenu.js?v=0.3.71",
   "./src/ui/SwipeRows.js?v=0.3.71",
   "./src/ui/TextInputFocus.js?v=0.3.71",
+  "./src/ui/TiqetsLayer.js?v=0.3.71",
+  "./src/ui/TiqetsSource.js?v=0.3.71",
   "./src/ui/Viewport.js?v=0.3.71",
   "./src/ui/WikipediaLayer.js?v=0.3.71",
   "./src/ui/styles.css",

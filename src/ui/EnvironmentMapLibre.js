@@ -1,3 +1,5 @@
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.71';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.71';
 import { openLocationDeck } from './LocationDeck.js?v=0.3.71';
 import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.71';
 import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.71';
@@ -216,6 +218,8 @@ export function openEnvironmentView(root, {
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
+              <button type="button" class="environment-source-circle" data-tiqets-toggle disabled aria-pressed="false" aria-label="Tiqets tonen of verbergen" title="Tiqets wordt voorbereid">T</button>
+              <small data-tiqets-status role="status" aria-live="polite"></small>
               <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
 
@@ -376,17 +380,20 @@ export function openEnvironmentView(root, {
   let popup = null;
   let closeLocationDeck = null;
   let wikipediaLayer = null;
+  let tiqetsLayer = null;
+  let tiqetsEnabled = false;
   let closeBoard = null;
   const showBoard = (feature, available = []) => {
     closeBoard?.();
-    wikipediaLayer?.setActive(feature);
+    const isTiqets = feature.properties?.source === 'tiqets';
+    wikipediaLayer?.setActive(isTiqets ? null : feature);
     // Unread articles lead the swipe sequence; read ones remain accessible later.
     const wasRead = item => {
       const id = String(item?.properties?.wikidata || item?.id || item?.properties?.url || '');
       try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}').read === true; }
       catch { return false; }
     };
-    available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
+    if (!isTiqets) available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
     const index = available.findIndex(item => item.id === feature.id);
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
@@ -437,8 +444,9 @@ export function openEnvironmentView(root, {
     for (const neighbor of [previous, next]) {
       if (neighbor?.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
     }
-    for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
+    if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
+      sourceBoard: isTiqets ? tiqetsBoard(feature) : null,
       onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; wikipediaLayer?.setActive(null); },
       onLayout: alignVisibleMap,
       onNext: next ? () => showBoard(next, available) : null,
@@ -483,6 +491,31 @@ export function openEnvironmentView(root, {
   listenEarly(readoutBar, 'touchcancel', () => { filterSwipe = null; }, { passive: true });
   listenEarly(filterBack, 'click', () => setFilterMode(false));
   setFilterMode(false);
+  const tiqetsToggle = root.querySelector('[data-tiqets-toggle]');
+  const tiqetsMessage = root.querySelector('[data-tiqets-status]');
+  const tiqetsSetup = new AbortController();
+  const setTiqetsState = (state, count = 0) => {
+    if (disposed) return;
+    tiqetsToggle.classList.toggle('is-fetching', state === 'loading');
+    tiqetsToggle.setAttribute('aria-busy', String(state === 'loading'));
+    const messages = {loading:'Tiqets laden…', empty:'Geen Tiqets-locaties in dit gebied.',
+      zoom:'Zoom verder in voor Tiqets.', error:'Tiqets is tijdelijk niet bereikbaar.',
+      unconfigured:'Tiqets wordt voorbereid.'};
+    tiqetsMessage.textContent = state === 'ready' ? count + ' Tiqets-locaties' : (messages[state] || '');
+  };
+  // Status contains no credentials. Only an explicit source selection requests
+  // the map centre; no personal store or invitation-network data is used.
+  tiqetsStatus({signal:tiqetsSetup.signal}).then(configured => {
+    if (disposed) return;
+    tiqetsToggle.disabled = !configured;
+    tiqetsToggle.title = configured ? 'Tiqets · musea en attracties' : 'Tiqets wordt voorbereid';
+  }).catch(() => { if (!disposed) tiqetsToggle.title = 'Tiqets is momenteel niet beschikbaar'; });
+  listenEarly(tiqetsToggle, 'click', () => {
+    tiqetsEnabled = !tiqetsEnabled;
+    tiqetsToggle.setAttribute('aria-pressed', String(tiqetsEnabled));
+    tiqetsLayer?.setEnabled(tiqetsEnabled);
+    if (!tiqetsEnabled && document.querySelector('.sh-board-source[rel~="sponsored"]')) closeBoard?.();
+  });
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   const updateWikipediaZoomCue = () => {
     if (!map) return;
@@ -572,6 +605,8 @@ export function openEnvironmentView(root, {
     for (const button of root.querySelectorAll('['+attribute+']')) listenEarly(button,'click',()=>{
       const value = button.getAttribute(attribute);
       if (selection.has(value)) selection.delete(value); else selection.add(value);
+      tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
+      if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
       syncWikiFilters();
     });
   }
@@ -864,6 +899,8 @@ export function openEnvironmentView(root, {
     resizeObserver?.disconnect();
     popup?.remove();
     closeLocationDeck?.();
+    tiqetsSetup.abort();
+    tiqetsLayer?.destroy();
     wikipediaLayer?.destroy();
     closeBoard?.();
     gpsMarker?.remove();
