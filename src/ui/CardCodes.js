@@ -53,7 +53,7 @@ export function validateCardCode(format, value) {
   if (format === 'codabar' && !/^[A-D][0-9\-.$/+ :]+[A-D]$/.test(value))
     throw new Error('Codabar moet beginnen en eindigen met A, B, C of D.');
 }
-export async function renderCardCode(host, format, value) {
+export async function renderCardCode(host, format, value, {fullWidth=false}={}) {
   validateCardCode(format, value);
   await loadCardGenerator(format);
   const holder = document.createElement('div');
@@ -71,6 +71,9 @@ export async function renderCardCode(host, format, value) {
   }
   const svg = holder.querySelector('svg');
   if (!svg) throw new Error('Code kon niet worden opgebouwd.');
+  // QR's generator defaults to xMinYMin; the scan surface needs a centered square.
+  if(format==='QR_CODE')svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  else if(fullWidth)svg.setAttribute('preserveAspectRatio','none');
   svg.style.cssText = 'display:block;width:100%;max-height:260px;margin:auto';
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', CARD_FORMATS[format]);
