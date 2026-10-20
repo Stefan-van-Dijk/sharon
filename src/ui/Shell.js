@@ -1,15 +1,15 @@
-import { mountCardArrival } from './CardArrival.js?v=0.3.69';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.69';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.69';
-import { syncViewportHeight } from './Viewport.js?v=0.3.69';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.69';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.69';
-import { openCardsView } from './CardsView.js?v=0.3.69';
-import { openLocationsView } from './LocationsView.js?v=0.3.69';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.69';
-import { openSettings } from './SettingsView.js?v=0.3.69';
-import { sharonWordmark } from './Brand.js?v=0.3.69';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.69';
+import { mountCardArrival } from './CardArrival.js?v=0.3.70';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.70';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.70';
+import { syncViewportHeight } from './Viewport.js?v=0.3.70';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.70';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.70';
+import { openCardsView } from './CardsView.js?v=0.3.70';
+import { openLocationsView } from './LocationsView.js?v=0.3.70';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.70';
+import { openSettings } from './SettingsView.js?v=0.3.70';
+import { sharonWordmark } from './Brand.js?v=0.3.70';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.70';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -31,7 +31,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.69';
+const APP_VERSION = '0.3.70';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
