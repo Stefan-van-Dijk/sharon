@@ -31,7 +31,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.71';
+const APP_VERSION = '0.3.72';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -76,7 +76,8 @@ export function createShell(root, {
           })}
         </button>
 
-        <span class="sh-header-status-slot" data-status-slot></span>\n        <h1 class="app-view-title" data-view-title></h1>
+        <span class="sh-header-status-slot" data-status-slot></span>
+        <h1 class="app-view-title" data-view-title></h1>
         <div class="app-header-actions" data-header-actions></div>
 
         <span
@@ -100,12 +101,22 @@ export function createShell(root, {
   const brandButton = root.querySelector('[data-brand-control]');
   const brand = root.querySelector('[data-app-brand]');
   const title = root.querySelector('[data-view-title]');
-  const status = root.querySelector('[data-location-status]');\n  root.querySelector('[data-status-slot]').append(status);
+  const status = root.querySelector('[data-location-status]');
+  root.querySelector('[data-status-slot]').append(status);
   const headerActions = root.querySelector('[data-header-actions]');
   const toast = root.querySelector('[data-trigger-toast]');
   const outlet = root.querySelector('[data-view-outlet]');
 
-  // Keep the header opaque above the independently scrolling view.\n  header.style.backgroundColor = 'var(--surface, #fff)';\n  header.style.position = 'relative';\n  header.style.zIndex = '20';\n  header.style.isolation = 'isolate';\n  const statusSlot = root.querySelector('[data-status-slot]');\n  statusSlot.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;position:relative;';\n  status.style.position = 'relative';\n  status.style.inset = 'auto';\n  const setSearching = () => {
+  // Keep the header opaque above the independently scrolling view.
+  header.style.backgroundColor = 'var(--surface, #fff)';
+  header.style.position = 'relative';
+  header.style.zIndex = '20';
+  header.style.isolation = 'isolate';
+  const statusSlot = root.querySelector('[data-status-slot]');
+  statusSlot.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;position:relative;';
+  status.style.position = 'relative';
+  status.style.inset = 'auto';
+  const setSearching = () => {
     if (!status?.isConnected) return;
     status.classList.remove('is-ready');
     status.classList.add('is-searching');
@@ -322,7 +333,8 @@ export function createShell(root, {
       const [purpose, links] = MODULE_GUIDE[id] || [];
       if (!purpose) return;
       panel.hidden = false;
-      const copy = [purpose, links].filter(Boolean).join('\\n');
+      const copy = [purpose, links].filter(Boolean).join('\
+');
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         panel.textContent = copy;
         return;
@@ -420,7 +432,8 @@ export function createShell(root, {
       `;
       const example = outlet.querySelector('[data-module-example]');
       const copy = outlet.querySelector('[data-example-copy]');
-      const reveal = () => { copy.hidden = !copy.hidden; copy.textContent = [purpose,links].filter(Boolean).join('\\n'); };
+      const reveal = () => { copy.hidden = !copy.hidden; copy.textContent = [purpose,links].filter(Boolean).join('\
+'); };
       example.addEventListener('click',reveal);
       let touch = null;
       example.addEventListener('touchstart',e=>{touch={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
