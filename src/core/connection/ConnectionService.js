@@ -87,7 +87,7 @@ export class ConnectionService {
       if (!response.ok) throw Error(errors[data.error] || 'De server kon deze handeling niet uitvoeren.');
       return data;
     } catch (error) {
-      if (error instanceof TypeError || error.name==='AbortError') throw Error(errors.service_unavailable);
+      if (error.name==='TypeError' || error.name==='AbortError') throw Error(errors.service_unavailable);
       throw error;
     } finally { clearTimeout(timer); }
   }
