@@ -25,6 +25,7 @@ const CORE = [
   "./src/core/location/LocationTypeRegistry.js?v=0.3.71",
   "./src/core/location/LocationWebSources.js?v=0.3.71",
   "./src/core/location/ReverseGeocodeService.js?v=0.3.71",
+  "./src/core/publication/PublicationLifecycle.js?v=0.3.71",
   "./src/core/settings/SettingsService.js?v=0.3.71",
   "./src/core/skeleton/ContextSuggestions.js?v=0.3.71",
   "./src/core/skeleton/DemoLocationStore.js?v=0.3.71",
