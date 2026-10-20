@@ -101,10 +101,19 @@ export function createShell(root, {
   const brand = root.querySelector('[data-app-brand]');
   const title = root.querySelector('[data-view-title]');
   const status = root.querySelector('[data-location-status]');
+  // Status belongs to the brand area, not the far right of the header.
+  brandButton.after(status);
   const headerActions = root.querySelector('[data-header-actions]');
   const toast = root.querySelector('[data-trigger-toast]');
   const outlet = root.querySelector('[data-view-outlet]');
 
+  // Ensure the header paints above the independently scrolling view.
+  header.style.background = 'var(--sharon-header-background, #fff)';
+  header.style.position = 'relative';
+  header.style.zIndex = '20';
+  header.style.isolation = 'isolate';
+  status.style.position = 'relative';
+  status.style.inset = 'auto';
   const setSearching = () => {
     if (!status?.isConnected) return;
     status.classList.remove('is-ready');
