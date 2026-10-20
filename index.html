@@ -511,6 +511,13 @@
     }
     .app-stage.is-environment{height:var(--sharon-viewport-height,100dvh)!important;min-height:var(--sharon-viewport-height,100dvh)!important}
 
+    /* Keep the complete header stationary: scroll only the content outlet. */
+    body.sharon-shell-active:has(.app-stage[data-view="home"]){height:var(--sharon-viewport-height,100dvh);overflow:hidden}
+    .app-stage[data-view="home"]{height:var(--sharon-viewport-height,100dvh);min-height:0;overflow:hidden}
+    .app-stage[data-view="home"] .app-frame{height:100%;min-height:0;overflow:hidden}
+    .app-stage[data-view="home"] .app-header{position:relative;top:auto;flex:0 0 auto;background:#fff;z-index:30}
+    .app-stage[data-view="home"] .app-view{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;min-height:0;flex:1}
+
     /* Detail scroll owns the scroll position; the outer iOS viewport never does.
        This prevents the fixed logo/title from being scrolled out of view. */
     body.sharon-shell-active.sharon-detail-active{
