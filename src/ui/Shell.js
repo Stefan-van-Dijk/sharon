@@ -4,6 +4,7 @@ import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.71';
 import { syncViewportHeight } from './Viewport.js?v=0.3.71';
 import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.71';
 import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.71';
+import { openPeopleView } from './PeopleView.js?v=0.3.71';
 import { openCardsView } from './CardsView.js?v=0.3.71';
 import { openLocationsView } from './LocationsView.js?v=0.3.71';
 import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.71';
@@ -513,6 +514,12 @@ export function createShell(root, {
       return;
     }
 
+    if (module.id === 'people' && !demoMode) {
+      setHeaderMode('detail', 'Personen', 'people');
+      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle}), {animate: options.animate !== false});
+      return;
+    }
+
     if (module.id === 'cards') {
       await openCards({ animate: options.animate !== false });
       return;
@@ -609,6 +616,10 @@ export function createShell(root, {
         !outlet.querySelector('form') && !document.querySelector('[role="dialog"], .story-layer')
     });
   }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);viewCleanup = renderHome(); });
+
+  if (initialModule === 'people' && !demoMode) {
+    queueMicrotask(() => openModule('people', {animate: false}));
+  }
 
   if (initialModule === 'locations' && initialLocationId) {
     queueMicrotask(() => {

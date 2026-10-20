@@ -1,3 +1,4 @@
+import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.3.71';
 import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.71';
 import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.71';
 import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.71';
@@ -20,6 +21,10 @@ export async function createApp() {
 
   await store.open();
   await settings.load();
+  // Preserve a received code through onboarding, but never redeem it automatically.
+  let connectionNotice = '';
+  try { await captureConnectionLink(store); }
+  catch (error) { connectionNotice = error.message; }
 
   const workspaceState = await demoWorkspace(store);
   const workspace = { testMode: workspaceState.enabled, store: workspaceState.enabled ? createDemoWorkspaceStore(store) : store };
@@ -106,6 +111,8 @@ export async function createApp() {
         });
       }
 
+      if (!workspace.testMode && await new ConnectionService(store).pending()) startModule = 'people';
+
       createShell(root, {
         workspace,
         geocoder,
@@ -118,6 +125,12 @@ export async function createApp() {
         initialModule: startModule,
         initialLocationId: settings.get().onboarding?.firstPlaceId || ''
       });
+
+      if (connectionNotice) {
+        const notice = document.createElement('p');
+        notice.setAttribute('role', 'status'); notice.textContent = connectionNotice;
+        root.querySelector('[data-view-outlet]')?.prepend(notice);
+      }
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

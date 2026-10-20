@@ -52,6 +52,37 @@ export class ObjectStore {
     return this.#db.transaction(name, mode).objectStore(name);
   }
 
+  // Atomically create one credential across tabs; resolve only after commit.
+  async getOrCreateMeta(key, createValue) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve, reject) => {
+      const tx=this.#db.transaction('meta','readwrite');
+      const table=tx.objectStore('meta');
+      const request=table.get(key);
+      let row;
+      request.onsuccess=()=>{
+        try {
+          row=request.result;
+          if(!row) { row={key,value:createValue()}; table.put(row); }
+        } catch(error) { reject(error); tx.abort(); }
+      };
+      tx.oncomplete=()=>resolve(row);
+      tx.onabort=()=>reject(tx.error || new Error('Opslaan is afgebroken.'));
+      tx.onerror=()=>reject(tx.error);
+    });
+  }
+
+  async setMeta(key, value) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve,reject)=>{
+      const tx=this.#db.transaction('meta','readwrite');
+      tx.objectStore('meta').put({key,value});
+      tx.oncomplete=()=>resolve();
+      tx.onabort=()=>reject(tx.error || new Error('Opslaan is afgebroken.'));
+      tx.onerror=()=>reject(tx.error);
+    });
+  }
+
   async get(storeName, key) {
     return requestResult(this.#store(storeName).get(key));
   }
