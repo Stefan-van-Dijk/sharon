@@ -68,7 +68,6 @@ export class ObjectStore {
       };
       tx.oncomplete=()=>resolve(row);
       tx.onabort=()=>reject(tx.error || new Error('Opslaan is afgebroken.'));
-      tx.onerror=()=>reject(tx.error);
     });
   }
 
@@ -79,7 +78,6 @@ export class ObjectStore {
       tx.objectStore('meta').put({key,value});
       tx.oncomplete=()=>resolve();
       tx.onabort=()=>reject(tx.error || new Error('Opslaan is afgebroken.'));
-      tx.onerror=()=>reject(tx.error);
     });
   }
 
@@ -110,7 +108,6 @@ export class ObjectStore {
       }
       tx.oncomplete=()=>resolve();
       tx.onabort=()=>reject(failure||tx.error||new Error('Opslaan is afgebroken.'));
-      tx.onerror=()=>reject(tx.error);
     });
   }
 
