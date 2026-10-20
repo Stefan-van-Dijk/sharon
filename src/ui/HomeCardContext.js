@@ -8,12 +8,11 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
     clearTimeout(timer);
     closeBoard?.(); closeBoard = null; openedId = null;
     host.replaceChildren(); host.hidden = true;
-    if (trigger) trigger.disabled = true;
   };
   const refresh = async () => {
     const run = ++generation;
     clearTimeout(timer);
-    if (document.hidden) { clear(); return; }
+    if (document.hidden) { closeBoard?.(); closeBoard = null; openedId = null; return; }
     try {
       const objects = await store.getAll('objects');
       if (disposed || run !== generation || !host.isConnected) return;
@@ -51,14 +50,14 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
         });
         host.append(button);
       }
-      timer = setTimeout(clear, Math.max(1, point.at + CARD_CONTEXT_MAX_AGE_MS - Date.now()));
-    } catch { if (!disposed && run === generation) clear(); }
+      timer = setTimeout(refresh, Math.max(1, point.at + CARD_CONTEXT_MAX_AGE_MS - Date.now()));
+    } catch { if (!disposed && run === generation) { host.replaceChildren(); if (trigger) trigger.disabled = true; } }
   };
   const openFromTrigger = () => host.querySelector('[data-context-card]')?.click();
   trigger?.addEventListener('click', openFromTrigger);
   const unsubscribe = events.on('location.changed', refresh);
   const offContext = events.on('cards.context.check', refresh);
-  const onVisibility = () => { if (document.hidden) clear(); else refresh(); };
+  const onVisibility = () => { if (document.hidden) { closeBoard?.(); closeBoard = null; openedId = null; } else refresh(); };
   document.addEventListener('visibilitychange', onVisibility);
   refresh();
   return () => {
