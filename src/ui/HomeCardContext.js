@@ -7,7 +7,7 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
     generation++;
     clearTimeout(timer);
     closeBoard?.(); closeBoard = null; openedId = null;
-    host.replaceChildren(); host.hidden = true;
+    host.replaceChildren(); host.hidden = true;\n    if (trigger) trigger.disabled = true;
   };
   const refresh = async () => {
     const run = ++generation;
@@ -55,13 +55,13 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
   };
   const openFromTrigger = () => host.querySelector('[data-context-card]')?.click();
   trigger?.addEventListener('click', openFromTrigger);
-  const unsubscribe = events.on('location.changed', refresh);
+  const unsubscribe = events.on('location.changed', refresh);\n  const offContext = events.on('cards.context.check', refresh);
   const onVisibility = () => { if (document.hidden) clear(); else refresh(); };
   document.addEventListener('visibilitychange', onVisibility);
   refresh();
   return () => {
     if (disposed) return;
-    disposed = true; trigger?.removeEventListener('click', openFromTrigger); unsubscribe();
+    disposed = true; trigger?.removeEventListener('click', openFromTrigger); unsubscribe(); offContext();
     document.removeEventListener('visibilitychange', onVisibility); clear(); if (trigger) trigger.disabled = true;
   };
 }
