@@ -5,10 +5,11 @@ const now = 1_000_000;
 const point = {lat:52,lng:6,accuracy:10,at:now};
 const place = {id:'shop',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:6},radiusM:100}};
 const card = {id:'card',type:'card',name:'Winkelpas',locationId:'shop'};
-test('aankomst geeft een expliciet gekoppelde pas, vertrek en onzekere GPS niet', () => {
+test('aankomst en overlappende GPS-onzekerheid geven een gekoppelde pas, duidelijk vertrek niet', () => {
   assert.equal(suggestCards([place,card],point,now)[0].card.id,'card');
   assert.deepEqual(suggestCards([place,card],{...point,lat:53},now),[]);
-  assert.deepEqual(suggestCards([place,card],{...point,accuracy:101},now),[]);
+  assert.equal(suggestCards([place,card],{...point,accuracy:101},now)[0].card.id,'card');
+  assert.deepEqual(suggestCards([place,card],{...point,lat:53,accuracy:101},now),[]);
   for (const at of [now-120_000, now+1, undefined]) assert.deepEqual(suggestCards([place,card],{...point,at},now),[]);
   for (const lat of [null, undefined, NaN, 91]) assert.deepEqual(suggestCards([place,card],{...point,lat},now),[]);
 });
