@@ -1,11 +1,11 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.67';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.67';
-import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.67';
-import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.67';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.67';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.67';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.67';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.67';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.68';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.68';
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.68';
+import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.68';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.68';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.68';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.68';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.68';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {
@@ -69,7 +69,7 @@ export async function mountSkeletonDemo(root,store,{initialModule='cards',fullSc
           actions:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:operation}]})+(preference.sort==='custom'?renderOrderControls(object.id):'')+'</div>';
        }).join('')+'</div>' : '')+
        (current && (!fullScreen || boardOpen)?'<div class="sh-skeleton-board">'+
-       '<div class="sh-skeleton-boardslide"><button type="button" data-demo-prev aria-label="Vorig object">‹</button><div><small>'+esc(titles[module])+' · '+(index+1)+'/'+list.length+'</small><strong>'+esc(current.title)+'</strong></div><button type="button" data-demo-next aria-label="Volgend object">›</button></div>'+
+       '<div class="sh-skeleton-boardslide"><button type="button" data-demo-prev aria-label="Vorig object">‹</button><div><small>'+esc(titles[module])+'</small><strong>'+esc(current.title)+'</strong></div><button type="button" data-demo-next aria-label="Volgend object">›</button></div>'+
        '<div class="sh-skeleton-boardbuttons"><button type="button" data-demo-expand aria-expanded="'+expanded+'">'+(expanded?'Compact Board':'Board uitbreiden')+'</button></div>'+
        (expanded?'<div class="sh-skeleton-details"><p>Status: '+esc(current.status)+'</p><h3>Relaties</h3>'+
        (links.length?[...new Set(links.map(link=>link.target.module))].map(kind=>'<h4 class="sh-related-heading">'+esc(titles[kind]||kind)+'</h4>'+links.filter(link=>link.target.module===kind).map(link=>'<button type="button" class="sh-skeleton-relation" data-demo-relation="'+esc(link.target.id)+'"><strong>'+esc(link.target.title)+'</strong><span>'+esc(link.label)+'</span></button>').join('')).join(''):'<p>Geen gekoppelde objecten</p>')+

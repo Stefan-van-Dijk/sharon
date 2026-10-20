@@ -6,7 +6,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore}={}) {
   const constrain=()=>{
     const maxHeight=Math.max(180,window.innerHeight-112);
     layout.height=Math.max(Math.min(260,maxHeight),Math.min(maxHeight,layout.height));
-    layout.media=Math.max(96,Math.min(layout.height-110,layout.media));
+    layout.media=Math.max(Math.min(190,layout.height-80),Math.min(layout.height-80,layout.media));
   };
   const apply=()=>{
     constrain();

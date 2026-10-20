@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appHarness, until } from '../helpers/app-harness.mjs';
+import { appHarness, until, dismissCardBoard } from '../helpers/app-harness.mjs';
 const pause=()=>new Promise(resolve=>setTimeout(resolve,25));
 async function setup(t, {multiple=false,blocked=false}={}) {
   const app=await appHarness();
@@ -16,7 +16,7 @@ async function setup(t, {multiple=false,blocked=false}={}) {
 }
 test('pas opent vanzelf, blijft na sluiten dicht, en opent na bevestigd vertrek opnieuw',async t=>{
   const app=await setup(t);
-  (await until(()=>app.document.querySelector('.sh-card-board-overlay [data-close]'))).click();
+  await dismissCardBoard(app);
   app.events.emit('location.changed',app.location.latest);await pause();
   assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
   app.remount();await pause();
