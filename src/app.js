@@ -1,17 +1,17 @@
-import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.68';
-import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.68';
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.68';
-import { EventBus } from './core/events/EventBus.js?v=0.3.68';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.68';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.3.68';
-import { LocationService } from './core/location/LocationService.js?v=0.3.68';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.68';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.68';
-import { InstallService } from './core/app/InstallService.js?v=0.3.68';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.68';
-import { createShell } from './ui/Shell.js?v=0.3.68';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.68';
-import { runStory } from './ui/Story.js?v=0.3.68';
+import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.69';
+import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.69';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.69';
+import { EventBus } from './core/events/EventBus.js?v=0.3.69';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.69';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.3.69';
+import { LocationService } from './core/location/LocationService.js?v=0.3.69';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.69';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.69';
+import { InstallService } from './core/app/InstallService.js?v=0.3.69';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.69';
+import { createShell } from './ui/Shell.js?v=0.3.69';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.69';
+import { runStory } from './ui/Story.js?v=0.3.69';
 
 export async function createApp() {
   const events = new EventBus();

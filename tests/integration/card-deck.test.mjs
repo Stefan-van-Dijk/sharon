@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {appHarness,until,dismissCardBoard} from '../helpers/app-harness.mjs';
 const active=app=>app.document.querySelector('[data-card-board][aria-hidden="false"]');
 function pointer(app,target,type,x,y=250){
@@ -27,6 +28,7 @@ test('real boards form one continuous deck with immediately visible information 
   assert.equal(stack.querySelector('[data-expand]'),null);
   assert.equal(stack.querySelector('[data-close]'),null);
   assert.equal(stack.querySelector('[data-deck-position]'),null);
+  assert.equal(stack.querySelector('nav'),null);
   assert.equal(active(app).querySelector('[data-deck-size="board"]').parentElement,active(app).querySelector('[data-card-media]'));
   assert.equal(active(app).querySelector('[data-deck-size="media"]').parentElement,active(app).querySelector('[data-card-media]'));
   await until(()=>active(app).querySelector('[data-code] title')?.textContent==='code-a');
@@ -40,7 +42,7 @@ test('real boards form one continuous deck with immediately visible information 
   swipe(app,active(app).querySelector('[data-card-media]'));assert.equal(active(app).dataset.cardId,'a','last board wraps to the first');
   assert.equal(stack.querySelectorAll('[data-card-board]:not([hidden])').length,3,'back boards remain present through wrap');
   assert.equal(app.document.querySelectorAll('[role="dialog"]').length,1);
-  active(app).querySelector('[data-previous]').click();assert.equal(active(app).dataset.detailIndex,'1','previous from first wraps to last');
+  swipe(app,active(app).querySelector('[data-card-media]'),false);assert.equal(active(app).dataset.detailIndex,'1','previous from first wraps to last');
   assert.deepEqual(app.errors,[]);
 });
 
@@ -54,6 +56,7 @@ test('pill swipe gathers without moving, then drags the whole deck; both zone si
   close=openCardBoard(cards[0],options);
   const stack=active(app).parentElement;
   assert.equal(active(app).querySelector('[data-distance]').textContent,'Winkel · 0 m');
+  assert.equal(active(app).querySelector('[data-deck-icon]').hasAttribute('hidden'),true);
   location.latest={lat:52.01,lng:6,at:Date.now()};events.emit('location.changed');
   assert.equal(active(app).querySelector('[data-distance]').textContent,'Winkel · 1.1 km');
   const grab=active(app).querySelector('[data-deck-grab]');
@@ -118,4 +121,41 @@ test('delayed generators keep each board code separate and a downward swipe clos
   const media=active(app).querySelector('[data-card-media]');
   pointer(app,media,'pointerdown',200,200);pointer(app,media,'pointermove',200,300);pointer(app,media,'pointerup',200,300);
   assert.equal(active(app),null);assert.deepEqual(app.errors,[]);
+});
+
+test('real generators center enlarged QR, fill the barcode frame and show only the location label when available',async t=>{
+  const app=await appHarness();let close;t.after(()=>{close?.();app.close();});
+  app.window.TextEncoder=TextEncoder;
+  app.window.eval(readFileSync(new URL('../../vendor/qrcode-2.0.4.js',import.meta.url),'utf8'));
+  app.window.eval(readFileSync(new URL('../../vendor/jsbarcode-3.12.1.min.js',import.meta.url),'utf8'));
+  const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
+  const {EventBus}=await app.load('./src/core/events/EventBus.js');const events=new EventBus();
+  const cards=[{id:'qr',name:'QR',codeFormat:'QR_CODE',codeValue:'test-qr',locationId:'place'},
+    {id:'barcode',name:'Barcode',codeFormat:'CODE128',codeValue:'123456789'}];
+  const locations=[{id:'place',data:{title:'Rolde'}}];
+  close=openCardBoard(cards[0],{cards,locations,events});
+  let board=active(app);
+  const qr=await until(()=>board.querySelector('[data-code] svg'));
+  assert.equal(qr.getAttribute('preserveAspectRatio'),'xMidYMid meet','overrides the real QR generator’s top-left alignment');
+  assert.ok(qr.querySelector('path'));
+  assert.equal(board.dataset.codeType,'qr');
+  assert.equal(board.querySelector('[data-deck-icon]').hasAttribute('hidden'),true);
+  assert.equal(board.querySelector('[data-distance]').textContent,'Rolde');
+  assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-grab]')).flexDirection,'row');
+  assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).width,'100%');
+  assert.equal(board.querySelector('nav'),null);
+  swipe(app,board.querySelector('[data-card-media]'));board=active(app);
+  const barcode=await until(()=>board.querySelector('[data-code] svg'));
+  assert.equal(board.dataset.codeType,'barcode');
+  assert.equal(barcode.getAttribute('preserveAspectRatio'),'none');
+  assert.ok(barcode.querySelectorAll('rect').length>20,'the real barcode bars remain present');
+  assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).width,'100%');
+  assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).height,'100%');
+  assert.equal(board.querySelector('[data-deck-icon]').hasAttribute('hidden'),false,'without a location the gathering icon remains available');
+  assert.equal(board.querySelector('[data-distance]').textContent,'');
+  locations[0].data.title='Station';events.emit('location.changed');
+  swipe(app,board.querySelector('[data-card-media]'),false);
+  assert.equal(active(app).querySelector('[data-distance]').textContent,'Station');
+  assert.equal(active(app).querySelector('[data-deck-icon]').hasAttribute('hidden'),true);
+  assert.deepEqual(app.errors,[]);
 });
