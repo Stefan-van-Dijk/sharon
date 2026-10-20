@@ -148,3 +148,49 @@ test('an evicted module is repaired only with matching bytes from the same relea
   await page.reload();await expect(page.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(page)).name).toBe('Behouden pas');
 });
+
+
+test('Home scroll and module return keep header, brand, status and boards in place', async ({page}) => {
+  await page.setViewportSize({width:390,height:600});
+  await install(page);
+  const header = page.locator('[data-app-header]');
+  const outlet = page.locator('[data-view-outlet]');
+  const positions = () => page.evaluate(() =>
+    ['[data-app-header]', '[data-brand-control]', '[data-location-status]', '[data-home-board-stack]']
+      .map(selector => {
+        const box = document.querySelector(selector).getBoundingClientRect();
+        return {x:box.x, y:box.y, width:box.width, height:box.height};
+      }));
+  const before = await positions();
+  await outlet.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect.poll(() => outlet.evaluate(element => element.scrollTop)).toBeGreaterThan(100);
+  // A native wheel gesture must also stay with the content, including at its edge.
+  await outlet.hover();
+  await page.mouse.wheel(0, 800);
+  await page.evaluate(() => window.scrollTo(0, 800));
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const after = await positions();
+  after.forEach((box, index) => {
+    expect(box.x).toBeCloseTo(before[index].x, 1);
+    expect(box.y).toBeCloseTo(before[index].y, 1);
+    expect(box.height).toBeCloseTo(before[index].height, 1);
+  });
+  await outlet.evaluate(element => { element.scrollTop = 0; });
+  await page.locator('[data-module="cards"]').click();
+  await expect(header).toHaveClass(/is-detail/);
+  await expect(header).toHaveCSS('position', 'fixed');
+  await page.locator('[data-brand-control]').click();
+  await expect(page.locator('[data-app-stage]')).toHaveAttribute('data-view', 'home');
+  await expect(outlet).not.toHaveClass(/is-changing/);
+  await expect(header).toHaveCSS('min-height', '92px');
+  await expect.poll(async () => (await header.boundingBox()).height).toBeCloseTo(before[0].height, 1);
+  await outlet.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const returned = await positions();
+  returned.forEach((box, index) => expect(box.y).toBeCloseTo(before[index].y, 1));
+  await page.setViewportSize({width:390,height:844});
+  await expect.poll(() => page.evaluate(() => document.querySelector('[data-app-stage]').getBoundingClientRect().height)).toBe(844);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const top = (await header.boundingBox()).y;
+  await outlet.evaluate(element => { element.scrollTop = 0; });
+  expect((await header.boundingBox()).y).toBeCloseTo(top, 1);
+});

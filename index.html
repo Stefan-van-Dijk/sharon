@@ -2926,6 +2926,34 @@
 .is-card-deck-lifted .sh-card-deck-board[data-depth="2"]{transform:translate(-5px,-5px)}
 .is-card-deck-lifted .sh-card-deck-grab{cursor:grabbing;background:#e8edf5;border-color:#bcc8db}
 @media(prefers-reduced-motion:reduce){.sh-card-zone-stack>.sh-card-deck-board{transition:none}}
+
+    /* Home owns a bounded viewport, just like the module screens. Keep the
+       initial safe-area/header geometry while only the content outlet scrolls. */
+    html:has(body.sharon-shell-active){overflow:hidden}
+    body.sharon-shell-active:has(.app-stage[data-view="home"]),
+    #app:has(.app-stage[data-view="home"]){
+      height:var(--sharon-viewport-height,100dvh);overflow:hidden;
+      overscroll-behavior:none;
+    }
+    body.sharon-shell-active .app-stage[data-view="home"]{
+      height:var(--sharon-viewport-height,100dvh);
+      min-height:var(--sharon-viewport-height,100dvh);
+      max-height:var(--sharon-viewport-height,100dvh);
+      overflow:hidden;
+    }
+    body.sharon-shell-active .app-stage[data-view="home"] .app-frame{
+      height:100%;min-height:0;
+    }
+    .app-stage[data-view="home"] .app-header{
+      position:relative;top:auto;flex-shrink:0;isolation:isolate;
+    }
+    .app-stage[data-view="home"] .app-view{
+      overflow-y:auto;overscroll-behavior-y:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+    .app-stage[data-view="home"] .home-view{
+      flex:1 0 auto;min-height:100%;
+    }
 </style>
 </head>
 <body>
