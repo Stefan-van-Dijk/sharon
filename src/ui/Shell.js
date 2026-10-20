@@ -109,7 +109,9 @@ export function createShell(root, {
 
   // Ensure the header paints above the independently scrolling view.
   header.style.background = 'var(--sharon-header-background, #fff)';
-  header.style.position = 'relative';
+  header.style.position = 'sticky';
+  header.style.top = '0';
+  header.style.flexShrink = '0';
   header.style.zIndex = '20';
   header.style.isolation = 'isolate';
   status.style.position = 'relative';
