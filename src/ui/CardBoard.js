@@ -1,8 +1,8 @@
-import { renderCardCode } from './CardCodes.js?v=0.3.70';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.70';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.70';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.70';
-import { cardSymbol } from './CardSymbols.js?v=0.3.70';
+import { renderCardCode } from './CardCodes.js?v=0.3.71';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.71';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.71';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.71';
+import { cardSymbol } from './CardSymbols.js?v=0.3.71';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -21,7 +21,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
       '<div class="sh-card-media sh-board-photo-header" data-card-media>'+
         '<button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button>'+
         '<div class="sh-card-board-code" data-code></div>'+
-        '<button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts om de boards te verzamelen en sleep daarna het deck" aria-pressed="false"><svg data-deck-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg><span data-distance></span></button>'+
+        '<button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts om de boards te verzamelen en sleep daarna het deck" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span data-distance></span><svg data-deck-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>'+
         '<span class="sh-card-kind-badge sh-board-photo-source" data-card-kind role="img" aria-label="'+esc(kind)+'" title="'+esc(kind)+'">'+cardSymbol(current.cardKind)+'</span>'+
       '<button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van codevlak en informatie aanpassen"></button>'+
       '</div>'+
@@ -42,6 +42,9 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   const distances=()=>nodes.forEach((node,index)=>{
     const text=cardDistanceLabel(model.state.boards[index].card,locations,location?.latest);
     node.querySelector('[data-distance]').textContent=text;
+    node.querySelector('[data-distance]').hidden=!text;
+    node.querySelector('[data-deck-start]').hidden=Boolean(text);
+    node.querySelector('[data-deck-grab]').classList.toggle('is-without-location',!text);
     node.querySelector('[data-deck-icon]').toggleAttribute('hidden',Boolean(text));
     node.querySelector('[data-deck-grab]').setAttribute('aria-label',(text?text+'. ':'')+'Swipe naar rechts om de boards te verzamelen en sleep daarna het deck');
   });
