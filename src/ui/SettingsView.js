@@ -1,11 +1,14 @@
-import {mountGraphInspector} from './GraphInspector.js?v=0.3.74';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.74';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.3.75';
+import {mountGraphInspector} from './GraphInspector.js?v=0.3.75';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.75';
 export function openSettings(root, {
   settings,
   install,
   events,
   settingsStore = null,
-  store = null
+  store = null,
+  onNetworkReset=()=>{},
+  onNetworkStart=()=>{}
 }) {
   const state = settings.get();
   const installState = install.getState();
@@ -30,6 +33,17 @@ export function openSettings(root, {
           <button type="submit" class="settings-save">Bewaar</button>
         </form>
       </section>
+
+      ${store?`<section class="settings-section">
+        <span class="settings-kicker">Netwerkverbinding</span>
+        <button type="button" class="settings-row" data-reset-network>
+          <span><strong>Opnieuw instellen</strong><small>Wis de netwerkverbinding, contacten en chatberichten op dit toestel. Behoud kaarten, locaties en profiel.</small></span><span class="settings-arrow">›</span>
+        </button>
+        <p role="status" aria-live="polite" data-network-status></p>
+        <button type="button" class="settings-row" data-start-network hidden>
+          <span><strong>Eigen netwerk starten</strong><small>Alleen voor de eerste installatie. Andere deelnemers scannen jouw QR.</small></span><span class="settings-arrow">›</span>
+        </button>
+      </section>`:''}
 
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
@@ -91,6 +105,21 @@ export function openSettings(root, {
       </section>
     </section>
   `;
+
+  root.querySelector('[data-reset-network]')?.addEventListener('click',async event=>{
+    if(!window.confirm('Netwerkverbinding opnieuw instellen? De contacten en chatberichten op dit toestel worden gewist. Kaarten, locaties en profiel blijven behouden.'))return;
+    const button=event.currentTarget;button.disabled=true;
+    const status=root.querySelector('[data-network-status]');
+    try {
+      await new ConnectionService(store).resetNetwork();
+      onNetworkReset();
+      if(!status.isConnected)return;
+      status.textContent='Opnieuw ingesteld. Start als eerste je eigen netwerk, of ga terug naar Home en scan de QR van de eigenaar.';
+      root.querySelector('[data-start-network]').hidden=false;
+    } catch(error) { if(status.isConnected)status.textContent=error.message; }
+    finally {if(button.isConnected)button.disabled=false;}
+  });
+  root.querySelector('[data-start-network]')?.addEventListener('click',()=>onNetworkStart());
 
   if (store) {
     const demoToggle = root.querySelector('[data-skeleton-toggle]');
