@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.73';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.74';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -136,6 +136,7 @@ export class ConnectionService {
       {networkId:invitation.networkId,token:invitation.token},d);
     const self=await this.rememberSelf(data.self);
     this.connectedContact=data.contact || null;
+    if(this.connectedContact)await this.restoreContact(this.connectedContact.personId);
     await this.clearPending();
     return self;
   }
@@ -147,14 +148,37 @@ export class ConnectionService {
   async invitationStatus(invitation) {
     return this.request('invite-status',{token:validInvitation(invitation).token},await this.device());
   }
+  contactKey(personId) { return 'connection.contact.'+IdentifierService.assert(personId); }
+  async editContact(personId, name) {
+    name=String(name).trim();
+    if(!name || name.length>80)throw Error('Gebruik een naam van 1 tot 80 tekens.');
+    const key=this.contactKey(personId),old=(await this.store.get('meta',key))?.value || {};
+    await this.store.setMeta(key,{...old,name});
+  }
+  async removeContact(personId) {
+    const key=this.contactKey(personId),old=(await this.store.get('meta',key))?.value || {};
+    await this.store.setMeta(key,{...old,deletedAt:Date.now()});
+  }
+  async restoreContact(personId) {
+    const key=this.contactKey(personId),old=(await this.store.get('meta',key))?.value;
+    if(old?.deletedAt)await this.store.setMeta(key,{...old,deletedAt:null});
+  }
   async contacts({offline=false}={}) {
     const key='connection.contacts.log-json.v1';
-    if (offline) return (await this.store.get('meta',key))?.value || [];
-    const result=await this.request('contacts',{},await this.device());
-    if (!Array.isArray(result.contacts) || result.contacts.some(c=>!IdentifierService.isValid(c.personId)||!IdentifierService.isValid(c.chatId)||typeof c.name!=='string'))
-      throw Error('Ongeldig serverantwoord.');
-    await this.store.put('meta',{key,value:result.contacts});
-    return result.contacts;
+    let contacts;
+    if(offline) contacts=(await this.store.get('meta',key))?.value || [];
+    else {
+      const result=await this.request('contacts',{},await this.device());
+      if (!Array.isArray(result.contacts) || result.contacts.some(c=>!IdentifierService.isValid(c.personId)||!IdentifierService.isValid(c.chatId)||typeof c.name!=='string'))
+        throw Error('Ongeldig serverantwoord.');
+      contacts=result.contacts;
+      await this.store.put('meta',{key,value:contacts});
+    }
+    const visible=await Promise.all(contacts.map(async contact=>{
+      const local=(await this.store.get('meta',this.contactKey(contact.personId)))?.value;
+      return local?.deletedAt?null:{...contact,name:local?.name||contact.name};
+    }));
+    return visible.filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'nl')||a.personId.localeCompare(b.personId));
   }
   async cachedMessages(chatId) {
     return (await this.store.getAll('objects')).filter(o=>o.type==='chat-message'&&o.chatId===chatId)

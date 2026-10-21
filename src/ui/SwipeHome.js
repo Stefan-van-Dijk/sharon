@@ -8,12 +8,15 @@ const clamp = (value, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
 
 export function bindSwipeHome(surface, onHome, {
-  isEnabled = () => true
+  isEnabled = () => true,
+  edgeOnly = () => true,
+  allowHomeRows = () => false
 } = {}) {
   if (!surface) return () => {};
 
   let gesture = null;
   let animating = false;
+  let suppressClickUntil = 0;
 
   const touchPoint = event =>
     event.touches?.[0] || event.changedTouches?.[0] || null;
@@ -27,6 +30,8 @@ export function bindSwipeHome(surface, onHome, {
     // A swipe row owns the full horizontal gesture. A right swipe must
     // restore its position rather than navigate to another page.
     if (target.closest('[data-swipe-row], .sh-sentence-row')) return true;
+
+    if (allowHomeRows() && target.closest('.home-view .module-row')) return false;
 
     return Boolean(target.closest(
       'input,textarea,select,a,button,[contenteditable="true"]'
@@ -117,7 +122,7 @@ export function bindSwipeHome(surface, onHome, {
     const bounds = surface.getBoundingClientRect();
     const xInside = point.clientX - bounds.left;
 
-    if (xInside < 0 || xInside > EDGE_PX) return;
+    if (xInside < 0 || (edgeOnly() && xInside > EDGE_PX)) return;
 
     gesture = {
       startX: point.clientX,
@@ -191,6 +196,7 @@ export function bindSwipeHome(surface, onHome, {
       return;
     }
 
+    suppressClickUntil = performance.now() + 400;
     const forward =
       gesture.progress >= SNAP_PROGRESS ||
       gesture.velocityX >= FLING_VELOCITY;
@@ -226,12 +232,17 @@ export function bindSwipeHome(surface, onHome, {
     animateTo(0, cleanup);
   };
 
+  const suppressClick = event => {
+    if (performance.now() < suppressClickUntil) { event.preventDefault(); event.stopImmediatePropagation(); }
+  };
+  surface.addEventListener?.('click',suppressClick,true);
   document.addEventListener('touchstart', beginGesture, { passive: true });
   document.addEventListener('touchmove', moveGesture, { passive: false });
   document.addEventListener('touchend', endGesture, { passive: true });
   document.addEventListener('touchcancel', cancelGesture, { passive: true });
 
   return () => {
+    surface.removeEventListener?.('click',suppressClick,true);
     document.removeEventListener('touchstart', beginGesture);
     document.removeEventListener('touchmove', moveGesture);
     document.removeEventListener('touchend', endGesture);

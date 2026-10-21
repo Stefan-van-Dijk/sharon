@@ -1,17 +1,17 @@
-import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.73';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.73';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.73';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.73';
-import { openCardBoard } from './CardBoard.js?v=0.3.73';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.73';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.73';
-import { mountCardScanner } from './CardScanner.js?v=0.3.73';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.73';
-import { renderStrip } from './Strip.js?v=0.3.73';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.73';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.73';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.73';
-import { cardSymbol } from './CardSymbols.js?v=0.3.73';
+import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.74';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.74';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.74';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.74';
+import { openCardBoard } from './CardBoard.js?v=0.3.74';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.74';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.74';
+import { mountCardScanner } from './CardScanner.js?v=0.3.74';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.74';
+import { renderStrip } from './Strip.js?v=0.3.74';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.74';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.74';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.74';
+import { cardSymbol } from './CardSymbols.js?v=0.3.74';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -21,7 +21,7 @@ const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
 
-export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection }) {
+export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection, initialScan=null }) {
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
@@ -588,6 +588,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     });
   }
 
-  await showList();
+  if(initialScan) {
+    const existing=(await records()).find(item=>item.codeValue===initialScan.value&&item.codeFormat===initialScan.format);
+    if(existing)await showDetail(existing.id);
+    else await showForm(null,(initialScan.format==='QR_CODE'?parseCardPayload(initialScan.value):null)||initialScan);
+  } else await showList();
   return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }
