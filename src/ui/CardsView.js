@@ -1,17 +1,17 @@
-import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.74';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.74';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.74';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.74';
-import { openCardBoard } from './CardBoard.js?v=0.3.74';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.74';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.74';
-import { mountCardScanner } from './CardScanner.js?v=0.3.74';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.74';
-import { renderStrip } from './Strip.js?v=0.3.74';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.74';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.74';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.74';
-import { cardSymbol } from './CardSymbols.js?v=0.3.74';
+import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.75';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.75';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.75';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.75';
+import { openCardBoard } from './CardBoard.js?v=0.3.75';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.75';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.75';
+import { mountCardScanner } from './CardScanner.js?v=0.3.75';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.75';
+import { renderStrip } from './Strip.js?v=0.3.75';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.75';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.75';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.75';
+import { cardSymbol } from './CardSymbols.js?v=0.3.75';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

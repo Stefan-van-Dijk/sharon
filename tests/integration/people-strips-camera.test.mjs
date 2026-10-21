@@ -16,6 +16,7 @@ test('right swipe from the middle of a Home menu row opens the camera, vertical 
  await app.boot();
  const row=await until(()=>app.document.querySelector('[data-module="cards"]'));
  assert.equal(app.document.querySelector('[data-module="people"]'),null);
+ await app.store.setMeta('connection.pending.log-json.v1',{v:1,kind:'bootstrap',networkId:'Network00001',token:'a'.repeat(43),expiresAt:Date.now()+900000});
  touch(app,row,'touchstart',150);touch(app,row,'touchmove',160,350);touch(app,row,'touchend',160,350);
  assert.equal(app.document.querySelector('[data-scan-video]'),null);
  touch(app,row,'touchstart',150);touch(app,row,'touchmove',335);touch(app,row,'touchend',335);
@@ -88,4 +89,45 @@ test('the central camera routes an ordinary QR to Cards without saving a card or
  const {ConnectionService}=await app.load(modulePath);
  assert.equal((await new ConnectionService(app.store).device()).registered,false);
  assert.deepEqual(app.requests,[]);assert.deepEqual(app.errors,[]);
+});
+
+test('network reset confirms, clears only network state, preserves personal data and identity, and exposes first activation',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ const {ConnectionService}=await app.load(modulePath),service=new ConnectionService(app.store),before=await service.device();
+ await service.rememberSelf({personId:before.personId,name:'Test',networkId:'Network00001',line:0});
+ await app.store.setMeta('connection.contacts.log-json.v1',[{personId:'OtherUser001',chatId:'ChatWith0001',name:'Gast'}]);
+ await app.store.setMeta('connection.cursor.ChatWith0001',12);
+ await app.store.setMeta('connection.pending.log-json.v1',{v:1,kind:'invite',networkId:'Network00001',token:'a'.repeat(43),expiresAt:Date.now()+100000});
+ await service.editContact('OtherUser001','Eigen contactnaam');
+ const kept={id:'PersonalCard',type:'card',name:'Bewaren',codeValue:'123'};
+ await app.store.put('objects',kept);
+ await app.store.put('objects',{id:'OldMessage01',type:'chat-message',chatId:'ChatWith0001',text:'oud bericht'});
+ const settingsBefore=JSON.stringify(await app.store.getAll('settings'));
+ // A pending invitation should not force boot into People in this UI test.
+ const pending=await service.pending();await service.clearPending();
+ await app.boot();
+ (await until(()=>app.document.querySelector('[data-settings]'))).click();
+ const reset=await until(()=>app.document.querySelector('[data-reset-network]'));
+ await service.setPending(pending);
+ app.window.confirm=()=>false;reset.click();
+ assert.equal((await service.device()).registered,true);
+ app.window.confirm=()=>true;reset.click();
+ await until(()=>app.document.querySelector('[data-start-network]')?.hidden===false);
+ const after=await service.device();
+ assert.equal(after.personId,before.personId);assert.equal(after.deviceToken,before.deviceToken);
+ assert.equal(after.registered,false);assert.equal(after.self,null);
+ assert.equal(await service.pending(),null);
+ assert.equal((await service.contacts({offline:true})).length,0);
+ assert.equal((await app.store.getAll('objects')).filter(x=>x.type==='chat-message').length,0);
+ assert.equal(JSON.stringify(await app.store.get('objects',kept.id)),JSON.stringify(kept));
+ assert.equal((await app.store.get('objects','TestPlace001')).type,'location');
+ assert.equal(JSON.stringify(await app.store.getAll('settings')),settingsBefore);
+ assert.ok(await app.store.get('meta','skeleton.demo.enabled'));
+ assert.ok((await app.store.getAll('meta')).filter(x=>x.key.startsWith('connection.')).every(x=>x.key==='connection.device.log-json.v1'));
+ app.document.querySelector('[data-start-network]').click();
+ await until(()=>app.document.querySelector('[data-owner-start]'));
+ app.document.querySelector('[data-brand-control]').click();
+ await until(()=>app.document.querySelector('.home-view'));
+ assert.equal(app.document.querySelector('[data-module="people"]'),null);
+ assert.deepEqual(app.errors,[]);
 });

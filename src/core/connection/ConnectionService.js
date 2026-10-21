@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.74';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.75';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -17,7 +17,7 @@ const errors = {
   identity_exists:'Deze identiteit bestaat al. Bewaar je installatiegegevens en neem contact op met de beheerder.',
   depth_limit:'Nieuwe deelnemers kunnen tot en met de derde uitnodigingslijn worden toegevoegd.',
   capacity:'De eerste 100 plaatsen zijn bezet.',
-  unauthorized:'Deze installatie heeft geen geldige toegang. Neem contact op met de beheerder.',
+  unauthorized:'Deze netwerkverbinding is niet meer geldig. Ga naar Instellingen → Netwerkverbinding om opnieuw te verbinden.',
   invitation_required:'Je identiteit is aangemaakt. Neem eerst een uitnodiging aan.',
   chat_forbidden:'Deze chat is niet toegankelijk.',
   rate_limit:'Even wachten. Probeer het over een minuut opnieuw.',
@@ -111,6 +111,11 @@ export class ConnectionService {
     // Durable write finishes before the registration/activation is reported.
     await this.store.setMeta(KEY,{...d,registered:true,self});
     return self;
+  }
+  async resetNetwork() {
+    await this.device();
+    await this.store.resetConnectionState(KEY);
+    this.connectedContact=null;
   }
   async start(publishKey) {
     if(typeof publishKey!=='string' || publishKey.trim().length<16)throw Error('Vul de bestaande publicatiesleutel in.');

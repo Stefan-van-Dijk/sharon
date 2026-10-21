@@ -97,6 +97,34 @@ niet ingetrokken of gewist. Opnieuw een verbinding via QR maken herstelt
 het contact met dezelfde persoons- en chatidentifier en de eigen contactnaam.
 Deze bediening vraagt alleen een app-update; connections.php verandert niet.
 
+## Opnieuw beginnen na het verwijderen van network-v1.json
+
+Dit bestand bevat het hele centrale netwerk. Contacten en reeds opgehaalde
+berichten kunnen daarna nog zichtbaar zijn uit de lokale appopslag. Het
+verwijderen van het serverbestand stuurt geen wisopdracht naar toestellen.
+Een serveraanvraag kan automatisch alweer een leeg netwerkdocument maken;
+verwijder dat bestand niet steeds opnieuw.
+
+Voor een bewust nieuw netwerk:
+
+1. Werk alle toestellen bij. Sluit andere Sharon-vensters tijdens de reset.
+2. Kies op ieder toestel Instellingen → Netwerkverbinding → Opnieuw instellen.
+   Bevestig het verwijderen van de lokale netwerkgegevens, contacten en
+   chatberichten. Kaarten, locaties, profiel en overige gegevens blijven
+   behouden. De oorspronkelijke lokale persoons-ID en toestelsleutel blijven
+   bestaan, maar zijn nog niet geregistreerd in het nieuwe netwerk.
+3. Kies op het eerste toestel Eigen netwerk starten en activeer met de
+   bestaande publicatiesleutel. De server moet hiervoor nog geen eigenaar
+   hebben; deze knop wist of vervangt geen bestaand servernetwerk.
+4. Toon vanuit Personen een nieuwe verbindings-QR. De overige toestellen
+   scannen die na hun lokale reset om aan het nieuwe netwerk deel te nemen.
+
+De reset wordt in één lokale opslagtransactie uitgevoerd en verwijdert
+alleen connection-metadata en objecten van het type chat-message. Er gaat
+geen wisopdracht naar de server of andere toestellen. Bij ingetrokken of
+onbekende servertoegang verwijst Sharon naar deze instellingen; offline
+zijn is geen aanleiding voor een automatische reset.
+
 ## Het JSON-netwerk
 
 network-v1.json bevat één 12-teken netwerk-ID, de eigenaar, geregistreerde
