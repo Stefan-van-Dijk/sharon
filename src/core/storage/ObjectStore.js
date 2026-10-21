@@ -111,6 +111,29 @@ export class ObjectStore {
     });
   }
 
+  // Reset only the network state in one transaction; personal records and
+  // settings survive. Preserve the local identity and device credential.
+  async resetConnectionState(deviceKey) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve,reject)=>{
+      const tx=this.#db.transaction(['meta','objects'],'readwrite');
+      const meta=tx.objectStore('meta'),objects=tx.objectStore('objects');
+      const metadata=meta.openCursor();
+      metadata.onsuccess=()=>{
+        const cursor=metadata.result;if(!cursor)return;
+        if(String(cursor.key).startsWith('connection.')) {
+          if(cursor.key===deviceKey)cursor.update({...cursor.value,value:{...cursor.value.value,registered:false,self:null}});
+          else cursor.delete();
+        }
+        cursor.continue();
+      };
+      const messages=objects.index('type').openCursor('chat-message');
+      messages.onsuccess=()=>{const cursor=messages.result;if(cursor){cursor.delete();cursor.continue();}};
+      tx.oncomplete=()=>resolve();
+      tx.onabort=()=>reject(tx.error||new Error('Opnieuw instellen is afgebroken.'));
+    });
+  }
+
   async get(storeName, key) {
     return requestResult(this.#store(storeName).get(key));
   }

@@ -262,8 +262,9 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   async function initialize() {
     const pending=await service.pending();
     if(disposed)return;
-    if(pending) { if(initialScreen==='scanned')await receive(pending);else await confirm(pending); }
+    if(initialScreen==='owner-start')await ownerStart();
     else if(initialScreen==='scan'||initialScreen==='camera')scan({autoStart:initialScreen==='camera'});
+    else if(pending) { if(initialScreen==='scanned')await receive(pending);else await confirm(pending); }
     else await home();
   }
   run(initialize);

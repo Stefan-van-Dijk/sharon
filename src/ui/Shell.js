@@ -486,7 +486,9 @@ export function createShell(root, {
       settings,
       install,
       events,
-      store
+      store,
+      onNetworkReset:()=>{networkMember=false;},
+      onNetworkStart:()=>openModule('people',{activate:true})
     }), { animate });
   };
 
@@ -520,7 +522,7 @@ export function createShell(root, {
 
     if (['people','codes'].includes(module.id) && !demoMode) {
       setHeaderMode('detail', 'Personen', 'people');
-      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
+      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.activate?'owner-start':options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
       return;
     }
 
