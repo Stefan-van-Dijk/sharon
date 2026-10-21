@@ -1,6 +1,6 @@
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.71';
-import { mountCardScanner } from './CardScanner.js?v=0.3.71';
-import { renderCardCode } from './CardCodes.js?v=0.3.71';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.72';
+import { mountCardScanner } from './CardScanner.js?v=0.3.72';
+import { renderCardCode } from './CardCodes.js?v=0.3.72';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button{font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-people [data-contacts] button{display:block;width:100%;text-align:left;margin:8px 0}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
@@ -91,6 +91,25 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     showMessages(await service.cachedMessages(contact.chatId),(await service.device()).personId);
     await updateChat();
   }
+  async function ownerStart() {
+    if(disposed)return;screen='owner-start';chat=null;
+    frame('Eigen installatie activeren','<p>Gebruik eenmalig de bestaande publicatiesleutel van Log om jouw startcode te maken.</p>'+
+      '<form data-owner-start><label>Publicatiesleutel<input name="key" type="password" autocomplete="off" minlength="16" required></label>'+
+      '<button type="submit">Maak eenmalige startcode</button></form>'+
+      '<p>De sleutel wordt niet bewaard en komt niet in de QR-code. Je bevestigt de activatie in de volgende stap.</p>',{back:true});
+    root.querySelector('form').addEventListener('submit',event=>{
+      event.preventDefault();
+      const field=event.currentTarget.elements.key;
+      let key=field.value;field.value='';
+      run(async()=>{
+        let invitation;
+        try { invitation=await service.start(key); }
+        finally { key=''; }
+        await service.setPending(invitation);
+        if(!disposed)await confirm(invitation);
+      });
+    });
+  }
   async function invitationScreen() {
     if(disposed)return;screen='invite';chat=null;
     frame('Iemand uitnodigen','<p>Laat de ander eerst in Personen een identiteit aanmaken. Vul daarna diens identiteit in.</p>'+
@@ -163,6 +182,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     frame('Personen','<p data-connection-state></p><p>Jouw identiteit op dit toestel:</p><code data-person-id></code>'+
       '<p>Bewaar deze installatie. Voor dezelfde identiteit op een ander toestel is nog geen overdracht beschikbaar.</p>'+
       '<div class="sh-connection-actions"><button type="button" data-copy-id>Kopieer identiteit</button>'+
+      (!device.registered||self?.line===null?'<button type="button" data-owner-start-button>Eigen installatie activeren</button>':'')+
       (!device.registered?'<button type="button" data-register>Identiteit aanmaken</button>':'')+
       (self?.line!==null&&self?.line!==undefined?'<button type="button" data-invite>Iemand uitnodigen</button>':'')+
       '</div><div data-contacts></div><hr>'+
@@ -178,6 +198,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     root.querySelector('[data-copy-id]').addEventListener('click',()=>run(async()=>{
       await navigator.clipboard.writeText(device.personId);status('Identiteit gekopieerd.');
     }));
+    root.querySelector('[data-owner-start-button]')?.addEventListener('click',()=>run(ownerStart));
     root.querySelector('[data-register]')?.addEventListener('click',()=>run(async()=>{
       self=await service.register(name());await home();
     }));
