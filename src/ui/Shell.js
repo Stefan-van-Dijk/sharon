@@ -1,16 +1,16 @@
-import { mountCardArrival } from './CardArrival.js?v=0.3.72';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.72';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.72';
-import { syncViewportHeight } from './Viewport.js?v=0.3.72';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.72';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.72';
-import { openPeopleView } from './PeopleView.js?v=0.3.72';
-import { openCardsView } from './CardsView.js?v=0.3.72';
-import { openLocationsView } from './LocationsView.js?v=0.3.72';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.72';
-import { openSettings } from './SettingsView.js?v=0.3.72';
-import { sharonWordmark } from './Brand.js?v=0.3.72';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.72';
+import { mountCardArrival } from './CardArrival.js?v=0.3.73';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.73';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.73';
+import { syncViewportHeight } from './Viewport.js?v=0.3.73';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.73';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.73';
+import { openPeopleView } from './PeopleView.js?v=0.3.73';
+import { openCardsView } from './CardsView.js?v=0.3.73';
+import { openLocationsView } from './LocationsView.js?v=0.3.73';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.73';
+import { openSettings } from './SettingsView.js?v=0.3.73';
+import { sharonWordmark } from './Brand.js?v=0.3.73';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.73';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -32,7 +32,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.72';
+const APP_VERSION = '0.3.73';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -53,6 +53,7 @@ export function createShell(root, {
   let currentView = 'home';
   let viewChange = 0;
   let viewCleanup = null;
+  let networkMember = false;
   let demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
   const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
@@ -233,7 +234,7 @@ export function createShell(root, {
       <div class="home-view">
         <section class="sh-home-context" data-home-context aria-label="Passend bij deze plek" aria-live="polite" hidden></section>
         <nav class="module-list" aria-label="Onderdelen">
-          ${MENU_ORDER.map(id => {
+          ${MENU_ORDER.filter(id => id !== 'persons' || demoMode || networkMember).map(id => {
             const moduleId = demoMode ? (MENU_TEST_ID[id] || id) : (id === 'persons' ? 'people' : id);
             const previewOnly = MENU_PREVIEW_ONLY.has(id) || (demoMode && !SKELETON_MODULES.includes(moduleId) && !['environment','locations','cards'].includes(moduleId));
             const title = MENU_TITLES[id];
@@ -472,7 +473,8 @@ export function createShell(root, {
       location,
       events,
       setTitle: setDetailTitle,
-      headerActions
+      headerActions,
+      onConnection: () => openModule('people',{scanned:true})
     }), { animate });
   };
 
@@ -514,9 +516,9 @@ export function createShell(root, {
       return;
     }
 
-    if (module.id === 'people' && !demoMode) {
+    if (['people','codes'].includes(module.id) && !demoMode) {
       setHeaderMode('detail', 'Personen', 'people');
-      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle}), {animate: options.animate !== false});
+      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.scanned?'scanned':module.id==='codes'?'scan':'', onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
       return;
     }
 
@@ -607,7 +609,8 @@ export function createShell(root, {
   });
 
   setHeaderMode('home');
-  demoWorkspace(store).then(({enabled}) => {
+  Promise.all([demoWorkspace(store),store.get('meta','connection.device.log-json.v1')]).then(([{enabled},device]) => {
+    networkMember=device?.value?.registered===true && Number.isInteger(device?.value?.self?.line);
     demoMode=enabled;
     if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
     mountCardArrival({

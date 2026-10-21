@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.72';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.73';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -6,6 +6,7 @@ const KEY = 'connection.device.log-json.v1';
 const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const errors = {
+  invalid_name:'Vul je naam in om verbinding te maken.',
   invalid_publish_key:'De publicatiesleutel is niet geldig.',
   already_activated:'De eigen installatie is al geactiveerd. Gebruik die installatie om iemand uit te nodigen.',
   invalid_invitation:'Deze uitnodiging is ongeldig of voor een andere identiteit bedoeld.',
@@ -28,12 +29,12 @@ function validInvitation(value) {
   if (!value || value.v !== 1 || !['bootstrap','invite'].includes(value.kind) ||
       !IdentifierService.isValid(value.networkId) || !/^[A-Za-z0-9_-]{43}$/.test(value.token) ||
       !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0 ||
-      (value.kind === 'invite' && !IdentifierService.isValid(value.recipientId))) {
+      (value.recipientId !== undefined && !IdentifierService.isValid(value.recipientId))) {
     throw Error('Dit is geen geldige Sharon-verbindingscode.');
   }
   // Only these fields are retained. The server address cannot be set by a QR.
   return {v:1,kind:value.kind,networkId:value.networkId,token:value.token,
-    expiresAt:value.expiresAt,...(value.kind==='invite'?{recipientId:value.recipientId}:{})};
+    expiresAt:value.expiresAt,...(value.recipientId?{recipientId:value.recipientId}:{})};
 }
 export function parseConnectionLink(input) {
   if (typeof input !== 'string' || input.length > 2000) throw Error('Ongeldige verbindingslink.');
@@ -128,19 +129,23 @@ export class ConnectionService {
   async activate(invitation, name) {
     invitation=validInvitation(invitation);
     let d=await this.device();
-    if (invitation.kind==='invite' && invitation.recipientId!==d.personId)
+    if (invitation.recipientId && invitation.recipientId!==d.personId)
       throw Error('Deze uitnodiging is bedoeld voor een andere identiteit. Open hem op het toestel waarop die identiteit is aangemaakt.');
     if (!d.registered) { await this.register(name); d=await this.device(); }
     const data=await this.request(invitation.kind==='bootstrap'?'bootstrap':'accept',
       {networkId:invitation.networkId,token:invitation.token},d);
     const self=await this.rememberSelf(data.self);
+    this.connectedContact=data.contact || null;
     await this.clearPending();
     return self;
   }
   async invite(recipientId) {
-    IdentifierService.assert(recipientId);
-    const result=await this.request('invite',{recipientId},await this.device());
+    if(recipientId) IdentifierService.assert(recipientId);
+    const result=await this.request('invite',recipientId?{recipientId}:{},await this.device());
     return validInvitation(result.invitation);
+  }
+  async invitationStatus(invitation) {
+    return this.request('invite-status',{token:validInvitation(invitation).token},await this.device());
   }
   async contacts({offline=false}={}) {
     const key='connection.contacts.log-json.v1';

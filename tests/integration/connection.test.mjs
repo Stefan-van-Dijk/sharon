@@ -75,13 +75,10 @@ test('two isolated installations bootstrap, bind an invitation, chat, retry a lo
   const cleanup=openPeopleView(host,{store:guest.store,settings:{get:()=>({profile:{name:'Gast'}})}});
   t.after(cleanup);
   const accept=await until(()=>host.querySelector('[data-accept]'));
-  assert.equal(host.querySelector('[data-person-id]').textContent,guestDevice.personId);
   assert.equal((await b.device()).self.line,null,'QR has not silently granted access');
   accept.click();
-  await until(()=>host.querySelector('[data-connection-state]')?.textContent.includes('lijn 1'));
-  await until(()=>host.querySelector('[data-contacts] button')&&!host.querySelector('[data-contacts] button').disabled);
+  await until(()=>host.querySelector('[data-message-form]'));
   assert.equal(await b.pending(),null);
-  host.querySelector('[data-contacts] button').click();
   const form=await until(()=>host.querySelector('[data-message-form]'));
   await until(()=>!form.querySelector('button').disabled);
   form.elements.message.value='Hallo Stefan';
@@ -176,6 +173,7 @@ test('HTTP boundary rejects hostile origins and oversize bodies; concurrent fina
 });
 test('opening and leaving People sends no request and a pending link is stripped before storage',async t=>{
   const app=await appHarness();t.after(()=>app.close());
+  app.window.HTMLMediaElement.prototype.pause=function(){};
   const m=await app.load(servicePath);
   const token='a'.repeat(43),payload={v:1,kind:'bootstrap',networkId:'Network00001',token,expiresAt:Date.now()+10000};
   const link=m.connectionLink(payload);
@@ -188,8 +186,10 @@ test('opening and leaving People sends no request and a pending link is stripped
   assert.deepEqual(order,['strip','store']);assert.equal(stored.value.token,token);
   assert.throws(()=>m.parseConnectionLink(link.replace('stefan-van-dijk.github.io','evil.test')),/Ongeldige/);
   await app.boot();
-  (await until(()=>app.document.querySelector('[data-module="people"]'))).click();
-  await until(()=>app.document.querySelector('[data-register]'));
+  await until(()=>app.document.querySelector('[data-module="codes"]'));
+  assert.equal(app.document.querySelector('[data-module="people"]'),null);
+  app.document.querySelector('[data-module="codes"]').click();
+  await until(()=>app.document.querySelector('[data-scan-close]'));
   app.document.querySelector('[data-brand-control]').click();
   await until(()=>app.document.querySelector('.home-view'));
   assert.deepEqual(app.requests,[]);
@@ -213,7 +213,7 @@ test('existing publication key creates a one-use start code through People and i
   assert.equal(form.elements.key.value,'');
   const accept=await until(()=>host.querySelector('[data-accept]'));
   await until(()=>!accept.disabled);accept.click();
-  await until(()=>host.querySelector('[data-connection-state]')?.textContent==='Eigen installatie geactiveerd.');
+  await until(()=>host.querySelector('[data-invite]'));
   const stored=JSON.stringify(await app.store.getAll('meta'));
   assert.ok(!stored.includes(publishKey));
   assert.ok(!host.innerHTML.includes(publishKey));
@@ -234,4 +234,41 @@ test('switching to the Log JSON relay preserves the local identity but requires 
   assert.equal(device.registered,false);assert.equal(device.self,null);
   assert.equal((await new module.ConnectionService(app.store).device()).personId,old.personId);
   assert.deepEqual(app.requests,[]);
+});
+
+
+test('open QR connects a new installation without registering or entering a peer ID, then enables onward invitations',async t=>{
+  const {endpoint,startLink}=await server(t);
+  const owner=await appHarness(),guest=await appHarness(),other=await appHarness();
+  t.after(()=>{owner.close();guest.close();other.close();});
+  for(const app of [owner,guest,other])attach(app,endpoint);
+  const m=await owner.load(servicePath),g=await guest.load(servicePath),o=await other.load(servicePath);
+  const a=new m.ConnectionService(owner.store),b=new g.ConnectionService(guest.store),c=new o.ConnectionService(other.store);
+  await a.activate(m.parseConnectionLink(startLink),'Stefan');
+  const invitation=await a.invite();
+  assert.equal(invitation.recipientId,undefined);
+  assert.equal((await a.invitationStatus(invitation)).claimed,false);
+  assert.equal((await b.device()).registered,false);
+  await b.setPending(g.parseConnectionLink(m.connectionLink(invitation)));
+  const view=await guest.load('./src/ui/PeopleView.js?v='+version);
+  const host=guest.document.createElement('main');guest.document.body.append(host);
+  let member=false;
+  const cleanup=view.openPeopleView(host,{store:guest.store,settings:{get:()=>({profile:{name:'Gast'}})},initialScreen:'scanned',onMembership:value=>{member=value;}});
+  t.after(cleanup);
+  await until(()=>host.querySelector('[data-message-form]'));
+  assert.equal(member,true);
+  assert.equal((await b.device()).self.line,1);
+  assert.equal((await b.contacts())[0].name,'Stefan');
+  const status=await a.invitationStatus(invitation);
+  assert.equal(status.claimed,true);assert.equal(status.contact.name,'Gast');
+  await assert.rejects(c.activate(invitation,'Ander'));
+  const next=await b.invite();
+  await c.activate(next,'Ander');
+  assert.equal((await c.device()).self.line,2);
+  assert.equal((await c.contacts())[0].personId,(await b.device()).personId);
+  await b.activate(invitation,'Gast');
+  assert.equal((await a.contacts()).length,1);
+  await b.send(status.contact.chatId,'Meteen chatten');
+  assert.equal((await a.sync(status.contact.chatId))[0].text,'Meteen chatten');
+  assert.deepEqual(guest.errors,[]);
 });
