@@ -1,6 +1,6 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.71';
-import { openCardBoard } from './CardBoard.js?v=0.3.71';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.71';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.72';
+import { openCardBoard } from './CardBoard.js?v=0.3.72';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.72';
 
 const VISIT_KEY = 'cards.context.visit';
 

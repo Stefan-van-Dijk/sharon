@@ -1,31 +1,42 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {readFileSync,mkdtempSync,rmSync,mkdirSync,copyFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {resolve,join} from 'node:path';
-import {spawn,execFileSync} from 'node:child_process';
+import {join} from 'node:path';
+import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
+import {createHash} from 'node:crypto';
 import {appHarness,until} from '../helpers/app-harness.mjs';
 
 const version=JSON.parse(readFileSync('package.json')).version;
 const servicePath='./src/core/connection/ConnectionService.js?v='+version;
 async function server(t) {
   const dir=mkdtempSync(join(tmpdir(),'sharon-connection-'));
-  const env={...process.env,SHARON_CONNECTION_DB:join(dir,'connection.sqlite'),PHP_CLI_SERVER_WORKERS:'4'};
-  const setup=execFileSync('php',['server/connection/setup.php'],{env,encoding:'utf8'});
-  const startLink=setup.trim().split('\n').at(-1);
+  const env={...process.env,PHP_CLI_SERVER_WORKERS:'4'};
+  mkdirSync(join(dir,'api'));mkdirSync(join(dir,'private'));
+  copyFileSync('server/connections.php',join(dir,'api/connections.php'));
+  const publishKey='fixture-publication-key-not-for-production';
+  writeFileSync(join(dir,'private/publish-secret.php'),'<?php const LOG_PUBLISH_KEY='+JSON.stringify(publishKey)+';');
   const socket=createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));
   const port=socket.address().port;await new Promise(r=>socket.close(r));
-  const processHandle=spawn('php',['-S','127.0.0.1:'+port,'-t',resolve('server/connection')],{
+  const processHandle=spawn('php',['-S','127.0.0.1:'+port,'-t',join(dir,'api')],{
     env,stdio:'ignore',detached:true
   });
-  const endpoint='http://127.0.0.1:'+port+'/api.php';
+  const endpoint='http://127.0.0.1:'+port+'/connections.php';
   t.after(()=>{
     try{process.kill(-processHandle.pid,'SIGTERM');}catch{}
     rmSync(dir,{recursive:true,force:true});
   });
   for(let i=0;i<100;i++) {
-    try { if((await fetch(endpoint)).ok)return {endpoint,startLink,env}; } catch{}
+    try {
+      if((await fetch(endpoint)).status===422) {
+        const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Log-Publish-Key':publishKey},
+          body:JSON.stringify({protocol:'sharon-network-v1',action:'start'})});
+        const result=await response.json();assert.equal(response.status,200);
+        const startLink='https://stefan-van-dijk.github.io/sharon/#connect='+Buffer.from(JSON.stringify(result.invitation)).toString('base64url');
+        return {endpoint,startLink,dir,publishKey};
+      }
+    } catch{}
     await new Promise(r=>setTimeout(r,30));
   }
   throw Error('PHP connection server did not start');
@@ -33,7 +44,7 @@ async function server(t) {
 function attach(app,endpoint) {
   app.window.TextEncoder=TextEncoder;
   app.window.fetch=async(url,options)=>{
-    assert.equal(String(url),'https://sharon.life/connection/api.php');
+    assert.equal(String(url),'https://sharon.life/log/api/connections.php');
     assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');
     // JSDOM's AbortSignal belongs to another realm; the production URL stays fixed.
     return fetch(endpoint,{...options,signal:undefined});
@@ -43,7 +54,7 @@ function submit(app,selector) {
   app.document.querySelector(selector).dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
 }
 test('two isolated installations bootstrap, bind an invitation, chat, retry a lost reply and reconnect',async t=>{
-  const {endpoint,startLink,env}=await server(t);
+  const {endpoint,startLink,dir,publishKey}=await server(t);
   const owner=await appHarness(),guest=await appHarness();
   t.after(()=>{owner.close();guest.close();});
   attach(owner,endpoint);attach(guest,endpoint);
@@ -117,34 +128,51 @@ test('two isolated installations bootstrap, bind an invitation, chat, retry a lo
   assert.equal(guest.document.querySelector('script[src="x"]'),null);
 });
 test('HTTP boundary rejects hostile origins and oversize bodies; concurrent final invitations reserve only one place',async t=>{
-  const {endpoint,startLink,env}=await server(t);
+  const {endpoint,startLink,dir,publishKey}=await server(t);
   const app=await appHarness();t.after(()=>app.close());attach(app,endpoint);
   const m=await app.load(servicePath),s=new m.ConnectionService(app.store);
   await s.activate(m.parseConnectionLink(startLink),'Eigenaar');
   const own=await s.device();
+  const wrongKey=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Log-Publish-Key':'wrong-key'},
+    body:JSON.stringify({protocol:'sharon-network-v1',action:'start'})});
+  assert.equal(wrongKey.status,401);assert.equal((await wrongKey.json()).error,'invalid_publish_key');
   const post=(data,token=own.deviceToken)=>fetch(endpoint,{method:'POST',headers:{
-    'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(data)});
+    'Content-Type':'application/json','X-Log-Access-Token':token},body:JSON.stringify({protocol:'sharon-network-v1',...data})});
   assert.equal((await fetch(endpoint,{method:'OPTIONS',headers:{Origin:'https://evil.example'}})).status,403);
   assert.equal((await fetch(endpoint,{method:'OPTIONS',headers:{Origin:'https://stefan-van-dijk.github.io',
-    'Access-Control-Request-Headers':'authorization,content-type'}})).status,204);
+    'Access-Control-Request-Headers':'x-log-access-token,x-log-publish-key,content-type'}})).status,204);
   assert.equal((await post({action:'self',padding:'x'.repeat(17000)})).status,413);
   assert.equal((await post({action:'self'},'x'.repeat(43))).status,401);
+  const legacyId='LegacyChat01';
+  const legacyToken='legacy-owner-access-token-with-entropy',memberToken='legacy-member-access-token-with-entropy';
+  const legacy=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Log-Access-Token':legacyToken},
+    body:JSON.stringify({action:'create',id:legacyId,ownerPersonId:'LegacyOwn001',memberPersonId:'LegacyMem001',memberToken,payload:{v:1,data:'opaque-encrypted-content'}})});
+  assert.equal(legacy.status,200);
+  const legacyPath=join(dir,'private/connections',legacyId+'.json'),original=readFileSync(legacyPath,'utf8');
+  const legacyGet=await fetch(endpoint+'?id='+legacyId,{headers:{'X-Log-Access-Token':legacyToken}});
+  assert.equal(legacyGet.status,200);assert.equal((await legacyGet.json()).payload.data,'opaque-encrypted-content');
   const targets=[];
   for(let i=0;i<2;i++) {
     const p={personId:'Candidate00'+i,deviceToken:(i?'b':'a').repeat(43),name:'Kandidaat'};
     assert.equal((await post({action:'register',...p})).status,200);
     targets.push({...p,invite:await s.invite(p.personId)});
   }
-  // Add 99 historical members, including revoked ones, leaving one place.
-  execFileSync('php',['-r',String.raw`
-    require "server/connection/Connection.php";
-    $db=connection_database();
-    $q=$db->prepare("INSERT INTO people(id,name,token_hash,line,status) VALUES(?,?,?,1,?)");
-    for($i=0;$i<99;$i++)$q->execute([sprintf("Filler%06d",$i),"Test",hash("sha256","fixture".$i),$i===0?"revoked":"active"]);
-  `],{env});
+  // Populate a quiescent test fixture, leaving one historical place.
+  const path=join(dir,'private/connections/network-v1.json');
+  const state=JSON.parse(readFileSync(path));
+  for(let i=0;i<99;i++) {
+    const id='Filler'+String(i).padStart(6,'0'),relationId='Grant'+String(i).padStart(7,'0');
+    state.people[id]={id,name:'Test',tokenHash:createHash('sha256').update('fixture'+i).digest('hex')};
+    state.relations[relationId]={id:relationId,type:'grants-access',fromId:own.personId,toId:id,status:i===0?'revoked':'active'};
+  }
+  writeFileSync(path,JSON.stringify(state));
   const results=await Promise.all(targets.map(p=>post({action:'accept',...p.invite},p.deviceToken)));
   assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
   const rejected=await results.find(r=>r.status===409).json();assert.equal(rejected.error,'capacity');
+  assert.equal(readFileSync(legacyPath,'utf8'),original,'network claims must not overwrite Log connection files');
+  const final=JSON.parse(readFileSync(path));
+  assert.equal(Object.values(final.relations).filter(r=>r.type==='grants-access').length,100);
+  assert.equal(Object.values(final.relations).filter(r=>r.type==='chat').length,1);
 });
 test('opening and leaving People sends no request and a pending link is stripped before storage',async t=>{
   const app=await appHarness();t.after(()=>app.close());
@@ -166,4 +194,44 @@ test('opening and leaving People sends no request and a pending link is stripped
   await until(()=>app.document.querySelector('.home-view'));
   assert.deepEqual(app.requests,[]);
   assert.deepEqual(app.errors,[]);
+});
+
+test('existing publication key creates a one-use start code through People and is never stored or shared',async t=>{
+  const {endpoint,publishKey}=await server(t);
+  const app=await appHarness();t.after(()=>app.close());attach(app,endpoint);
+  const sent=[];
+  const request=app.window.fetch;
+  app.window.fetch=async(url,options)=>{sent.push({action:JSON.parse(options.body).action,headers:options.headers});return request(url,options);};
+  const {openPeopleView}=await app.load('./src/ui/PeopleView.js?v='+version);
+  const host=app.document.createElement('main');app.document.body.append(host);
+  const cleanup=openPeopleView(host,{store:app.store,settings:{get:()=>({profile:{name:'Eigenaar'}})}});t.after(cleanup);
+  (await until(()=>host.querySelector('[data-owner-start-button]'))).click();
+  const form=await until(()=>host.querySelector('[data-owner-start]'));
+  await until(()=>!form.querySelector('button').disabled);
+  form.elements.key.value=publishKey;
+  submit(app,'[data-owner-start]');
+  assert.equal(form.elements.key.value,'');
+  const accept=await until(()=>host.querySelector('[data-accept]'));
+  await until(()=>!accept.disabled);accept.click();
+  await until(()=>host.querySelector('[data-connection-state]')?.textContent==='Eigen installatie geactiveerd.');
+  const stored=JSON.stringify(await app.store.getAll('meta'));
+  assert.ok(!stored.includes(publishKey));
+  assert.ok(!host.innerHTML.includes(publishKey));
+  assert.equal(sent.find(r=>r.action==='start').headers['X-Log-Publish-Key'],publishKey);
+  assert.ok(sent.filter(r=>r.action!=='start').every(r=>!r.headers['X-Log-Publish-Key']));
+  const module=await app.load(servicePath),service=new module.ConnectionService(app.store);
+  await assert.rejects(service.start(publishKey),/al geactiveerd/);
+  assert.deepEqual(app.errors,[]);
+});
+
+test('switching to the Log JSON relay preserves the local identity but requires new server admission',async t=>{
+  const app=await appHarness();t.after(()=>app.close());
+  const old={personId:'PersonOld001',deviceToken:'a'.repeat(43),registered:true,self:{line:0,networkId:'OldNetwork01'}};
+  await app.store.setMeta('connection.device.v1',old);
+  const module=await app.load(servicePath),service=new module.ConnectionService(app.store);
+  const device=await service.device();
+  assert.equal(device.personId,old.personId);assert.equal(device.deviceToken,old.deviceToken);
+  assert.equal(device.registered,false);assert.equal(device.self,null);
+  assert.equal((await new module.ConnectionService(app.store).device()).personId,old.personId);
+  assert.deepEqual(app.requests,[]);
 });

@@ -1,10 +1,13 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.71';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.72';
 
-export const CONNECTION_ENDPOINT = 'https://sharon.life/connection/api.php';
-const KEY = 'connection.device.v1';
-const PENDING = 'connection.pending.v1';
+export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
+const PREVIOUS_KEY = 'connection.device.v1';
+const KEY = 'connection.device.log-json.v1';
+const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const errors = {
+  invalid_publish_key:'De publicatiesleutel is niet geldig.',
+  already_activated:'De eigen installatie is al geactiveerd. Gebruik die installatie om iemand uit te nodigen.',
   invalid_invitation:'Deze uitnodiging is ongeldig of voor een andere identiteit bedoeld.',
   invitation_used:'Deze startcode is al gebruikt.',
   invitation_expired:'Deze code is verlopen. Vraag een nieuwe code.',
@@ -63,7 +66,11 @@ export class ConnectionService {
     this.store=store; this.fetcher=fetcher;
   }
   async device() {
+    const previous = await this.store.get('meta',PREVIOUS_KEY);
     const row = await this.store.getOrCreateMeta(KEY, () => {
+      // Preserve the local identity when switching away from the unused SQL relay.
+      // Server admission must be confirmed anew by the shared Log JSON endpoint.
+      if(previous?.value) return {...previous.value,registered:false,self:null};
       const bytes = new Uint8Array(32); crypto.getRandomValues(bytes);
       const deviceToken = btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       return {personId:IdentifierService.create(),deviceToken,registered:false,self:null};
@@ -73,18 +80,22 @@ export class ConnectionService {
   async pending() { return (await this.store.get('meta',PENDING))?.value || null; }
   async setPending(value) { await this.store.put('meta',{key:PENDING,value:validInvitation(value)}); }
   async clearPending() { await this.store.delete('meta',PENDING); }
-  async request(action, input = {}, device = null) {
+  async request(action, input = {}, device = null, publishKey = '') {
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),15000);
     try {
       const response = await this.fetcher(CONNECTION_ENDPOINT, {
         method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
-        headers:{'Content-Type':'application/json',...(device?{Authorization:'Bearer '+device.deviceToken}:{})},
-        body:JSON.stringify({action,...input}),signal:controller.signal
+        headers:{'Content-Type':'application/json',...(device?{'X-Log-Access-Token':device.deviceToken}:{}),...(publishKey?{'X-Log-Publish-Key':publishKey}:{})},
+        body:JSON.stringify({protocol:'sharon-network-v1',action,...input}),signal:controller.signal
       });
       let data;
       try { data = await response.json(); } catch { throw Error(errors.service_unavailable); }
-      if (!response.ok) throw Error(errors[data.error] || 'De server kon deze handeling niet uitvoeren.');
+      if (!response.ok) {
+        if(response.status===422 && String(data.error).includes('ConnectionId'))
+          throw Error('Het bestaande Log-serverbestand connections.php moet nog worden bijgewerkt.');
+        throw Error(errors[data.error] || 'De server kon deze handeling niet uitvoeren.');
+      }
       return data;
     } catch (error) {
       if (error.name==='TypeError' || error.name==='AbortError') throw Error(errors.service_unavailable);
@@ -99,6 +110,10 @@ export class ConnectionService {
     // Durable write finishes before the registration/activation is reported.
     await this.store.setMeta(KEY,{...d,registered:true,self});
     return self;
+  }
+  async start(publishKey) {
+    if(typeof publishKey!=='string' || publishKey.trim().length<16)throw Error('Vul de bestaande publicatiesleutel in.');
+    return validInvitation((await this.request('start',{},null,publishKey.trim())).invitation);
   }
   async register(name) {
     const d = await this.device();
@@ -128,7 +143,7 @@ export class ConnectionService {
     return validInvitation(result.invitation);
   }
   async contacts({offline=false}={}) {
-    const key='connection.contacts.v1';
+    const key='connection.contacts.log-json.v1';
     if (offline) return (await this.store.get('meta',key))?.value || [];
     const result=await this.request('contacts',{},await this.device());
     if (!Array.isArray(result.contacts) || result.contacts.some(c=>!IdentifierService.isValid(c.personId)||!IdentifierService.isValid(c.chatId)||typeof c.name!=='string'))

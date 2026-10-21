@@ -1,16 +1,16 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.71';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.71';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.71';
-import { openCardBoard } from './CardBoard.js?v=0.3.71';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.71';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.71';
-import { mountCardScanner } from './CardScanner.js?v=0.3.71';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.71';
-import { renderStrip } from './Strip.js?v=0.3.71';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.71';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.71';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.71';
-import { cardSymbol } from './CardSymbols.js?v=0.3.71';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.72';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.72';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.72';
+import { openCardBoard } from './CardBoard.js?v=0.3.72';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.72';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.72';
+import { mountCardScanner } from './CardScanner.js?v=0.3.72';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.72';
+import { renderStrip } from './Strip.js?v=0.3.72';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.72';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.72';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.72';
+import { cardSymbol } from './CardSymbols.js?v=0.3.72';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
