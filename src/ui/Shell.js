@@ -1,16 +1,18 @@
-import { mountCardArrival } from './CardArrival.js?v=0.3.75';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.75';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.75';
-import { syncViewportHeight } from './Viewport.js?v=0.3.75';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.75';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.75';
-import { openPeopleView } from './PeopleView.js?v=0.3.75';
-import { openCardsView } from './CardsView.js?v=0.3.75';
-import { openLocationsView } from './LocationsView.js?v=0.3.75';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.75';
-import { openSettings } from './SettingsView.js?v=0.3.75';
-import { sharonWordmark } from './Brand.js?v=0.3.75';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.75';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.76';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.76';
+import { mountCardArrival } from './CardArrival.js?v=0.3.76';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.76';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.76';
+import { syncViewportHeight } from './Viewport.js?v=0.3.76';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.76';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.76';
+import { openPeopleView } from './PeopleView.js?v=0.3.76';
+import { openCardsView } from './CardsView.js?v=0.3.76';
+import { openLocationsView } from './LocationsView.js?v=0.3.76';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.76';
+import { openSettings } from './SettingsView.js?v=0.3.76';
+import { sharonWordmark } from './Brand.js?v=0.3.76';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.76';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -32,7 +34,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.75';
+const APP_VERSION = '0.3.76';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -53,6 +55,14 @@ export function createShell(root, {
   let currentView = 'home';
   let viewChange = 0;
   let viewCleanup = null;
+  const chatMonitor=new ChatMonitor(new ConnectionService(store));
+  let chatState={total:0,error:''};
+  const updatePeopleNotice=()=>{
+    const dot=root.querySelector('[data-people-unread]');
+    if(dot){dot.hidden=!chatState.total;dot.setAttribute('aria-label',chatState.total+' ongelezen berichten');}
+    const error=root.querySelector('[data-people-connection-error]');if(error)error.hidden=!chatState.error;
+  };
+  chatMonitor.subscribe(state=>{chatState=state;updatePeopleNotice();});
   let networkMember = false;
   let demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
@@ -243,7 +253,7 @@ export function createShell(root, {
                 <div class="sh-home-module-line">
                   <span class="sh-home-swipe-reveal" aria-hidden="true">i</span>
                   <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" data-guide-id="${id}" ${previewOnly ? 'data-preview-only="true"' : ''}>
-                    <span>${title}</span></button>
+                    <span>${title}</span>${id==='persons'&&!demoMode?'<span class="sh-notification-dot" data-people-unread role="img" aria-label="Ongelezen berichten" hidden></span><small data-people-connection-error hidden>Geen verbinding</small>':''}</button>
                   
                 </div>
                 <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
@@ -306,6 +316,7 @@ export function createShell(root, {
       }
     });
 
+    updatePeopleNotice();
     outlet.querySelector('[data-settings]').addEventListener('click', () => {
       openSettingsView();
     });
@@ -487,6 +498,7 @@ export function createShell(root, {
       install,
       events,
       store,
+      resetNetwork:()=>chatMonitor.resetNetwork(),
       onNetworkReset:()=>{networkMember=false;},
       onNetworkStart:()=>openModule('people',{activate:true})
     }), { animate });
@@ -522,7 +534,7 @@ export function createShell(root, {
 
     if (['people','codes'].includes(module.id) && !demoMode) {
       setHeaderMode('detail', 'Personen', 'people');
-      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.activate?'owner-start':options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
+      await swapView(() => openPeopleView(outlet, {store, settings, chatMonitor, headerActions, setTitle: setDetailTitle, initialScreen: options.activate?'owner-start':options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
       return;
     }
 
@@ -621,6 +633,7 @@ export function createShell(root, {
   Promise.all([demoWorkspace(store),store.get('meta','connection.device.log-json.v1')]).then(([{enabled},device]) => {
     networkMember=device?.value?.registered===true && Number.isInteger(device?.value?.self?.line);
     demoMode=enabled;
+    if(!demoMode)chatMonitor.start();
     if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
     mountCardArrival({
       store: activeStore(), location, events,

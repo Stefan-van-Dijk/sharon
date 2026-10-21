@@ -111,6 +111,16 @@ export class ObjectStore {
     });
   }
 
+  async advanceChatRead(chatId, seq) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve,reject)=>{
+      const tx=this.#db.transaction('meta','readwrite'),table=tx.objectStore('meta');
+      const key='connection.read.'+chatId,request=table.get(key);
+      request.onsuccess=()=>table.put({key,value:Math.max(request.result?.value||0,seq)});
+      tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error||new Error('Leesstatus bewaren is afgebroken.'));
+    });
+  }
+
   // Reset only the network state in one transaction; personal records and
   // settings survive. Preserve the local identity and device credential.
   async resetConnectionState(deviceKey) {

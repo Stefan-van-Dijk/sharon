@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.75';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.76';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -184,6 +184,23 @@ export class ConnectionService {
       return local?.deletedAt?null:{...contact,name:local?.name||contact.name};
     }));
     return visible.filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'nl')||a.personId.localeCompare(b.personId));
+  }
+  async markRead(chatId,messages) {
+    IdentifierService.assert(chatId);
+    const {personId}=await this.device();
+    const seq=Math.max(0,...messages.filter(m=>m.chatId===chatId&&m.senderId!==personId&&m.delivery==='sent'&&Number.isSafeInteger(m.seq)).map(m=>m.seq));
+    if(seq)await this.store.advanceChatRead(chatId,seq);
+  }
+  async unreadState(contacts=null) {
+    contacts=contacts||await this.contacts({offline:true});
+    const {personId}=await this.device();
+    const read=new Map((await this.store.getAll('meta')).filter(r=>r.key.startsWith('connection.read.')).map(r=>[r.key.slice(16),r.value]));
+    const counts=new Map(contacts.map(c=>[c.chatId,0]));
+    for(const m of await this.store.getAll('objects')) {
+      if(m.type==='chat-message'&&counts.has(m.chatId)&&m.senderId!==personId&&m.delivery==='sent'&&m.seq>(read.get(m.chatId)||0))
+        counts.set(m.chatId,counts.get(m.chatId)+1);
+    }
+    return {contacts:contacts.map(c=>({...c,unread:counts.get(c.chatId)||0})),total:[...counts.values()].reduce((a,b)=>a+b,0)};
   }
   async cachedMessages(chatId) {
     return (await this.store.getAll('objects')).filter(o=>o.type==='chat-message'&&o.chatId===chatId)

@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.3.75';
-import {mountGraphInspector} from './GraphInspector.js?v=0.3.75';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.75';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.3.76';
+import {mountGraphInspector} from './GraphInspector.js?v=0.3.76';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.76';
 export function openSettings(root, {
   settings,
   install,
@@ -8,6 +8,7 @@ export function openSettings(root, {
   settingsStore = null,
   store = null,
   onNetworkReset=()=>{},
+  resetNetwork=null,
   onNetworkStart=()=>{}
 }) {
   const state = settings.get();
@@ -111,7 +112,7 @@ export function openSettings(root, {
     const button=event.currentTarget;button.disabled=true;
     const status=root.querySelector('[data-network-status]');
     try {
-      await new ConnectionService(store).resetNetwork();
+      await (resetNetwork?resetNetwork():new ConnectionService(store).resetNetwork());
       onNetworkReset();
       if(!status.isConnected)return;
       status.textContent='Opnieuw ingesteld. Start als eerste je eigen netwerk, of ga terug naar Home en scan de QR van de eigenaar.';

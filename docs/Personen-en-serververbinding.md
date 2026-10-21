@@ -97,6 +97,28 @@ niet ingetrokken of gewist. Opnieuw een verbinding via QR maken herstelt
 het contact met dezelfde persoons- en chatidentifier en de eigen contactnaam.
 Deze bediening vraagt alleen een app-update; connections.php verandert niet.
 
+## Automatisch verversen en ongelezen berichten
+
+Eén centrale controle werkt zolang de app zichtbaar is. Buiten Chat wordt
+iedere minuut de contactenlijst en nieuwe chatinhoud opgehaald. Bij een
+geopende chat gebeurt dit direct en daarna iedere vijf seconden. Na één
+minuut zonder activiteit wordt dit vijftien seconden; na vijf minuten
+wordt dit dertig seconden. Een nieuw bericht of verzending herstelt de
+snelle controle. Na verzenden wordt direct opnieuw opgehaald. De app pauzeert
+op de achtergrond en ververst direct bij terugkeer. Er is geen handmatige
+verversknop meer en een geslaagde verbinding toont geen statuszin.
+
+Personen heeft een plus in dezelfde kopbediening als andere modules.
+Ongelezen inkomende berichten krijgen een bolletje bij Personen op Home
+en bij de contactstrook. Een eigen bericht geeft geen bolletje. De lokale
+leespositie wordt pas verhoogd voor berichten die in de zichtbare chat
+zijn getoond. Zij blijft behouden na opnieuw openen. Het ophalen van
+berichten buiten Chat maakt ze niet gelezen. Een laat antwoord na het
+verlaten van Chat of verbergen van de app wist de melding niet. De
+leespositie en de ophaalcursor zijn afzonderlijke, monotone tellers.
+Dit zijn meldingen binnen de app; het netwerkprotocol en PHP-bestand
+veranderen hiervoor niet.
+
 ## Opnieuw beginnen na het verwijderen van network-v1.json
 
 Dit bestand bevat het hele centrale netwerk. Contacten en reeds opgehaalde
