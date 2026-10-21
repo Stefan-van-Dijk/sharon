@@ -1,30 +1,35 @@
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.75';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.75';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.75';
-import { mountCardScanner } from './CardScanner.js?v=0.3.75';
-import { renderCardCode } from './CardCodes.js?v=0.3.75';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.76';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.76';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.76';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.76';
+import { mountCardScanner } from './CardScanner.js?v=0.3.76';
+import { renderCardCode } from './CardCodes.js?v=0.3.76';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
-export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,onMembership=()=>{}}) {
-  const service = new ConnectionService(store);
-  let disposed=false, generation=0, scanCleanup=null, poll=null, busy=false, screen='home', chat=null;
+export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,chatMonitor=null,headerActions=null,onMembership=()=>{}}) {
+  const service = chatMonitor?.service || new ConnectionService(store);
+  const monitor=chatMonitor||new ChatMonitor(service);
+  const ownsMonitor=!chatMonitor;
+  let stopChat=null;
+  let disposed=false, generation=0, scanCleanup=null, busy=false, screen='home', chat=null;
   let releaseRows=null;
   let self=null, presented=null, checking=false;
   const joined=()=>self?.line!==null&&self?.line!==undefined;
   const name=()=>settings.get().profile?.name || '';
   function frame(title, body, {back=false}={}) {
     if(disposed)return;
+    stopChat?.();stopChat=null;headerActions?.replaceChildren();
     releaseRows?.();releaseRows=null;
     scanCleanup?.(); scanCleanup=null; generation++;
     setTitle(title);
     root.innerHTML='<style>'+css+'</style><section class="module-view sh-people">'+
       (back?'<button type="button" data-navigation-back>‹ Personen</button>':'')+body+
-      '<p role="status" aria-live="polite" data-status></p></section>';
+      '<p role="status" aria-live="polite" data-status hidden></p></section>';
     root.querySelectorAll('button').forEach(button=>button.disabled=busy);
     root.querySelector('[data-navigation-back]')?.addEventListener('click',()=>run(home));
   }
-  const status = text => { const el=root.querySelector('[data-status]'); if(el&&!disposed)el.textContent=text; };
+  const status = text => { const el=root.querySelector('[data-status]'); if(el&&!disposed){el.textContent=text;el.hidden=!text;} };
   async function run(task) {
     if(busy||disposed)return;
     busy=true;
@@ -42,7 +47,11 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   function showMessages(messages, personId) {
     if(disposed)return;
     const host=root.querySelector('[data-messages]'); if(!host)return;
-    host.replaceChildren();
+    const nearBottom=host.scrollHeight-host.scrollTop-host.clientHeight<60;
+    const scrollTop=host.scrollTop;
+    const revision=JSON.stringify(messages.map(m=>[m.id,m.delivery,m.seq]));
+    if(host.dataset.revision===revision)return;
+    host.dataset.revision=revision;host.replaceChildren();
     for(const m of messages) {
       const article=document.createElement('article'); article.className='sh-chat-message'+(m.senderId===personId?' is-own':'');
       const text=document.createElement('p'); text.textContent=m.text;
@@ -53,27 +62,22 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
       article.append(text,detail);
       if(m.delivery!=='sent') {
         const retry=document.createElement('button');retry.type='button';retry.textContent='Opnieuw proberen';
-        retry.addEventListener('click',()=>run(async()=>{await service.send(chat.chatId,'',m.id);await updateChat();}));
+        retry.addEventListener('click',()=>run(async()=>{await service.send(chat.chatId,'',m.id);monitor.activity();await updateChat();}));
         article.append(retry);
       }
       host.append(article);
     }
     if(!messages.length)host.textContent='Er zijn nog geen berichten.';
-    host.scrollTop=host.scrollHeight;
+    host.scrollTop=nearBottom?host.scrollHeight:scrollTop;
   }
   async function updateChat() {
-    const selected=chat, g=generation;
-    if(disposed||!selected)return;
-    const messages=await service.sync(selected.chatId);
-    if(disposed||generation!==g)return;
-    showMessages(messages,(await service.device()).personId);
-    status('Bijgewerkt.');
+    if(disposed||!chat)return;
+    await monitor.refreshActive();
   }
   async function openChat(contact) {
     if(disposed)return;
     screen='chat';chat=contact;
     frame(contact.name,'<div data-messages class="sh-chat-messages" aria-label="Berichten"></div>'+
-      '<button type="button" data-refresh-chat>Berichten verversen</button>'+
       '<form data-message-form><label>Bericht<textarea name="message" maxlength="4000" rows="3" required></textarea></label>'+
       '<button type="submit">Verstuur</button></form>',{back:true});
     const form=root.querySelector('form');
@@ -89,11 +93,17 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
           showMessages(saved,(await service.device()).personId);
           throw error;
         }
-        await updateChat();
+        monitor.activity();await updateChat();
       });
     });
-    root.querySelector('[data-refresh-chat]').addEventListener('click',()=>run(updateChat));
-    showMessages(await service.cachedMessages(contact.chatId),(await service.device()).personId);
+    const {personId}=await service.device();
+    if(disposed||chat!==contact)return;
+    stopChat=monitor.watchChat(contact.chatId,{onMessages:messages=>showMessages(messages,personId),onError:status});
+    const cached=await service.cachedMessages(contact.chatId);
+    if(disposed||chat!==contact)return;
+    showMessages(cached,personId);
+    if(!document.hidden)await service.markRead(contact.chatId,cached);
+    await monitor.refreshUnread();
     await updateChat();
   }
   async function ownerStart() {
@@ -184,29 +194,32 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
       status('Deze uitnodiging hoort bij een andere identiteit. Open hem op het oorspronkelijke toestel.');
     }
   }
+  function renderContacts(contacts) {
+    if(disposed||screen!=='home'||!joined())return;
+    const host=root.querySelector('[data-contacts]');if(!host)return;
+    releaseRows?.();releaseRows=null;
+    host.innerHTML=contacts.length?contacts.map(contact=>renderObjectStrip({
+      module:'persons',id:contact.personId,title:contact.name,
+      trailingHtml:'<span class="sh-notification-dot" data-contact-unread role="img" aria-label="Ongelezen berichten" '+(contact.unread?'':'hidden')+'></span><span class="sh-location-chevron" aria-hidden="true">›</span>'
+    })).join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
+    const byId=new Map(contacts.map(contact=>[contact.personId,contact]));
+    releaseRows=bindSwipeRows(host,{
+      onOpen:id=>run(()=>openChat(byId.get(id))),
+      onEdit:id=>run(()=>editContact(byId.get(id))),
+      onDelete:id=>run(async()=>{
+        const contact=byId.get(id);
+        if(!window.confirm('Wil je '+contact.name+' uit jouw contacten verwijderen?'))return;
+        await service.removeContact(id);await monitor.refreshUnread();await home();
+      })
+    });
+    if(busy)host.querySelectorAll('button').forEach(button=>button.disabled=true);
+  }
   async function loadContacts() {
     const g=generation;
-    const render=contacts=>{
-      if(disposed||g!==generation)return;
-      const host=root.querySelector('[data-contacts]');if(!host)return;
-      releaseRows?.();releaseRows=null;
-      host.innerHTML=contacts.length?contacts.map(contact=>renderObjectStrip({
-        module:'persons',id:contact.personId,title:contact.name
-      })).join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
-      const byId=new Map(contacts.map(contact=>[contact.personId,contact]));
-      releaseRows=bindSwipeRows(host,{
-        onOpen:id=>run(()=>openChat(byId.get(id))),
-        onEdit:id=>run(()=>editContact(byId.get(id))),
-        onDelete:id=>run(async()=>{
-          const contact=byId.get(id);
-          if(!window.confirm('Wil je '+contact.name+' uit jouw contacten verwijderen?'))return;
-          await service.removeContact(id);await home();
-        })
-      });
-    };
-    render(await service.contacts({offline:true}));
-    render(await service.contacts());
-    if(g===generation)status('Verbonden met Sharon.');
+    await monitor.refreshUnread();
+    const contacts=await service.contacts();
+    if(disposed||g!==generation)return;
+    await monitor.refreshUnread(contacts);monitor.report('');status('');
   }
   async function editContact(contact) {
     if(disposed)return;screen='edit';chat=null;
@@ -243,8 +256,11 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const device=await service.device();self=device.self;
     if(disposed)return;
     if(joined()) {
-      frame('Personen','<button type="button" data-invite>Verbinding maken</button><div data-contacts></div>');
-      root.querySelector('[data-invite]').addEventListener('click',()=>run(invitationScreen));
+      frame('Personen','<div data-contacts></div>');
+      const add=document.createElement('button');add.type='button';add.className='sh-location-header-add';
+      add.dataset.invite='';add.setAttribute('aria-label','Verbinding maken');add.textContent='+';
+      add.addEventListener('click',()=>run(invitationScreen));
+      if(headerActions)headerActions.append(add);else root.querySelector('.sh-people').prepend(add);
       await loadContacts();
     } else {
       frame('Verbinden','<p>Scan de QR-code van iemand in het netwerk om verbinding te maken.</p>'+
@@ -267,17 +283,13 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     else if(pending) { if(initialScreen==='scanned')await receive(pending);else await confirm(pending); }
     else await home();
   }
+  const unsubscribe=monitor.subscribe(state=>{
+    if(screen==='home'&&joined()){renderContacts(state.contacts);status(state.error);}
+  });
+  if(ownsMonitor)monitor.start();
   run(initialize);
-  // Live updates while this view is visible. No requests from Home or demo mode.
-  // 60s interval also bounds traffic on mobile networks.
-  poll=setInterval(()=>{
-    if(disposed||document.hidden||busy)return;
-    if(screen==='invite')run(checkInvitation);
-    else if(screen==='chat')run(updateChat);
-    else if(screen==='home'&&self?.line!==null&&self?.line!==undefined)run(loadContacts);
-  },60000);
   const invitationPoll=setInterval(()=>{
     if(!disposed&&!document.hidden&&!busy&&screen==='invite')run(checkInvitation);
   },3000);
-  return ()=>{disposed=true;generation++;clearInterval(poll);clearInterval(invitationPoll);scanCleanup?.();releaseRows?.();};
+  return ()=>{disposed=true;generation++;clearInterval(invitationPoll);scanCleanup?.();releaseRows?.();stopChat?.();unsubscribe();headerActions?.replaceChildren();if(ownsMonitor)monitor.stop();};
 }

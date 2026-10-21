@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.75">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.75">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.76">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.76">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2863,6 +2863,9 @@
     /* Compact menu: swipe horizontally on a strip for an explanation. */
     .sh-home-module-line .module-row{min-height:58px}
     .sh-home-module-info{display:none!important}
+    .sh-notification-dot{display:inline-block;flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#e65b59;margin-left:10px;vertical-align:middle}
+    .sh-notification-dot[hidden],[data-people-connection-error][hidden]{display:none}
+    [data-people-connection-error]{font-size:12px;color:#a65342;margin-left:10px}
     .sh-module-add{width:42px;height:42px;border:0;background:transparent;color:#202025;font-size:29px;font-weight:300;line-height:1;cursor:pointer}
     .sh-skeleton-screen .sh-skeleton-toolbar{display:none}
     .sh-module-example{width:100%;min-height:70px;border:0;border-bottom:1px solid #ececef;background:transparent;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:left;color:#777;cursor:pointer;padding:12px 1px}
@@ -2976,16 +2979,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.75#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.75#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.75#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.75#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.75#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.76#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.76#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.76#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.76#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.76#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.75"></script>
+  <script type="module" src="./src/main.js?v=0.3.76"></script>
 </body>
 </html>
