@@ -75,6 +75,28 @@ Verdere verzoeken gebruiken een eigen willekeurig installatiegeheim van
 is een verwijzing, geen bewijs van identiteit. Stuur de publicatiesleutel niet
 mee in uitnodigingen en plaats hem niet in GitHub of in een bericht.
 
+## Camera en contactstroken
+
+Veeg op Home van links naar rechts om de camera direct te openen. Dit kan
+ook midden op een menuregel; verticaal scrollen blijft scrollen en naar
+links vegen blijft de uitleg bij die menuregel tonen. Codes blijft als
+bedienbare menuoptie beschikbaar. Binnen modules blijft de bestaande
+terugbeweging gelden en hebben stroken hun eigen veegacties.
+
+De camera herkent een verbindings-QR en opent Verbinden. Andere QR-codes
+of barcodes gaan naar Kaarten: een bestaande kaart wordt geopend, een
+nieuwe code komt in de kaarteditor. Er wordt niet stilzwijgend een pas opgeslagen.
+
+Personen gebruikt dezelfde objectstroken als de andere modules. Tikken
+opent de chat. Naar links vegen toont Bewerk en Verwijder. Bewerken geeft
+een eigen naam aan het contact op dit toestel; de identiteit en de naam
+bij de ander veranderen niet. Verwijderen haalt het contact na bevestiging
+uit deze persoonlijke lijst. De lokale keuze blijft behouden bij verversen
+en opnieuw openen. Netwerktoegang en berichtgeschiedenis worden hierdoor
+niet ingetrokken of gewist. Opnieuw een verbinding via QR maken herstelt
+het contact met dezelfde persoons- en chatidentifier en de eigen contactnaam.
+Deze bediening vraagt alleen een app-update; connections.php verandert niet.
+
 ## Het JSON-netwerk
 
 network-v1.json bevat één 12-teken netwerk-ID, de eigenaar, geregistreerde

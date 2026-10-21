@@ -1,16 +1,16 @@
-import { mountCardArrival } from './CardArrival.js?v=0.3.73';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.73';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.73';
-import { syncViewportHeight } from './Viewport.js?v=0.3.73';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.73';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.73';
-import { openPeopleView } from './PeopleView.js?v=0.3.73';
-import { openCardsView } from './CardsView.js?v=0.3.73';
-import { openLocationsView } from './LocationsView.js?v=0.3.73';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.73';
-import { openSettings } from './SettingsView.js?v=0.3.73';
-import { sharonWordmark } from './Brand.js?v=0.3.73';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.73';
+import { mountCardArrival } from './CardArrival.js?v=0.3.74';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.74';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.74';
+import { syncViewportHeight } from './Viewport.js?v=0.3.74';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.74';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.74';
+import { openPeopleView } from './PeopleView.js?v=0.3.74';
+import { openCardsView } from './CardsView.js?v=0.3.74';
+import { openLocationsView } from './LocationsView.js?v=0.3.74';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.74';
+import { openSettings } from './SettingsView.js?v=0.3.74';
+import { sharonWordmark } from './Brand.js?v=0.3.74';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.74';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -32,7 +32,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.73';
+const APP_VERSION = '0.3.74';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -365,7 +365,8 @@ export function createShell(root, {
         const dx = event.touches[0].clientX - start.x;
         const dy = event.touches[0].clientY - start.y;
         if (!tracking && Math.abs(dy) > Math.abs(dx)) { reset(); return; }
-        if (!tracking && Math.abs(dx) > 9) tracking = true;
+        if (!tracking && dx > 9) { reset(); return; }
+        if (!tracking && dx < -9) tracking = true;
         if (!tracking) return;
         event.preventDefault();
         const distance = Math.min(72, Math.max(0, -dx));
@@ -466,7 +467,7 @@ export function createShell(root, {
     }), { animate });
   };
 
-  const openCards = async ({ animate = true } = {}) => {
+  const openCards = async ({ animate = true, scanned = null } = {}) => {
     setHeaderMode('detail', 'Kaarten', 'cards');
     await swapView(() => openCardsView(outlet, {
       store: activeStore(),
@@ -474,6 +475,7 @@ export function createShell(root, {
       events,
       setTitle: setDetailTitle,
       headerActions,
+      initialScan: scanned,
       onConnection: () => openModule('people',{scanned:true})
     }), { animate });
   };
@@ -518,7 +520,7 @@ export function createShell(root, {
 
     if (['people','codes'].includes(module.id) && !demoMode) {
       setHeaderMode('detail', 'Personen', 'people');
-      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.scanned?'scanned':module.id==='codes'?'scan':'', onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
+      await swapView(() => openPeopleView(outlet, {store, settings, setTitle: setDetailTitle, initialScreen: options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
       return;
     }
 
@@ -604,8 +606,13 @@ export function createShell(root, {
     if (currentView === 'detail') showHome();
   });
 
-  bindSwipeHome(stage, () => navigateBack(), {
-    isEnabled: () => currentView === 'detail'
+  bindSwipeHome(stage, () => {
+    if(currentView==='home') { openHistoryModule('codes');return openModule('codes',{camera:true}); }
+    return navigateBack();
+  }, {
+    isEnabled: () => currentView === 'detail' || !demoMode,
+    edgeOnly: () => currentView !== 'home',
+    allowHomeRows: () => currentView === 'home'
   });
 
   setHeaderMode('home');

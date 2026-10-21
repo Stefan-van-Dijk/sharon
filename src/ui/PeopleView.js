@@ -1,17 +1,21 @@
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.73';
-import { mountCardScanner } from './CardScanner.js?v=0.3.73';
-import { renderCardCode } from './CardCodes.js?v=0.3.73';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.74';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.74';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.74';
+import { mountCardScanner } from './CardScanner.js?v=0.3.74';
+import { renderCardCode } from './CardCodes.js?v=0.3.74';
 
-const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button{font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-people [data-contacts] button{display:block;width:100%;text-align:left;margin:8px 0}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
+const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
-export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onMembership=()=>{}}) {
+export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,onMembership=()=>{}}) {
   const service = new ConnectionService(store);
   let disposed=false, generation=0, scanCleanup=null, poll=null, busy=false, screen='home', chat=null;
+  let releaseRows=null;
   let self=null, presented=null, checking=false;
   const joined=()=>self?.line!==null&&self?.line!==undefined;
   const name=()=>settings.get().profile?.name || '';
   function frame(title, body, {back=false}={}) {
     if(disposed)return;
+    releaseRows?.();releaseRows=null;
     scanCleanup?.(); scanCleanup=null; generation++;
     setTitle(title);
     root.innerHTML='<style>'+css+'</style><section class="module-view sh-people">'+
@@ -117,7 +121,11 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     try {
       const result=await service.invitationStatus(presented);
       if(disposed||g!==generation)return;
-      if(result.claimed) { await service.contacts();if(!disposed&&g===generation)await openChat(result.contact); }
+      if(result.claimed) {
+        await service.restoreContact(result.contact.personId);
+        const contacts=await service.contacts();
+        if(!disposed&&g===generation)await openChat(contacts.find(c=>c.personId===result.contact.personId)||result.contact);
+      }
       else if(result.expired)status('Deze code is verlopen. Maak een nieuwe verbinding.');
     } finally { checking=false; }
   }
@@ -181,21 +189,40 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const render=contacts=>{
       if(disposed||g!==generation)return;
       const host=root.querySelector('[data-contacts]');if(!host)return;
-      host.replaceChildren();
-      if(!contacts.length)host.textContent='Je hebt nog geen contacten. Nodig iemand uit.';
-      for(const contact of contacts) {
-        const button=document.createElement('button');button.type='button';button.textContent=contact.name;
-        button.addEventListener('click',()=>run(()=>openChat(contact)));host.append(button);
-      }
+      releaseRows?.();releaseRows=null;
+      host.innerHTML=contacts.length?contacts.map(contact=>renderObjectStrip({
+        module:'persons',id:contact.personId,title:contact.name
+      })).join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
+      const byId=new Map(contacts.map(contact=>[contact.personId,contact]));
+      releaseRows=bindSwipeRows(host,{
+        onOpen:id=>run(()=>openChat(byId.get(id))),
+        onEdit:id=>run(()=>editContact(byId.get(id))),
+        onDelete:id=>run(async()=>{
+          const contact=byId.get(id);
+          if(!window.confirm('Wil je '+contact.name+' uit jouw contacten verwijderen?'))return;
+          await service.removeContact(id);await home();
+        })
+      });
     };
     render(await service.contacts({offline:true}));
     render(await service.contacts());
     if(g===generation)status('Verbonden met Sharon.');
   }
-  function scan() {
+  async function editContact(contact) {
+    if(disposed)return;screen='edit';chat=null;
+    frame('Persoon bewerken','<form data-contact-form><label>Naam in jouw contacten<input name="name" maxlength="80" required></label>'+
+      '<button type="submit">Opslaan</button></form>',{back:true});
+    const form=root.querySelector('[data-contact-form]');form.elements.name.value=contact.name;
+    form.addEventListener('submit',event=>{
+      event.preventDefault();run(async()=>{await service.editContact(contact.personId,form.elements.name.value);await home();});
+    });
+  }
+  function scan({autoStart=false}={}) {
     if(disposed)return;
     frame('Code scannen','');screen='scan';
-    scanCleanup=mountCardScanner(root,{onClose:()=>run(home),onResult:({value})=>run(async()=>{
+    scanCleanup=mountCardScanner(root,{autoStart,onClose:()=>run(home),onResult:result=>run(async()=>{
+      const {value}=result;
+      if(onCode&&!/#connect=/.test(value)) { await onCode(result);return; }
       frame('Verbinden','<p>Code lezen…</p>');
       const invitation=parseConnectionLink(value);
       await service.setPending(invitation);
@@ -236,7 +263,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const pending=await service.pending();
     if(disposed)return;
     if(pending) { if(initialScreen==='scanned')await receive(pending);else await confirm(pending); }
-    else if(initialScreen==='scan')scan();
+    else if(initialScreen==='scan'||initialScreen==='camera')scan({autoStart:initialScreen==='camera'});
     else await home();
   }
   run(initialize);
@@ -251,5 +278,5 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   const invitationPoll=setInterval(()=>{
     if(!disposed&&!document.hidden&&!busy&&screen==='invite')run(checkInvitation);
   },3000);
-  return ()=>{disposed=true;generation++;clearInterval(poll);clearInterval(invitationPoll);scanCleanup?.();};
+  return ()=>{disposed=true;generation++;clearInterval(poll);clearInterval(invitationPoll);scanCleanup?.();releaseRows?.();};
 }
