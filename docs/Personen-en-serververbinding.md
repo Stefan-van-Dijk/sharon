@@ -32,7 +32,8 @@ niet. Het in GitHub bijwerken van beide repositories bewijst geen live upload.
 
 ## Eerste activatie in de app
 
-1. Open Sharon → Personen → Eigen installatie activeren.
+1. Open Sharon → Codes. Ga via Terug naar Verbinden → Eerste installatie →
+   Eigen installatie activeren. Dit is alleen voor de eerste eigenaar nodig.
 2. Vul eenmalig de bestaande publicatiesleutel van Log in en kies
    Maak eenmalige startcode. De server controleert de sleutel tegen de
    bestaande publish-secret.php. Alleen met die sleutel kan de eigenaar
@@ -42,14 +43,31 @@ niet. Het in GitHub bijwerken van beide repositories bewijst geen live upload.
    code ook als QR tonen en op je eigen andere toestel aannemen. De startcode
    is 15 minuten geldig en kan één installatie eigenaar maken. Alleen vóór
    activatie kan een nieuwe code de vorige vervangen.
-4. Laat de ander in Personen Identiteit aanmaken kiezen en de getoonde
-   12-teken-ID aan jou geven.
-5. Kies Iemand uitnodigen, vul die ID in en deel de uitnodigings-QR of link.
-   De uitnodiging is 24 uur geldig en alleen door de gekozen installatie
-   aan te nemen. De ander bevestigt de verbinding in Personen.
-6. Beide personen kunnen daarna vanuit het contact chatten. Bij een geopende
-   zichtbare module wordt iedere minuut ververst; eerder ophalen kan met
-   Berichten verversen.
+4. Personen verschijnt na activering in het menu. Daar staan alleen de
+   contacten en de knop Verbinding maken. Kies die knop om een QR te tonen.
+5. De ander opent Codes in de eigen Sharon-installatie en scant de QR. Een
+   eigen identiteit en sleutel worden automatisch aangemaakt. De profielnaam
+   wordt uitgewisseld en de chat opent. Ontbreekt een naam, dan wordt die
+   eenmalig gevraagd. Vooraf registreren of een persoons-ID overtypen vervalt.
+6. Het toestel dat de QR toont controleert elke drie seconden of deze is
+   aangenomen, zolang het scherm zichtbaar is. Zodra dat gebeurt opent ook
+   daar de chat. Handmatig controleren kan met Verbinding controleren.
+7. De ander ziet nu ook Personen en kan zelf een verbindings-QR tonen,
+   binnen de bestaande grenzen van 100 deelnemers en drie lijnen.
+
+Een QR is 24 uur geldig en kan door één installatie worden aangenomen.
+De eerste scanner wordt onder hetzelfde exclusieve bestandsslot als de
+netwerktoegang aan de uitnodiging gebonden. Een herhaalde aanvraag van die
+installatie geeft hetzelfde resultaat; een andere installatie wordt geweigerd.
+De QR bevat geen blijvende toegangssleutel. Elk toestel bewaart zijn eigen
+geheim en krijgt daarmee dezelfde mogelijkheden om verbindingen te maken.
+Bestaande, vooraf aan een persoon gebonden uitnodigingen blijven geldig.
+
+Een scan in de app start direct de verbindingsmodule. Een extern geopende
+link vraagt eerst bevestiging. De scanner bij Kaarten herkent de
+verbindings-QR eveneens en opent de verbindingsmodule in plaats van een pas
+te maken. Buiten het netwerk blijft Personen uit het menu; Codes is beschikbaar
+om toe te treden. De bestaande eigenaar behoudt zijn identiteit en activering.
 
 De publicatiesleutel is uitsluitend voor het maken van de eerste startcode.
 Verdere verzoeken gebruiken een eigen willekeurig installatiegeheim van
@@ -155,7 +173,7 @@ sleutel. Een identiteit is hier een installatie, geen geverifieerde unieke
 natuurlijke persoon. Tiqets en andere live bronnen staan los van dit netwerk.
 
 npm run verify controleert de PHP/JSON-toegangsregels en een echte lokale
-PHP-server met twee gescheiden browseropslagen. Inclusief binding aan de
+PHP-server met twee gescheiden browseropslagen. Inclusief eenmalige QR-claims, bestaande binding aan de
 ontvanger, verlopen codes, intrekking, herstel, chat-isolatie, idempotente
 berichten, behoud van bestaande Log-verbindingsbestanden en twee gelijktijdige
 claims op de laatste plaats. De PWA-browsertests controleren daarnaast het

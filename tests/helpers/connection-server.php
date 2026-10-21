@@ -109,4 +109,23 @@ fails(fn()=>$s->handle('send',['chatId'=>$chat,'id'=>LogNetwork::id(),'text'=>'N
 check(file_get_contents($db)===$before);
 file_put_contents($db,'{invalid');
 try{$s->handle('self',[],$owner['deviceToken']);throw new RuntimeException('Corruption was ignored');}catch(JsonException $e){check(file_get_contents($db)==='{invalid');}
+// An open QR is claimed atomically by its first scanner, without a known ID.
+[$qrPath,$qr,$qrStart,$qrOwner]=fixture();
+$open=$qr->handle('invite',[],$qrOwner['deviceToken'])['invitation'];
+check(!isset($open['recipientId']));
+check($qr->handle('invite-status',$open,$qrOwner['deviceToken'])['claimed']===false);
+$a=person($qr,'Alice');$b=person($qr,'Ben');
+fails(fn()=>$qr->handle('accept',$open,$qrOwner['deviceToken']),'invalid_invitation');
+$accepted=$qr->handle('accept',$open,$a['deviceToken']);
+check($accepted['self']['line']===1);
+check($accepted['contact']['personId']===$qrOwner['personId']);
+check($qr->handle('accept',$open,$a['deviceToken'])===$accepted);
+fails(fn()=>$qr->handle('accept',$open,$b['deviceToken']),'invalid_invitation');
+$status=$qr->handle('invite-status',$open,$qrOwner['deviceToken']);
+check($status['claimed']&&$status['contact']['name']==='Alice');
+fails(fn()=>$qr->handle('invite-status',$open,$a['deviceToken']),'invalid_invitation');
+$next=$qr->handle('invite',[],$a['deviceToken'])['invitation'];
+check($qr->handle('accept',$next,$b['deviceToken'])['self']['line']===2);
+$state=json_decode(file_get_contents($qrPath),true);
+check(count(array_filter($state['relations'],fn($r)=>$r['type']==='grants-access'))===2);
 echo json_encode(['checks'=>$checks,'ok'=>true]);

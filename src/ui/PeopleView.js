@@ -1,13 +1,14 @@
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.72';
-import { mountCardScanner } from './CardScanner.js?v=0.3.72';
-import { renderCardCode } from './CardCodes.js?v=0.3.72';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.73';
+import { mountCardScanner } from './CardScanner.js?v=0.3.73';
+import { renderCardCode } from './CardCodes.js?v=0.3.73';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button{font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-people [data-contacts] button{display:block;width:100%;text-align:left;margin:8px 0}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
-export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
+export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onMembership=()=>{}}) {
   const service = new ConnectionService(store);
   let disposed=false, generation=0, scanCleanup=null, poll=null, busy=false, screen='home', chat=null;
-  let self=null;
+  let self=null, presented=null, checking=false;
+  const joined=()=>self?.line!==null&&self?.line!==undefined;
   const name=()=>settings.get().profile?.name || '';
   function frame(title, body, {back=false}={}) {
     if(disposed)return;
@@ -110,30 +111,47 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
       });
     });
   }
+  async function checkInvitation() {
+    if(disposed||screen!=='invite'||!presented||checking)return;
+    checking=true;const g=generation;
+    try {
+      const result=await service.invitationStatus(presented);
+      if(disposed||g!==generation)return;
+      if(result.claimed) { await service.contacts();if(!disposed&&g===generation)await openChat(result.contact); }
+      else if(result.expired)status('Deze code is verlopen. Maak een nieuwe verbinding.');
+    } finally { checking=false; }
+  }
   async function invitationScreen() {
     if(disposed)return;screen='invite';chat=null;
-    frame('Iemand uitnodigen','<p>Laat de ander eerst in Personen een identiteit aanmaken. Vul daarna diens identiteit in.</p>'+
-      '<form data-invite-form><label>Identiteit van de ander<input name="recipient" minlength="12" maxlength="12" pattern="[A-Za-z0-9_-]{12}" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>'+
-      '<button type="submit">Maak uitnodiging</button></form><div data-invitation></div>',{back:true});
-    root.querySelector('form').addEventListener('submit',event=>{
-      event.preventDefault();
-      const id=event.currentTarget.elements.recipient.value.trim();
-      run(async()=>{
-        const invitation=await service.invite(id);
-        if(disposed)return;
-        const url=connectionLink(invitation);
-        const host=root.querySelector('[data-invitation]');if(!host)return;
-        host.innerHTML='<p>Deze uitnodiging werkt alleen voor de gekozen identiteit en is 24 uur geldig.</p>'+
-          '<div data-qr></div><label>Uitnodigingslink<textarea readonly rows="3"></textarea></label>'+
-          '<button type="button" data-copy-invite>Kopieer uitnodiging</button>';
-        host.querySelector('textarea').value=url;
-        host.querySelector('button').addEventListener('click',()=>run(async()=>{
-          await navigator.clipboard.writeText(url);status('Uitnodiging gekopieerd.');
-        }));
-        try { await renderCardCode(host.querySelector('[data-qr]'),'QR_CODE',url); }
-        catch { status('De QR-code kon niet laden. Je kunt de uitnodigingslink gebruiken.'); }
-      });
-    });
+    frame('Verbinding maken','<p>Laat de ander deze QR-code in Sharon scannen. Daarmee geef je toegang en wisselen jullie je naam uit.</p>'+
+      '<div data-qr></div><p data-waiting>Verbinding voorbereiden…</p>'+
+      '<button type="button" data-copy-invite>Kopieer verbindingslink</button>'+
+      '<button type="button" data-check-invite>Verbinding controleren</button>',{back:true});
+    const g=generation;
+    presented=await service.invite();
+    if(disposed||g!==generation)return;
+    const url=connectionLink(presented);
+    root.querySelector('[data-waiting]').textContent='Wachten op de ander. Deze code werkt één keer en is 24 uur geldig.';
+    root.querySelector('[data-copy-invite]').addEventListener('click',()=>run(async()=>{
+      await navigator.clipboard.writeText(url);status('Verbindingslink gekopieerd.');
+    }));
+    root.querySelector('[data-check-invite]').addEventListener('click',()=>run(checkInvitation));
+    try { await renderCardCode(root.querySelector('[data-qr]'),'QR_CODE',url); }
+    catch { status('De QR-code kon niet laden. Je kunt de verbindingslink kopiëren.'); }
+  }
+  async function connect(invitation, displayName=name()) {
+    const g=generation;
+    self=await service.activate(invitation,displayName);
+    onMembership(true);
+    if(disposed||g!==generation)return;
+    if(invitation.kind==='invite') {
+      const contacts=await service.contacts();
+      if(disposed||g!==generation)return;
+      const peer=contacts.find(c=>c.chatId===service.connectedContact?.chatId);
+      if(peer)return openChat(peer);
+      if(contacts.length===1)return openChat(contacts[0]);
+    }
+    await home();
   }
   async function confirm(invitation) {
     if(disposed)return;screen='confirm';chat=null;
@@ -141,20 +159,19 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     if(disposed)return;
     frame('Verbinden', '<h2>'+(invitation.kind==='bootstrap'?'Eigen installatie activeren':'Uitnodiging aannemen')+'</h2>'+
       '<p>Je maakt verbinding met sharon.life. Je naam en identiteit worden daar vastgelegd.</p>'+
-      '<p>Identiteit van dit toestel:</p><code data-person-id></code>'+
+      (!name()?'<label>Jouw naam<input data-display-name maxlength=80 required></label>':'')+
       '<p>Geldig tot <span data-expiry></span>.</p><button type="button" data-accept>Verbinden met Sharon</button>'+
       '<button type="button" data-cancel>Code verwijderen</button>'+
       '<p><button type="button" data-show-start-qr>Toon deze code als QR</button></p><div data-qr></div>',{back:true});
-    root.querySelector('[data-person-id]').textContent=device.personId;
     root.querySelector('[data-expiry]').textContent=new Date(invitation.expiresAt).toLocaleString('nl-NL');
     root.querySelector('[data-accept]').addEventListener('click',()=>run(async()=>{
-      self=await service.activate(invitation,name());if(!disposed)await home();
+      await connect(invitation,root.querySelector('[data-display-name]')?.value.trim()||name());
     }));
     root.querySelector('[data-show-start-qr]').addEventListener('click',()=>run(async()=>{
       await renderCardCode(root.querySelector('[data-qr]'),'QR_CODE',connectionLink(invitation));
     }));
     root.querySelector('[data-cancel]').addEventListener('click',()=>run(async()=>{await service.clearPending();await home();}));
-    if(invitation.kind==='invite'&&invitation.recipientId!==device.personId) {
+    if(invitation.recipientId&&invitation.recipientId!==device.personId) {
       root.querySelector('[data-accept]').hidden=true;
       status('Deze uitnodiging hoort bij een andere identiteit. Open hem op het oorspronkelijke toestel.');
     }
@@ -175,67 +192,64 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{}}) {
     render(await service.contacts());
     if(g===generation)status('Verbonden met Sharon.');
   }
+  function scan() {
+    if(disposed)return;
+    frame('Code scannen','');screen='scan';
+    scanCleanup=mountCardScanner(root,{onClose:()=>run(home),onResult:({value})=>run(async()=>{
+      frame('Verbinden','<p>Code lezen…</p>');
+      const invitation=parseConnectionLink(value);
+      await service.setPending(invitation);
+      await receive(invitation);
+    })});
+    root.querySelector('[data-scan-close]').textContent='‹ Terug';
+  }
+  async function receive(invitation) {
+    // Scanning within Sharon is the deliberate connection action. Opening an
+    // external link still asks for confirmation before exchanging information.
+    if(invitation.kind==='invite'&&name()) {
+      frame('Verbinden','<p>Verbinding maken…</p>');screen='connecting';
+      await connect(invitation);
+    } else await confirm(invitation);
+  }
   async function home() {
-    if(disposed)return;screen='home';chat=null;
+    if(disposed)return;screen='home';chat=null;presented=null;
     const device=await service.device();self=device.self;
     if(disposed)return;
-    frame('Personen','<p data-connection-state></p><p>Jouw identiteit op dit toestel:</p><code data-person-id></code>'+
-      '<p>Bewaar deze installatie. Voor dezelfde identiteit op een ander toestel is nog geen overdracht beschikbaar.</p>'+
-      '<div class="sh-connection-actions"><button type="button" data-copy-id>Kopieer identiteit</button>'+
-      (!device.registered||self?.line===null?'<button type="button" data-owner-start-button>Eigen installatie activeren</button>':'')+
-      (!device.registered?'<button type="button" data-register>Identiteit aanmaken</button>':'')+
-      (self?.line!==null&&self?.line!==undefined?'<button type="button" data-invite>Iemand uitnodigen</button>':'')+
-      '</div><div data-contacts></div><hr>'+
-      '<form data-link-form><label>Startlink of uitnodigingslink<textarea name="link" rows="3" required autocomplete="off"></textarea></label>'+
-      '<button type="submit">Code bekijken</button></form><p><button type="button" data-scan>QR-code scannen</button></p>'+
-      (device.registered?'<button type="button" data-refresh>Verbinding verversen</button>':'')+
-      '<p>Berichten gaan via een beveiligde verbinding. De server kan de inhoud lezen.</p>');
-    root.querySelector('[data-person-id]').textContent=device.personId;
-    root.querySelector('[data-connection-state]').textContent=!device.registered
-      ?'Maak eerst je identiteit aan om een persoonlijke uitnodiging te kunnen ontvangen.'
-      :self?.line===null?'Je identiteit is aangemaakt. Neem een uitnodiging aan.'
-      :self?.line===0?'Eigen installatie geactiveerd.':'Toegang actief · uitnodigingslijn '+self?.line+'.';
-    root.querySelector('[data-copy-id]').addEventListener('click',()=>run(async()=>{
-      await navigator.clipboard.writeText(device.personId);status('Identiteit gekopieerd.');
-    }));
-    root.querySelector('[data-owner-start-button]')?.addEventListener('click',()=>run(ownerStart));
-    root.querySelector('[data-register]')?.addEventListener('click',()=>run(async()=>{
-      self=await service.register(name());await home();
-    }));
-    root.querySelector('[data-invite]')?.addEventListener('click',()=>run(invitationScreen));
-    root.querySelector('[data-refresh]')?.addEventListener('click',()=>run(async()=>{
-      self=await service.refreshSelf();await home();
-    }));
-    root.querySelector('[data-link-form]').addEventListener('submit',event=>{
-      event.preventDefault();
-      const value=event.currentTarget.elements.link.value;
-      run(async()=>{const invitation=parseConnectionLink(value);await service.setPending(invitation);await confirm(invitation);});
-    });
-    root.querySelector('[data-scan]').addEventListener('click',()=>{
-      if(busy)return;
-      generation++;screen='scan';
-      scanCleanup=mountCardScanner(root,{onClose:()=>run(home),onResult:({value})=>run(async()=>{
-        // Restore a screen with a status region before reporting parse errors.
-        await home().catch(error=>status(error.message));const invitation=parseConnectionLink(value);
-        await service.setPending(invitation);await confirm(invitation);
-      })});
-      root.querySelector('[data-scan-close]').textContent='‹ Personen';
-    });
-    if(device.registered&&self?.line!==null)await loadContacts();
+    if(joined()) {
+      frame('Personen','<button type="button" data-invite>Verbinding maken</button><div data-contacts></div>');
+      root.querySelector('[data-invite]').addEventListener('click',()=>run(invitationScreen));
+      await loadContacts();
+    } else {
+      frame('Verbinden','<p>Scan de QR-code van iemand in het netwerk om verbinding te maken.</p>'+
+        '<button type="button" data-scan>QR-code scannen</button>'+
+        '<details><summary>Verbindingslink gebruiken</summary><form data-link-form><label>Verbindingslink<textarea name="link" required></textarea></label><button type="submit">Verbinden</button></form></details>'+
+        '<details><summary>Eerste installatie</summary><button type="button" data-owner-start-button>Eigen installatie activeren</button></details>');
+      root.querySelector('[data-scan]').addEventListener('click',scan);
+      root.querySelector('[data-owner-start-button]').addEventListener('click',()=>run(ownerStart));
+      root.querySelector('[data-link-form]').addEventListener('submit',event=>{
+        event.preventDefault();const value=event.currentTarget.elements.link.value;
+        run(async()=>{const invitation=parseConnectionLink(value);await service.setPending(invitation);await confirm(invitation);});
+      });
+    }
   }
   async function initialize() {
     const pending=await service.pending();
     if(disposed)return;
-    if(pending)await confirm(pending);
+    if(pending) { if(initialScreen==='scanned')await receive(pending);else await confirm(pending); }
+    else if(initialScreen==='scan')scan();
     else await home();
   }
-  initialize().catch(error=>status(error.message));
+  run(initialize);
   // Live updates while this view is visible. No requests from Home or demo mode.
   // 60s interval also bounds traffic on mobile networks.
   poll=setInterval(()=>{
     if(disposed||document.hidden||busy)return;
-    if(screen==='chat')run(updateChat);
+    if(screen==='invite')run(checkInvitation);
+    else if(screen==='chat')run(updateChat);
     else if(screen==='home'&&self?.line!==null&&self?.line!==undefined)run(loadContacts);
   },60000);
-  return ()=>{disposed=true;generation++;clearInterval(poll);scanCleanup?.();};
+  const invitationPoll=setInterval(()=>{
+    if(!disposed&&!document.hidden&&!busy&&screen==='invite')run(checkInvitation);
+  },3000);
+  return ()=>{disposed=true;generation++;clearInterval(poll);clearInterval(invitationPoll);scanCleanup?.();};
 }

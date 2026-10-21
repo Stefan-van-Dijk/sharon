@@ -1,16 +1,17 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.72';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.72';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.72';
-import { openCardBoard } from './CardBoard.js?v=0.3.72';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.72';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.72';
-import { mountCardScanner } from './CardScanner.js?v=0.3.72';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.72';
-import { renderStrip } from './Strip.js?v=0.3.72';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.72';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.72';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.72';
-import { cardSymbol } from './CardSymbols.js?v=0.3.72';
+import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.73';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.73';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.73';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.73';
+import { openCardBoard } from './CardBoard.js?v=0.3.73';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.73';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.73';
+import { mountCardScanner } from './CardScanner.js?v=0.3.73';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.73';
+import { renderStrip } from './Strip.js?v=0.3.73';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.73';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.73';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.73';
+import { cardSymbol } from './CardSymbols.js?v=0.3.73';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -20,7 +21,7 @@ const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
 
-export async function openCardsView(outlet, { store, location, events, setTitle, headerActions }) {
+export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection }) {
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
@@ -154,6 +155,11 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       onClose: showList,
       onResult: async result => {
         stopScanner = null;
+        if(onConnection && /#connect=/.test(result.value)) {
+          const invitation=parseConnectionLink(result.value);
+          await store.put('meta',{key:'connection.pending.log-json.v1',value:invitation});
+          return onConnection();
+        }
         const existing = (await records()).filter(item => item.codeValue === result.value && item.codeFormat === result.format);
         if (existing.length === 1) return showDetail(existing[0].id);
         const shared = result.format === 'QR_CODE' ? parseCardPayload(result.value) : null;
