@@ -280,11 +280,44 @@ test('compact contact reference resolves encrypted invitation and still establis
   const m=await owner.load(servicePath),g=await guest.load(servicePath);
   const a=new m.ConnectionService(owner.store),b=new g.ConnectionService(guest.store);
   await a.activate(m.parseConnectionLink(startLink),'Eigenaar');
-  const invitation=await a.invite(),ref=await a.compactInvitation(invitation),url=m.connectionLink(ref);
+  // Keep codes from v0.3.78 readable after switching the new QR to a bare ID.
+  const {sealInvitation}=await owner.load('./src/core/connection/InvitationReference.js?v='+version);
+  const invitation=await a.invite(),sealed=await sealInvitation(invitation);
+  const ref={kind:'reference',id:'LegacyRef001',key:sealed.key};
+  await a.request('invitation-publish',{id:ref.id,token:invitation.token,payload:sealed.payload},await a.device());
+  const url=m.connectionLink(ref);
   assert.ok(url.length<130);assert.ok(!url.includes(invitation.token));
   await b.setPending(g.parseConnectionLink(url));
   assert.equal((await b.pending()).token,invitation.token);
   await b.activate(await b.pending(),'Gast');
   assert.equal((await a.invitationStatus(invitation)).claimed,true);
   assert.equal((await b.contacts())[0].name,'Eigenaar');
+});
+
+test('a twelve-character contact code scans inside Sharon, binds one recipient, and supports an acknowledgement retry',async t=>{
+  const {endpoint,startLink}=await server(t);
+  const owner=await appHarness(),guest=await appHarness(),other=await appHarness();
+  t.after(()=>{owner.close();guest.close();other.close();});
+  for(const app of [owner,guest,other])attach(app,endpoint);
+  const m=await owner.load(servicePath),g=await guest.load(servicePath),o=await other.load(servicePath);
+  const a=new m.ConnectionService(owner.store),b=new g.ConnectionService(guest.store),c=new o.ConnectionService(other.store);
+  await a.activate(m.parseConnectionLink(startLink),'Eigenaar');
+  const invitation=await a.invite(),code=await a.compactInvitation(invitation),raw=m.connectionLink(code);
+  assert.match(raw,/^[A-Za-z0-9_-]{12}$/);
+  assert.equal(await b.isConnectionScan({format:'QR_CODE',value:raw}),true);
+  assert.equal(await b.isConnectionScan({format:'QR_CODE',value:'NormalCard01'}),false);
+  assert.equal((await a.invitationStatus(invitation)).claimed,false);
+  assert.equal((await b.device()).registered,false,'checking a code does not register or claim');
+  await b.setPending(g.parseConnectionLink(raw));
+  assert.equal((await b.pending()).token,undefined);
+  const {openPeopleView}=await guest.load('./src/ui/PeopleView.js?v='+version);
+  const root=guest.document.createElement('main');guest.document.body.append(root);
+  const stop=openPeopleView(root,{store:guest.store,settings:{get:()=>({profile:{name:'Gast'}})},initialScreen:'scanned'});t.after(stop);
+  await until(()=>root.querySelector('[data-message-form]'));
+  assert.equal((await a.invitationStatus(invitation)).claimed,true);
+  assert.equal((await b.contacts())[0].name,'Eigenaar');
+  await b.activate(g.parseConnectionLink(raw),'Gast');
+  await assert.rejects(c.activate(o.parseConnectionLink(raw),'Ander'));
+  assert.equal((await a.contacts()).length,1);
+  assert.deepEqual(guest.errors,[]);
 });

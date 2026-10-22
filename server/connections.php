@@ -122,6 +122,11 @@ final class LogNetwork {
     }
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
+            if ($action==='invite-code-check') {
+                $id=self::validId($in['id'] ?? null);
+                // Reveal only whether this is a contact code, never the invitation.
+                return ['valid'=>isset($this->state['invitationCodes'][hash('sha256',$id)])];
+            }
             if ($action==='invitation-resolve') {
                 $id=self::validId($in['id'] ?? null);
                 $link=$this->state['invitationLinks'][$id] ?? null;
@@ -143,9 +148,16 @@ final class LogNetwork {
                 return ['self'=>$this->selfData($this->person($in['deviceToken']))];
             }
             $p=$this->person($auth); $pid=$p['id'];
-            if ($action==='bootstrap' || $action==='accept') {
-                if (self::validId($in['networkId'] ?? null)!==$this->state['id']) throw new LogNetworkError('wrong_network',403);
-                $hash=self::hashToken($in['token'] ?? null);
+            if ($action==='bootstrap' || $action==='accept' || $action==='accept-code') {
+                if ($action==='accept-code') {
+                    $code=$this->state['invitationCodes'][hash('sha256',self::validId($in['id'] ?? null))] ?? null;
+                    if (!$code) throw new LogNetworkError('invalid_invitation',403);
+                    if ($code['until']<=$this->now()) throw new LogNetworkError('invitation_expired',410);
+                    $hash=$code['invitationHash'];
+                } else {
+                    if (self::validId($in['networkId'] ?? null)!==$this->state['id']) throw new LogNetworkError('wrong_network',403);
+                    $hash=self::hashToken($in['token'] ?? null);
+                }
                 if ($action==='bootstrap') {
                     $start=$this->state['bootstrap'];
                     if (!$start || !hash_equals($start['hash'],$hash)) throw new LogNetworkError('invalid_invitation',403);
@@ -177,7 +189,7 @@ final class LogNetwork {
                     }
                 }
                 $contact=null;
-                if ($action==='accept') foreach ($this->state['relations'] as $r) {
+                if ($action!=='bootstrap') foreach ($this->state['relations'] as $r) {
                     if ($r['type']==='chat' && in_array($pid,[$r['fromId'],$r['toId']],true) &&
                         in_array($issuer['id'],[$r['fromId'],$r['toId']],true))
                         $contact=['chatId'=>$r['id'],'personId'=>$issuer['id'],'name'=>$issuer['name']];
@@ -207,6 +219,16 @@ final class LogNetwork {
                 $this->state['invitations'][self::hashToken($token)]=['issuerId'=>$pid,'recipientId'=>$recipient,'until'=>$until,'claimedAt'=>null];
                 return ['invitation'=>['v'=>1,'kind'=>'invite','networkId'=>$this->state['id'],
                     'token'=>$token,'expiresAt'=>$until*1000,...($recipient ? ['recipientId'=>$recipient] : [])]];
+            }
+            if ($action==='invite-code') {
+                $hash=self::hashToken($in['token'] ?? null);
+                $invite=$this->state['invitations'][$hash] ?? null;
+                if (!$invite || $invite['issuerId']!==$pid || $invite['until']<=$this->now() || $invite['claimedAt']!==null) throw new LogNetworkError('invalid_invitation',403);
+                foreach ($this->state['invitationCodes'] ?? [] as $key=>$code) if ($code['until']<=$this->now()) unset($this->state['invitationCodes'][$key]);
+                if (count($this->state['invitationCodes'] ?? [])>=10000) throw new LogNetworkError('capacity',409);
+                do { $id=self::id(); $codeHash=hash('sha256',$id); } while (isset($this->state['invitationCodes'][$codeHash]));
+                $this->state['invitationCodes'][$codeHash]=['invitationHash'=>$hash,'until'=>$invite['until']];
+                return ['id'=>$id];
             }
             if ($action==='invitation-publish') {
                 $id=self::validId($in['id'] ?? null);

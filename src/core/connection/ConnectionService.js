@@ -1,5 +1,5 @@
-import { isInvitationReference, sealInvitation, unsealInvitation } from './InvitationReference.js?v=0.3.78';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.78';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.79';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.79';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -30,6 +30,7 @@ const errors = {
 };
 
 function validInvitation(value) {
+  if(value?.kind==='code' && IdentifierService.isValid(value.id))return {kind:'code',id:value.id};
   if (!value || value.v !== 1 || !['bootstrap','invite'].includes(value.kind) ||
       !IdentifierService.isValid(value.networkId) || !/^[A-Za-z0-9_-]{43}$/.test(value.token) ||
       !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0 ||
@@ -42,10 +43,12 @@ function validInvitation(value) {
 }
 export function parseConnectionLink(input) {
   if (typeof input !== 'string' || input.length > 2000) throw Error('Ongeldige verbindingslink.');
+  if(IdentifierService.isValid(input.trim()))return {kind:'code',id:input.trim()};
   let url;
-  try { url = new URL(input.trim()); } catch { throw Error('Plak de volledige Sharon-verbindingslink.'); }
+  try { url = new URL(input.trim()); } catch { throw Error('Gebruik een contactcode van 12 tekens of een volledige Sharon-verbindingslink.'); }
   if (!['https://stefan-van-dijk.github.io','https://sharon.life','https://www.sharon.life'].includes(url.origin) ||
       url.username || url.password || !/^#connect=[A-Za-z0-9_.-]+$/.test(url.hash)) throw Error('Ongeldige verbindingslink.');
+  if(IdentifierService.isValid(url.hash.slice(9)))return {kind:'code',id:url.hash.slice(9)};
   const parts=url.hash.slice(9).split('.');
   if(parts.length===2){
     const reference={kind:'reference',id:parts[0],key:parts[1]};
@@ -59,6 +62,7 @@ export function parseConnectionLink(input) {
   } catch { throw Error('Dit is geen geldige Sharon-verbindingscode.'); }
 }
 export function connectionLink(invitation) {
+  if(invitation?.kind==='code')return validInvitation(invitation).id;
   if(isInvitationReference(invitation))return APP_URL+'#connect='+invitation.id+'.'+invitation.key;
   const value = validInvitation(invitation);
   return APP_URL+'#connect='+btoa(JSON.stringify(value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -99,10 +103,17 @@ export class ConnectionService {
   }
   async compactInvitation(invitation) {
     if(invitation.kind!=='invite')return invitation;
-    const {key,payload}=await sealInvitation(validInvitation(invitation));
-    const id=IdentifierService.create();
-    await this.request('invitation-publish',{id,token:invitation.token,payload},await this.device());
-    return {kind:'reference',id,key};
+    const result=await this.request('invite-code',{token:validInvitation(invitation).token},await this.device());
+    return validInvitation({kind:'code',id:result.id});
+  }
+  async isConnectionScan({value,format}) {
+    if(/#connect=/.test(value))return true;
+    if(format!=='QR_CODE'||!IdentifierService.isValid(value))return false;
+    // Other twelve-character card QR codes must keep their normal card flow.
+    // This probe returns no personal data and never claims the invitation.
+    const result=await this.request('invite-code-check',{id:value});
+    if(typeof result.valid!=='boolean')throw Error('Ongeldig serverantwoord.');
+    return result.valid===true;
   }
   async clearPending() { await this.store.delete('meta',PENDING); }
   async request(action, input = {}, device = null, publishKey = '') {
@@ -161,8 +172,10 @@ export class ConnectionService {
     if (invitation.recipientId && invitation.recipientId!==d.personId)
       throw Error('Deze uitnodiging is bedoeld voor een andere identiteit. Open hem op het toestel waarop die identiteit is aangemaakt.');
     if (!d.registered) { await this.register(name); d=await this.device(); }
-    const data=await this.request(invitation.kind==='bootstrap'?'bootstrap':'accept',
-      {networkId:invitation.networkId,token:invitation.token},d);
+    const data=invitation.kind==='code'
+      ? await this.request('accept-code',{id:invitation.id},d)
+      : await this.request(invitation.kind==='bootstrap'?'bootstrap':'accept',
+        {networkId:invitation.networkId,token:invitation.token},d);
     const self=await this.rememberSelf(data.self);
     this.connectedContact=data.contact || null;
     if(this.connectedContact)await this.restoreContact(this.connectedContact.personId);
