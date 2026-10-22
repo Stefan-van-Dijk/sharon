@@ -1,6 +1,6 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.78';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.78';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.78';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.79';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.79';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.79';
 
 export async function saveReceivedCard(store,message) {
   const card=parseCardPayload(message.text);

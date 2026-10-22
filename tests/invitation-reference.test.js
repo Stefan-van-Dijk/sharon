@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import {sealInvitation,unsealInvitation} from '../src/core/connection/InvitationReference.js';
 import {connectionLink,parseConnectionLink} from '../src/core/connection/ConnectionService.js';
 test('compact contact QR has an identifier and secret; only the correct key opens the invitation',async()=>{
@@ -15,4 +17,15 @@ test('compact contact QR has an identifier and secret; only the correct key open
   const changed={...sealed.payload,data:(sealed.payload.data[0]==='a'?'b':'a')+sealed.payload.data.slice(1)};
   await assert.rejects(unsealInvitation(reference,changed));
   assert.deepEqual(parseConnectionLink(connectionLink(invitation)),invitation);
+});
+
+test('new contact QR serializes only the twelve-character identifier',()=>{
+  const code={kind:'code',id:'ContactCode1'};
+  assert.equal(connectionLink(code),'ContactCode1');
+  assert.deepEqual(parseConnectionLink('  ContactCode1  '),code);
+  assert.throws(()=>connectionLink({kind:'code',id:'short'}));
+  const context={module:{exports:{}},exports:{}};
+  vm.runInNewContext(readFileSync('vendor/qrcode-2.0.4.js','utf8'),context);
+  const qr=context.module.exports(0,'M');qr.addData(connectionLink(code),'Byte');qr.make();
+  assert.equal(qr.getModuleCount(),21,'bare ID fits the simplest QR size');
 });

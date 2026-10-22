@@ -283,3 +283,33 @@ De flits bij terugkeren uit een chat kwam door verlaagde opacity op alle disable
 knoppen: ook de volledige persoonsstrook werd tijdelijk doorschijnend. Die strook
 blijft nu ondoorzichtig tijdens laden. Gelijke monitorupdates bouwen de stroken
 niet opnieuw op, zodat ook geopende swipeacties minder snel worden onderbroken.
+
+## v0.3.79 — contact-QR met alleen een identifier
+
+Nieuwe contact-QR's bevatten uitsluitend een willekeurige identifier van twaalf
+tekens. Geen webadres, URL-fragment of aparte ontsleutelsleutel. Sharon scant de
+code vanuit de app en handelt het verbinden via het vaste serveradres af.
+De knop voor kopiëren kopieert dezelfde twaalf tekens.
+
+De uitgever vraagt aangemeld een code aan voor zijn bestaande uitnodiging
+(`invite-code`). De server bewaart de code gehasht, gekoppeld aan de hash van
+die uitnodiging, met dezelfde vervaldatum van 24 uur. Bij `accept-code` moet de
+scanner zich met de eigen installatie-identiteit authenticeren. De server claimt
+de uitnodiging onder de bestaande lock en legt de persoons- en chatrelaties vast.
+De eerste toegestane ontvanger bindt de code aan zijn identiteit; een ander kan
+dezelfde code niet overnemen. Dezelfde ontvanger mag een onbevestigde aanvraag
+opnieuw proberen zonder een tweede contact of chat te maken. Een verlopen code
+kan niet verbinden. De gewone ontvanger-, toegangs- en capaciteitscontroles blijven
+gelden. De code is tijdens zijn geldigheid zelf het tijdelijke toegangsbewijs.
+
+Een niet-claimende controle (`invite-code-check`) onderscheidt twaalf tekens in
+een contact-QR van twaalf tekens in een gewone kaart-QR. Deze controle geeft
+alleen een ja/nee-resultaat terug, geen persoonsgegevens of uitnodigingstoken.
+Gewone barcodes worden niet als contactcode opgezocht. Er komt geen nieuwe
+instelling of keuze voor de gebruiker bij.
+
+Bestaande lange verbindingslinks, versleutelde verwijzingen uit v0.3.78 en eigen
+activatiecodes blijven leesbaar. **Serverstap:** vervang opnieuw
+`log/api/connections.php` door `server/connections.php` uit deze release. Het
+bestaande private netwerkbestand blijft behouden. Deze wijziging betreft de
+contactuitnodiging; zij verandert de opslag van chatberichten niet.

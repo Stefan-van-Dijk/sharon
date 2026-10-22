@@ -138,4 +138,27 @@ fails(fn()=>$qr->handle('invitation-publish',$ref,$qrOwner['deviceToken']),'iden
 fails(fn()=>$qr->handle('invitation-resolve',['id'=>'MissingRef01'],null),'invalid_reference');
 $expired=new LogNetwork($qrPath,1000000+86401);
 fails(fn()=>$expired->handle('invitation-resolve',['id'=>'InviteRef001'],null),'invalid_reference');
+// Bare contact IDs never disclose an invitation token or key.
+[$codePath,$cs,$codeStart,$codeOwner]=fixture();
+$first=person($cs,'Eerste');$second=person($cs,'Tweede');
+$ci=$cs->handle('invite',[],$codeOwner['deviceToken'])['invitation'];
+fails(fn()=>$cs->handle('invite-code',['token'=>$ci['token']],$first['deviceToken']),'invitation_required');
+$code=$cs->handle('invite-code',['token'=>$ci['token']],$codeOwner['deviceToken']);
+check(strlen($code['id'])===12 && count($code)===1);
+check($cs->handle('invite-code-check',$code,null)===['valid'=>true]);
+check($cs->handle('invite-code-check',['id'=>'UnknownCode1'],null)===['valid'=>false]);
+fails(fn()=>$cs->handle('accept-code',$code,null),'unauthorized');
+fails(fn()=>$cs->handle('accept-code',$code,$codeOwner['deviceToken']),'invalid_invitation');
+$connected=$cs->handle('accept-code',$code,$first['deviceToken']);
+check($connected['self']['line']===1 && $connected['contact']['personId']===$codeOwner['personId']);
+check($cs->handle('accept-code',$code,$first['deviceToken'])===$connected);
+fails(fn()=>$cs->handle('accept-code',$code,$second['deviceToken']),'invalid_invitation');
+$late=new LogNetwork($codePath,1000000+86401);
+fails(fn()=>$late->handle('accept-code',$code,$first['deviceToken']),'invitation_expired');
+check(!isset(json_decode(file_get_contents($codePath),true)['invitationCodes'][$code['id']]));
+$bound=$cs->handle('invite',['recipientId'=>$second['personId']],$codeOwner['deviceToken'])['invitation'];
+$boundCode=$cs->handle('invite-code',['token'=>$bound['token']],$codeOwner['deviceToken']);
+fails(fn()=>$cs->handle('accept-code',$boundCode,$first['deviceToken']),'invalid_invitation');
+check($cs->handle('accept-code',$boundCode,$second['deviceToken'])['contact']['personId']===$codeOwner['personId']);
+fails(fn()=>$cs->handle('invite-code',['token'=>$bound['token']],$codeOwner['deviceToken']),'invalid_invitation');
 echo json_encode(['checks'=>$checks,'ok'=>true]);

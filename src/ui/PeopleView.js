@@ -1,14 +1,14 @@
-import { parseCardPayload } from './CardPayload.js?v=0.3.78';
-import { saveReceivedCard } from './CardSharing.js?v=0.3.78';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.78';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.78';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.78';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.78';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.78';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.78';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.78';
-import { mountCardScanner } from './CardScanner.js?v=0.3.78';
-import { renderCardCode } from './CardCodes.js?v=0.3.78';
+import { parseCardPayload } from './CardPayload.js?v=0.3.79';
+import { saveReceivedCard } from './CardSharing.js?v=0.3.79';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.79';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.79';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.79';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.79';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.79';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.79';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.79';
+import { mountCardScanner } from './CardScanner.js?v=0.3.79';
+import { renderCardCode } from './CardCodes.js?v=0.3.79';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people [data-swipe-surface]:disabled{opacity:1}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
@@ -166,7 +166,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     if(disposed)return;screen='invite';chat=null;
     frame('Verbinding maken','<p>Laat de ander deze QR-code in Sharon scannen. Daarmee geef je toegang en wisselen jullie je naam uit.</p>'+
       '<div data-qr></div><p data-waiting>Verbinding voorbereiden…</p>'+
-      '<button type="button" data-copy-invite>Kopieer verbindingslink</button>'+
+      '<button type="button" data-copy-invite>Kopieer contactcode</button>'+
       '<button type="button" data-check-invite>Verbinding controleren</button>',{back:true});
     const g=generation;
     presented=await service.invite();
@@ -176,18 +176,18 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const url=connectionLink(compact);
     root.querySelector('[data-waiting]').textContent='Wachten op de ander. Deze code werkt één keer en is 24 uur geldig.';
     root.querySelector('[data-copy-invite]').addEventListener('click',()=>run(async()=>{
-      await navigator.clipboard.writeText(url);status('Verbindingslink gekopieerd.');
+      await navigator.clipboard.writeText(url);status('Contactcode gekopieerd.');
     }));
     root.querySelector('[data-check-invite]').addEventListener('click',()=>run(checkInvitation));
     try { await renderCardCode(root.querySelector('[data-qr]'),'QR_CODE',url); }
-    catch { status('De QR-code kon niet laden. Je kunt de verbindingslink kopiëren.'); }
+    catch { status('De QR-code kon niet laden. Je kunt de contactcode kopiëren.'); }
   }
   async function connect(invitation, displayName=name()) {
     const g=generation;
     self=await service.activate(invitation,displayName);
     onMembership(true);
     if(disposed||g!==generation)return;
-    if(invitation.kind==='invite') {
+    if(['invite','code'].includes(invitation.kind)) {
       const contacts=await service.contacts();
       if(disposed||g!==generation)return;
       const peer=contacts.find(c=>c.chatId===service.connectedContact?.chatId);
@@ -206,7 +206,9 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
       '<p>Geldig tot <span data-expiry></span>.</p><button type="button" data-accept>Verbinden met Sharon</button>'+
       '<button type="button" data-cancel>Code verwijderen</button>'+
       '<p><button type="button" data-show-start-qr>Toon deze code als QR</button></p><div data-qr></div>',{back:true});
-    root.querySelector('[data-expiry]').textContent=new Date(invitation.expiresAt).toLocaleString('nl-NL');
+    root.querySelector('[data-expiry]').parentElement.textContent=invitation.kind==='code'
+      ? 'Eenmalige contactcode. De server controleert of de uitnodiging nog geldig is.'
+      : 'Geldig tot '+new Date(invitation.expiresAt).toLocaleString('nl-NL')+'.';
     root.querySelector('[data-accept]').addEventListener('click',()=>run(async()=>{
       await connect(invitation,root.querySelector('[data-display-name]')?.value.trim()||name());
     }));
@@ -296,7 +298,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     frame('Code scannen','');screen='scan';
     scanCleanup=mountCardScanner(root,{autoStart,onClose:()=>run(home),onResult:result=>run(async()=>{
       const {value}=result;
-      if(onCode&&!/#connect=/.test(value)) { await onCode(result);return; }
+      if(onCode&&!await service.isConnectionScan(result)) { await onCode(result);return; }
       frame('Verbinden','<p>Code lezen…</p>');
       const invitation=parseConnectionLink(value);
       await service.setPending(invitation);
@@ -307,7 +309,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   async function receive(invitation) {
     // Scanning within Sharon is the deliberate connection action. Opening an
     // external link still asks for confirmation before exchanging information.
-    if(invitation.kind==='invite'&&name()) {
+    if(['invite','code'].includes(invitation.kind)&&name()) {
       frame('Verbinden','<p>Verbinding maken…</p>');screen='connecting';
       await connect(invitation);
     } else await confirm(invitation);
@@ -346,7 +348,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     } else {
       frame('Verbinden','<p>Scan de QR-code van iemand in het netwerk om verbinding te maken.</p>'+
         '<button type="button" data-scan>QR-code scannen</button>'+
-        '<details><summary>Verbindingslink gebruiken</summary><form data-link-form><label>Verbindingslink<textarea name="link" required></textarea></label><button type="submit">Verbinden</button></form></details>'+
+        '<details><summary>Contactcode gebruiken</summary><form data-link-form><label>Contactcode of bestaande verbindingslink<textarea name="link" required></textarea></label><button type="submit">Verbinden</button></form></details>'+
         '<details><summary>Eerste installatie</summary><button type="button" data-owner-start-button>Eigen installatie activeren</button></details>');
       root.querySelector('[data-scan]').addEventListener('click',scan);
       root.querySelector('[data-owner-start-button]').addEventListener('click',()=>run(ownerStart));

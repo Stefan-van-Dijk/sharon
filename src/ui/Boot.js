@@ -1,4 +1,4 @@
-import { focusTextField } from './TextInputFocus.js?v=0.3.78';
+import { focusTextField } from './TextInputFocus.js?v=0.3.79';
 
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
