@@ -1,26 +1,31 @@
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.76';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.76';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.76';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.76';
-import { mountCardScanner } from './CardScanner.js?v=0.3.76';
-import { renderCardCode } from './CardCodes.js?v=0.3.76';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.77';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.77';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.77';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.77';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.77';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.77';
+import { mountCardScanner } from './CardScanner.js?v=0.3.77';
+import { renderCardCode } from './CardCodes.js?v=0.3.77';
 
-const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label{display:block;margin:18px 0}.sh-people input,.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
+const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
-export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,chatMonitor=null,headerActions=null,onMembership=()=>{}}) {
+export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,chatMonitor=null,headerActions=null,onMembership=()=>{},onOpenObject=null}) {
   const service = chatMonitor?.service || new ConnectionService(store);
   const monitor=chatMonitor||new ChatMonitor(service);
   const ownsMonitor=!chatMonitor;
   let stopChat=null;
   let disposed=false, generation=0, scanCleanup=null, busy=false, screen='home', chat=null;
-  let releaseRows=null;
+  let releaseRows=null, releaseOrder=null, releaseControls=null;
+  let query='', prefs={sort:'alpha',order:[]}, contactsCache=[];
+  const savePrefs=()=>store.put('meta',{key:'people.list.preferences',value:prefs});
+  const sortedContacts=()=>sortList(contactsCache.map(c=>({...c,id:c.personId})),prefs);
   let self=null, presented=null, checking=false;
   const joined=()=>self?.line!==null&&self?.line!==undefined;
   const name=()=>settings.get().profile?.name || '';
   function frame(title, body, {back=false}={}) {
     if(disposed)return;
     stopChat?.();stopChat=null;headerActions?.replaceChildren();
-    releaseRows?.();releaseRows=null;
+    releaseRows?.();releaseRows=null;releaseOrder?.();releaseOrder=null;releaseControls?.();releaseControls=null;
     scanCleanup?.(); scanCleanup=null; generation++;
     setTitle(title);
     root.innerHTML='<style>'+css+'</style><section class="module-view sh-people">'+
@@ -197,11 +202,19 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   function renderContacts(contacts) {
     if(disposed||screen!=='home'||!joined())return;
     const host=root.querySelector('[data-contacts]');if(!host)return;
-    releaseRows?.();releaseRows=null;
-    host.innerHTML=contacts.length?contacts.map(contact=>renderObjectStrip({
+    contactsCache=contacts;
+    const ordered=sortedContacts();
+    releaseRows?.();releaseRows=null;releaseOrder?.();releaseOrder=null;
+    host.innerHTML=contacts.length?ordered.map(contact=>'<div class="sh-list-item" data-list-item>'+renderObjectStrip({
       module:'persons',id:contact.personId,title:contact.name,
       trailingHtml:'<span class="sh-notification-dot" data-contact-unread role="img" aria-label="Ongelezen berichten" '+(contact.unread?'':'hidden')+'></span><span class="sh-location-chevron" aria-hidden="true">›</span>'
-    })).join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
+    })+(prefs.sort==='custom'?renderOrderControls(contact.personId):'')+'</div>').join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
+    applySearch();
+    const reorder=async order=>{prefs={...prefs,order};await savePrefs();renderContacts(contactsCache);};
+    releaseOrder=bindListControls(host,{
+      onMove:(id,direction)=>reorder(moveInOrder(sortedContacts().map(c=>c.id),id,direction)),
+      onMoveTo:(id,targetId,after)=>reorder(moveToPosition(sortedContacts().map(c=>c.id),id,targetId,after))
+    });
     const byId=new Map(contacts.map(contact=>[contact.personId,contact]));
     releaseRows=bindSwipeRows(host,{
       onOpen:id=>run(()=>openChat(byId.get(id))),
@@ -214,6 +227,17 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     });
     if(busy)host.querySelectorAll('button').forEach(button=>button.disabled=true);
   }
+  function applySearch() {
+    const q=query.trim().toLocaleLowerCase('nl');
+    let visible=0;
+    root.querySelectorAll('[data-contacts] [data-swipe-row]').forEach(row=>{
+      const contact=contactsCache.find(c=>c.personId===row.dataset.swipeRow);
+      const hidden=Boolean(q)&&!String(contact?.name||'').toLocaleLowerCase('nl').includes(q);
+      row.closest('[data-list-item]').hidden=hidden;
+      if(!hidden)visible++;
+    });
+    const empty=root.querySelector('[data-search-empty]');if(empty)empty.hidden=!contactsCache.length||visible>0;
+  }
   async function loadContacts() {
     const g=generation;
     await monitor.refreshUnread();
@@ -224,11 +248,24 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   async function editContact(contact) {
     if(disposed)return;screen='edit';chat=null;
     frame('Persoon bewerken','<form data-contact-form><label>Naam in jouw contacten<input name="name" maxlength="80" required></label>'+
-      '<button type="submit">Opslaan</button></form>',{back:true});
+      '<button type="submit">Opslaan</button></form><div data-contact-links></div>',{back:true});
     const form=root.querySelector('[data-contact-form]');form.elements.name.value=contact.name;
     form.addEventListener('submit',event=>{
       event.preventDefault();run(async()=>{await service.editContact(contact.personId,form.elements.name.value);await home();});
     });
+    const linked=(await store.getAll('objects')).filter(item=>!item.deletedAt&&!item.archivedAt&&item.status!=='archived'&&['card','location'].includes(item.type)&&item.personIds?.includes(contact.personId));
+    if(disposed||!form.isConnected)return;
+    const links=root.querySelector('[data-contact-links]');
+    if(linked.length) {
+      const heading=document.createElement('h2');heading.textContent='Gekoppelde onderdelen';links.append(heading);
+      for(const item of linked) {
+        const button=document.createElement(onOpenObject?'button':'p');
+        button.textContent=(item.type==='card'?'Kaarten':'Locaties')+' · '+(item.name||item.data?.title||'Zonder naam');
+        if(onOpenObject){button.type='button';button.addEventListener('click',()=>onOpenObject(item));}
+        links.append(button);
+      }
+    }
+
   }
   function scan({autoStart=false}={}) {
     if(disposed)return;
@@ -256,7 +293,19 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const device=await service.device();self=device.self;
     if(disposed)return;
     if(joined()) {
-      frame('Personen','<div data-contacts></div>');
+      prefs=(await store.get('meta','people.list.preferences'))?.value || {sort:'alpha',order:[]};
+      if(disposed)return;
+      frame('Personen',renderListControls({placeholder:'Zoek een persoon',query,sort:prefs.sort})+'<div class="swipe-list" data-contacts></div><p data-search-empty hidden>Geen personen gevonden.</p>');
+      releaseControls=bindListControls(root.querySelector('.sh-list-controls'),{
+        onSearch:value=>{query=value;applySearch();},
+        onSort:mode=>run(async()=>{
+          prefs={...prefs,sort:mode,order:mode==='custom'&&!prefs.order?.length?sortedContacts().map(c=>c.id):prefs.order};
+          await savePrefs();
+          if(disposed||screen!=='home')return;
+          root.querySelectorAll('[data-list-sort]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.listSort===mode)));
+          renderContacts(contactsCache);
+        })
+      });
       const add=document.createElement('button');add.type='button';add.className='sh-location-header-add';
       add.dataset.invite='';add.setAttribute('aria-label','Verbinding maken');add.textContent='+';
       add.addEventListener('click',()=>run(invitationScreen));
@@ -291,5 +340,5 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
   const invitationPoll=setInterval(()=>{
     if(!disposed&&!document.hidden&&!busy&&screen==='invite')run(checkInvitation);
   },3000);
-  return ()=>{disposed=true;generation++;clearInterval(invitationPoll);scanCleanup?.();releaseRows?.();stopChat?.();unsubscribe();headerActions?.replaceChildren();if(ownsMonitor)monitor.stop();};
+  return ()=>{disposed=true;generation++;clearInterval(invitationPoll);scanCleanup?.();releaseRows?.();releaseOrder?.();releaseControls?.();stopChat?.();unsubscribe();headerActions?.replaceChildren();if(ownsMonitor)monitor.stop();};
 }
