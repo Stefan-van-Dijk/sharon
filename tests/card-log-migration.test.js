@@ -30,3 +30,17 @@ test('Imported data rejects unknown and oversized schemas', () => {
   const tooMuch = {name:'Kaart',fields:Array.from({length:20},(_,i)=>({label:'Beschrijving'+i,value:'x'.repeat(500)}))};
   assert.throws(() => buildCardPayload(tooMuch), /Te veel gegevens/);
 });
+
+test('explicit location sharing transfers only a validated snapshot', () => {
+  const card={name:'Pas',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]};
+  const location={title:'Winkel',address:'Dorpsstraat 1',coordinates:{lat:52,lng:5,accuracy:20},
+    id:'PrivatePlace',parentId:'PrivateHouse',personIds:['PrivateUser'],notes:'Niet delen'};
+  const text=buildCardPayload(card,{location});
+  assert.deepEqual(parseCardPayload(text).location,{title:'Winkel',address:'Dorpsstraat 1',coordinates:{lat:52,lng:5}});
+  assert.ok(!/Private|Niet delen|accuracy/.test(text));
+  assert.equal(parseCardPayload(buildCardPayload(card)).location,undefined);
+  assert.equal(parseCardPayload(buildCardPayload(card,{location:{title:'Adres',address:'Straat 1',coordinates:null}})).location.coordinates,null);
+  for(const coordinates of [{lat:91,lng:5},{lat:52,lng:181},{lat:'52',lng:5},{lat:null,lng:null}]) {
+    assert.equal(parseCardPayload(JSON.stringify({...JSON.parse(text),location:{...location,coordinates}})),null);
+  }
+});

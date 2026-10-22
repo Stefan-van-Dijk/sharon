@@ -1,18 +1,18 @@
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.79';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.79';
-import { mountCardArrival } from './CardArrival.js?v=0.3.79';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.79';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.79';
-import { syncViewportHeight } from './Viewport.js?v=0.3.79';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.79';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.79';
-import { openPeopleView } from './PeopleView.js?v=0.3.79';
-import { openCardsView } from './CardsView.js?v=0.3.79';
-import { openLocationsView } from './LocationsView.js?v=0.3.79';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.79';
-import { openSettings } from './SettingsView.js?v=0.3.79';
-import { sharonWordmark } from './Brand.js?v=0.3.79';
-import { bindSwipeHome } from './SwipeHome.js?v=0.3.79';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.80';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.80';
+import { mountCardArrival } from './CardArrival.js?v=0.3.80';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.3.80';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.3.80';
+import { syncViewportHeight } from './Viewport.js?v=0.3.80';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.3.80';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.3.80';
+import { openPeopleView } from './PeopleView.js?v=0.3.80';
+import { openCardsView } from './CardsView.js?v=0.3.80';
+import { openLocationsView } from './LocationsView.js?v=0.3.80';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.3.80';
+import { openSettings } from './SettingsView.js?v=0.3.80';
+import { sharonWordmark } from './Brand.js?v=0.3.80';
+import { bindSwipeHome } from './SwipeHome.js?v=0.3.80';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -34,7 +34,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.3.79';
+const APP_VERSION = '0.3.80';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

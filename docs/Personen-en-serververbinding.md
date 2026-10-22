@@ -313,3 +313,20 @@ activatiecodes blijven leesbaar. **Serverstap:** vervang opnieuw
 `log/api/connections.php` door `server/connections.php` uit deze release. Het
 bestaande private netwerkbestand blijft behouden. Deze wijziging betreft de
 contactuitnodiging; zij verandert de opslag van chatberichten niet.
+
+## v0.3.80 — optioneel een locatie delen bij een kaart
+
+Bij delen met personen verschijnt voor kaarten met een actieve gekoppelde locatie
+de keuze **Locatie meesturen**, standaard uit. De naam, het adres en de kaartpositie
+worden als zelfstandige momentopname meegestuurd; bij een sublocatie worden een
+geërfd adres en geërfde positie opgelost. Persoonskoppelingen, bovenliggende
+locaties, notities en lokale identifiers worden niet meegestuurd.
+
+In de chat ziet de ontvanger welke locatie is meegestuurd. **Bewaar kaart en
+locatie** slaat de locatie op en koppelt de ontvangen kaart eraan. Een bestaande
+actieve locatie met dezelfde naam, adres en positie wordt hergebruikt. Opnieuw
+opslaan van hetzelfde bericht maakt geen extra kaart of locatie. Bestaande
+kaartenberichten zonder locatie blijven bruikbaar; eerder gedeelde kaarten krijgen
+geen locatie achteraf. De kaart moet daarvoor opnieuw worden gedeeld.
+
+Deze uitbreiding gebruikt het bestaande berichtenprotocol; geen PHP-update nodig.
