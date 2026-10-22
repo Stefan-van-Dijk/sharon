@@ -1,8 +1,9 @@
-import { renderCardCode } from './CardCodes.js?v=0.3.77';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.77';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.77';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.77';
-import { cardSymbol } from './CardSymbols.js?v=0.3.77';
+import { openCardShare } from './CardSharing.js?v=0.3.78';
+import { renderCardCode } from './CardCodes.js?v=0.3.78';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.78';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.78';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.78';
+import { cardSymbol } from './CardSymbols.js?v=0.3.78';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -47,7 +48,12 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   });
   const stack=wrapBoardSurface(layer,nodes[0]);stack.classList.add('sh-card-deck-stack','sh-card-zone-stack');
   stack.querySelector('.sh-board-deck').remove();stack.append(...nodes.slice(1));
-  let closed=false,renderedCard='',gestures=null;
+  let closed=false,renderedCard='',gestures=null,closeShare=null;
+  if(store)nodes.forEach((board,index)=>{
+    const button=document.createElement('button');button.type='button';button.dataset.shareCard='';button.className='sh-card-share-button';button.textContent='Deel met personen';
+    button.addEventListener('click',()=>{closeShare?.();closeShare=openCardShare(model.state.boards[index].card,{store,onClose:()=>{closeShare=null;button.focus();}});});
+    board.querySelector('.sh-card-detail-heading').append(button);
+  });
   const renderCode=(board,current)=>{
     if(board.dataset.codeReady)return;board.dataset.codeReady='true';
     const holder=document.createElement('div');board.querySelector('[data-code]').append(holder);
@@ -81,9 +87,9 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     const focused=nodes[model.state.boardIndex].contains(document.activeElement),state=model.swipe(direction);draw();
     if(focused)nodes[state.boardIndex].focus({preventScroll:true});
   };
-  const close=()=>{if(closed)return;closed=true;gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
+  const close=()=>{if(closed)return;closed=true;closeShare?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
   const key=event=>{
-    if(event.defaultPrevented)return;
+    if(event.defaultPrevented||document.querySelector('.sh-card-share-overlay'))return;
     if(event.key==='Escape'){event.preventDefault();close();}
     if(event.key==='ArrowLeft'){event.preventDefault();swipe(1);}
     if(event.key==='ArrowRight'){event.preventDefault();swipe(-1);}

@@ -250,3 +250,36 @@ ontvanger, verlopen codes, intrekking, herstel, chat-isolatie, idempotente
 berichten, behoud van bestaande Log-verbindingsbestanden en twee gelijktijdige
 claims op de laatste plaats. De PWA-browsertests controleren daarnaast het
 frontendpakket. Deze tests bewijzen geen installatie op de echte hosting.
+
+## v0.3.78 — compacte contactcode en kaarten delen
+
+Een nieuwe uitnodiging gebruikt `#connect=<identifier>.<sleutel>`: een willekeurige
+identifier van twaalf tekens en een AES-GCM-sleutel van 32 bytes. De sleutel blijft
+in het URL-fragment; de server ontvangt alleen de identifier en de versleutelde
+inhoud. De inhoud bevat de bestaande eenmalige uitnodiging. Scannen of openen
+haalt deze inhoud op, ontsleutelt en valideert haar, en vervolgt dezelfde contactflow.
+De server controleert bij publiceren dat de uitnodiging van de aangemelde uitgever
+is. Een verwijzing verloopt tegelijk met de uitnodiging (24 uur). De bestaande
+identiteits-, ontvanger-, eenmaligheids- en toegangscontroles blijven gelden.
+Bestaande lange contactcodes en de eigen activatiecode blijven leesbaar.
+
+**Serverstap:** vervang `log/api/connections.php` op sharon.life door
+`server/connections.php` uit deze release. Het bestaande private JSON-bestand
+blijft behouden. De nieuwe protocolacties zijn `invitation-publish` en
+`invitation-resolve`; zonder die serverupdate geeft de app een gerichte melding
+bij het maken van een compacte code. Kaarten delen en bestaande chats gebruiken
+het bestaande berichtenprotocol en vereisen die nieuwe acties niet.
+
+Op een kaartboard staat **Deel met personen**. Selecteer expliciet één of meerdere
+bestaande contacten en bevestig de verzending. Er wordt dezelfde draagbare
+kaartinhoud verstuurd als bij de bestaande kaart-QR, zonder lokale object-,
+locatie- of persoonidentifiers. De ontvanger ziet een kaartbericht met **Bewaar
+kaart**. Bewaren maakt één lokale kaart aan per ontvangen bericht; opnieuw
+bewaren hergebruikt die kaart. Een mislukte verzending behoudt het lokale pending
+bericht en probeert hetzelfde bericht-ID opnieuw. Bij meerdere ontvangers worden
+reeds bevestigde verzendingen in hetzelfde venster niet opnieuw verstuurd.
+
+De flits bij terugkeren uit een chat kwam door verlaagde opacity op alle disabled
+knoppen: ook de volledige persoonsstrook werd tijdelijk doorschijnend. Die strook
+blijft nu ondoorzichtig tijdens laden. Gelijke monitorupdates bouwen de stroken
+niet opnieuw op, zodat ook geopende swipeacties minder snel worden onderbroken.

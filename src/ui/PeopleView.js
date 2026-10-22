@@ -1,24 +1,36 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.77';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.77';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.77';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.77';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.77';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.77';
-import { mountCardScanner } from './CardScanner.js?v=0.3.77';
-import { renderCardCode } from './CardCodes.js?v=0.3.77';
+import { parseCardPayload } from './CardPayload.js?v=0.3.78';
+import { saveReceivedCard } from './CardSharing.js?v=0.3.78';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.78';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.78';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.78';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.78';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.78';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.78';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.78';
+import { mountCardScanner } from './CardScanner.js?v=0.3.78';
+import { renderCardCode } from './CardCodes.js?v=0.3.78';
 
-const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
+const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people [data-swipe-surface]:disabled{opacity:1}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
-export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,chatMonitor=null,headerActions=null,onMembership=()=>{},onOpenObject=null}) {
+export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScreen='',onCode=null,chatMonitor=null,headerActions=null,onMembership=()=>{},onOpenObject=null,location=null}) {
   const service = chatMonitor?.service || new ConnectionService(store);
   const monitor=chatMonitor||new ChatMonitor(service);
   const ownsMonitor=!chatMonitor;
   let stopChat=null;
   let disposed=false, generation=0, scanCleanup=null, busy=false, screen='home', chat=null;
   let releaseRows=null, releaseOrder=null, releaseControls=null;
-  let query='', prefs={sort:'alpha',order:[]}, contactsCache=[];
+  let query='', prefs={sort:'alpha',order:[]}, contactsCache=[], places=[];
+  let nearPosition=location?.latest || null;
+  const linkedPlaces=id=>places.filter(p=>p.personIds?.includes(id));
+  const distance=contact=>Math.min(Infinity,...linkedPlaces(contact.personId).map(place=>{
+    const point=resolveLocation(place,new Map(places.map(p=>[p.id,p]))).coordinates;
+    if(!nearPosition||!point)return Infinity;
+    const r=Math.PI/180,dy=(point.lat-nearPosition.lat)*r,dx=(point.lng-nearPosition.lng)*r;
+    const a=Math.sin(dy/2)**2+Math.cos(point.lat*r)*Math.cos(nearPosition.lat*r)*Math.sin(dx/2)**2;
+    return 12742000*Math.asin(Math.min(1,Math.sqrt(a)));
+  }));
   const savePrefs=()=>store.put('meta',{key:'people.list.preferences',value:prefs});
-  const sortedContacts=()=>sortList(contactsCache.map(c=>({...c,id:c.personId})),prefs);
+  const sortedContacts=()=>sortList(contactsCache.map(c=>({...c,id:c.personId})),{...prefs,distance});
   let self=null, presented=null, checking=false;
   const joined=()=>self?.line!==null&&self?.line!==undefined;
   const name=()=>settings.get().profile?.name || '';
@@ -59,14 +71,20 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     host.dataset.revision=revision;host.replaceChildren();
     for(const m of messages) {
       const article=document.createElement('article'); article.className='sh-chat-message'+(m.senderId===personId?' is-own':'');
-      const text=document.createElement('p'); text.textContent=m.text;
+      const sharedCard=parseCardPayload(m.text);
+      const text=document.createElement('p'); text.textContent=sharedCard?'Kaart · '+sharedCard.name:m.text;
       const detail=document.createElement('small');
       detail.textContent=m.delivery==='sent'
         ? (m.senderId===personId?'Verstuurd · ':'Ontvangen · ')+new Date(m.at).toLocaleString('nl-NL')
         : 'Nog niet bevestigd';
       article.append(text,detail);
+      if(sharedCard&&m.senderId!==personId){
+        const save=document.createElement('button');save.type='button';save.dataset.saveSharedCard=m.id;save.textContent='Bewaar kaart';save.disabled=busy;
+        save.addEventListener('click',()=>run(async()=>{await saveReceivedCard(store,m);save.textContent='Kaart bewaard';save.disabled=true;status('Kaart bewaard bij Kaarten.');}));
+        article.append(save);
+      }
       if(m.delivery!=='sent') {
-        const retry=document.createElement('button');retry.type='button';retry.textContent='Opnieuw proberen';
+        const retry=document.createElement('button');retry.type='button';retry.textContent='Opnieuw proberen';retry.disabled=busy;
         retry.addEventListener('click',()=>run(async()=>{await service.send(chat.chatId,'',m.id);monitor.activity();await updateChat();}));
         article.append(retry);
       }
@@ -153,7 +171,9 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const g=generation;
     presented=await service.invite();
     if(disposed||g!==generation)return;
-    const url=connectionLink(presented);
+    const compact=await service.compactInvitation(presented);
+    if(disposed||g!==generation)return;
+    const url=connectionLink(compact);
     root.querySelector('[data-waiting]').textContent='Wachten op de ander. Deze code werkt één keer en is 24 uur geldig.';
     root.querySelector('[data-copy-invite]').addEventListener('click',()=>run(async()=>{
       await navigator.clipboard.writeText(url);status('Verbindingslink gekopieerd.');
@@ -204,9 +224,13 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     const host=root.querySelector('[data-contacts]');if(!host)return;
     contactsCache=contacts;
     const ordered=sortedContacts();
+    const revision=JSON.stringify([prefs.sort,ordered,places.map(p=>[p.id,p.data?.title,p.personIds])]);
+    if(host.dataset.revision===revision)return;
+    host.dataset.revision=revision;
     releaseRows?.();releaseRows=null;releaseOrder?.();releaseOrder=null;
     host.innerHTML=contacts.length?ordered.map(contact=>'<div class="sh-list-item" data-list-item>'+renderObjectStrip({
       module:'persons',id:contact.personId,title:contact.name,
+      subtitle:linkedPlaces(contact.personId).map(p=>p.data?.title||'Locatie').join(' · '),
       trailingHtml:'<span class="sh-notification-dot" data-contact-unread role="img" aria-label="Ongelezen berichten" '+(contact.unread?'':'hidden')+'></span><span class="sh-location-chevron" aria-hidden="true">›</span>'
     })+(prefs.sort==='custom'?renderOrderControls(contact.personId):'')+'</div>').join(''):'<p>Je hebt nog geen contacten. Nodig iemand uit.</p>';
     applySearch();
@@ -232,7 +256,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     let visible=0;
     root.querySelectorAll('[data-contacts] [data-swipe-row]').forEach(row=>{
       const contact=contactsCache.find(c=>c.personId===row.dataset.swipeRow);
-      const hidden=Boolean(q)&&!String(contact?.name||'').toLocaleLowerCase('nl').includes(q);
+      const hidden=Boolean(q)&&![contact?.name,...linkedPlaces(contact?.personId).map(p=>p.data?.title)].join(' ').toLocaleLowerCase('nl').includes(q);
       row.closest('[data-list-item]').hidden=hidden;
       if(!hidden)visible++;
     });
@@ -276,7 +300,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
       frame('Verbinden','<p>Code lezen…</p>');
       const invitation=parseConnectionLink(value);
       await service.setPending(invitation);
-      await receive(invitation);
+      await receive(await service.pending());
     })});
     root.querySelector('[data-scan-close]').textContent='‹ Terug';
   }
@@ -294,11 +318,19 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     if(disposed)return;
     if(joined()) {
       prefs=(await store.get('meta','people.list.preferences'))?.value || {sort:'alpha',order:[]};
+      places=(await store.getAll('objects')).filter(o=>o.type==='location'&&!o.deletedAt);
+      if(prefs.sort==='near'&&!nearPosition)prefs={...prefs,sort:'alpha'};
       if(disposed)return;
-      frame('Personen',renderListControls({placeholder:'Zoek een persoon',query,sort:prefs.sort})+'<div class="swipe-list" data-contacts></div><p data-search-empty hidden>Geen personen gevonden.</p>');
+      frame('Personen',renderListControls({placeholder:'Zoek een persoon',query,sort:prefs.sort,near:true})+'<div class="swipe-list" data-contacts></div><p data-search-empty hidden>Geen personen gevonden.</p>');
       releaseControls=bindListControls(root.querySelector('.sh-list-controls'),{
         onSearch:value=>{query=value;applySearch();},
         onSort:mode=>run(async()=>{
+          if(mode==='near'){
+            if(!contactsCache.some(c=>linkedPlaces(c.personId).some(p=>resolveLocation(p,new Map(places.map(p=>[p.id,p]))).coordinates))){status('Koppel eerst een persoon aan een locatie met GPS.');return;}
+            try {nearPosition=await location.checkNow({reason:'people-near',maxAgeMs:60_000,highAccuracy:false});}
+            catch {status('Locatietoegang nodig om personen op afstand te sorteren.');return;}
+          }
+          status('');
           prefs={...prefs,sort:mode,order:mode==='custom'&&!prefs.order?.length?sortedContacts().map(c=>c.id):prefs.order};
           await savePrefs();
           if(disposed||screen!=='home')return;
@@ -320,7 +352,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
       root.querySelector('[data-owner-start-button]').addEventListener('click',()=>run(ownerStart));
       root.querySelector('[data-link-form]').addEventListener('submit',event=>{
         event.preventDefault();const value=event.currentTarget.elements.link.value;
-        run(async()=>{const invitation=parseConnectionLink(value);await service.setPending(invitation);await confirm(invitation);});
+        run(async()=>{const invitation=parseConnectionLink(value);await service.setPending(invitation);await confirm(await service.pending());});
       });
     }
   }

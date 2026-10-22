@@ -194,3 +194,31 @@ test('Home scroll and module return keep header, brand, status and boards in pla
   await outlet.evaluate(element => { element.scrollTop = 0; });
   expect((await header.boundingBox()).y).toBeCloseTo(top, 1);
 });
+
+test('Personen rows stay opaque while returning from chat and do not expose their swipe actions',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.route('https://sharon.life/log/api/connections.php',async route=>{
+    const input=route.request().postDataJSON();
+    if(input.action==='contacts')await new Promise(resolve=>setTimeout(resolve,400));
+    await route.fulfill({json:input.action==='contacts'?{contacts:[{personId:'Peer00000001',chatId:'Chat00000001',name:'Contact'}]}:{messages:[]}});
+  });
+  await install(page);
+  await page.evaluate(async version=>{
+    const {ObjectStore}=await import('./src/core/storage/ObjectStore.js?v='+version);
+    const {ConnectionService}=await import('./src/core/connection/ConnectionService.js?v='+version);
+    const store=await new ObjectStore().open(),service=new ConnectionService(store),device=await service.device();
+    await service.rememberSelf({personId:device.personId,networkId:'Network00001',line:0});
+    await store.setMeta('connection.contacts.log-json.v1',[{personId:'Peer00000001',chatId:'Chat00000001',name:'Contact'}]);
+  },currentVersion);
+  await page.reload();
+  await page.locator('[data-module="people"]').click();
+  const surface=page.locator('[data-contacts] [data-swipe-surface]').first();
+  await expect(surface).toBeVisible();await expect(surface).toHaveCSS('opacity','1');
+  await expect(surface).toBeEnabled();await surface.click();
+  await expect(page.locator('[data-message-form]')).toBeVisible();
+  await expect(page.locator('[data-navigation-back]')).toBeEnabled();
+  await page.locator('[data-navigation-back]').click();
+  await expect(surface).toBeVisible();await expect(surface).toBeDisabled();
+  await expect(surface).toHaveCSS('opacity','1');
+  await expect(surface).toBeEnabled();await expect(surface).toHaveCSS('opacity','1');
+});

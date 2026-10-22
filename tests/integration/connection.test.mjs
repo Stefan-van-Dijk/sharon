@@ -272,3 +272,19 @@ test('open QR connects a new installation without registering or entering a peer
   assert.equal((await a.sync(status.contact.chatId))[0].text,'Meteen chatten');
   assert.deepEqual(guest.errors,[]);
 });
+
+test('compact contact reference resolves encrypted invitation and still establishes the same contact flow',async t=>{
+  const {endpoint,startLink}=await server(t);
+  const owner=await appHarness(),guest=await appHarness();t.after(()=>{owner.close();guest.close();});
+  attach(owner,endpoint);attach(guest,endpoint);
+  const m=await owner.load(servicePath),g=await guest.load(servicePath);
+  const a=new m.ConnectionService(owner.store),b=new g.ConnectionService(guest.store);
+  await a.activate(m.parseConnectionLink(startLink),'Eigenaar');
+  const invitation=await a.invite(),ref=await a.compactInvitation(invitation),url=m.connectionLink(ref);
+  assert.ok(url.length<130);assert.ok(!url.includes(invitation.token));
+  await b.setPending(g.parseConnectionLink(url));
+  assert.equal((await b.pending()).token,invitation.token);
+  await b.activate(await b.pending(),'Gast');
+  assert.equal((await a.invitationStatus(invitation)).claimed,true);
+  assert.equal((await b.contacts())[0].name,'Eigenaar');
+});

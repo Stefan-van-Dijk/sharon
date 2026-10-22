@@ -1,5 +1,5 @@
-import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.77';
-import { openCardBoard } from './CardBoard.js?v=0.3.77';
+import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.78';
+import { openCardBoard } from './CardBoard.js?v=0.3.78';
 
 export function mountHomeCardContext(host, { store, location, events, trigger = null }) {
   let generation = 0, timer = null, closeBoard = null, openedId = null, disposed = false;

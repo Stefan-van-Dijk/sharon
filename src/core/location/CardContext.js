@@ -1,5 +1,5 @@
-import { resolveLocation } from './LocationHierarchy.js?v=0.3.77';
-import { distanceBetween } from './LocationTriggerService.js?v=0.3.77';
+import { resolveLocation } from './LocationHierarchy.js?v=0.3.78';
+import { distanceBetween } from './LocationTriggerService.js?v=0.3.78';
 
 export const CARD_CONTEXT_MAX_AGE_MS = 120_000;
 
