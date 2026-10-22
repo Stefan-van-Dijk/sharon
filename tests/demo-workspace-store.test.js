@@ -49,3 +49,17 @@ test('schrijfacties voor locatie en pas blijven bij gelijktijdig opslaan beide b
   assert.ok(await workspace.get('objects','NewCard00001'));
   assert.equal((await workspace.get('objects','DemoPerson01')).id,'DemoPerson01');
 });
+
+test('persoonkoppelingen delen stabiele IDs met de testgraph en blijven gescheiden van echte contacten',async()=>{
+  const {workspace,values}=fixture();
+  assert.equal((await workspace.getAll('objects')).find(o=>o.type==='person').id,'DemoPerson01');
+  const card=await workspace.get('objects','DemoCard0001');
+  await workspace.put('objects',{...card,personIds:['DemoPerson01']});
+  const relation=values.get(SKELETON_DEMO_DATA_KEY).value.relations.find(r=>(r.from===card.id&&r.to==='DemoPerson01')||(r.to===card.id&&r.from==='DemoPerson01'));
+  assert.ok(relation);
+  await workspace.put('objects',{...await workspace.get('objects',card.id),name:'Andere naam'});
+  assert.equal(values.get(SKELETON_DEMO_DATA_KEY).value.relations.find(r=>r.id===relation.id).id,relation.id);
+  await workspace.put('objects',{...await workspace.get('objects',card.id),personIds:[]});
+  assert.equal((await workspace.get('objects',card.id)).personIds.length,0);
+  assert.equal(values.get(SKELETON_DEMO_DATA_KEY).value.relations.some(r=>r.id===relation.id),false);
+});

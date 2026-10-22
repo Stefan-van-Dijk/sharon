@@ -17,3 +17,29 @@ Zoeken blijft actief bij wisselen van sortering. Bij het vinden van een sublocat
 Recent kan ISO-datums en numerieke tijdstempels vergelijken. Nieuwe en gewijzigde proefobjecten krijgen hiervoor tijdstempels. Oude objecten zonder datum vallen terug op alfabetische volgorde.
 
 Controle op toestel: kies Eigen volgorde, verplaats een strook, wissel naar A–Z en terug, verlaat het onderdeel en open het opnieuw. Controleer ook de breedte van de balk op een smalle telefoon.
+
+## Personen — v0.3.77
+
+De reguliere Personenlijst gebruikt dezelfde zoek- en sorteerbalk als Kaarten:
+zoeken op contactnaam, Recent, A–Z en Eigen volgorde. Recent gebruikt de laatste
+lokaal bekende berichtactiviteit, contactwijziging of aanmaakdatum. Zonder datum
+valt de volgorde terug op de naam. De sortering en eigen volgorde worden apart
+van de testomgeving bewaard. De zoektekst blijft tijdens sorteren en terugkeren
+vanuit een chat of contactbewerking behouden. Ongelezen meldingen en swipeacties
+blijven beschikbaar. Dichtbij is niet beschikbaar zonder persoonslocaties.
+
+Bij de kaart- en locatie-editor staat de optionele keuze **Personen koppelen**.
+Je kunt meerdere bestaande contacten zoeken, aanvinken en later ontkoppelen.
+De selectie wordt met het object opgeslagen als `personIds`; Annuleren verandert
+niets. Hernoemen van een contact verandert de identifier niet. Bij Personen →
+Bewerk verschijnen de gekoppelde kaarten en locaties, die je kunt openen.
+Koppelen geeft geen toegang en verstuurt geen gegevens naar de server of in een
+kaart-QR. Een niet meer beschikbaar contact blijft herkenbaar als ontbrekende
+koppeling en kan worden ontkoppeld. Locaties samenvoegen bewaart beide selecties.
+
+De gedeelde component `PersonLinks.js` kan worden aangesloten op toekomstige
+objecteditors. Ritten, Tijd, Objecten, Acties en Thema's hebben in de reguliere
+omgeving nog geen objecteditor. Hun bestaande testgraph blijft gescheiden van
+persoonlijke gegevens. Kaarten en Locaties gebruiken in de testomgeving dezelfde
+keuze met fictieve personen en relaties uit die graph, met behoud van bestaande
+relatie-identifiers.

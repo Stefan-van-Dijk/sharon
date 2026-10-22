@@ -1,20 +1,21 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.76';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.76';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.76';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.76';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.76';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.76';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.76';
-import { renderStrip } from './Strip.js?v=0.3.76';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.76';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.76';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.76';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.76';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.76';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.77';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.77';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.77';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.77';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.77';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.77';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.77';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.77';
+import { renderStrip } from './Strip.js?v=0.3.77';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.77';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.77';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.77';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.77';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.77';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.76';
+} from '../core/location/LocationHierarchy.js?v=0.3.77';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -624,6 +625,7 @@ export async function openLocationsView(root, {
             <p class="clean-help">Een melding verschijnt pas wanneer Sharon eerst buiten en vervolgens binnen de straal meet. Er wordt geen extra GPS-volgsysteem gestart.</p>
           </section>
           <div class="location-check"><button class="text-action" type="button" data-check-distance>Controleer afstand</button><span data-distance-status></span></div>
+          <div data-person-links></div>
           <p class="sh-location-feedback" data-editor-status role="status"></p>
           <button type="submit" class="primary-line-action">${isNew ? 'Voeg locatie toe' : 'Bewaar locatie'}</button>
         </form>
@@ -646,6 +648,8 @@ export async function openLocationsView(root, {
     `;
 
     const form = root.querySelector('[data-location-form]');
+    const selectedPeople=await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:item?.personIds || []});
+    if(!form.isConnected)return;
     const status = root.querySelector('[data-editor-status]');
     const setStatus = msg => { status.textContent = msg; };
     root.querySelector('[data-back]').addEventListener('click', () => item ? detail(item) : list());
@@ -799,6 +803,7 @@ export async function openLocationsView(root, {
         const saved = {
           ...(item || { id: savedId, externalId: savedId, type: 'location', schemaVersion: 1, createdAt: now, deletedAt: null }),
           updatedAt: now,
+          personIds: selectedPeople(),
           data: {
             ...original, title, parentId, address,
             coordinates: lat === null ? null : { lat, lng },
@@ -864,6 +869,7 @@ export async function openLocationsView(root, {
     const ownKeep = ownCoordinates(keep), ownRemove = ownCoordinates(remove);
     const updatedKeep = {
       ...keep, updatedAt: now,
+      personIds: [...new Set([...(keep.personIds || []),...(remove.personIds || [])])],
       data: {
         ...keep.data,
         address: addressText(keep.data.address) ? keep.data.address : (remove.data.address || {}),

@@ -1,17 +1,18 @@
-import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.76';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.76';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.76';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.76';
-import { openCardBoard } from './CardBoard.js?v=0.3.76';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.76';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.76';
-import { mountCardScanner } from './CardScanner.js?v=0.3.76';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.76';
-import { renderStrip } from './Strip.js?v=0.3.76';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.76';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.76';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.76';
-import { cardSymbol } from './CardSymbols.js?v=0.3.76';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.77';
+import { parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.77';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.77';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.77';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.77';
+import { openCardBoard } from './CardBoard.js?v=0.3.77';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.77';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.77';
+import { mountCardScanner } from './CardScanner.js?v=0.3.77';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.77';
+import { renderStrip } from './Strip.js?v=0.3.77';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.77';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.77';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.77';
+import { cardSymbol } from './CardSymbols.js?v=0.3.77';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -21,7 +22,7 @@ const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
 
-export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection, initialScan=null }) {
+export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection, initialScan=null, initialCardId=null }) {
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
@@ -329,11 +330,13 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
               </div>
             </div>
           </div>
+          <div data-person-links></div>
           <p data-card-error role="alert" class="sh-card-error"></p>
           
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
+    let selectedPeople = () => card?.personIds || [];
     form.querySelector('[data-card-cancel]').addEventListener('click', showList);
     if (card) form.querySelector('.sh-card-form-save').textContent = 'Wijzigingen opslaan';
     const setTyping = () => {
@@ -568,6 +571,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         codeFormat: format,
         codeValue: value,
         locationId: form.elements.locationId.value || null,
+        personIds: selectedPeople(),
         cardNumber: form.elements.cardNumber.value.trim(),
         fields: [...fieldHost.children].map(row => ({label: row.querySelector('[data-field-label]').value.trim(), value: row.querySelector('[data-field-value]').value.trim()})).filter(field => field.label && field.value),
         createdAt: card?.createdAt || now,
@@ -586,12 +590,16 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       await store.delete('objects', card.id);
       await showList();
     });
+    selectedPeople = await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:card?.personIds || []});
   }
 
   if(initialScan) {
     const existing=(await records()).find(item=>item.codeValue===initialScan.value&&item.codeFormat===initialScan.format);
     if(existing)await showDetail(existing.id);
     else await showForm(null,(initialScan.format==='QR_CODE'?parseCardPayload(initialScan.value):null)||initialScan);
-  } else await showList();
+  } else {
+    await showList();
+    if(initialCardId)await showDetail(initialCardId);
+  }
   return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }

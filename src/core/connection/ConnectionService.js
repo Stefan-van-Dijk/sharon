@@ -1,10 +1,11 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.76';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.77';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
 const KEY = 'connection.device.log-json.v1';
 const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
+const timestamp=value=>Number(value)||Date.parse(value)||0;
 const errors = {
   invalid_name:'Vul je naam in om verbinding te maken.',
   invalid_publish_key:'De publicatiesleutel is niet geldig.',
@@ -158,7 +159,7 @@ export class ConnectionService {
     name=String(name).trim();
     if(!name || name.length>80)throw Error('Gebruik een naam van 1 tot 80 tekens.');
     const key=this.contactKey(personId),old=(await this.store.get('meta',key))?.value || {};
-    await this.store.setMeta(key,{...old,name});
+    await this.store.setMeta(key,{...old,name,updatedAt:Date.now()});
   }
   async removeContact(personId) {
     const key=this.contactKey(personId),old=(await this.store.get('meta',key))?.value || {};
@@ -179,9 +180,13 @@ export class ConnectionService {
       contacts=result.contacts;
       await this.store.put('meta',{key,value:contacts});
     }
+    const activity=new Map();
+    for(const message of await this.store.getAll('objects')) {
+      if(message.type==='chat-message')activity.set(message.chatId,Math.max(activity.get(message.chatId)||0,timestamp(message.at||message.createdAt)));
+    }
     const visible=await Promise.all(contacts.map(async contact=>{
       const local=(await this.store.get('meta',this.contactKey(contact.personId)))?.value;
-      return local?.deletedAt?null:{...contact,name:local?.name||contact.name};
+      return local?.deletedAt?null:{...contact,name:local?.name||contact.name,updatedAt:Math.max(activity.get(contact.chatId)||0,timestamp(local?.updatedAt),timestamp(contact.updatedAt),timestamp(contact.createdAt))};
     }));
     return visible.filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'nl')||a.personId.localeCompare(b.personId));
   }

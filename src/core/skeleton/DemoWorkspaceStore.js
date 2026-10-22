@@ -1,5 +1,5 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.76';
-import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.3.76';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.77';
+import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.3.77';
 
 // One test workspace for the same production modules and context rules.
 // Existing graph identifiers and legacy test metadata remain readable.
@@ -11,11 +11,15 @@ export function createDemoWorkspaceStore(store) {
     if (!workspace.enabled) throw Error('De testomgeving is niet actief.');
     return workspace.data;
   };
+  const linkedPeople = (data,id) => data.relations.filter(r=>r.from===id||r.to===id)
+    .map(r=>r.from===id?r.to:r.from).filter(id=>data.objects.some(o=>o.id===id&&o.module==='persons'));
   const records = data => [
+    ...data.objects.filter(item=>item.module==='persons').map(item=>({id:item.id,type:'person',name:item.title,deletedAt:item.status==='archived'?1:null})),
     ...data.objects.filter(item => item.module === 'locations').map(item => ({
       ...(item.fields?.locationRecord || {}),
       id: item.id, externalId: item.id, type: 'location', schemaVersion: 1,
       deletedAt: item.status === 'archived' ? (item.fields?.locationRecord?.deletedAt || 1) : null,
+      personIds: linkedPeople(data,item.id),
       data: {
         kind: item.fields?.type === 'winkel' ? 'shop' : 'other', radiusM: 100,
         ...item.fields?.locationRecord?.data, title: item.title
@@ -23,6 +27,7 @@ export function createDemoWorkspaceStore(store) {
     })),
     ...data.objects.filter(item => item.module === 'cards').map(item => ({
       ...(item.fields?.cardRecord || {}), id: item.id, type: 'card', name: item.title,
+      personIds: linkedPeople(data,item.id),
       cardKind: item.fields?.cardRecord?.cardKind || 'loyalty',
       locationId: data.relations.find(relation => relation.from === item.id && relation.type === 'usable-at' &&
         data.objects.some(target => target.id === relation.to && target.module === 'locations'))?.to || null,
@@ -117,6 +122,16 @@ export function createDemoWorkspaceStore(store) {
           } else if (value.type === 'location-action') {
             data.locationActions = [...(data.locationActions || []).filter(item => item.id !== value.id), structuredClone(value)];
           } else throw Error('Dit objecttype wordt nog niet ondersteund in de testomgeving.');
+          if(['card','location'].includes(value.type) && Array.isArray(value.personIds)) {
+            const isPerson=id=>data.objects.some(o=>o.id===id&&o.module==='persons');
+            if(value.personIds.some(id=>!isPerson(id)))throw Error('Kies een bestaande testpersoon.');
+            data.relations=data.relations.filter(r=>!((r.from===value.id&&isPerson(r.to)&&!value.personIds.includes(r.to))||(r.to===value.id&&isPerson(r.from)&&!value.personIds.includes(r.from))));
+            for(const personId of new Set(value.personIds)) {
+              if(data.relations.some(r=>(r.from===value.id&&r.to===personId)||(r.to===value.id&&r.from===personId)))continue;
+              let id;do{id=IdentifierService.create();}while(data.relations.some(r=>r.id===id));
+              data.relations.push({id,from:value.id,to:personId,type:'related-to'});
+            }
+          }
           await saveDemoDataset(store, data);
           return value.id;
         }
