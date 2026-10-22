@@ -1,21 +1,21 @@
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.79';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.79';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.79';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.79';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.79';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.79';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.79';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.79';
-import { renderStrip } from './Strip.js?v=0.3.79';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.79';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.79';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.79';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.79';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.79';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.80';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.80';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.80';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.80';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.80';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.80';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.80';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.80';
+import { renderStrip } from './Strip.js?v=0.3.80';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.80';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.80';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.80';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.80';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.80';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.79';
+} from '../core/location/LocationHierarchy.js?v=0.3.80';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);

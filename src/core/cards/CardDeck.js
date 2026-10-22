@@ -1,5 +1,5 @@
-import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.79';
-import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.79';
+import { resolveLocation } from '../location/LocationHierarchy.js?v=0.3.80';
+import { distanceBetween } from '../location/LocationTriggerService.js?v=0.3.80';
 
 export function cardDistanceLabel(card, locations, point, now = Date.now()) {
   const lookup = new Map(locations.filter(item=>!item.deletedAt&&!item.archivedAt&&item.status!=='archived').map(item => [String(item.id),item]));

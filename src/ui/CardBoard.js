@@ -1,9 +1,9 @@
-import { openCardShare } from './CardSharing.js?v=0.3.79';
-import { renderCardCode } from './CardCodes.js?v=0.3.79';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.79';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.79';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.79';
-import { cardSymbol } from './CardSymbols.js?v=0.3.79';
+import { openCardShare } from './CardSharing.js?v=0.3.80';
+import { renderCardCode } from './CardCodes.js?v=0.3.80';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.80';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.80';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.80';
+import { cardSymbol } from './CardSymbols.js?v=0.3.80';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
