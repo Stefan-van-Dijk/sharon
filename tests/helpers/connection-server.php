@@ -147,7 +147,8 @@ $code=$cs->handle('invite-code',['token'=>$ci['token']],$codeOwner['deviceToken'
 check(strlen($code['id'])===12 && count($code)===1);
 check($cs->handle('invite-code-check',$code,null)===['valid'=>true]);
 check($cs->handle('invite-code-check',['id'=>'UnknownCode1'],null)===['valid'=>false]);
-fails(fn()=>$cs->handle('accept-code',$code,null),'unauthorized');
+fails(fn()=>$cs->handle('accept-code',$code,null),'invalid_token');
+fails(fn()=>$cs->handle('accept-code',$code,LogNetwork::token()),'unauthorized');
 fails(fn()=>$cs->handle('accept-code',$code,$codeOwner['deviceToken']),'invalid_invitation');
 $connected=$cs->handle('accept-code',$code,$first['deviceToken']);
 check($connected['self']['line']===1 && $connected['contact']['personId']===$codeOwner['personId']);
