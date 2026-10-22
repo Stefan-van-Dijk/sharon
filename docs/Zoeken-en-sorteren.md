@@ -43,3 +43,14 @@ omgeving nog geen objecteditor. Hun bestaande testgraph blijft gescheiden van
 persoonlijke gegevens. Kaarten en Locaties gebruiken in de testomgeving dezelfde
 keuze met fictieve personen en relaties uit die graph, met behoud van bestaande
 relatie-identifiers.
+
+## Personen op locatie — v0.3.78
+
+Personen heeft nu ook **Dichtbij**, via de gekoppelde locaties (`location.personIds`).
+Per persoon telt de kleinste afstand tot een gekoppelde locatie met eigen of
+geërfde GPS. Personen zonder bekende positie volgen achteraan. De centrale
+locatievoorziening controleert de huidige positie op verzoek, zonder extra
+volgproces. Als een koppeling of locatietoegang ontbreekt, volgt een gerichte
+melding en blijft de vorige sortering actief. De gekoppelde locatienamen staan
+in de persoonsstrook en worden ook doorzocht. Zonder bekende actuele positie
+valt een bewaarde afstandssortering bij openen terug op A–Z.

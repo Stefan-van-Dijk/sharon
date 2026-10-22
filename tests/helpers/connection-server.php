@@ -128,4 +128,14 @@ $next=$qr->handle('invite',[],$a['deviceToken'])['invitation'];
 check($qr->handle('accept',$next,$b['deviceToken'])['self']['line']===2);
 $state=json_decode(file_get_contents($qrPath),true);
 check(count(array_filter($state['relations'],fn($r)=>$r['type']==='grants-access'))===2);
+// Compact links contain only encrypted invitation data, published by the issuer.
+$refInvite=$qr->handle('invite',[],$qrOwner['deviceToken'])['invitation'];
+$ref=['id'=>'InviteRef001','token'=>$refInvite['token'],'payload'=>['v'=>1,'iv'=>str_repeat('a',16),'data'=>str_repeat('b',44)]];
+fails(fn()=>$qr->handle('invitation-publish',$ref,$a['deviceToken']),'invalid_invitation');
+check($qr->handle('invitation-publish',$ref,$qrOwner['deviceToken'])['ok']);
+check($qr->handle('invitation-resolve',['id'=>'InviteRef001'],null)['payload']===$ref['payload']);
+fails(fn()=>$qr->handle('invitation-publish',$ref,$qrOwner['deviceToken']),'identity_exists');
+fails(fn()=>$qr->handle('invitation-resolve',['id'=>'MissingRef01'],null),'invalid_reference');
+$expired=new LogNetwork($qrPath,1000000+86401);
+fails(fn()=>$expired->handle('invitation-resolve',['id'=>'InviteRef001'],null),'invalid_reference');
 echo json_encode(['checks'=>$checks,'ok'=>true]);

@@ -1,4 +1,5 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.77';
+import { isInvitationReference, sealInvitation, unsealInvitation } from './InvitationReference.js?v=0.3.78';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.78';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -7,6 +8,8 @@ const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const timestamp=value=>Number(value)||Date.parse(value)||0;
 const errors = {
+  unknown_action:'Werk het serverbestand connections.php bij voor compacte contactcodes.',
+  invalid_reference:'Deze contactcode is ongeldig of verlopen.',
   invalid_name:'Vul je naam in om verbinding te maken.',
   invalid_publish_key:'De publicatiesleutel is niet geldig.',
   already_activated:'De eigen installatie is al geactiveerd. Gebruik die installatie om iemand uit te nodigen.',
@@ -42,7 +45,13 @@ export function parseConnectionLink(input) {
   let url;
   try { url = new URL(input.trim()); } catch { throw Error('Plak de volledige Sharon-verbindingslink.'); }
   if (!['https://stefan-van-dijk.github.io','https://sharon.life','https://www.sharon.life'].includes(url.origin) ||
-      url.username || url.password || !/^#connect=[A-Za-z0-9_-]+$/.test(url.hash)) throw Error('Ongeldige verbindingslink.');
+      url.username || url.password || !/^#connect=[A-Za-z0-9_.-]+$/.test(url.hash)) throw Error('Ongeldige verbindingslink.');
+  const parts=url.hash.slice(9).split('.');
+  if(parts.length===2){
+    const reference={kind:'reference',id:parts[0],key:parts[1]};
+    if(!isInvitationReference(reference))throw Error('Ongeldige contactcode.');
+    return reference;
+  }
   try {
     const encoded = url.hash.slice(9);
     const json = atob(encoded.replace(/-/g,'+').replace(/_/g,'/'));
@@ -50,6 +59,7 @@ export function parseConnectionLink(input) {
   } catch { throw Error('Dit is geen geldige Sharon-verbindingscode.'); }
 }
 export function connectionLink(invitation) {
+  if(isInvitationReference(invitation))return APP_URL+'#connect='+invitation.id+'.'+invitation.key;
   const value = validInvitation(invitation);
   return APP_URL+'#connect='+btoa(JSON.stringify(value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
@@ -59,7 +69,7 @@ export async function captureConnectionLink(store, locationObject = window.locat
   // Remove secrets from the visible URL before asynchronous work or onboarding.
   historyObject.replaceState(historyObject.state, '', locationObject.pathname+locationObject.search);
   const invitation = parseConnectionLink(href);
-  await store.put('meta', {key:PENDING,value:invitation});
+  await new ConnectionService(store).setPending(invitation);
   return true;
 }
 
@@ -80,7 +90,20 @@ export class ConnectionService {
     return row.value;
   }
   async pending() { return (await this.store.get('meta',PENDING))?.value || null; }
-  async setPending(value) { await this.store.put('meta',{key:PENDING,value:validInvitation(value)}); }
+  async setPending(value) {
+    if(isInvitationReference(value)){
+      const result=await this.request('invitation-resolve',{id:value.id});
+      value=await unsealInvitation(value,result.payload);
+    }
+    await this.store.put('meta',{key:PENDING,value:validInvitation(value)});
+  }
+  async compactInvitation(invitation) {
+    if(invitation.kind!=='invite')return invitation;
+    const {key,payload}=await sealInvitation(validInvitation(invitation));
+    const id=IdentifierService.create();
+    await this.request('invitation-publish',{id,token:invitation.token,payload},await this.device());
+    return {kind:'reference',id,key};
+  }
   async clearPending() { await this.store.delete('meta',PENDING); }
   async request(action, input = {}, device = null, publishKey = '') {
     const controller = new AbortController();

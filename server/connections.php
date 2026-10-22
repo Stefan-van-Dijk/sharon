@@ -122,6 +122,12 @@ final class LogNetwork {
     }
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
+            if ($action==='invitation-resolve') {
+                $id=self::validId($in['id'] ?? null);
+                $link=$this->state['invitationLinks'][$id] ?? null;
+                if (!$link || $link['until']<=$this->now()) throw new LogNetworkError('invalid_reference',410);
+                return ['payload'=>$link['payload']];
+            }
             if ($action==='register') {
                 $id=self::validId($in['personId'] ?? null); $hash=self::hashToken($in['deviceToken'] ?? null);
                 $name=$in['name'] ?? '';
@@ -201,6 +207,20 @@ final class LogNetwork {
                 $this->state['invitations'][self::hashToken($token)]=['issuerId'=>$pid,'recipientId'=>$recipient,'until'=>$until,'claimedAt'=>null];
                 return ['invitation'=>['v'=>1,'kind'=>'invite','networkId'=>$this->state['id'],
                     'token'=>$token,'expiresAt'=>$until*1000,...($recipient ? ['recipientId'=>$recipient] : [])]];
+            }
+            if ($action==='invitation-publish') {
+                $id=self::validId($in['id'] ?? null);
+                $invite=$this->state['invitations'][self::hashToken($in['token'] ?? null)] ?? null;
+                if (!$invite || $invite['issuerId']!==$pid || $invite['until']<=$this->now() || $invite['claimedAt']!==null) throw new LogNetworkError('invalid_invitation',403);
+                $payload=$in['payload'] ?? null;
+                if (!is_array($payload) || ($payload['v'] ?? null)!==1 ||
+                    !is_string($payload['iv'] ?? null) || !preg_match('/\A[A-Za-z0-9_-]{16}\z/',$payload['iv']) ||
+                    !is_string($payload['data'] ?? null) || strlen($payload['data'])>3000 || !preg_match('/\A[A-Za-z0-9_-]{24,}\z/',$payload['data'])) throw new LogNetworkError('invalid_reference');
+                foreach ($this->state['invitationLinks'] ?? [] as $key=>$link) if ($link['until']<=$this->now()) unset($this->state['invitationLinks'][$key]);
+                if (isset($this->state['invitationLinks'][$id])) throw new LogNetworkError('identity_exists',409);
+                if (count($this->state['invitationLinks'] ?? [])>=10000) throw new LogNetworkError('capacity',409);
+                $this->state['invitationLinks'][$id]=['until'=>$invite['until'],'payload'=>['v'=>1,'iv'=>$payload['iv'],'data'=>$payload['data']]];
+                return ['ok'=>true];
             }
             if ($action==='invite-status') {
                 $invite=$this->state['invitations'][self::hashToken($in['token'] ?? null)] ?? null;

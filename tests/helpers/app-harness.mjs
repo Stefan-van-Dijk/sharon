@@ -17,6 +17,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   const w = dom.window, context = dom.getInternalVMContext();
   Object.defineProperty(w, 'crypto', { value: webcrypto });
   w.structuredClone = structuredClone;
+  w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   w.indexedDB = storageFailure ? { open() { throw new Error('Opslag geblokkeerd'); } } : new IDBFactory();
   w.matchMedia = query => ({ matches: query.includes('prefers-reduced-motion'), addEventListener() {}, removeEventListener() {} });
   w.HTMLElement.prototype.scrollIntoView = function () {};
@@ -57,7 +58,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   }
   let store;
   if (!storageFailure) {
-    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.77');
+    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.78');
     store = await new ObjectStore().open();
     if (!firstRun) await store.put('settings', { key: 'app', value: { profile: { name: 'Testgebruiker' }, onboarding: { storySeen: true } } });
     await store.put('objects', { id: 'TestPlace001', type: 'location', data: { title: 'Persoonlijke plek', kind: 'other', address: {} } });
