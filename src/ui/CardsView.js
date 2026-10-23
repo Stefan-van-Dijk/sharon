@@ -1,19 +1,20 @@
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.86';
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.86';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.86';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.86';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.86';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.86';
-import { openCardBoard } from './CardBoard.js?v=0.3.86';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.86';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.86';
-import { mountCardScanner } from './CardScanner.js?v=0.3.86';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.86';
-import { renderStrip } from './Strip.js?v=0.3.86';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.86';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.86';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.86';
-import { cardSymbol } from './CardSymbols.js?v=0.3.86';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.3.87';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.87';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.87';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.87';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.87';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.87';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.87';
+import { openCardBoard } from './CardBoard.js?v=0.3.87';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.87';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.87';
+import { mountCardScanner } from './CardScanner.js?v=0.3.87';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.87';
+import { renderStrip } from './Strip.js?v=0.3.87';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.87';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.87';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.87';
+import { cardSymbol } from './CardSymbols.js?v=0.3.87';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -280,9 +281,18 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
             <button type="button" data-kind-toggle aria-label="Soort pas en kleur kiezen" aria-expanded="false"><span data-kind-icon></span></button>
             <div class="sh-card-unified-input">
               <span data-card-question class="sh-card-question" aria-hidden="true">Hoe heet deze kaart?</span>
-              <input id="card-name" name="name" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="" value="${escapeHtml(card?.name || imported?.name || "")}">
+              <input id="card-name" name="name" list="card-chain-names" maxlength="100" autocomplete="organization" required aria-label="Naam van de kaart" placeholder="" value="${escapeHtml(card?.name || imported?.name || query || "")}">
             </div>
           </div>
+          <datalist id="card-chain-names">${CHAIN_CATALOG.map(chain=>`<option value="${escapeHtml(chain.name)}"></option>`).join('')}</datalist>
+          <div class="sh-card-section sh-chain-link" data-chain-link hidden>
+            <div class="sh-chain-link-row">
+              <div><label for="card-chain-enabled">Winkelketen koppelen</label><strong data-chain-name></strong></div>
+              <label class="mini-switch"><input id="card-chain-enabled" name="chainLinkEnabled" type="checkbox" role="switch" aria-label="Winkelketen koppelen"><span aria-hidden="true"></span></label>
+            </div>
+            <small data-chain-help>Toon deze pas bij vestigingen van deze keten.</small>
+          </div>
+          <input type="hidden" name="chainId" value="">
           <div class="sh-card-kind-options" data-kind-options hidden>
             <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(label)}</button>`).join("")}
@@ -332,13 +342,6 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
               </div>
             </div>
           </div>
-          <div class="sh-card-section sh-chain-link">
-            <label for="card-chain">Winkelketen koppelen</label>
-            <select id="card-chain" name="chainId"><option value="">Geen keten</option>
-              ${CHAIN_CATALOG.map(chain=>`<option value="${chain.id}" ${card?.chainId===chain.id?'selected':''}>${escapeHtml(chain.name)}</option>`).join('')}
-            </select>
-            <small>Toon deze pas bij vestigingen van deze keten. Eerste dekking: Nederland.</small>
-          </div>
           <div data-person-links></div>
           <p data-card-error role="alert" class="sh-card-error"></p>
           
@@ -355,6 +358,22 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     form.addEventListener('focusin', setTyping);
     form.addEventListener('focusout', () => setTimeout(() => { if (form.isConnected) setTyping(); }, 0));
     const input = form.elements.name;
+    const chainSection=form.querySelector('[data-chain-link]'),chainToggle=form.elements.chainLinkEnabled;
+    const originalChain=chainById(card?.chainId);
+    let nameChanged=false,chainPreference=typeof card?.chainLinkEnabled==='boolean'?card.chainLinkEnabled:card?Boolean(originalChain):true;
+    const syncChain=()=>{
+      // Existing explicit links survive unrelated edits, even for a nickname.
+      const chain=!nameChanged&&originalChain?originalChain:form.elements.cardKind.value==='loyalty'?recognizeChain(input.value):null;
+      chainSection.hidden=!chain;
+      chainToggle.checked=Boolean(chain)&&chainPreference;
+      form.elements.chainId.value=chainToggle.checked?chain.id:'';
+      form.querySelector('[data-chain-name]').textContent=chain?.name||'';
+      chainToggle.setAttribute('aria-label',chain?'Winkelketen '+chain.name+' koppelen':'Winkelketen koppelen');
+      form.querySelector('[data-chain-help]').textContent=chainToggle.checked?'Toon deze pas bij vestigingen van '+chain.name+'.':'Deze pas is niet aan de keten gekoppeld.';
+    };
+    input.addEventListener('input',()=>{nameChanged=true;syncChain();});
+    chainToggle.addEventListener('change',()=>{chainPreference=chainToggle.checked;syncChain();});
+    syncChain();
     const fieldHost = form.querySelector('[data-card-fields]');
     const addField = (label = '', value = '') => {
       if (fieldHost.children.length >= 30) return;
@@ -417,7 +436,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     };
     kindToggle.addEventListener('click', toggleKindOptions);
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
-      formKind.value = button.dataset.kind; updateKind();
+      formKind.value = button.dataset.kind; updateKind(); syncChain();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
     form.querySelector('[data-kind-done]').addEventListener('click', () => { kindOptions.hidden = true; kindToggle.setAttribute('aria-expanded', 'false'); });
@@ -581,6 +600,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         codeValue: value,
         locationId: form.elements.locationId.value || null,
         chainId: chainById(form.elements.chainId.value)?.id || null,
+        chainLinkEnabled: chainPreference,
         personIds: selectedPeople(),
         cardNumber: form.elements.cardNumber.value.trim(),
         fields: [...fieldHost.children].map(row => ({label: row.querySelector('[data-field-label]').value.trim(), value: row.querySelector('[data-field-value]').value.trim()})).filter(field => field.label && field.value),
