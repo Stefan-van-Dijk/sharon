@@ -1,19 +1,19 @@
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.84';
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.84';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.84';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.84';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.84';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.84';
-import { openCardBoard } from './CardBoard.js?v=0.3.84';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.84';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.84';
-import { mountCardScanner } from './CardScanner.js?v=0.3.84';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.84';
-import { renderStrip } from './Strip.js?v=0.3.84';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.84';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.84';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.84';
-import { cardSymbol } from './CardSymbols.js?v=0.3.84';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.85';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.85';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.85';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.85';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.85';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.85';
+import { openCardBoard } from './CardBoard.js?v=0.3.85';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.85';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.85';
+import { mountCardScanner } from './CardScanner.js?v=0.3.85';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.85';
+import { renderStrip } from './Strip.js?v=0.3.85';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.85';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.85';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.85';
+import { cardSymbol } from './CardSymbols.js?v=0.3.85';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

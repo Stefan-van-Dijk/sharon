@@ -1,4 +1,4 @@
-# Winkelketens, vestigingen en passen — 0.3.84
+# Winkelketens, vestigingen en passen — 0.3.85
 
 Uitvoering van de eerste Nederlandse versie van [#59](https://github.com/Stefan-van-Dijk/sharon/issues/59), bovenop de gedeelde kaartbasis van [#52](https://github.com/Stefan-van-Dijk/sharon/issues/52). Dit document beschrijft de code en de geteste werking; de eerste volledige live OSM-import en echte GPS-/iPhone-controles moeten nog plaatsvinden.
 
@@ -33,7 +33,7 @@ Een pas zonder ketenkoppeling blijft exact werken zoals voorheen. Beschadigde ke
 
 ## Centrale bronimport
 
-`scripts/update-chain-register.mjs` vraagt met één Overpass-selectie alle Nederlandse vestigingen van de catalogus op. Alleen expliciete `brand:wikidata`-koppelingen worden gebruikt. De bron-ID's zijn gecontroleerd tegen de officiële Name Suggestion Index:
+`scripts/update-chain-register.mjs` vraagt per bronmerk met een exacte, geïndexeerde Overpass-selectie de Nederlandse OSM-vestigingen van de catalogus op. De vijf bronmerken worden na volledige validatie samengevoegd. Alleen expliciete `brand:wikidata`-koppelingen worden gebruikt. De bron-ID's zijn gecontroleerd tegen de officiële Name Suggestion Index:
 
 - Albert Heijn: Q1653985; AH XL: Q78163765; AH to go: Q77971185.
 - Jumbo Nederland/België: Q2262314; geen verwarring met andere Jumbo-ketens.
@@ -67,3 +67,13 @@ De UI, API en publicatie vermelden **© OpenStreetMap contributors**. De afgelei
 ## Praktijkcontroles vóór afronding van #59
 
 Echte iPhone/GPS, twee overlappende vestigingen, vijf passen tegelijk, slider bij beperkte locatieprecisie, bronduplicaten/node-way-vervanging, nieuwe installatie vóór eerste download en de volledige live maandelijkse import op GitHub/hosting blijven te controleren. Internationale dekking en meer ketens zijn uitbreidingen op dezelfde gegevenslaag. Dit is geen verklaring dat heel #59 is afgerond.
+
+## Herstel van de eerste import-time-out — 0.3.85
+
+De eerste GitHub-import in 0.3.84 strandde op een time-out voordat het register kon worden gepubliceerd. Die versie bevatte één landelijke regex-aanvraag en logde alleen de laatste fout. De app-releasecontrole zelf was succesvol.
+
+De importer gebruikt nu vijf kleine exacte merkselecties, een serverlimiet van 25 seconden per aanvraag en een clientlimiet van 35 seconden. Bij uitval probeert hij drie gedocumenteerde Overpass-instanties (Private.coffee, overpass-api.de en VK Maps), met maximaal twee rondes en een korte wachttijd tussen rondes. Een werkende bron krijgt bij volgende merken voorrang. GET voorkomt afhankelijkheid van proxies die POST blokkeren; de workflow geeft IPv4-adressen voorrang. Logregels tonen merk, bronserver, poging, resultaat en foutreden.
+
+Een onvolledig antwoord, HTTP-fout of een Overpass-remark wordt binnen de bronpoging afgehandeld, zodat de volgende bron wordt geprobeerd. Eén mislukt deel breekt nog steeds de publicatie van het hele register af; bestaande data en identiteiten worden behouden. Lege optionele merkvarianten mogen wel bestaan, maar elke hoofdketen moet vestigingen hebben. De bron-snapshottijd is de oudste van de volledig opgehaalde deelantwoorden.
+
+Pull requests die de importer, catalogus of workflow wijzigen voeren voortaan ook een live proefimport uit. Daarbij wordt geen databranch gepubliceerd. Alleen een geslaagde main-/maand-/handmatige main-run publiceert brongegevens. De job heeft ruimte voor de begrensde terugvalpogingen; de stappenlog geeft voortgang tijdens het ophalen.
