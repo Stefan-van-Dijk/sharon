@@ -120,6 +120,96 @@ final class LogNetwork {
             if ($token) $this->rate('credential:'.hash('sha256',$token),120,60);
         });
     }
+    private static function informationReference(mixed $item): array {
+        if (!is_array($item)) throw new LogNetworkError('invalid_information');
+        $source=$item['source'] ?? null; $id=$item['id'] ?? null;
+        if (!is_string($source) || !preg_match('/\A[a-z][a-z0-9-]{0,39}\z/',$source) ||
+            !is_string($id) || $id==='' || strlen($id)>200 || trim($id)!==$id || !preg_match('//u',$id) ||
+            preg_match('/[\x00-\x1f\x7f]/',$id)) throw new LogNetworkError('invalid_information');
+        if ($source==='wikipedia' && !preg_match('/\AQ[1-9][0-9]*\z/',$id)) throw new LogNetworkError('invalid_information');
+        $uri=$source==='wikipedia' ? 'https://www.wikidata.org/entity/'.$id : ($item['uri'] ?? null);
+        $url=is_string($uri) ? parse_url($uri) : false;
+        if (!$url || strlen($uri)>2048 || ($url['scheme'] ?? '')!=='https' || empty($url['host']) ||
+            isset($url['user']) || isset($url['pass']) || preg_match('/[\x00-\x20\x7f]/',$uri)) throw new LogNetworkError('invalid_information');
+        return ['source'=>$source,'id'=>$id,'uri'=>$uri];
+    }
+    private static function informationKey(array $reference): string {
+        return hash('sha256',json_encode([$reference['source'],$reference['id']],JSON_THROW_ON_ERROR));
+    }
+    private function informationSummary(array $reference, string $pid): array {
+        $item=$this->state['information'][self::informationKey($reference)] ?? [];
+        $counts=['opened'=>0,'read'=>0,'liked'=>0,'disliked'=>0];
+        foreach ($item['feedback'] ?? [] as $personId=>$row) {
+            $person=$this->state['people'][$personId] ?? null;
+            $grant=$this->grant($personId);
+            if (!$person || ($personId!==$this->state['ownerId'] && (!$grant || $grant['status']!=='active'))) continue;
+            foreach ($counts as $field=>$count) if ($row['state'][$field] ?? false) $counts[$field]++;
+        }
+        $own=$item['feedback'][$pid] ?? [];
+        return ['reference'=>$item['reference'] ?? $reference,'counts'=>$counts,
+            'policy'=>$item['policy'] ?? ['baseRadius'=>10000,'maxRadius'=>10000,'weight'=>0.5],
+            'context'=>$item['context'] ?? null,'revision'=>$item['revision'] ?? 0,
+            'own'=>$own['state'] ?? ['opened'=>false,'read'=>false,'liked'=>false,'disliked'=>false],
+            'version'=>$own['version'] ?? 0];
+    }
+    private function informationAction(string $action, array $in, string $pid): array {
+        if ($action==='information-summary') {
+            $items=$in['items'] ?? null;
+            if (!is_array($items) || !array_is_list($items) || count($items)>40) throw new LogNetworkError('invalid_information');
+            return ['items'=>array_map(fn($item)=>$this->informationSummary(self::informationReference($item),$pid),$items)];
+        }
+        $reference=self::informationReference($in['item'] ?? null);
+        $key=self::informationKey($reference);
+        $item=$this->state['information'][$key] ?? ['reference'=>$reference,'feedback'=>[]];
+        if ($item['reference']['uri']!==$reference['uri']) throw new LogNetworkError('information_uri_conflict',409);
+        if (!isset($this->state['information'][$key]) && count($this->state['information'] ?? [])>=100000)
+            throw new LogNetworkError('capacity',409);
+        if ($action==='information-policy') {
+            if ($pid!==$this->state['ownerId']) throw new LogNetworkError('owner_required',403);
+            $policy=$in['policy'] ?? null;
+            if (!is_array($policy) || !is_int($policy['baseRadius'] ?? null) || !is_int($policy['maxRadius'] ?? null) ||
+                $policy['baseRadius']<0 || $policy['baseRadius']>$policy['maxRadius'] || $policy['maxRadius']>100000 ||
+                !is_numeric($policy['weight'] ?? null) || $policy['weight']<0 || $policy['weight']>1) throw new LogNetworkError('invalid_information_policy');
+            $item['policy']=['baseRadius'=>$policy['baseRadius'],'maxRadius'=>$policy['maxRadius'],'weight'=>(float)$policy['weight']];
+            if (array_key_exists('context',$in)) {
+                $context=$in['context'];
+                if (!is_array($context) || !is_string($context['title'] ?? null) || strlen($context['title'])>500 ||
+                    !preg_match('//u',$context['title']) || preg_match('/[\x00-\x1f\x7f]/',$context['title']) ||
+                    !is_array($context['categories'] ?? null) || !array_is_list($context['categories']) || count($context['categories'])>40)
+                    throw new LogNetworkError('invalid_information');
+                foreach ($context['categories'] as $category) if (!is_string($category) || strlen($category)>200 ||
+                    !preg_match('//u',$category) || preg_match('/[\x00-\x1f\x7f]/',$category)) throw new LogNetworkError('invalid_information');
+                $point=$context['location'] ?? null;
+                if ($point!==null && (!is_array($point) || !is_numeric($point['lat'] ?? null) || !is_numeric($point['lng'] ?? null) ||
+                    abs((float)$point['lat'])>90 || abs((float)$point['lng'])>180)) throw new LogNetworkError('invalid_information');
+                $item['context']=['title'=>$context['title'],'categories'=>$context['categories'],
+                    'location'=>$point===null ? null : ['lat'=>(float)$point['lat'],'lng'=>(float)$point['lng']]];
+            }
+            $item['revision']=($item['revision'] ?? 0)+1;
+            $this->state['information'][$key]=$item;
+            return ['item'=>$this->informationSummary($reference,$pid)];
+        }
+        $state=$in['state'] ?? null; $operation=$in['operation'] ?? null; $version=$in['version'] ?? null;
+        if (!is_array($state) || !is_string($operation) || !preg_match('/\A[a-f0-9-]{36}\z/',$operation) ||
+            !is_int($version) || $version<0) throw new LogNetworkError('invalid_information');
+        foreach (['opened','read','liked','disliked'] as $field) if (!is_bool($state[$field] ?? null)) throw new LogNetworkError('invalid_information');
+        if ($state['liked'] && $state['disliked']) throw new LogNetworkError('invalid_information');
+        $state=array_intersect_key($state,array_flip(['opened','read','liked','disliked']));
+        $previous=$item['feedback'][$pid] ?? ['version'=>0];
+        $duplicate=($previous['operation'] ?? null)===$operation;
+        if ($duplicate && ($previous['request'] ?? null)!==$state) throw new LogNetworkError('information_operation_conflict',409);
+        $accepted=$duplicate || $previous['version']===$version;
+        if ($accepted && !$duplicate) {
+            $request=$state;
+            $state['opened']=$state['opened'] || ($previous['state']['opened'] ?? false);
+            $item['feedback'][$pid]=['state'=>$state,'request'=>$request,'operation'=>$operation,'version'=>$version+1];
+            $item['revision']=($item['revision'] ?? 0)+1;
+            $this->state['information'][$key]=$item;
+        }
+        $summary=$this->informationSummary($reference,$pid);
+        return ['accepted'=>$accepted,'version'=>$summary['version'],'item'=>$summary];
+    }
+
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
             if ($action==='invite-code-check') {
@@ -198,6 +288,8 @@ final class LogNetwork {
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
+            if (in_array($action,['information-summary','information-feedback','information-policy'],true))
+                return $this->informationAction($action,$in,$pid);
             if ($action==='set-access') {
                 if ($pid!==$this->state['ownerId']) throw new LogNetworkError('owner_required',403);
                 $target=self::validId($in['personId'] ?? null); $status=$in['status'] ?? null;

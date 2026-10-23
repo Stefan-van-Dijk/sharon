@@ -71,6 +71,23 @@ export class ObjectStore {
     });
   }
 
+  // Atomic queue updates protect newer changes from delayed acknowledgements
+  // and concurrent tabs. The reducer is synchronous inside one IDB transaction.
+  async updateMeta(key, update) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction('meta', 'readwrite');
+      const table = tx.objectStore('meta'), request = table.get(key);
+      let value, failure;
+      request.onsuccess = () => {
+        try { value = update(request.result?.value); table.put({key, value}); }
+        catch (error) { failure = error; tx.abort(); }
+      };
+      tx.oncomplete = () => resolve(value);
+      tx.onabort = () => reject(failure || tx.error || new Error('Opslaan is afgebroken.'));
+    });
+  }
+
   async setMeta(key, value) {
     if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
     return new Promise((resolve,reject)=>{

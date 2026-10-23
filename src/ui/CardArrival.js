@@ -1,5 +1,5 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.82';
-import { openCardBoard } from './CardBoard.js?v=0.3.82';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.83';
+import { openCardBoard } from './CardBoard.js?v=0.3.83';
 
 const VISIT_KEY = 'cards.context.visit';
 
