@@ -1,5 +1,5 @@
-const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.3.80';
-const LOGO_ASSET = './assets/sharon-logo.svg?v=0.3.80';
+const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.3.81';
+const LOGO_ASSET = './assets/sharon-logo.svg?v=0.3.81';
 
 export function sharonWordmark({
   mode = 'sharon',
