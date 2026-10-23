@@ -1,19 +1,20 @@
-import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.3.83';
-import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.3.83';
-import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.83';
-import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.83';
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.83';
-import { EventBus } from './core/events/EventBus.js?v=0.3.83';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.83';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.3.83';
-import { LocationService } from './core/location/LocationService.js?v=0.3.83';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.83';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.83';
-import { InstallService } from './core/app/InstallService.js?v=0.3.83';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.83';
-import { createShell } from './ui/Shell.js?v=0.3.83';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.83';
-import { runStory } from './ui/Story.js?v=0.3.83';
+import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.3.84';
+import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.3.84';
+import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.3.84';
+import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.84';
+import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.84';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.84';
+import { EventBus } from './core/events/EventBus.js?v=0.3.84';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.84';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.3.84';
+import { LocationService } from './core/location/LocationService.js?v=0.3.84';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.84';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.84';
+import { InstallService } from './core/app/InstallService.js?v=0.3.84';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.84';
+import { createShell } from './ui/Shell.js?v=0.3.84';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.84';
+import { runStory } from './ui/Story.js?v=0.3.84';
 
 export async function createApp() {
   const events = new EventBus();
@@ -115,6 +116,7 @@ export async function createApp() {
       if (!workspace.testMode && await new ConnectionService(store).pending()) startModule = 'people';
 
       if (!workspace.testMode) {
+        new ChainSyncService(store,{events}).start();
         const information = new InformationFeedbackService(store, new ConnectionService(store), {
           notify: detail => window.dispatchEvent(new CustomEvent('sharon-information-changed', {detail}))
         });

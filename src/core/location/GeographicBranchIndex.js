@@ -1,4 +1,4 @@
-import { environmentIdForPoint } from './EnvironmentIdentifier.js?v=0.3.83';
+import { environmentIdForPoint } from './EnvironmentIdentifier.js?v=0.3.84';
 
 const EARTH_RADIUS_METERS = 6371008.8;
 const RAD = Math.PI / 180;
@@ -36,6 +36,12 @@ export function nearbyBranches(index, position, radiusMeters = 100) {
   const south = Math.max(-90, latitude - latDelta), north = Math.min(90, latitude + latDelta);
   const yCount = Math.ceil((north - south) / latStep) + 1;
   const xCount = Math.ceil(2 * lngDelta / lngStep) + 1;
+  // A large uncertainty near a pole can span hundreds of thousands of cells.
+  // In that case inspect only the occupied cells, never enumerate the globe.
+  if ((yCount + 1) * (xCount + 1) > 10000) {
+    return [...index.cells.values()].flat().map(branch=>({branch,distanceMeters:distanceMeters(position,branch)}))
+      .filter(item=>item.distanceMeters<=radiusMeters).sort((a,b)=>a.distanceMeters-b.distanceMeters);
+  }
   for (let y = 0; y <= yCount; y++) {
     const lat = Math.min(north, south + y * latStep);
     for (let x = 0; x <= xCount; x++) {

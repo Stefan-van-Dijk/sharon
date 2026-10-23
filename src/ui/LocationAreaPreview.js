@@ -1,5 +1,5 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.3.83';
-import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.83';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.3.84';
+import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.84';
 export const AREA_RADIUS_PX = 72;
 
 const radiusMeters = value => Math.max(20, Math.min(2000, Number(value) || 100));
@@ -50,12 +50,13 @@ export function radiusForZoom(zoom, latitude, screenRadius = AREA_RADIUS_PX) {
 // Non-interactive preview of a radius on Sharon's shared vector basemap.
 // No separate geolocation watches, map tiles or GPS checks are initiated.
 export function mountLocationArea(host, {
-  getPoint, getRadius, getAccuracy = () => 0, onPointChange = () => {},
+  getPoint, getRadius, getUserPoint = () => null, getAccuracy = () => 0, onPointChange = () => {},
   onRadiusChange = () => {},
   loadRenderer = () => import(MAPLIBRE_JS)
 } = {}) {
   let map = null;
   let marker = null;
+  let userMarker = null;
   let positionEditable = false;
   let alive = true;
   let loading = false;
@@ -186,6 +187,8 @@ export function mountLocationArea(host, {
       });
       map.touchZoomRotate?.disableRotation?.();
       if (typeof lib.Marker === 'function') {
+        const user=validPoint(getUserPoint());
+        if(user){const dot=document.createElement('div');dot.className='sharon-gps-dot';dot.setAttribute('aria-label','Jouw GPS-positie');userMarker=new lib.Marker({element:dot}).setLngLat([user.lng,user.lat]).addTo(map);}
         const pin = document.createElement('div');
         pin.className = 'sh-location-map-pin';
         pin.setAttribute('aria-label', 'Versleep om de GPS-positie te wijzigen');
@@ -273,6 +276,7 @@ export function mountLocationArea(host, {
     alive = false;
     resizeObserver?.disconnect();
     resizeObserver = null;
+    userMarker?.remove();userMarker=null;
     if (marker) {
       marker.remove();
       marker = null;

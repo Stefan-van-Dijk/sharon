@@ -1,18 +1,19 @@
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.83';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.83';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.83';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.83';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.83';
-import { openCardBoard } from './CardBoard.js?v=0.3.83';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.83';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.83';
-import { mountCardScanner } from './CardScanner.js?v=0.3.83';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.83';
-import { renderStrip } from './Strip.js?v=0.3.83';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.83';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.83';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.83';
-import { cardSymbol } from './CardSymbols.js?v=0.3.83';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.84';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.84';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.84';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.84';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.84';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.84';
+import { openCardBoard } from './CardBoard.js?v=0.3.84';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.84';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.84';
+import { mountCardScanner } from './CardScanner.js?v=0.3.84';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.84';
+import { renderStrip } from './Strip.js?v=0.3.84';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.84';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.84';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.84';
+import { cardSymbol } from './CardSymbols.js?v=0.3.84';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -106,6 +107,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         const card = await store.get('objects', id);
         if (!card || card.type !== 'card' || !confirm('Wil je deze kaart verwijderen?')) return;
         await store.delete('objects', id);
+        events?.emit('cards.changed',{id});
         await showList();
       }
     });
@@ -329,6 +331,13 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
                 </select>
               </div>
             </div>
+          </div>
+          <div class="sh-card-section sh-chain-link">
+            <label for="card-chain">Winkelketen koppelen</label>
+            <select id="card-chain" name="chainId"><option value="">Geen keten</option>
+              ${CHAIN_CATALOG.map(chain=>`<option value="${chain.id}" ${card?.chainId===chain.id?'selected':''}>${escapeHtml(chain.name)}</option>`).join('')}
+            </select>
+            <small>Toon deze pas bij vestigingen van deze keten. Eerste dekking: Nederland.</small>
           </div>
           <div data-person-links></div>
           <p data-card-error role="alert" class="sh-card-error"></p>
@@ -571,6 +580,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         codeFormat: format,
         codeValue: value,
         locationId: form.elements.locationId.value || null,
+        chainId: chainById(form.elements.chainId.value)?.id || null,
         personIds: selectedPeople(),
         cardNumber: form.elements.cardNumber.value.trim(),
         fields: [...fieldHost.children].map(row => ({label: row.querySelector('[data-field-label]').value.trim(), value: row.querySelector('[data-field-value]').value.trim()})).filter(field => field.label && field.value),
@@ -579,6 +589,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       };
       try {
         await store.put('objects', record);
+        events?.emit('cards.changed',{id:record.id});
         await showDetail(record.id);
       } catch {
         error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';
@@ -588,6 +599,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     if (remove) remove.addEventListener('click', async () => {
       if (!confirm('Wil je deze kaart verwijderen?')) return;
       await store.delete('objects', card.id);
+      events?.emit('cards.changed',{id:card.id});
       await showList();
     });
     selectedPeople = await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:card?.personIds || []});

@@ -1,9 +1,10 @@
-import { openCardShare } from './CardSharing.js?v=0.3.83';
-import { renderCardCode } from './CardCodes.js?v=0.3.83';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.83';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.83';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.83';
-import { cardSymbol } from './CardSymbols.js?v=0.3.83';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.3.84';
+import { openCardShare } from './CardSharing.js?v=0.3.84';
+import { renderCardCode } from './CardCodes.js?v=0.3.84';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.84';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.84';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.84';
+import { cardSymbol } from './CardSymbols.js?v=0.3.84';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -54,6 +55,16 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     button.addEventListener('click',()=>{closeShare?.();closeShare=openCardShare(model.state.boards[index].card,{store,onClose:()=>{closeShare=null;button.focus();}});});
     board.querySelector('.sh-card-detail-heading').append(button);
   });
+  let activeChainPanel=-1,stopChainPanel=null;
+  const ensureChainPanel=index=>{
+    if(activeChainPanel===index)return;
+    stopChainPanel?.();stopChainPanel=null;activeChainPanel=index;
+    const current=model.state.boards[index].card;
+    if(!store||!current.chainId)return;
+    let panel=nodes[index].querySelector('[data-chain-panel]');
+    if(!panel){panel=document.createElement('div');panel.dataset.chainPanel='';nodes[index].querySelector('[data-details]').append(panel);}
+    stopChainPanel=mountChainZonePanel(panel,{card:current,store,location,events});
+  };
   const renderCode=(board,current)=>{
     if(board.dataset.codeReady)return;board.dataset.codeReady='true';
     const holder=document.createElement('div');board.querySelector('[data-code]').append(holder);
@@ -79,6 +90,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
       node.dataset.depth=String(offset);node.style.zIndex=String(3-offset);
       if(offset>=0&&offset<=2)renderCode(node,state.boards[index].card);
     });
+    ensureChainPanel(state.boardIndex);
     distances();
     if(renderedCard!==state.card.id){renderedCard=state.card.id;onActiveCard(state.card);}
     gestures?.refresh();
@@ -87,7 +99,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     const focused=nodes[model.state.boardIndex].contains(document.activeElement),state=model.swipe(direction);draw();
     if(focused)nodes[state.boardIndex].focus({preventScroll:true});
   };
-  const close=()=>{if(closed)return;closed=true;closeShare?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
+  const close=()=>{if(closed)return;closed=true;stopChainPanel?.();closeShare?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
   const key=event=>{
     if(event.defaultPrevented||document.querySelector('.sh-card-share-overlay'))return;
     if(event.key==='Escape'){event.preventDefault();close();}

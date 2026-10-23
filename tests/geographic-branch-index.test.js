@@ -14,3 +14,8 @@ test('neighbouring cell boundaries are checked, not only current cell', () => {
   assert.equal(nearbyBranches(index, { lat:0, lng:0 }, 10).length, 2);
   assert.ok(distanceMeters({lat:0,lng:0},{lat:0,lng:0.00001}) < 2);
 });
+
+test('a polar or very wide search checks occupied cells without enumerating millions of empty cells',()=>{
+  const index=createBranchIndex([{id:'north',lat:89.999,lng:0},{id:'far',lat:52,lng:5}]);
+  assert.deepEqual(nearbyBranches(index,{lat:89.9999,lng:1},2000).map(item=>item.branch.id),['north']);
+});
