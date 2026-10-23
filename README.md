@@ -1,58 +1,9 @@
-# Sharon
+# Sharon OSM winkelregister — Nederland
 
-**Share on.**
+Bron: © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
 
-Sharon is de schone herbouw van de eerdere Log-prototypeapp. De bestaande repository `Stefan-van-Dijk/log` blijft referentie- en migratiebron; Sharon krijgt een nieuwe architectuur zonder historische koppelingen mee te nemen.
+Database: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/
 
-## Richting
+Landbestand: Geofabrik Nederland; bronmoment 2026-10-22T20:21:33Z.
 
-Sharon is local-first: informatie ontstaat en blijft in eerste instantie op het apparaat. Delen, ophalen en samenwerken worden daar als expliciete laag bovenop gezet.
-
-De eerste architectuurregels zijn:
-
-- één centrale locatievoorziening;
-- geen periodieke GPS-controle als dat niet nodig is;
-- één lokale opslaglaag;
-- één extern identifierformaat: exact 12 tekens uit `A-Z a-z 0-9 - _`;
-- modules communiceren via services en events;
-- delen/synchroniseren zit achter een adapter;
-- oude Log-data wordt via een aparte migratielaag ingelezen;
-- de oude Log-repository wordt niet door Sharon gewijzigd.
-
-## Eerste modules
-
-- Ritten
-- Tijd / Taken
-- Locaties
-- Acties
-- Kaarten
-- Thema's
-
-Personen, voertuigen en samenwerking volgen op de generieke kern.
-
-## Lokaal starten
-
-```bash
-python3 -m http.server 8080
-```
-
-Open daarna `http://localhost:8080`.
-
-Tests:
-
-```bash
-npm test
-```
-
-Zie ook `docs/ARCHITECTURE.md` en `docs/MIGRATION.md`.
-
-## Kwaliteitscontrole en publicatie
-
-Vanaf v0.3.56: [PWA-releasebeleid, updateprocedure en testgrenzen](docs/PWA-releases.md).
-Een nieuwe appversie zet je samen door met `npm run version:app -- 0.3.56`.
-
-Gebruik Node uit `.nvmrc`, voer `npm ci` uit en daarna `npm run verify`.
-De bestaande unit-/brontests blijven afzonderlijk bereikbaar via `npm test`.
-De nieuwe DOM-/opslagketens testen het gebouwde `_site` via `npm run test:integration`.
-Zie [releasecontrole en testdekking](docs/Releasecontrole-en-testdekking.md) voor
-begrenzingen, de twintig auditscenario's en de benodigde Pages-/branchinstellingen.
+Dit register bevat uitsluitend openbare brongegevens, geen passen, GPS-metingen of persoonlijke zones.
