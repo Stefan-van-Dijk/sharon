@@ -7,9 +7,81 @@ import {IdentifierService} from '../src/core/ids/IdentifierService.js';
 import {environmentIdForPoint} from '../src/core/location/EnvironmentIdentifier.js';
 import {decodeBranch} from '../src/core/chains/ChainModel.js';
 
-export function chainQuery(){
-  const brands=CHAIN_CATALOG.flatMap(chain=>chain.brands).join('|');
-  return '[out:json][timeout:90];area["ISO3166-1"="NL"]["admin_level"="2"]->.nl;nwr["shop"]["brand:wikidata"~"^('+brands+')$"](area.nl);out meta center;';
+export const OVERPASS_ENDPOINTS = [
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+];
+export function chainQuery(brandId=null){
+  const brands=brandId?[brandId]:CHAIN_CATALOG.flatMap(chain=>chain.brands);
+  if(brands.some(id=>!/^Q[1-9][0-9]*$/.test(id)))throw Error('Ongeldig bronmerk.');
+  // Exact value lookups can use the tag index; avoid a nationwide regex scan.
+  return '[out:json][timeout:25];area["ISO3166-1"="NL"]["admin_level"="2"]->.nl;('+brands.map(id=>'nwr["brand:wikidata"="'+id+'"](50.7,3.2,53.7,7.3)(area.nl);').join('')+');out meta center;';
+}
+function validateSource(data,brandId){
+  if(data?.remark||!Array.isArray(data?.elements)||!Number.isFinite(Date.parse(data?.osm3s?.timestamp_osm_base||'')))throw Error('Onvolledig OSM-antwoord'+(data?.remark?': '+data.remark:''));
+  if(data.elements.some(item=>item.tags?.['brand:wikidata']!==brandId))throw Error('OSM-antwoord bevat een ander merk.');
+  // Apply shop presence locally after the selective brand lookup. Intersecting
+  // the worldwide shop index on the server is unnecessary for these brands.
+  return {...data,elements:data.elements.filter(item=>typeof item.tags?.shop==='string'&&item.tags.shop.length>0)};
+}
+export async function fetchChainSource({fetcher=fetch,endpoints=OVERPASS_ENDPOINTS,timeoutMs=35000,rounds=2,
+  wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),log=console.log}={}){
+  if(!endpoints.length||rounds<1)throw Error('Geen OSM-bronnen ingesteld.');
+  const brands=CHAIN_CATALOG.flatMap(chain=>chain.brands),parts=[];
+  let preferred='';
+  for(const [index,brandId] of brands.entries()){
+    let part=null;const failures=[];
+    const ordered=[...new Set([preferred,...endpoints].filter(Boolean))];
+    for(let round=0;round<rounds&&!part;round++){
+      if(round)await wait(2000*(round+1));
+      for(const endpoint of ordered){
+        const label=new URL(endpoint).host;
+        log('OSM '+(index+1)+'/'+brands.length+' '+brandId+' · '+label+' · poging '+(round+1));
+        const started=Date.now();
+        try{
+          const url=new URL(endpoint);url.searchParams.set('data',chainQuery(brandId));
+          // These short GET queries also work on providers/proxies rejecting POST.
+          const response=await fetcher(url.href,{headers:{'Accept':'application/json','User-Agent':'Sharon-chain-register/1.1 (https://github.com/Stefan-van-Dijk/sharon)'},signal:AbortSignal.timeout(timeoutMs)});
+          if(!response.ok){
+            const detail=typeof response.text==='function'?(await response.text()).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').slice(0,180):'';
+            throw Error('HTTP '+response.status+(detail?' · '+detail:''));
+          }
+          const candidate=validateSource(await response.json(),brandId);
+          part=candidate;preferred=endpoint;
+          log('OSM '+brandId+' · '+candidate.elements.length+' bronobjecten · '+label+' · '+Math.round((Date.now()-started)/1000)+' s');
+          break;
+        }catch(error){
+          const reason=error.name==='TimeoutError'||error.name==='AbortError'?'time-out na '+Math.round(timeoutMs/1000)+' s':String(error.cause?.code||error.message||error.name);
+          failures.push(label+': '+reason);log('OSM '+brandId+' · '+label+' mislukt: '+reason);
+        }
+      }
+    }
+    if(!part)throw Error('OSM-import afgebroken voor '+brandId+'. Bestaand register blijft behouden. '+failures.join(' | '));
+    parts.push(part);
+  }
+  const elements=new Map();
+  for(const part of parts)for(const item of part.elements){
+    const key=item.type+'/'+item.id,old=elements.get(key);
+    if(!old||item.version>old.version)elements.set(key,item);
+    else if(item.version===old.version&&item.tags?.['brand:wikidata']!==old.tags?.['brand:wikidata'])throw Error('Tegenstrijdige OSM-versies voor '+key+'. Bestaand register blijft behouden.');
+  }
+  const oldest=Math.min(...parts.map(part=>Date.parse(part.osm3s.timestamp_osm_base)));
+  return {osm3s:{timestamp_osm_base:new Date(oldest).toISOString()},elements:[...elements.values()]};
+}
+export async function probeOverpass({fetcher=fetch,endpoints=OVERPASS_ENDPOINTS,log=console.log}={}){
+  for(const endpoint of endpoints){
+    const status=endpoint.replace(/interpreter$/,'status');
+    for(const [kind,resource] of [['status',status],['minimale query',endpoint+'?'+new URLSearchParams({data:'[out:json][timeout:5];node(1);out;'})]]){
+      try{
+        const response=await fetcher(resource,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(8000)});
+        // Consume the response so the connection can be released, without
+        // printing OSM element data or unrelated response headers.
+        if(typeof response.text==='function')await response.text();
+        log('OSM diagnose · '+new URL(endpoint).host+' · '+kind+' · HTTP '+response.status);
+      }catch(error){log('OSM diagnose · '+new URL(endpoint).host+' · '+kind+' · '+(error.cause?.code||error.name)+': '+error.message);}
+    }
+  }
 }
 export function buildChainRegister(data,previous=null,at=new Date().toISOString()){
   if(data?.remark || !Array.isArray(data?.elements) || !data?.osm3s?.timestamp_osm_base)throw Error('Geen complete OSM-respons. Bestaande gegevens blijven behouden.');
@@ -51,15 +123,9 @@ export function buildChainRegister(data,previous=null,at=new Date().toISOString(
 async function main(){
   const output=resolve(process.argv[2]||'server/data/chains/register-v1.json');
   const previous=existsSync(output)?JSON.parse(readFileSync(output,'utf8')):null;
-  let data,lastError;
-  for(const endpoint of ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter']){
-    try{
-      const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':'Sharon-chain-register/1.0 (https://github.com/Stefan-van-Dijk/sharon)'},body:new URLSearchParams({data:chainQuery()}),signal:AbortSignal.timeout(100000)});
-      if(!response.ok)throw Error('OSM HTTP '+response.status);
-      data=await response.json();if(data.remark)throw Error(data.remark);break;
-    }catch(error){lastError=error;}
-  }
-  if(!data || data.remark)throw lastError||Error('OSM niet bereikbaar.');
+  let data;
+  try{data=await fetchChainSource();}
+  catch(error){await probeOverpass();throw error;}
   const register=buildChainRegister(data,previous);
   mkdirSync(dirname(output),{recursive:true});
   const temp=output+'.'+process.pid+'.tmp';writeFileSync(temp,JSON.stringify(register)+'\n');renameSync(temp,output);

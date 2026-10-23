@@ -1,20 +1,20 @@
-import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.3.84';
-import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.3.84';
-import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.3.84';
-import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.84';
-import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.84';
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.84';
-import { EventBus } from './core/events/EventBus.js?v=0.3.84';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.84';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.3.84';
-import { LocationService } from './core/location/LocationService.js?v=0.3.84';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.84';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.84';
-import { InstallService } from './core/app/InstallService.js?v=0.3.84';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.84';
-import { createShell } from './ui/Shell.js?v=0.3.84';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.84';
-import { runStory } from './ui/Story.js?v=0.3.84';
+import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.3.85';
+import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.3.85';
+import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.3.85';
+import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.3.85';
+import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.3.85';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.3.85';
+import { EventBus } from './core/events/EventBus.js?v=0.3.85';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.3.85';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.3.85';
+import { LocationService } from './core/location/LocationService.js?v=0.3.85';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.3.85';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.3.85';
+import { InstallService } from './core/app/InstallService.js?v=0.3.85';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.3.85';
+import { createShell } from './ui/Shell.js?v=0.3.85';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.3.85';
+import { runStory } from './ui/Story.js?v=0.3.85';
 
 export async function createApp() {
   const events = new EventBus();

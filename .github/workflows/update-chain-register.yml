@@ -2,6 +2,11 @@ name: OSM winkelregister bijwerken
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/update-chain-register.yml'
+      - 'scripts/update-chain-register.mjs'
+      - 'src/core/chains/ChainCatalog.js'
   schedule:
     - cron: '20 3 1 * *'
   push:
@@ -15,13 +20,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: osm-chain-register-nl
-  cancel-in-progress: false
+  group: osm-chain-register-${{ github.event_name == 'pull_request' && github.ref || 'nl' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   register:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,9 +44,12 @@ jobs:
           else
             echo 'CHAIN_DATA_EXISTS=false' >> "$GITHUB_ENV"
           fi
-      - name: Volledige Nederlandse OSM-selectie importeren
+      - name: OSM-vestigingen per merk importeren
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         run: node scripts/update-chain-register.mjs "$RUNNER_TEMP/register-v1.json"
       - name: Alleen brongegevens publiceren
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           if [ "$CHAIN_DATA_EXISTS" = 'true' ]; then

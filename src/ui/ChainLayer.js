@@ -1,6 +1,6 @@
-import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.84';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.84';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.84';
+import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.85';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.85';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.85';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId=''}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId);
