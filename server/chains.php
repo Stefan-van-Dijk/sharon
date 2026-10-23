@@ -49,7 +49,8 @@ function chain_register(string $path, ?callable $download=null, ?int $clock=null
         if(!flock($lock,LOCK_EX))throw new RuntimeException('Lock unavailable');
         $cached=is_file($path)?json_decode(file_get_contents($path),true,128,JSON_THROW_ON_ERROR):null;
         $due=!is_file($path)||$now-(filemtime($path)?:0)>=30*86400;
-        $retry=!is_file($path.'.checked')||$now-(filemtime($path.'.checked')?:0)>=3600;
+        // A missing initial register should recover promptly once it is published.
+        $retry=!is_file($path.'.checked')||$now-(filemtime($path.'.checked')?:0)>=($cached?3600:60);
         if($due&&$retry){
             touch($path.'.checked',$now);
             try{

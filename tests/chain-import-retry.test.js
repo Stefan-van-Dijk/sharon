@@ -25,7 +25,7 @@ test('timeout switches provider, successful provider leads later parts and all c
  assert.equal(calls.length,brands.length+1);
  assert.ok(calls.slice(1).every(url=>new URL(url).host==='second.example'));
  assert.equal(data.elements.length,brands.length);
- const register=buildChainRegister(data);assert.equal(Object.keys(register.chains).length,3);
+ const register=buildChainRegister(data);assert.equal(Object.keys(register.chains).length,CHAIN_CATALOG.length);
  assert.ok(logs.some(value=>value.includes('first.example')&&value.includes('time-out')));
 });
 test('malformed JSON data, provider remarks and HTTP rate limits use the next source',async()=>{
@@ -58,7 +58,7 @@ test('empty optional brand variant is allowed, source snapshot time uses the old
   return ok(data);
  }});
  assert.equal(data.osm3s.timestamp_osm_base,'2026-10-22T09:00:00.000Z');
- assert.equal(Object.keys(buildChainRegister(data).chains).length,3);
+ assert.equal(Object.keys(buildChainRegister(data).chains).length,CHAIN_CATALOG.length);
 });
 
 test('brand-matching offices are filtered locally and never become store locations',async()=>{
@@ -78,4 +78,15 @@ test('failure diagnostics distinguish status/query reachability without printing
  }});
  assert.equal(calls.length,2);assert.ok(calls[0].endsWith('/status'));assert.ok(logs.some(line=>line.includes('minimale query')));
  assert.ok(logs.every(line=>!line.includes('do-not-log')));
+});
+
+test('country export retains exact OSM identities, collapses duplicate geometries and filters offices',async()=>{
+ const {sourceFromGeoJSON}=await import('../scripts/update-chain-register.mjs');
+ const properties={'@type':'way','@id':42,'@version':2,'@timestamp':1792713600,'brand:wikidata':brands[0],shop:'supermarket',name:'Bronwinkel'};
+ const feature={type:'Feature',properties,geometry:{type:'Polygon',coordinates:[[[5,52],[5.002,52],[5.002,52.002],[5,52]]]}};
+ const data=sourceFromGeoJSON({type:'FeatureCollection',features:[feature,feature,{...feature,properties:{...properties,'@id':43,shop:undefined,office:'company'}}]},'2026-10-23T10:00:00Z');
+ assert.equal(data.elements.length,1);const item=data.elements[0];
+ assert.equal(item.id,42);assert.equal(item.type,'way');assert.equal(item.version,2);assert.ok(Math.abs(item.center.lat-52.001)<1e-9);assert.ok(Math.abs(item.center.lon-5.001)<1e-9);
+ assert.ok(!Object.keys(item.tags).some(key=>key.startsWith('@')));
+ assert.throws(()=>sourceFromGeoJSON({type:'FeatureCollection',features:[]},''));
 });

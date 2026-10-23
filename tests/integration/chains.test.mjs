@@ -72,3 +72,48 @@ test('Omgeving uses local chain points, saves a branch to Locations and does not
   assert.equal(app.requests.length,0);assert.equal((await app.store.getAll('meta')).some(item=>item.key.includes('filter')),false);
  }finally{layer?.destroy();app.close();}
 });
+
+test('upward source swipe opens known locations and chains; search and saved location deck work offline',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  await app.store.put('objects',{id:'knownplace01',type:'location',data:{title:'Mijn werk',coordinates:{lat:52.001,lng:5},address:'Werkstraat 2'}});
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><section data-places-sheet aria-hidden="true"><header><button data-places-close></button></header><select data-chain-filter></select><input data-places-search><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map();
+  const map={addSource(id,o){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){handlers.set(n,f);},off(n){handlers.delete(n);},easeTo(){},getCenter:()=>point,queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});
+  await until(()=>root.querySelector('[data-places-list]').textContent.includes('Mijn werk'));
+  const toggle=root.querySelector('[data-chain-toggle]');
+  const touch=(type,x,y)=>{const e=new app.window.Event(type,{bubbles:true});Object.defineProperty(e,type==='touchstart'?'touches':'changedTouches',{value:[{clientX:x,clientY:y}]});toggle.dispatchEvent(e);};
+  touch('touchstart',20,200);touch('touchend',22,130);toggle.click();
+  assert.equal(root.querySelector('[data-places-sheet]').getAttribute('aria-hidden'),'false');
+  assert.equal(toggle.getAttribute('aria-pressed'),'true');
+  assert.match(root.querySelector('[data-places-list]').textContent,/Albert Heijn/);
+  const search=root.querySelector('input');search.value='Werkstraat';search.dispatchEvent(new app.window.Event('input'));
+  assert.equal(root.querySelectorAll('[data-places-list] button').length,1);
+  root.querySelector('[data-places-list] button').click();
+  await until(()=>app.document.querySelector('.sh-board-overlay'));
+  assert.equal(root.querySelector('[data-places-sheet]').getAttribute('aria-hidden'),'true');
+  assert.equal(app.requests.length,0);
+  layer.destroy();layer=null;assert.equal(handlers.size,0);
+ }finally{layer?.destroy();app.close();}
+});
+
+test('public branch board has attribution and save action without private location editing controls',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map();
+  const map={addSource(id,o){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){handlers.set(n,f);},off(n){handlers.delete(n);},easeTo(){},getCenter:()=>point,queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
+  (await until(()=>root.querySelector('[data-places-list] button'))).click();
+  const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
+  assert.match(board.textContent,/OpenStreetMap contributors/);
+  assert.equal(board.querySelector('[aria-label="Webpagina aan locatie koppelen"]'),null);
+  assert.ok(board.querySelector('a[href="https://www.openstreetmap.org/node/1"]'));
+  const save=[...board.querySelectorAll('button')].find(button=>button.textContent==='Bewaar bij Locaties');assert.ok(save);save.click();
+  await until(async()=>(await app.store.getAll('objects')).some(item=>item.data?.branchId==='branch000001'));
+  assert.equal(app.requests.length,0);
+ }finally{layer?.destroy();app.close();}
+});

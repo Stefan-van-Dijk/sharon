@@ -1,25 +1,25 @@
-import { mountChainLayer } from './ChainLayer.js?v=0.3.85';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.85';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.85';
-import { openLocationDeck } from './LocationDeck.js?v=0.3.85';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.85';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.85';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.85';
+import { mountChainLayer } from './ChainLayer.js?v=0.3.86';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.86';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.86';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.86';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.86';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.86';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.86';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.3.85';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.85';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.85';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.85';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.85';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.85';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.3.85';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.85';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.85';
+} from '../core/location/EnvironmentIdentifier.js?v=0.3.86';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.86';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.86';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.86';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.86';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.86';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.3.86';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.86';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.86';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.3.85';
+} from './EnvironmentScale.js?v=0.3.86';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -220,15 +220,21 @@ export function openEnvironmentView(root, {
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
               <button type="button" class="environment-source-circle" data-tiqets-toggle disabled aria-pressed="false" aria-label="Tiqets tonen of verbergen" title="Tiqets wordt voorbereid">T</button>
-              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Winkels van gekoppelde ketens tonen" title="Winkels bij mijn passen">⌂</button>
-              <select data-chain-filter hidden aria-label="Winkelketen filteren"><option value="">Alle gekoppelde ketens</option></select>
-              <small data-chain-status hidden role="status"></small>
+              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
               <small data-tiqets-status role="status" aria-live="polite"></small>
               <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
 
           </div>
         </div>
+        <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
+          <div class="environment-source-sheet-handle" data-places-handle aria-hidden="true"></div>
+          <header><strong>Locaties en ketens</strong><button type="button" data-places-close aria-label="Locaties sluiten">⌄</button></header>
+          <label>Toon <select data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select></label>
+          <label>Zoeken <input type="search" data-places-search placeholder="Naam of adres" aria-label="Locatie zoeken"></label>
+          <small data-chain-status role="status"></small>
+          <div class="environment-places-list" data-places-list></div>
+        </section>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
@@ -609,6 +615,7 @@ export function openEnvironmentView(root, {
     try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({sort:wikiSort.value,statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
   };
   const toggleSourceSheet = value => {
+    if(value) {const places=root.querySelector('[data-places-sheet]');places?.classList.remove('is-open');places?.setAttribute('aria-hidden','true');root.querySelector('[data-chain-toggle]')?.setAttribute('aria-expanded','false');}
     sourceSheet.classList.toggle('is-open',value);
     sourceSheet.setAttribute('aria-hidden',String(!value));
     sourceSettings.setAttribute('aria-expanded',String(value));
@@ -767,7 +774,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId});
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);

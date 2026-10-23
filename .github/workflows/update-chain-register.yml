@@ -26,7 +26,7 @@ concurrency:
 jobs:
   register:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,10 +44,23 @@ jobs:
           else
             echo 'CHAIN_DATA_EXISTS=false' >> "$GITHUB_ENV"
           fi
-      - name: OSM-vestigingen per merk importeren
-        env:
-          NODE_OPTIONS: --dns-result-order=ipv4first
-        run: node scripts/update-chain-register.mjs "$RUNNER_TEMP/register-v1.json"
+      - name: Nederlands OSM-bestand downloaden en controleren
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y osmium-tool
+          cd "$RUNNER_TEMP"
+          curl --fail --location --retry 3 --retry-delay 10 --connect-timeout 30 --max-time 900 -O https://download.geofabrik.de/europe/netherlands-latest.osm.pbf
+          curl --fail --location --retry 3 --max-time 60 -O https://download.geofabrik.de/europe/netherlands-latest.osm.pbf.md5
+          md5sum --check netherlands-latest.osm.pbf.md5
+      - name: Winkelmerken lokaal uit compleet landbestand selecteren
+        shell: bash
+        run: |
+          BRANDS=$(node --input-type=module -e "import {CHAIN_CATALOG} from './src/core/chains/ChainCatalog.js'; console.log(CHAIN_CATALOG.flatMap(c=>c.brands).join(','))")
+          osmium tags-filter "$RUNNER_TEMP/netherlands-latest.osm.pbf" "nwr/brand:wikidata=$BRANDS" -o "$RUNNER_TEMP/shops.osm.pbf"
+          osmium export "$RUNNER_TEMP/shops.osm.pbf" --attributes=type,id,version,timestamp -o "$RUNNER_TEMP/shops.geojson"
+          SOURCE_TIMESTAMP=$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$RUNNER_TEMP/netherlands-latest.osm.pbf")
+          node scripts/update-chain-register.mjs "$RUNNER_TEMP/register-v1.json" "$RUNNER_TEMP/shops.geojson" "$SOURCE_TIMESTAMP"
       - name: Alleen brongegevens publiceren
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: bash
