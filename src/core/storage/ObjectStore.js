@@ -88,6 +88,25 @@ export class ObjectStore {
     });
   }
 
+  async upsertBranchLocation(branchId, update) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve,reject)=>{
+      const tx=this.#db.transaction('objects','readwrite'), table=tx.objectStore('objects');
+      const request=table.getAll(); let record, failure;
+      request.onsuccess=()=>{
+        try {
+          const records=request.result;
+          const old=records.find(item=>item.type==='location'&&!item.deletedAt&&!item.archivedAt&&item.status!=='archived'&&item.data?.branchId===branchId);
+          record=update(old);
+          if (records.some(item=>item.id===record.id&&item.id!==old?.id)) throw Error('Conflicterende locatie-identiteit.');
+          table.put(record);
+        } catch(error){failure=error;tx.abort();}
+      };
+      tx.oncomplete=()=>resolve(record);
+      tx.onabort=()=>reject(failure||tx.error||new Error('Opslaan is afgebroken.'));
+    });
+  }
+
   async setMeta(key, value) {
     if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
     return new Promise((resolve,reject)=>{

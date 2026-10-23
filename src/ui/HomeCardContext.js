@@ -1,5 +1,6 @@
-import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.83';
-import { openCardBoard } from './CardBoard.js?v=0.3.83';
+import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.3.84';
+import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.84';
+import { openCardBoard } from './CardBoard.js?v=0.3.84';
 
 export function mountHomeCardContext(host, { store, location, events, trigger = null }) {
   let generation = 0, timer = null, closeBoard = null, openedId = null, disposed = false;
@@ -14,7 +15,7 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
     clearTimeout(timer);
     if (document.hidden) { closeBoard?.(); closeBoard = null; openedId = null; return; }
     try {
-      const objects = await store.getAll('objects');
+      const objects = await cardContextObjects(store);
       if (disposed || run !== generation || !host.isConnected) return;
       const point = location.latest;
       const suggestions = suggestCards(objects, point);
@@ -44,7 +45,7 @@ export function mountHomeCardContext(host, { store, location, events, trigger = 
           closeBoard = openCardBoard(card, {
             cards: suggestions.map(item => item.card), store, location, events,
             onActiveCard: current => { openedId = current.id; },
-            locations: objects.filter(item => item.type === 'location' && !item.deletedAt),
+            locations: [...objects.filter(item => item.type === 'location' && !item.deletedAt),...suggestions.map(item=>item.location)],
             onClose: () => { closeBoard = null; openedId = null; if (button.isConnected) button.focus({ preventScroll: true }); }
           });
         });

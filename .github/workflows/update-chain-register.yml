@@ -1,0 +1,66 @@
+name: OSM winkelregister bijwerken
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 3 1 * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-chain-register.yml'
+      - 'scripts/update-chain-register.mjs'
+      - 'src/core/chains/ChainCatalog.js'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: osm-chain-register-nl
+  cancel-in-progress: false
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Bestaande vestigingsidentiteiten behouden
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --heads origin refs/heads/data/osm-chains-nl; then
+            git fetch origin refs/heads/data/osm-chains-nl
+            git show FETCH_HEAD:register-v1.json > "$RUNNER_TEMP/register-v1.json"
+            echo 'CHAIN_DATA_EXISTS=true' >> "$GITHUB_ENV"
+          else
+            echo 'CHAIN_DATA_EXISTS=false' >> "$GITHUB_ENV"
+          fi
+      - name: Volledige Nederlandse OSM-selectie importeren
+        run: node scripts/update-chain-register.mjs "$RUNNER_TEMP/register-v1.json"
+      - name: Alleen brongegevens publiceren
+        shell: bash
+        run: |
+          if [ "$CHAIN_DATA_EXISTS" = 'true' ]; then
+            git worktree add --detach "$RUNNER_TEMP/chain-data" FETCH_HEAD
+          else
+            git worktree add --detach "$RUNNER_TEMP/chain-data" HEAD
+            git -C "$RUNNER_TEMP/chain-data" switch --orphan osm-chain-data
+          fi
+          cp "$RUNNER_TEMP/register-v1.json" "$RUNNER_TEMP/chain-data/register-v1.json"
+          cd "$RUNNER_TEMP/chain-data"
+          printf '%s\n' '# Sharon OSM winkelregister — Nederland' '' 'Bron: © OpenStreetMap contributors — https://www.openstreetmap.org/copyright' '' 'Database: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/' '' 'Dit register bevat uitsluitend openbare brongegevens, geen passen, GPS-metingen of persoonlijke zones.' > README.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add register-v1.json README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Werk Nederlandse winkelvestigingen bij vanuit OpenStreetMap'
+            git push origin HEAD:refs/heads/data/osm-chains-nl
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osm-winkelregister-nl
+          path: ${{ runner.temp }}/register-v1.json

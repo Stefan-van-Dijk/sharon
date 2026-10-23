@@ -1,5 +1,6 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.83';
-import { openCardBoard } from './CardBoard.js?v=0.3.83';
+import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.3.84';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.84';
+import { openCardBoard } from './CardBoard.js?v=0.3.84';
 
 const VISIT_KEY = 'cards.context.visit';
 
@@ -16,18 +17,19 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
     if (document.hidden) { close(); return; }
     try {
       await ready;
-      const objects = await store.getAll('objects');
+      const objects = await cardContextObjects(store);
       if (disposed || run !== generation) return;
       const point = location.latest;
       let changed = false;
-      for (const id of seen) if (hasLeftCardLocation(objects, id, point)) { seen.delete(id); changed = true; }
+      for (const id of seen) if (hasLeftCardLocation(objects, id.split('@')[0], point, Date.now(), id.split('@')[1] || null)) { seen.delete(id); changed = true; }
       if (changed) await persist();
       if (disposed || run !== generation) return;
       const suggestions = suggestCards(objects, point);
       const eligible = new Set(suggestions.map(item => item.card.id));
       if (openedIds.length && openedIds.some(id => !eligible.has(id))) close();
-      if (closePopup || !canOpen() || !suggestions.some(item => !seen.has(item.card.id))) return;
-      for (const item of suggestions) seen.add(item.card.id);
+      const visitKey=item=>item.branch?item.card.id+'@'+item.branch.id:item.card.id;
+      if (closePopup || !canOpen() || !suggestions.some(item => !seen.has(visitKey(item)))) return;
+      for (const item of suggestions) seen.add(visitKey(item));
       openedIds = suggestions.map(item => item.card.id);
       const previousFocus = document.activeElement;
       const onClose = () => {
@@ -38,7 +40,7 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
       closePopup = openCardBoard(suggestions[0].card, {
         cards: suggestions.map(item => item.card), store, location, events,
         onActiveCard: current => { openedIds = [current.id]; },
-        locations: objects.filter(item => item.type === 'location' && !item.deletedAt), onClose
+        locations: [...objects.filter(item => item.type === 'location' && !item.deletedAt),...suggestions.map(item=>item.location)], onClose
       });
       function scheduleExpiry() {
         clearTimeout(timer);
