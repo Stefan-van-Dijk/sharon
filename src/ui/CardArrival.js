@@ -1,6 +1,5 @@
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.80';
-import { openCardBoard } from './CardBoard.js?v=0.3.80';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.80';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.3.81';
+import { openCardBoard } from './CardBoard.js?v=0.3.81';
 
 const VISIT_KEY = 'cards.context.visit';
 
@@ -35,16 +34,11 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
         closePopup = null; openedIds = []; clearTimeout(timer);
         if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       };
-      const showCard = card => {
-        closePopup = openCardBoard(card, { cards: suggestions.map(item => item.card), store, location, events,
-          onActiveCard: current => { openedIds = [current.id]; },
-          locations: objects.filter(item => item.type === 'location' && !item.deletedAt), onClose });
-        openedIds = [card.id];
-      };
-      if (suggestions.length === 1) showCard(suggestions[0].card);
-      else closePopup = openChoice(suggestions, {
-        onClose,
-        onSelect: card => { close(); showCard(card); scheduleExpiry(); }
+      // Automatic suggestions use the same deck as the Home boards button.
+      closePopup = openCardBoard(suggestions[0].card, {
+        cards: suggestions.map(item => item.card), store, location, events,
+        onActiveCard: current => { openedIds = [current.id]; },
+        locations: objects.filter(item => item.type === 'location' && !item.deletedAt), onClose
       });
       function scheduleExpiry() {
         clearTimeout(timer);
@@ -65,29 +59,3 @@ export function mountCardArrival({ store, location, events, canOpen = () => true
   };
 }
 
-function openChoice(suggestions, { onClose, onSelect }) {
-  const layer = document.createElement('div');
-  layer.className = 'sh-card-board-overlay';
-  layer.innerHTML = '<section class="sh-card-board" role="dialog" aria-modal="true" aria-label="Kies een pas" tabindex="-1"><div class="sh-card-board-top"><h2>Welke pas wil je gebruiken?</h2></div><div data-card-choices></div></section>';
-  wrapBoardSurface(layer, layer.querySelector('.sh-card-board'));
-  let closed = false, startY = null;
-  const close = () => { if (closed) return; closed = true; window.removeEventListener('keydown', key); layer.remove(); onClose(); };
-  const key = event => { if (event.key === 'Escape') close(); };
-  const host = layer.querySelector('[data-card-choices]');
-  for (const { card, location: place } of suggestions) {
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = 'sh-context-card'; button.dataset.arrivalChoice = card.id;
-    const name = document.createElement('strong'), reason = document.createElement('small');
-    name.textContent = card.name; reason.textContent = place.data?.title || 'Deze locatie';
-    button.append(name, reason);
-    button.addEventListener('click', () => onSelect(card));
-    host.append(button);
-  }
-  layer.addEventListener('sharon:close-board',close);
-  layer.addEventListener('click', event => { if (event.target === layer) close(); });
-  layer.addEventListener('touchstart', event => { if (event.touches.length === 1) startY = event.touches[0].clientY; }, { passive: true });
-  layer.addEventListener('touchend', event => { if (startY !== null && event.changedTouches[0]?.clientY - startY > 45) close(); startY = null; }, { passive: true });
-  window.addEventListener('keydown', key); document.body.append(layer);
-  layer.querySelector('[role="dialog"]').focus({ preventScroll: true });
-  return close;
-}

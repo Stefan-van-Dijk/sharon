@@ -31,16 +31,14 @@ test('pas opent vanzelf, blijft na sluiten dicht, en opent na bevestigd vertrek 
   await until(()=>app.document.querySelector('[aria-label="Kaart Mijn pas"]'));
   assert.deepEqual(app.errors,[]);
 });
-test('meerdere passende pasjes geven één keuzevenster, kiezen opent één pas',async t=>{
+test('meerdere passende pasjes openen direct hetzelfde deck als de boards-knop',async t=>{
   const app=await setup(t,{multiple:true});
-  const choice=await until(()=>app.document.querySelector('[aria-label="Kies een pas"]'));
-  assert.equal(choice.querySelectorAll('[data-arrival-choice]').length,2);
-  choice.querySelector('[data-arrival-choice="ArrivalCard2"]').click();
-  await until(()=>app.document.querySelector('[aria-label="Kaart Tweede pas"]'));
+  const board=await until(()=>app.document.querySelector('[aria-label="Kaart Mijn pas"][aria-hidden="false"]'));
+  assert.ok(board.closest('.sh-card-zone-stack'));
+  assert.equal(app.document.querySelector('[data-card-choices]'),null);
   assert.equal(app.document.querySelectorAll('.sh-card-board-overlay').length,1);
-  // The selected pass stays part of the location's deck.
-  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'ArrowRight'}));
-  assert.ok(app.document.querySelector('[aria-label="Kaart Mijn pas"]'));
+  app.window.dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'ArrowLeft'}));
+  assert.ok(app.document.querySelector('[aria-label="Kaart Tweede pas"][aria-hidden="false"]'));
   app.location.latest={...app.location.latest,lat:53,at:Date.now()};app.events.emit('location.changed');
   await until(()=>!app.document.querySelector('.sh-card-board-overlay'));
   assert.deepEqual(app.errors,[]);
