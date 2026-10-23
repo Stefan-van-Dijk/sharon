@@ -111,7 +111,8 @@ test('public branch board has attribution and save action without private locati
   layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
   (await until(()=>root.querySelector('[data-places-list] button'))).click();
   const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
-  assert.match(board.textContent,/OpenStreetMap contributors/);
+  const credit=board.querySelector('a[href="https://www.openstreetmap.org/copyright"]');
+  assert.equal(credit.textContent,'© OpenStreetMap');assert.match(credit.getAttribute('aria-label'),/OpenStreetMap contributors.*ODbL/);
   assert.equal(board.querySelector('[aria-label="Webpagina aan locatie koppelen"]'),null);
   assert.ok(board.querySelector('a[href="https://www.openstreetmap.org/node/1"]'));
   const save=[...board.querySelectorAll('button')].find(button=>button.textContent==='Bewaar bij Locaties');assert.ok(save);save.click();
