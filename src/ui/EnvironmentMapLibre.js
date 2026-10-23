@@ -1,24 +1,24 @@
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.81';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.81';
-import { openLocationDeck } from './LocationDeck.js?v=0.3.81';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.81';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.81';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.81';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.82';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.82';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.82';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.82';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.82';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.82';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.3.81';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.81';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.81';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.81';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.81';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.81';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.3.81';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.81';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.81';
+} from '../core/location/EnvironmentIdentifier.js?v=0.3.82';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.82';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.82';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.82';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.82';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.82';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.3.82';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.82';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.82';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.3.81';
+} from './EnvironmentScale.js?v=0.3.82';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';

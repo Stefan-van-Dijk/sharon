@@ -1,4 +1,4 @@
-import { createBoardDeck } from './BoardChrome.js?v=0.3.81';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.82';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
