@@ -120,14 +120,46 @@ export function buildChainRegister(data,previous=null,at=new Date().toISOString(
   return {schema:1,coverage:'NL',fetchedAt:at,sourceTimestamp:data.osm3s.timestamp_osm_base,
     attribution:'© OpenStreetMap contributors',license:'https://opendatacommons.org/licenses/odbl/1-0/',chains};
 }
+// Osmium exports exact source identities plus geometries from a complete
+// Geofabrik country extract. A way can occur as both line and polygon.
+export function sourceFromGeoJSON(data, timestamp){
+  if(data?.type!=='FeatureCollection'||!Array.isArray(data.features)||!Number.isFinite(Date.parse(timestamp)))throw Error('Ongeldige Nederlandse OSM-export.');
+  const elements=new Map();
+  const positions=geometry=>{
+    if(geometry?.type==='GeometryCollection')return (geometry.geometries||[]).flatMap(positions);
+    const flatten=value=>Array.isArray(value)&&value.length>=2&&value.every(Number.isFinite)?[value]:Array.isArray(value)?value.flatMap(flatten):[];
+    return flatten(geometry?.coordinates);
+  };
+  for(const feature of data.features){
+    const p=feature.properties||{};
+    if(!p.shop||!CHAIN_CATALOG.some(chain=>chain.brands.includes(p['brand:wikidata'])))continue;
+    const points=positions(feature.geometry);
+    if(!points.length)throw Error('OSM-winkelgeometrie ontbreekt.');
+    const lats=points.map(point=>point[1]),lngs=points.map(point=>point[0]);
+    const point={lat:(Math.min(...lats)+Math.max(...lats))/2,lon:(Math.min(...lngs)+Math.max(...lngs))/2};
+    const stamp=typeof p['@timestamp']==='number'?new Date(p['@timestamp']*1000).toISOString():p['@timestamp'];
+    const item={type:p['@type'],id:p['@id'],version:p['@version'],timestamp:stamp,tags:Object.fromEntries(Object.entries(p).filter(([key])=>!key.startsWith('@'))),
+      ...(p['@type']==='node'?point:{center:point})};
+    const key=item.type+'/'+item.id,previous=elements.get(key);
+    if(previous&&previous.version!==item.version)throw Error('Tegenstrijdige OSM-export.');
+    elements.set(key,item);
+  }
+  return {osm3s:{timestamp_osm_base:timestamp},elements:[...elements.values()]};
+}
 async function main(){
   const output=resolve(process.argv[2]||'server/data/chains/register-v1.json');
   const previous=existsSync(output)?JSON.parse(readFileSync(output,'utf8')):null;
   let data;
-  try{data=await fetchChainSource();}
+  try{data=process.argv[3]?sourceFromGeoJSON(JSON.parse(readFileSync(process.argv[3],'utf8')),process.argv[4]):await fetchChainSource();}
   catch(error){await probeOverpass();throw error;}
   const register=buildChainRegister(data,previous);
   mkdirSync(dirname(output),{recursive:true});
+  // Retain as much delta history as fits the deployed PHP download limit.
+  while(Buffer.byteLength(JSON.stringify(register))>7900000){
+    const largest=Object.values(register.chains).filter(chain=>chain.history.length).sort((a,b)=>JSON.stringify(b.history).length-JSON.stringify(a.history).length)[0];
+    if(!largest)throw Error('Winkelregister overschrijdt de serverlimiet. Bestaand bestand blijft behouden.');
+    largest.history.pop();
+  }
   const temp=output+'.'+process.pid+'.tmp';writeFileSync(temp,JSON.stringify(register)+'\n');renameSync(temp,output);
   console.log(JSON.stringify({path:output,sourceTimestamp:register.sourceTimestamp,chains:Object.fromEntries(Object.entries(register.chains).map(([id,value])=>[id,value.rows.length]))}));
 }

@@ -1,5 +1,5 @@
-import { CHAIN_CACHE_KEY, CHAIN_SYNC_INTERVAL, chainById } from './ChainCatalog.js?v=0.3.85';
-import { decodeBranch } from './ChainModel.js?v=0.3.85';
+import { CHAIN_CACHE_KEY, CHAIN_SYNC_INTERVAL, chainById } from './ChainCatalog.js?v=0.3.86';
+import { decodeBranch } from './ChainModel.js?v=0.3.86';
 export const CHAIN_ENDPOINT='https://sharon.life/log/api/chains.php';
 export class ChainSyncService {
   constructor(store,{events=null,fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}) {
@@ -25,7 +25,7 @@ export class ChainSyncService {
     try {
       const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
         headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,chains:requested.map(id=>({id,version:kept[id]?.version||''}))}),signal:controller.signal});
-      if(!response.ok)throw Error(response.status===503?'Winkelgegevens zijn nog niet op de server geplaatst.':'Winkelgegevens konden niet worden bijgewerkt.');
+      if(!response.ok)throw Error(response.status===503?'De vestigingenlijst wordt nog voorbereid. Je kunt deze kaart al aan een eigen locatie koppelen.':'Winkelgegevens konden niet worden bijgewerkt.');
       const data=await response.json();
       if(data.schema!==1 || data.coverage!=='NL' || !Array.isArray(data.chains) || data.chains.length!==requested.length)throw Error('Ongeldig ketenregister.');
       const changes=new Map();

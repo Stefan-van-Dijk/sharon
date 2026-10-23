@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.85';
-import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.85';
-import { createBoardDeck } from './BoardChrome.js?v=0.3.85';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.86';
+import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.86';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.86';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -659,7 +659,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   photoHeader.append(compass);
   compass.style.touchAction = 'none';
   compass.addEventListener('pointerdown', event => beginGesture(compass, 'compass', event));
-  if (isLocal) {
+  if (isLocal && localBoard.save) {
+    const controls=document.createElement('div');controls.className='sh-local-controls';
+    const save=document.createElement('button');save.type='button';save.textContent='Bewaar bij Locaties';
+    save.addEventListener('click',async()=>{save.disabled=true;try{await localBoard.save();save.textContent='Bewaard bij Locaties';}catch{save.textContent='Probeer opnieuw';save.disabled=false;}});
+    controls.append(save);story.append(controls);
+  }
+  if (isLocal && !localBoard.save) {
     const deckControl = document.createElement('button');
     deckControl.type = 'button';
     deckControl.className = 'sh-local-deck-control';

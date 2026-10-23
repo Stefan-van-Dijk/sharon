@@ -1,10 +1,14 @@
-# Winkelketens, vestigingen en passen — 0.3.85
+# Winkelketens, vestigingen en passen — 0.3.86
 
 Uitvoering van de eerste Nederlandse versie van [#59](https://github.com/Stefan-van-Dijk/sharon/issues/59), bovenop de gedeelde kaartbasis van [#52](https://github.com/Stefan-van-Dijk/sharon/issues/52). Dit document beschrijft de code en de geteste werking; de eerste volledige live OSM-import en echte GPS-/iPhone-controles moeten nog plaatsvinden.
 
+## Omgeving vanaf 0.3.86
+
+Veeg het locatie-icoon omhoog (of gebruik pijl omhoog op het toetsenbord) voor het bronpaneel, net als bij Wikipedia. Dit toont opgeslagen locaties én lokaal beschikbare vestigingen van gekoppelde ketens. Zoeken op naam/adres werkt offline; maximaal dertig resultaten tegelijk, op afstand van het kaartcentrum. Filter op opgeslagen locaties of een gekoppelde keten. Een locatie opent het bestaande locatiedeck; een vestiging opent een board met bronvermelding en Bewaar bij Locaties. Beide bronpanelen sluiten elkaar. Dit haalt geen extra openbare POI-dataset op: andere bekende locaties zijn de al opgeslagen Sharon-locaties.
+
 ## Gebruik
 
-- **Kaarten:** kies optioneel een winkelketen bij een bestaande of nieuwe pas. De naam van een pas wordt niet gebruikt om een keten te raden. Eerste set: Albert Heijn (inclusief AH XL en AH to go), Jumbo en HEMA. Dekking: Nederland.
+- **Kaarten:** kies optioneel een winkelketen bij een bestaande of nieuwe pas. De naam van een pas wordt niet gebruikt om een keten te raden. Catalogus: Albert Heijn (inclusief AH XL en AH to go), Jumbo, HEMA, Lidl, Aldi, PLUS, Dirk, DekaMarkt, Vomar, Spar, Kruidvat, Etos, Action, Gamma, Karwei, Praxis en IKEA. Dekking: Nederland.
 - **Onder de pas:** het vestigingenpaneel toont de laatst gesynchroniseerde landelijke gegevens, een handmatige verversknop en maximaal twintig dichtstbijzijnde vestigingen. Een actuele GPS-positie laat één passende vestiging voorselecteren. Bij meerdere passende vestigingen moet de gebruiker kiezen voordat een persoonlijke zone kan worden opgeslagen.
 - **Verfijnen:** de bestaande Omgeving-/Locaties-kaartviewer toont het gebied en de huidige GPS-positie. De slider werkt live; alleen loslaten/change bewaart een zone rond de huidige GPS-positie. Geen aparte opslaan- of bevestigingsvraag. De zone kan worden aangepast en de verfijning kan worden verwijderd; de bewaarde locatie zelf blijft bestaan.
 - **Omgeving:** de winkelbron toont alleen lokaal beschikbare vestigingen van ketens met een actieve pas. Punten clusteren bij uitzoomen. Kies eventueel één keten. Een punt toont brongegevens en **Bewaar bij Locaties**. Vanuit de pas opent Omgeving met een tijdelijk ketenfilter; dit filter wordt niet als voorkeur bewaard.
@@ -27,13 +31,13 @@ Verdwenen OSM-objecten blijven als **mogelijk gesloten** bewaard. Ze blijven zic
 
 Bij actief gebruik controleert de service of gegevens ontbreken of dertig dagen oud zijn. De controle gebeurt bij opstarten, online/voorgrond komen, een gewijzigde ketenkoppeling en een uurcontrole terwijl de app zichtbaar is. Binnen die maand volgt geen nieuwe netwerkcontrole na een succesvolle controle, ook niet als er geen inhoudelijke wijziging was. Een expliciete verversknop controleert uitsluitend die keten.
 
-Eén JSON POST naar `https://sharon.life/log/api/chains.php` bevat uitsluitend `{schema:1, chains:[{id,version}]}`. Geen GPS, pascode, persoonlijke zone, naam of locatiegeschiedenis. De server weigert extra aanvraagvelden. Het antwoord bevat volledige data bij een eerste/te oude versie, een delta bij een bekende eerdere versie, of `unchanged`. De server bewaart drie eerdere bronsnapshots. De client valideert alle gevraagde ketens vóór één atomaire cache-update. Versies uit een ander tabblad worden niet teruggedraaid. `lastCheckedAt` verandert pas na succesvolle verwerking. Fouten behouden bestaande data en persoonlijke zones.
+Eén JSON POST naar `https://sharon.life/log/api/chains.php` bevat uitsluitend `{schema:1, chains:[{id,version}]}`. Geen GPS, pascode, persoonlijke zone, naam of locatiegeschiedenis. De server weigert extra aanvraagvelden. Het antwoord bevat volledige data bij een eerste/te oude versie, een delta bij een bekende eerdere versie, of `unchanged`. Het register bewaart maximaal drie eerdere bronsnapshots, binnen de downloadlimiet van 8 MB. De client valideert alle gevraagde ketens vóór één atomaire cache-update. Versies uit een ander tabblad worden niet teruggedraaid. `lastCheckedAt` verandert pas na succesvolle verwerking. Fouten behouden bestaande data en persoonlijke zones.
 
 Een pas zonder ketenkoppeling blijft exact werken zoals voorheen. Beschadigde ketengegevens mogen de al bestaande expliciete pas-locatievoorstellen niet blokkeren. In de testomgeving blijft de broncache gescheiden via de bestaande testopslag.
 
 ## Centrale bronimport
 
-`scripts/update-chain-register.mjs` vraagt per bronmerk met een exacte, geïndexeerde Overpass-selectie de Nederlandse OSM-vestigingen van de catalogus op. De vijf bronmerken worden na volledige validatie samengevoegd. Alleen expliciete `brand:wikidata`-koppelingen worden gebruikt. De bron-ID's zijn gecontroleerd tegen de officiële Name Suggestion Index:
+De workflow downloadt het complete Nederlandse OSM-PBF-bestand van Geofabrik, controleert de gepubliceerde MD5 en selecteert lokaal met Osmium op de catalogusmerken. Osmium exporteert geometrie en type/id/versie/timestamp. `scripts/update-chain-register.mjs` zet die export om naar dezelfde compacte vestigingsrijen. Dubbele lijn-/vlakrepresentaties van één bronobject krijgen één identiteit. De bronpositie is het midden van de geometrische begrenzing. De Overpass-import blijft beschikbaar voor handmatig gebruik zonder exportbestand; de maandelijkse workflow gebruikt Geofabrik. Alleen expliciete `brand:wikidata`-koppelingen worden gebruikt. De bron-ID's zijn gecontroleerd tegen de officiële Name Suggestion Index:
 
 - Albert Heijn: Q1653985; AH XL: Q78163765; AH to go: Q77971185.
 - Jumbo Nederland/België: Q2262314; geen verwarring met andere Jumbo-ketens.
