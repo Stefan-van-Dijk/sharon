@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {CHAIN_CATALOG} from '../src/core/chains/ChainCatalog.js';
-import {fetchChainSource,chainQuery,buildChainRegister} from '../scripts/update-chain-register.mjs';
+import {fetchChainSource,chainQuery,buildChainRegister,probeOverpass} from '../scripts/update-chain-register.mjs';
 
 const brands=CHAIN_CATALOG.flatMap(chain=>chain.brands);
 const requestedBrand=url=>new URL(url).searchParams.get('data').match(/brand:wikidata"="(Q\d+)"/)[1];
@@ -59,4 +59,23 @@ test('empty optional brand variant is allowed, source snapshot time uses the old
  }});
  assert.equal(data.osm3s.timestamp_osm_base,'2026-10-22T09:00:00.000Z');
  assert.equal(Object.keys(buildChainRegister(data).chains).length,3);
+});
+
+test('brand-matching offices are filtered locally and never become store locations',async()=>{
+ const data=await fetchChainSource({...options,fetcher:async url=>{
+  const brand=requestedBrand(url),part=source(brand);
+  part.elements.push({...part.elements[0],id:9999,tags:{'brand:wikidata':brand,office:'company'}});
+  assert.ok(!new URL(url).searchParams.get('data').includes('["shop"]'));
+  assert.match(new URL(url).searchParams.get('data'),/50\.7,3\.2,53\.7,7\.3/);
+  return ok(part);
+ }});
+ assert.equal(data.elements.length,brands.length);assert.ok(!data.elements.some(item=>item.id===9999));
+});
+test('failure diagnostics distinguish status/query reachability without printing element contents',async()=>{
+ const logs=[],calls=[];
+ await probeOverpass({endpoints:['https://first.example/api/interpreter'],log:value=>logs.push(value),fetcher:async url=>{
+  calls.push(url);return {status:200,text:async()=> 'do-not-log-element-contents'};
+ }});
+ assert.equal(calls.length,2);assert.ok(calls[0].endsWith('/status'));assert.ok(logs.some(line=>line.includes('minimale query')));
+ assert.ok(logs.every(line=>!line.includes('do-not-log')));
 });
