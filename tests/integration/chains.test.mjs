@@ -98,3 +98,22 @@ test('upward source swipe opens known locations and chains; search and saved loc
   layer.destroy();layer=null;assert.equal(handlers.size,0);
  }finally{layer?.destroy();app.close();}
 });
+
+test('public branch board has attribution and save action without private location editing controls',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map();
+  const map={addSource(id,o){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){handlers.set(n,f);},off(n){handlers.delete(n);},easeTo(){},getCenter:()=>point,queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
+  (await until(()=>root.querySelector('[data-places-list] button'))).click();
+  const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
+  assert.match(board.textContent,/OpenStreetMap contributors/);
+  assert.equal(board.querySelector('[aria-label="Webpagina aan locatie koppelen"]'),null);
+  assert.ok(board.querySelector('a[href="https://www.openstreetmap.org/node/1"]'));
+  const save=[...board.querySelectorAll('button')].find(button=>button.textContent==='Bewaar bij Locaties');assert.ok(save);save.click();
+  await until(async()=>(await app.store.getAll('objects')).some(item=>item.data?.branchId==='branch000001'));
+  assert.equal(app.requests.length,0);
+ }finally{layer?.destroy();app.close();}
+});

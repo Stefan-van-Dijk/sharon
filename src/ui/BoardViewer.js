@@ -289,7 +289,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   source.title = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? 'Open website' : 'Open Wikipedia';
   if (isLocal && !localBoard.website) source.hidden = true;
   const credits = document.createElement('small');
-  credits.textContent = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? 'Locatie · Sharon' : 'CC BY-SA';
+  credits.textContent = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? (localBoard.credit || 'Locatie · Sharon') : 'CC BY-SA';
   if (!isLocal && !external) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';
@@ -457,14 +457,14 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   }
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
   source.classList.add('sh-board-photo-source');
-  if (!isLocal) photoHeader.append(source);
+  if (!isLocal || localBoard.save) photoHeader.append(source);
   if (isLocal) {
     const controls = story.querySelector('.sh-local-controls');
     if (controls) story.append(controls);
   }
   // Footer must be mounted before insertBefore can use it as a reference node.
   story.append(footer);
-  if (isLocal) {
+  if (isLocal && !localBoard.save) {
     const lessons = [
       ['swipe','Swipe horizontaal om een andere locatie te bekijken.'],
       ['deck','Open Deck om de extra bronnen van deze plek te bekijken.'],

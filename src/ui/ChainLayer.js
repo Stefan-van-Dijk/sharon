@@ -27,7 +27,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     closeDeck?.();focus(branch.coordinates);
     const available=branches.filter(item=>!selected||item.chainId===selected),index=available.findIndex(item=>item.id===branch.id);
     closeDeck=openBoardViewer({geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{title:branch.name}},{location,events,
-      localBoard:{title:branch.name,type:chainName(branch.chainId),address:branch.address,description:[branch.openingHours,branch.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:'https://www.openstreetmap.org/'+branch.sourceRef,
+      localBoard:{title:branch.name,credit:'© OpenStreetMap contributors · ODbL',type:chainName(branch.chainId),address:branch.address,description:[branch.openingHours,branch.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:'https://www.openstreetmap.org/'+branch.sourceRef,
         save:async()=>{const record=await saveBranchLocation(store,branch);events?.emit('location.created',{id:record.id});events?.emit('cards.context.check');}},
       onNext:available.length>1?()=>showBranch(available[(index+1)%available.length]):null,
       onPrevious:available.length>1?()=>showBranch(available[(index+available.length-1)%available.length]):null});
