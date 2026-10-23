@@ -228,8 +228,17 @@ test('provider attribution stays expanded, linked and centered without a separat
   assert.ok(css.includes('.maplibregl-ctrl-attrib-inner a:focus-visible'));
   assert.ok(css.includes('.maplibregl-ctrl-bottom-right{left:max(14px'));
   assert.ok(css.includes('justify-content:center'));
-  // Keep MapLibre's live source attribution, not a hardcoded duplicate string.
+  // Keep MapLibre's attribution control, with shortened linked source credits.
   assert.equal(renderer.includes('attributionControl: false'), false);
+  const {compactEnvironmentAttribution,OSM_MAP_CREDIT}=await import('../src/ui/EnvironmentAttribution.js');
+  const original=JSON.stringify(environmentStyle);
+  const configured=compactEnvironmentAttribution({...environmentStyle,sources:{...environmentStyle.sources,extra:{type:'geojson',attribution:'Extra provider'}}});
+  assert.match(configured.sources.openmaptiles.attribution,/OpenMapTiles/);
+  assert.ok(configured.sources.openmaptiles.attribution.includes(OSM_MAP_CREDIT));
+  assert.match(OSM_MAP_CREDIT,/https:\/\/www.openstreetmap.org\/copyright/);
+  assert.equal(configured.sources.extra.attribution,'Extra provider');
+  assert.equal(JSON.stringify(environmentStyle),original);
+
 });
 
 test('shared glass header owns the map controls above full-bleed content', async () => {

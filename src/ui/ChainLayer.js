@@ -1,8 +1,9 @@
-import { openLocationDeck } from './LocationDeck.js?v=0.3.88';
-import { openBoardViewer } from './BoardViewer.js?v=0.3.88';
-import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.88';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.88';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.88';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.3.89';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.89';
+import { openBoardViewer } from './BoardViewer.js?v=0.3.89';
+import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.89';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.89';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.89';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',beforeOpen=()=>{}}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -53,7 +54,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     if(matches.length>30){const more=document.createElement('small');more.textContent='30 van '+matches.length+' · zoek op naam of adres voor andere locaties.';list.append(more);}
   };
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
-  map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:true,clusterRadius:45,clusterMaxZoom:13,attribution:'© OpenStreetMap contributors'});
+  map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:true,clusterRadius:45,clusterMaxZoom:13,attribution:OSM_MAP_CREDIT});
   map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],paint:{'circle-radius':16,'circle-color':'#486c65','circle-stroke-color':'#fff','circle-stroke-width':2}});
   map.addLayer({id:source+'-counts',type:'symbol',source,filter:['has','point_count'],layout:{'text-field':['to-string',['get','point_count_abbreviated']],'text-size':11},paint:{'text-color':'#fff'}});
   map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':7,'circle-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
