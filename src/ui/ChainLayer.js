@@ -1,8 +1,8 @@
-import { openLocationDeck } from './LocationDeck.js?v=0.3.87';
-import { openBoardViewer } from './BoardViewer.js?v=0.3.87';
-import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.87';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.87';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.87';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.88';
+import { openBoardViewer } from './BoardViewer.js?v=0.3.88';
+import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.3.88';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.3.88';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.88';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',beforeOpen=()=>{}}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -27,7 +27,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     closeDeck?.();focus(branch.coordinates);
     const available=branches.filter(item=>!selected||item.chainId===selected),index=available.findIndex(item=>item.id===branch.id);
     closeDeck=openBoardViewer({geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{title:branch.name}},{location,events,
-      localBoard:{title:branch.name,credit:'© OpenStreetMap contributors · ODbL',type:chainName(branch.chainId),address:branch.address,description:[branch.openingHours,branch.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:'https://www.openstreetmap.org/'+branch.sourceRef,
+      localBoard:{title:branch.name,credit:'© OpenStreetMap',creditUrl:'https://www.openstreetmap.org/copyright',creditDescription:'© OpenStreetMap contributors · Open Database License (ODbL)',type:chainName(branch.chainId),address:branch.address,description:[branch.openingHours,branch.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:'https://www.openstreetmap.org/'+branch.sourceRef,
         save:async()=>{const record=await saveBranchLocation(store,branch);events?.emit('location.created',{id:record.id});events?.emit('cards.context.check');}},
       onNext:available.length>1?()=>showBranch(available[(index+1)%available.length]):null,
       onPrevious:available.length>1?()=>showBranch(available[(index+available.length-1)%available.length]):null});

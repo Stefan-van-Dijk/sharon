@@ -1,7 +1,7 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.87';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.87';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.87';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.87';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.88';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.88';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.88';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.88';
 
 const saves = new WeakMap();
 export function saveReceivedCard(store,message) {

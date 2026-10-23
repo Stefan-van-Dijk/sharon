@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.87';
-import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.87';
-import { createBoardDeck } from './BoardChrome.js?v=0.3.87';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.88';
+import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.88';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.88';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -290,6 +290,12 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   if (isLocal && !localBoard.website) source.hidden = true;
   const credits = document.createElement('small');
   credits.textContent = external ? sourceBoard.label + ' · affiliatelink' : isLocal ? (localBoard.credit || 'Locatie · Sharon') : 'CC BY-SA';
+  if (isLocal && externalUrl(localBoard.creditUrl)) {
+    const link=document.createElement('a');link.className='sh-source-credit';
+    link.href=externalUrl(localBoard.creditUrl);link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent=localBoard.credit;link.title=localBoard.creditDescription||localBoard.credit;
+    link.setAttribute('aria-label',link.title+' · bron en licentie bekijken');credits.replaceChildren(link);
+  }
   if (!isLocal && !external) { credits.title = 'Wikipedia-tekst: CC BY-SA. Foto’s: Wikimedia Commons; controleer per afbeelding de maker en licentie.'; credits.setAttribute('aria-label',credits.title); }
   const footer = document.createElement('footer');
   footer.className = 'sh-board-footer';

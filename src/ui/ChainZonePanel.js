@@ -1,8 +1,8 @@
-import { chainById, CHAIN_CACHE_KEY } from '../core/chains/ChainCatalog.js?v=0.3.87';
-import { localBranches, branchZone, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.3.87';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.87';
-import { ChainSyncService } from '../core/chains/ChainSyncService.js?v=0.3.87';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.87';
+import { chainById, CHAIN_CACHE_KEY } from '../core/chains/ChainCatalog.js?v=0.3.88';
+import { localBranches, branchZone, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.3.88';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.88';
+import { ChainSyncService } from '../core/chains/ChainSyncService.js?v=0.3.88';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.88';
 
 const fresh=point=>point&&Number.isFinite(point.lat)&&Number.isFinite(point.lng)&&Number.isFinite(point.at)&&Date.now()-point.at<120000&&point.at<=Date.now()&&Number.isFinite(point.accuracy)&&point.accuracy<=2000;
 export function mountChainZonePanel(host,{card,store,location,events,onEnvironment=null}={}) {
@@ -74,7 +74,7 @@ export function mountChainZonePanel(host,{card,store,location,events,onEnvironme
     }
     const open=document.createElement('button');open.type='button';open.textContent='Bekijk '+chain.name+' in Omgeving';
     open.addEventListener('click',()=>{if(onEnvironment)onEnvironment(chain.id);else events?.emit('environment.chain.open',{chainId:chain.id});});host.append(open);
-    const attribution=document.createElement('a');attribution.href='https://www.openstreetmap.org/copyright';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='© OpenStreetMap contributors · ODbL';host.append(attribution);
+    const attribution=document.createElement('a');attribution.href='https://www.openstreetmap.org/copyright';attribution.target='_blank';attribution.rel='noopener noreferrer';attribution.textContent='© OpenStreetMap';attribution.className='sh-source-credit';attribution.title='© OpenStreetMap contributors · Open Database License (ODbL)';attribution.setAttribute('aria-label','OpenStreetMap: bron en ODbL-licentie bekijken');host.append(attribution);
   };
   const off=events?.on('chains.updated',()=>render().catch(()=>{}));
   const offLocation=events?.on('location.changed',()=>render().catch(()=>{}));
