@@ -47,7 +47,7 @@ Volledigheidsfouten, time-outs, Overpass-remarks en een geheel ontbrekende keten
 
 De workflow **OSM winkelregister bijwerken** draait na merge van de importer/catalogus/workflow, op de eerste dag van de maand en via **Run workflow**. De laatst gepubliceerde dataset wordt vóór import teruggelezen, zodat identiteiten behouden blijven. Alleen openbare OSM-brongegevens komen op de aparte branch `data/osm-chains-nl`; geen gebruikersdata en geen wijzigingen aan de appbranch. Die databranche heeft eigen inhoudsversies en vereist geen nieuwe appversie. Er is ook een downloadbaar workflow-artifact.
 
-`chains.php` leest het gepubliceerde register via een vaste GitHub-URL en bewaart het centraal in `log/private/chains/register-v1.json`. Een sidecar-lock en atomaire rename beschermen de cache. Verversen gebeurt maximaal ongeveer maandelijks, wanneer een bundel wordt opgevraagd. Bij een bronfout blijft de oude servercache bruikbaar; een mislukte verversing wordt maximaal eens per uur opnieuw geprobeerd. De endpoint bevraagt zelf geen OSM en heeft geen database of gebruikersaccount nodig.
+`chains.php` leest het gepubliceerde register via een vaste GitHub-URL en bewaart het centraal in `log/private/chains/register-v1.json`. Een sidecar-lock en atomaire rename beschermen de cache. Verversen gebeurt maximaal ongeveer maandelijks, wanneer een bundel wordt opgevraagd. Bij een bronfout blijft de oude servercache bruikbaar; een mislukte verversing wordt maximaal eens per uur opnieuw geprobeerd. Bij een nog ontbrekend eerste register is dat eens per minuut (PHP-update 0.3.86). De endpoint bevraagt zelf geen OSM en heeft geen database of gebruikersaccount nodig.
 
 ## Installatie
 
