@@ -1,18 +1,18 @@
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.82';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.82';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.82';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.82';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.82';
-import { openCardBoard } from './CardBoard.js?v=0.3.82';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.82';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.82';
-import { mountCardScanner } from './CardScanner.js?v=0.3.82';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.82';
-import { renderStrip } from './Strip.js?v=0.3.82';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.82';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.82';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.82';
-import { cardSymbol } from './CardSymbols.js?v=0.3.82';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.83';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.83';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.83';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.83';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.83';
+import { openCardBoard } from './CardBoard.js?v=0.3.83';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.83';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.83';
+import { mountCardScanner } from './CardScanner.js?v=0.3.83';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.83';
+import { renderStrip } from './Strip.js?v=0.3.83';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.83';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.83';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.83';
+import { cardSymbol } from './CardSymbols.js?v=0.3.83';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

@@ -1,4 +1,6 @@
-import { createBoardDeck } from './BoardChrome.js?v=0.3.82';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.83';
+import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.83';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.83';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -175,6 +177,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : ''; }
     catch { return ''; }
   };
+  let stopInformation = () => {};
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
   const destination = coords?.length === 2 ? {lat: coords[1], lng: coords[0]} : null;
@@ -343,6 +346,17 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
   if (!isLocal && !external) {
     const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
     const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
+    const information = informationFeedback();
+    let reference = null;
+    try { reference = wikipediaReference(feature); } catch {}
+    const syncStatus = document.createElement('small');
+    syncStatus.setAttribute('role','status');
+    syncStatus.style.cssText = 'font-size:11px;line-height:1.3;max-width:150px';
+    const syncNotice = event => {
+      if (event?.detail?.error) { syncStatus.textContent = 'Waardering wacht op verbinding'; return; }
+      const summary = reference && information?.summary(reference);
+      syncStatus.textContent = summary ? summary.counts.liked + ' leuk' : '';
+    };
     let feedback = {read:false, liked:false, disliked:false, hidden:false, category:''};
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
     const actions = document.createElement('div');
@@ -384,6 +398,12 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       try { localStorage.setItem(feedbackKey,JSON.stringify(feedback)); } catch {}
       window.dispatchEvent(new CustomEvent('sharon-wiki-feedback-changed',{detail:{id:articleId,...feedback}}));
       renderFeedback();
+      if (information && reference) {
+        syncStatus.textContent = 'Waardering bewaren…';
+        information.set(reference, feedback).then(() => {
+          if (!closed) syncStatus.textContent = 'Opgeslagen op dit apparaat';
+        }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; });
+      }
     };
     readButton.addEventListener('click', () => { feedback.read = !feedback.read; persistFeedback(); });
     likeButton.addEventListener('click', () => { feedback.liked = !feedback.liked; if(feedback.liked) feedback.disliked = false; persistFeedback(); });
@@ -392,6 +412,48 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     renderFeedback();
     actions.append(readButton,likeButton,dislikeButton,hideButton);
     footer.append(actions);
+    if (information && reference) {
+      footer.classList.add('has-information-feedback');
+      syncStatus.className = 'sh-information-status';
+      footer.append(syncStatus);
+      const buttons = [readButton,likeButton,dislikeButton,hideButton];
+      buttons.forEach(button => { button.disabled = true; });
+      information.open(reference, feedback).then(row => {
+        if (closed) return;
+        feedback = {...feedback, ...row.state};
+        try { localStorage.setItem(feedbackKey, JSON.stringify(feedback)); } catch {}
+        window.dispatchEvent(new CustomEvent('sharon-wiki-feedback-changed',{detail:{id:articleId,...feedback}}));
+        renderFeedback(); syncNotice();
+      }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; })
+        .finally(() => buttons.forEach(button => { button.disabled = false; }));
+      window.addEventListener('sharon-information-changed',syncNotice);
+      stopInformation = () => window.removeEventListener('sharon-information-changed',syncNotice);
+      information.load([reference]).then(syncNotice).catch(() => { if (!closed) syncStatus.textContent = 'Waardering wacht op verbinding'; });
+      information.canManage().then(owner => {
+        if (!owner || closed) return;
+        const editor = document.createElement('details');
+        editor.innerHTML = '<summary>Relevantie instellen</summary><form style="display:grid;gap:8px;padding-top:8px"><label>Basisbereik (meter) <input name="baseRadius" type="number" min="0" max="100000" step="1" required></label><label>Maximaal bereik (meter) <input name="maxRadius" type="number" min="0" max="100000" step="1" required></label><label>Redactionele waardering (0–1) <input name="weight" type="number" min="0" max="1" step="0.1" required></label><button type="submit">Bewaren</button><small role="status"></small></form>';
+        const form = editor.querySelector('form'), status = editor.querySelector('[role="status"]');
+        editor.addEventListener('toggle', () => {
+          if (!editor.open) return;
+          const policy = information.summary(reference)?.policy || {baseRadius:10000,maxRadius:10000,weight:0.5};
+          for (const key of ['baseRadius','maxRadius','weight']) form.elements[key].value = policy[key];
+        });
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          const policy = Object.fromEntries(['baseRadius','maxRadius','weight'].map(key=>[key,Number(form.elements[key].value)]));
+          if (policy.baseRadius > policy.maxRadius) { status.textContent = 'Basisbereik moet binnen het maximale bereik vallen.'; return; }
+          const button = form.querySelector('button'); button.disabled = true;
+          try {
+            await information.setPolicy(reference, policy, {title:String(feature.properties?.title || '').slice(0,500),
+              categories:feature.properties?.categories || [], location:destination});
+            status.textContent = 'Relevantie opgeslagen.';
+          } catch { status.textContent = 'Bewaren mislukt. Controleer je verbinding.'; }
+          finally { button.disabled = false; }
+        });
+        footer.append(editor);
+      }).catch(() => {});
+    }
   }
   // One unobtrusive source badge inside the photo; no duplicate bottom link.
   source.classList.add('sh-board-photo-source');
@@ -727,6 +789,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (closed) return;
     closed = true;
     abort.abort();
+    stopInformation();
     unsubscribe?.();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('deviceorientation', onOrientation);

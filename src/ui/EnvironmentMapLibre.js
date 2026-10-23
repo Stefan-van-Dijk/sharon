@@ -1,24 +1,24 @@
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.82';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.82';
-import { openLocationDeck } from './LocationDeck.js?v=0.3.82';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.82';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.82';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.82';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.83';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.83';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.83';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.83';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.83';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.83';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.3.82';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.82';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.82';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.82';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.82';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.82';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.3.82';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.82';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.82';
+} from '../core/location/EnvironmentIdentifier.js?v=0.3.83';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.83';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.83';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.83';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.83';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.83';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.3.83';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.83';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.83';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.3.82';
+} from './EnvironmentScale.js?v=0.3.83';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -228,6 +228,10 @@ export function openEnvironmentView(root, {
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
+          <label>Volgorde van wikiboards <select data-wiki-sort>
+            <option value="discover">Nog te ontdekken</option><option value="nearby">Dichtbij</option>
+            <option value="relevant">Relevant</option><option value="popular">Populair</option>
+          </select></label>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row">
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
@@ -393,7 +397,7 @@ export function openEnvironmentView(root, {
       try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}').read === true; }
       catch { return false; }
     };
-    if (!isTiqets) available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
+    if (!isTiqets && (root.querySelector('[data-wiki-sort]')?.value || 'discover') === 'discover') available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
     const index = available.findIndex(item => item.id === feature.id);
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
@@ -586,14 +590,18 @@ export function openEnvironmentView(root, {
     try { return JSON.parse(localStorage.getItem('sharon.source.wikipedia.filters.v1') || '{}'); }
     catch { return {}; }
   })();
+  const wikiSort = root.querySelector('[data-wiki-sort]');
+  wikiSort.value = ['discover','nearby','relevant','popular'].includes(savedSourceFilters.sort) ? savedSourceFilters.sort : 'discover';
+  listenEarly(wikiSort,'change',()=>syncWikiFilters());
   const activeWikiFilters = new Set((Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []).filter(value=>value!=='unread'));
   const activeWikiCategories = new Set(Array.isArray(savedSourceFilters.categories) ? savedSourceFilters.categories : []);
   const syncWikiFilters = () => {
     for (const button of root.querySelectorAll('[data-wiki-filter]')) button.setAttribute('aria-pressed',String(activeWikiFilters.has(button.dataset.wikiFilter)));
     for (const button of root.querySelectorAll('[data-wiki-category]')) button.setAttribute('aria-pressed',String(activeWikiCategories.has(button.dataset.wikiCategory)));
     sourceSettings.classList.toggle('has-active-filters',activeWikiFilters.size + activeWikiCategories.size > 0);
+    wikipediaLayer?.setSort(wikiSort.value);
     wikipediaLayer?.setFilters([...activeWikiFilters],[...activeWikiCategories]);
-    try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
+    try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({sort:wikiSort.value,statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
   };
   const toggleSourceSheet = value => {
     sourceSheet.classList.toggle('is-open',value);

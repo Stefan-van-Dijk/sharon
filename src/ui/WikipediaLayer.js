@@ -1,4 +1,6 @@
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.3.82';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.83';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.3.83';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.3.83';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -7,6 +9,7 @@ export function wikiFeatures(pages = []) {
     if (!/^Q[1-9][0-9]*$/.test(id || '') || !Number.isFinite(point?.lat) || !Number.isFinite(point?.lon) || seen.has(id)) return [];
     seen.add(id);
     return [{ type: 'Feature', id, geometry: { type: 'Point', coordinates: [point.lon, point.lat] }, properties: {
+      source:'wikipedia', uri:'https://www.wikidata.org/entity/' + id, pageid:Number(page.pageid), language:page.language,
       wikidata: id, area: environmentIdForPoint({ lat: point.lat, lng: point.lon }, 6),
       title: String(page.title || ''), image: /^https:\/\//.test(page.thumbnail?.source || '') ? page.thumbnail.source : '', description: String(page.extract || '').slice(0, 350), categories: (page.categories || []).map(c => String(c.title || '').replace(/^Category:|^Categorie:/i,'')).slice(0,40),
       url: 'https://' + page.language + '.wikipedia.org/?curid=' + Number(page.pageid)
@@ -32,6 +35,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   let activeId = null;
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
+  let sortMode = 'discover';
   let filters = [];
   let categoryFilters = [];
   const categoriesFor = feature => {
@@ -62,7 +66,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     window.dispatchEvent(new CustomEvent('sharon-wiki-counts-changed',{detail:{groups,total:features.length}}));
   };
   const redraw = () => {
-    const features = [...knownFeatures.values()].filter(feature => {
+    let features = [...knownFeatures.values()].filter(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       if (!filters.length && !categoryFilters.length) return !state.hidden;
       const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : filter === 'disliked' ? !!state.disliked && !state.hidden : false);
@@ -72,6 +76,15 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
     });
+    const center = map.getCenter();
+    const information = informationFeedback();
+    const score = feature => {
+      const [lng,lat] = feature.geometry.coordinates;
+      return informationRank(information?.summary(wikipediaReference(feature)), distanceMeters(center,{lat,lng}),sortMode);
+    };
+    if (sortMode === 'relevant' || sortMode === 'popular') features = features.filter(feature => score(feature) !== -Infinity);
+    features.sort((a,b) => sortMode === 'discover' ? a.properties.read - b.properties.read : score(b) - score(a));
+    currentFeatures = features;
     map.getSource(sourceId)?.setData({type:'FeatureCollection', features});
     reportCounts();
   };
@@ -104,7 +117,8 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     reportLoad('loading');
     try {
       const data = await fetchWikipediaPlaces(center, { language, signal: controller.signal });
-      if (enabled && !disposed && request === controller) { ensure(); data.features.forEach(f => knownFeatures.set(String(f.id), f)); redraw(); currentFeatures = [...knownFeatures.values()]; lastCenter = center; }
+      if (enabled && !disposed && request === controller) { ensure(); data.features.forEach(f => knownFeatures.set(String(f.id), f)); redraw(); lastCenter = center;
+        informationFeedback()?.load(data.features.map(wikipediaReference)).catch(() => {}); }
     } catch (error) { if (error.name !== 'AbortError') { console.warn('Wikipedia-laag:', error.message); if (request === controller) reportLoad('error'); } }
     finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
   };
@@ -144,14 +158,15 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (map.getLayer(layerId)) map.triggerRepaint();
   };
   window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
+  window.addEventListener('sharon-information-changed',onFeedbackChanged);
   map.on('moveend', schedule); map.on('click', click);
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
-  return { setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
+  return { setSort(value) { sortMode = ['discover','nearby','relevant','popular'].includes(value) ? value : 'discover'; if (enabled) redraw(); }, setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
