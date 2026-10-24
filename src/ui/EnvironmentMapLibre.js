@@ -1,25 +1,26 @@
-import { mountChainLayer } from './ChainLayer.js?v=0.3.91';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.91';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.91';
-import { openLocationDeck } from './LocationDeck.js?v=0.3.91';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.91';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.91';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.91';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.3.92';
+import { mountChainLayer } from './ChainLayer.js?v=0.3.92';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.3.92';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.3.92';
+import { openLocationDeck } from './LocationDeck.js?v=0.3.92';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.3.92';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.3.92';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.3.92';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.3.91';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.91';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.91';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.91';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.91';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.91';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.3.91';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.91';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.91';
+} from '../core/location/EnvironmentIdentifier.js?v=0.3.92';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.3.92';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.3.92';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.3.92';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.3.92';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.3.92';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.3.92';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.3.92';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.3.92';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.3.91';
+} from './EnvironmentScale.js?v=0.3.92';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -114,7 +115,7 @@ export function installSharonLayers(map) {
       'circle-color': '#fff',
       'circle-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
       'circle-stroke-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 15, 6],
+      'circle-radius': 6,
       'circle-stroke-color': ['get', 'color'],
       'circle-stroke-width': 2
     }
@@ -399,6 +400,8 @@ export function openEnvironmentView(root, {
   let tiqetsEnabled = false;
   let closeBoard = null;
   const showBoard = (feature, available = []) => {
+    chainLayer?.closeBoard();
+    closeLocationDeck?.();
     closeBoard?.();
     const isTiqets = feature.properties?.source === 'tiqets';
     wikipediaLayer?.setActive(isTiqets ? null : feature);
@@ -764,12 +767,16 @@ export function openEnvironmentView(root, {
       const revision = ++objectsRevision;
       const objects = await store.getAll('objects');
       if (disposed || revision !== objectsRevision || !mapReady) return;
-      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects));
+      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects.filter(item=>!placeHidden(item))));
     };
 
     map.on('load', () => {
       if (disposed) return;
       mapReady = true;
+      unsubscribers.push(mountPlacePulse(map));
+      const refreshPlaces=event=>{updateObjects().catch(()=>{});if(event.detail?.hidden)window.dispatchEvent(new CustomEvent('sharon-place-board-active',{detail:{point:null}}));};
+      window.addEventListener('sharon-place-feedback-changed',refreshPlaces);
+      unsubscribers.push(()=>window.removeEventListener('sharon-place-feedback-changed',refreshPlaces));
       updateWikipediaZoomCue();
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
@@ -811,6 +818,8 @@ export function openEnvironmentView(root, {
 
     map.on('click', async event => {
       if (!mapReady || chainLayer?.handles(event)) return;
+      chainLayer?.closeBoard();
+      closeBoard?.();
       try {
       // A finger tap often lands just outside the tiny point circle on iPad/iPhone.
       const radius = 18;
@@ -820,7 +829,7 @@ export function openEnvironmentView(root, {
       let selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
       if (selected?.properties?.kind !== 'location') {
         const items = await store.getAll('objects');
-        const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && isCoordinate(item.data?.coordinates))
+        const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && !placeHidden(item) && isCoordinate(item.data?.coordinates))
           .map(item => ({item, point: map.project(coordinateArray(item.data.coordinates))}))
           .find(({point}) => Math.hypot(point.x - event.point.x, point.y - event.point.y) < 24);
         if (nearest) selected = {geometry:{type:'Point',coordinates:coordinateArray(nearest.item.data.coordinates)},properties:{kind:'location',id:String(nearest.item.id)}};

@@ -1,5 +1,6 @@
-import { openBoardViewer } from './BoardViewer.js?v=0.3.91';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.91';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.3.92';
+import { openBoardViewer } from './BoardViewer.js?v=0.3.92';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.92';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
@@ -46,6 +47,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       if (!image) image = placeholder(item.data?.coordinates);
     }
     const data = item.data || {}, point = data.coordinates;
+    activePlace(point);
     const source = expanded && page > 0 ? sources[page-1] : null;
     const title = source ? new URL(source.url).hostname : String(data.name || data.title || 'Locatie');
     const feature = {type:'Feature',geometry:{type:'Point',coordinates:[Number(point.lng),Number(point.lat)]},
@@ -56,6 +58,8 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     closeViewer = openBoardViewer(feature,{
       location, events,
       localBoard:{
+        feedbackId:placeKey(item),
+        feedbackReference:data.sourceRef?{source:'openstreetmap',id:data.sourceRef,uri:'https://www.openstreetmap.org/'+data.sourceRef}:null,
         title, type:source ? 'Webpagina' : String(data.locationType || data.type || 'Locatie'),
         address:source ? source.url : addressText(data),
         website:source?.url || '', image,
@@ -86,7 +90,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
         else {index=(index-1+places.length)%places.length;onLocation?.(current());}
         show();
       },
-      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;onClose?.();}
+      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;activePlace();onClose?.();}
     });
   };
   show().catch(error => {
@@ -98,5 +102,5 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     document.body.append(notice);
     window.setTimeout(() => notice.remove(), 9000);
   });
-  return ()=>{disposed=true;++sequence;closeViewer?.();};
+  return ()=>{disposed=true;++sequence;closeViewer?.();activePlace();};
 }
