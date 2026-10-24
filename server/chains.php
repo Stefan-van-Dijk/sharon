@@ -39,7 +39,8 @@ function chain_validate_register(array $register):void {
         }
     }
 }
-function chain_register(string $path, ?callable $download=null, ?int $clock=null, callable $validate='chain_validate_register',string $source='register-v1.json',int $maxBytes=8000000):array {
+function chain_register(string $path, ?callable $download=null, ?int $clock=null, ?callable $validate=null,string $source='register-v1.json',int $maxBytes=8000000):array {
+    $validate??='chain_validate_register';
     $now=$clock??time();$directory=dirname($path);clearstatcache(true,$path);clearstatcache(true,$path.'.checked');
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Storage unavailable');
     if(is_link($path)||is_link($path.'.lock')||is_link($path.'.checked'))throw new RuntimeException('Invalid storage');
