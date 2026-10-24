@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.96';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.97';
 
 // Only an explicit save creates personal objects. Never turn an offer URL into
 // a scannable admission code, and never replace a ticket already enriched by its owner.
