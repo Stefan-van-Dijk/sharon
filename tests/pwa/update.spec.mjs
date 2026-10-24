@@ -91,11 +91,11 @@ test('complete update waits for both tabs, preserves a draft and data, then boot
   await second.setViewportSize({width:390,height:844});
   await page.locator('[data-module="cards"]').click();
   await page.getByRole('button',{name:'Kaart toevoegen',exact:true}).click();
-  await page.getByRole('textbox',{name:'Naam van de kaart',exact:true}).fill('Niet verliezen');
+  await page.getByRole('combobox',{name:'Naam van de kaart',exact:true}).fill('Niet verliezen');
   serving=next;
   expect(await update(page)).toBe('installed');
   await expect(second.locator('[data-update-notice]')).toContainText('Sluit alle Sharon-vensters');
-  await expect(page.getByRole('textbox',{name:'Naam van de kaart',exact:true})).toHaveValue('Niet verliezen');
+  await expect(page.getByRole('combobox',{name:'Naam van de kaart',exact:true})).toHaveValue('Niet verliezen');
   await second.reload();await expect(second.locator('.app-version')).toHaveText('v'+currentVersion);
   await second.close();
   expect(await page.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration()).waiting)).toBe(true);
