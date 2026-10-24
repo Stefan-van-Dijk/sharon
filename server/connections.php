@@ -216,7 +216,11 @@ final class LogNetwork {
         $dir=dirname($this->path).'/shares';
         if(is_link($dir))throw new RuntimeException('Invalid storage');
         if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))throw new RuntimeException('Storage unavailable');
-        $path=$dir.'/'.$id.'.json';if(is_link($path))throw new RuntimeException('Invalid storage');
+        // New files retain only the hash, not the bearer identifier used as the key.
+        $path=$dir.'/'.hash('sha256',$id).'.json';
+        $legacy=$dir.'/'.$id.'.json';
+        if(is_link($path)||is_link($legacy))throw new RuntimeException('Invalid storage');
+        if(!is_file($path)&&is_file($legacy))$path=$legacy;
         $old=is_file($path)?json_decode(file_get_contents($path),true,16,JSON_THROW_ON_ERROR):null;
         if($action==='share-publish'){
             $payload=$in['payload']??null;
@@ -226,7 +230,9 @@ final class LogNetwork {
             foreach($files as $file){if(is_link($file))continue;$row=json_decode(file_get_contents($file),true);if(($row['until']??0)<=$this->now()){@unlink($file);continue;}$count++;}
             if($count>=1000)throw new LogNetworkError('capacity',409);
             if(!write_json($path,['owner'=>$owner,'accessHash'=>hash('sha256',$access),'until'=>$this->now()+7*86400,'payload'=>['iv'=>$payload['iv'],'data'=>$payload['data']]]))throw new RuntimeException('Commit failed');
-            @chmod($path,0600);return ['ok'=>true];
+            @chmod($path,0600);
+            foreach($this->state['shareCodes']??[] as $code=>$until)if($until<$this->now()-86400)unset($this->state['shareCodes'][$code]);
+            $this->state['shareCodes'][hash('sha256',$id)]=$this->now()+7*86400;return ['ok'=>true];
         }
         if(!$old){if($action==='share-ack')return ['ok'=>true];throw new LogNetworkError('share_unavailable',410);}
         if(!hash_equals($old['accessHash'],hash('sha256',$access)))throw new LogNetworkError('unauthorized',403);
@@ -237,6 +243,7 @@ final class LogNetwork {
 
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
+            if($action==='share-check'){$id=self::validId($in['id']??null);return ['valid'=>isset($this->state['shareCodes'][hash('sha256',$id)])];}
             if(in_array($action,['share-read','share-ack'],true))return $this->shareAction($action,$in);
             if ($action==='invite-code-check') {
                 $id=self::validId($in['id'] ?? null);
