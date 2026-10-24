@@ -236,10 +236,10 @@ test('card and location strips cover their actions at rest on a narrow screen',a
   const geometry=await row.evaluate(row=>{
    const surface=row.querySelector('[data-swipe-surface]'),share=row.querySelector('[data-swipe-share]');
    const r=row.getBoundingClientRect(),s=surface.getBoundingClientRect();
-   return {position:getComputedStyle(share).position,opacity:getComputedStyle(share).opacity,top:Math.abs(s.top-r.top),gap:r.height-s.height,
+   return {position:getComputedStyle(share).position,opacity:getComputedStyle(share).opacity,actionOpacity:getComputedStyle(row.querySelector('.swipe-actions')).opacity,top:Math.abs(s.top-r.top),gap:r.height-s.height,
     covered:[r.left+12,r.right-12].every(x=>document.elementFromPoint(x,s.top+s.height/2)?.closest('[data-swipe-surface]')===surface)};
   });
-  expect(geometry.position).toBe('absolute');expect(geometry.opacity).toBe('0');expect(geometry.top).toBeLessThanOrEqual(1);expect(geometry.gap).toBeLessThanOrEqual(2);expect(geometry.covered).toBe(true);
+  expect(geometry.position).toBe('absolute');expect(geometry.opacity).toBe('0');expect(geometry.actionOpacity).toBe('0');expect(geometry.top).toBeLessThanOrEqual(1);expect(geometry.gap).toBeLessThanOrEqual(2);expect(geometry.covered).toBe(true);
   await page.screenshot({path:testInfo.outputPath(module+'-strips.png')});
  }
 });
