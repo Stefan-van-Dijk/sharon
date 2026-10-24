@@ -6,7 +6,8 @@ export function bindSwipeRows(container, {
   onOpen,
   onEdit,
   onDelete,
-  onSecondary
+  onSecondary,
+  onShare
 } = {}) {
   const rows = [...container.querySelectorAll('[data-swipe-row]')];
   const cleanups = [];
@@ -19,6 +20,8 @@ export function bindSwipeRows(container, {
 
   for (const row of rows) {
     const surface = row.querySelector('[data-swipe-surface]');
+    const canShare=row.hasAttribute('data-shareable')&&typeof onShare==='function';
+    listen(row.querySelector('[data-swipe-share]'),'click',()=>onShare?.(row.dataset.swipeRow,row));
     const edit = row.querySelector('[data-swipe-edit]');
     const remove = row.querySelector('[data-swipe-delete]');
     const secondary = row.querySelector('[data-swipe-secondary]');
@@ -42,7 +45,8 @@ export function bindSwipeRows(container, {
     };
 
     const setX = (value, animate = false) => {
-      currentX = Math.max(-actionWidth(), Math.min(0, value));
+      currentX = Math.max(-actionWidth(), Math.min(canShare?88:0, value));
+      row.classList.toggle('is-sharing',currentX>0);
       surface.classList.toggle('is-animating', animate);
       surface.style.transform = `translate3d(${currentX}px,0,0)`;
       row.classList.toggle('is-actions-open', currentX < -1);
@@ -88,7 +92,7 @@ export function bindSwipeRows(container, {
 
       // A closed row only owns leftward swipes. Rightward movement stays
       // available for the module-to-home gesture, matching Log's policy.
-      if (startOffsetX === 0 && dx > 0) return;
+      if (startOffsetX === 0 && dx > 0 && !canShare) return;
 
       if (!dragging) { try { surface.setPointerCapture?.(event.pointerId); } catch {} }
       dragging = true;
@@ -109,6 +113,7 @@ export function bindSwipeRows(container, {
       }
 
       const dx = event.clientX - startX;
+      if(canShare&&startOffsetX===0&&dx>OPEN_THRESHOLD_X){close(true);suppressClick();locked='';dragging=false;onShare(row.dataset.swipeRow,row);return;}
       if (startOffsetX < 0 && dx > OPEN_THRESHOLD_X * 0.7) {
         close(true);
       } else if (doubleSwipe && dx < -OPEN_THRESHOLD_X && (startOffsetX <= -firstWidth() + 1)) {

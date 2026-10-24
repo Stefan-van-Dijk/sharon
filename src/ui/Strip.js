@@ -31,6 +31,7 @@ export function renderStrip({
   trailingHtml = '',
   accentColor = '',
   actions = [],
+  shareable = false,
   singleAction = false,
   doubleSwipe = false,
   variant = 'standard'
@@ -38,11 +39,13 @@ export function renderStrip({
   const actionList = actions.filter(Boolean);
   const accent = /^#[0-9a-f]{6}$/i.test(accentColor) ? accentColor : '';
   const flags = [
+    shareable ? 'data-shareable' : '',
     singleAction ? 'data-swipe-single' : '',
     doubleSwipe ? 'data-double-swipe' : ''
   ].filter(Boolean).join(' ');
   const copy = bodyHtml || `<span class="sh-strip-copy"><strong>${escapeHtml(title)}</strong>${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ''}</span>`;
   return `<div class="swipe-row sh-strip sh-strip--${escapeAttribute(variant)} ${accent ? 'sh-strip--accent' : ''} ${escapeAttribute(className)}" data-swipe-row="${escapeAttribute(id)}" ${flags}>
+    ${shareable ? '<button type="button" class="sh-strip-share" data-swipe-share aria-label="Delen">Deel</button>' : ''}
     ${actionList.length ? `<div class="swipe-actions">${actionList.map(actionMarkup).join('')}</div>` : ''}
     <button type="button" class="clean-row swipe-surface sh-strip-surface ${escapeAttribute(surfaceClassName)}" data-swipe-surface${accent ? ` style="--strip-accent:${accent};--strip-accent-soft:${accent}22"` : ''}${ariaLabel ? ` aria-label="${escapeAttribute(ariaLabel)}"` : ''}>
       ${leadingHtml}<span class="sh-strip-content">${copy}</span>${trailingHtml}
