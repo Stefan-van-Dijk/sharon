@@ -44,3 +44,14 @@ test('bare transfer codes are probed without treating ordinary card or contact c
  assert.equal(await isTransferScan(app.store,{value:'123456789012',format:'CODE128'}),false);
  assert.equal(calls,2);
 });
+
+test('old S1 transfers still decrypt after switching new QR codes to bare identifiers',async t=>{
+ const app=await appHarness();t.after(()=>app.close());const {webcrypto}=await import('node:crypto');
+ const id='Legacy000001',secret='a'.repeat(22),iv=webcrypto.getRandomValues(new Uint8Array(12));
+ const {buildCardPayload}=await app.load('./src/ui/CardPayload.js');const text=buildCardPayload({name:'Oude QR',cardKind:'loyalty',codeFormat:'',codeValue:''});
+ const key=await webcrypto.subtle.importKey('raw',await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('encrypt:'+secret)),'AES-GCM',false,['encrypt']);
+ const data=await webcrypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(id)},key,new TextEncoder().encode(text));
+ app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);assert.ok(['share-read','share-ack'].includes(q.action));return {ok:true,json:async()=>q.action==='share-read'?{payload:{iv:Buffer.from(iv).toString('base64url'),data:Buffer.from(data).toString('base64url')}}:{ok:true}};};
+ const {isTransferScan,receiveTransfer}=await app.load('./src/ui/ObjectTransfer.js');const code='S1:'+id+':'+secret;
+ assert.equal(await isTransferScan(app.store,{format:'QR_CODE',value:code}),true);const saved=await receiveTransfer(app.store,code);assert.equal((await app.store.get('objects',saved.id)).name,'Oude QR');
+});
