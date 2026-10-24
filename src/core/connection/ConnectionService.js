@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.93';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.93';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.94';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.94';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -11,6 +11,7 @@ const errors = {
   unknown_action:'Werk het serverbestand connections.php bij voor compacte contactcodes.',
   invalid_reference:'Deze contactcode is ongeldig of verlopen.',
   invalid_name:'Vul je naam in om verbinding te maken.',
+  share_unavailable:'Deze eenmalige overdracht is al opgehaald of verlopen.',
   invalid_publish_key:'De publicatiesleutel is niet geldig.',
   already_activated:'De eigen installatie is al geactiveerd. Gebruik die installatie om iemand uit te nodigen.',
   invalid_invitation:'Deze uitnodiging is ongeldig of voor een andere identiteit bedoeld.',

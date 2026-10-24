@@ -1,20 +1,22 @@
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.3.93';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.93';
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.93';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.93';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.93';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.93';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.93';
-import { openCardBoard } from './CardBoard.js?v=0.3.93';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.93';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.93';
-import { mountCardScanner } from './CardScanner.js?v=0.3.93';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.93';
-import { renderStrip } from './Strip.js?v=0.3.93';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.93';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.93';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.93';
-import { cardSymbol } from './CardSymbols.js?v=0.3.93';
+import { openCardShare } from './CardSharing.js?v=0.3.94';
+import { isObjectTransfer, receiveTransfer } from './ObjectTransfer.js?v=0.3.94';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.3.94';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.94';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.94';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.94';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.94';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.94';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.94';
+import { openCardBoard } from './CardBoard.js?v=0.3.94';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.94';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.94';
+import { mountCardScanner } from './CardScanner.js?v=0.3.94';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.94';
+import { renderStrip } from './Strip.js?v=0.3.94';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.94';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.94';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.94';
+import { cardSymbol } from './CardSymbols.js?v=0.3.94';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -28,6 +30,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
+  let closeShare = null;
   let prefs = (await store.get('meta', 'cards.list.preferences'))?.value || {sort:'alpha',order:[]};
   let sort = prefs.sort || 'alpha';
   let query = '';
@@ -87,7 +90,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         <p data-card-sort-status class="sh-card-sort-status" role="status"></p>
         <div class="sh-locations-list swipe-list" data-card-list>
           ${cards.length ? cards.map((card,index) => '<div class="sh-list-item" data-list-item>' + renderObjectStrip({
-            id: card.id,
+            id: card.id, shareable:true,
             className: 'sh-location-strip sh-card-swipe-row',
             surfaceClassName: 'sh-location-row',
             variant: 'location',
@@ -102,6 +105,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         </div>
       </section>`;
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
+      onShare: async id=>{const card=await store.get('objects',id);if(card){closeShare?.();closeShare=openCardShare(card,{store});}},
       onOpen: id => showDetail(id),
       onEdit: id => showForm(id),
       onDelete: async id => {
@@ -159,6 +163,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       onClose: showList,
       onResult: async result => {
         stopScanner = null;
+        if(isObjectTransfer(result.value)){const saved=await receiveTransfer(store,result.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});return saved.type==='card'?showDetail(saved.id):showList();}
         if(onConnection && await new ConnectionService(store).isConnectionScan(result)) {
           const invitation=parseConnectionLink(result.value);
           await new ConnectionService(store).setPending(invitation);
@@ -625,7 +630,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     selectedPeople = await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:card?.personIds || []});
   }
 
-  if(initialScan) {
+  if(initialScan&&isObjectTransfer(initialScan.value)){const saved=await receiveTransfer(store,initialScan.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});if(saved.type==='card')await showDetail(saved.id);else await showList();}
+  else if(initialScan) {
     const existing=(await records()).find(item=>item.codeValue===initialScan.value&&item.codeFormat===initialScan.format);
     if(existing)await showDetail(existing.id);
     else await showForm(null,(initialScan.format==='QR_CODE'?parseCardPayload(initialScan.value):null)||initialScan);
@@ -633,5 +639,5 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     await showList();
     if(initialCardId)await showDetail(initialCardId);
   }
-  return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
+  return () => { closeShare?.(); closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }

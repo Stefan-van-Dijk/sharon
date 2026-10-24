@@ -210,8 +210,34 @@ final class LogNetwork {
         return ['accepted'=>$accepted,'version'=>$summary['version'],'item'=>$summary];
     }
 
+    private function shareAction(string $action,array $in,?string $owner=null):array {
+        $id=self::validId($in['id']??null);$access=$in['access']??'';
+        if(!is_string($access)||!preg_match('/\A[A-Za-z0-9_-]{43}\z/',$access))throw new LogNetworkError('invalid_token');
+        $dir=dirname($this->path).'/shares';
+        if(is_link($dir))throw new RuntimeException('Invalid storage');
+        if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))throw new RuntimeException('Storage unavailable');
+        $path=$dir.'/'.$id.'.json';if(is_link($path))throw new RuntimeException('Invalid storage');
+        $old=is_file($path)?json_decode(file_get_contents($path),true,16,JSON_THROW_ON_ERROR):null;
+        if($action==='share-publish'){
+            $payload=$in['payload']??null;
+            if(!is_array($payload)||!is_string($payload['iv']??null)||!preg_match('/\A[A-Za-z0-9_-]{16}\z/',$payload['iv'])||!is_string($payload['data']??null)||!preg_match('/\A[A-Za-z0-9_-]{22,12000}\z/',$payload['data']))throw new LogNetworkError('invalid_payload');
+            if($old)throw new LogNetworkError('identity_exists',409);
+            $files=glob($dir.'/*.json')?:[];$count=0;
+            foreach($files as $file){if(is_link($file))continue;$row=json_decode(file_get_contents($file),true);if(($row['until']??0)<=$this->now()){@unlink($file);continue;}$count++;}
+            if($count>=1000)throw new LogNetworkError('capacity',409);
+            if(!write_json($path,['owner'=>$owner,'accessHash'=>hash('sha256',$access),'until'=>$this->now()+7*86400,'payload'=>['iv'=>$payload['iv'],'data'=>$payload['data']]]))throw new RuntimeException('Commit failed');
+            @chmod($path,0600);return ['ok'=>true];
+        }
+        if(!$old){if($action==='share-ack')return ['ok'=>true];throw new LogNetworkError('share_unavailable',410);}
+        if(!hash_equals($old['accessHash'],hash('sha256',$access)))throw new LogNetworkError('unauthorized',403);
+        if($old['until']<=$this->now()){if(!unlink($path))throw new RuntimeException('Delete failed');throw new LogNetworkError('share_unavailable',410);}
+        if($action==='share-ack'){if(!unlink($path))throw new RuntimeException('Delete failed');return ['ok'=>true];}
+        return ['payload'=>$old['payload']];
+    }
+
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
+            if(in_array($action,['share-read','share-ack'],true))return $this->shareAction($action,$in);
             if ($action==='invite-code-check') {
                 $id=self::validId($in['id'] ?? null);
                 // Reveal only whether this is a contact code, never the invitation.
@@ -288,6 +314,7 @@ final class LogNetwork {
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
+            if($action==='share-publish')return $this->shareAction($action,$in,$pid);
             if (in_array($action,['information-summary','information-feedback','information-policy'],true))
                 return $this->informationAction($action,$in,$pid);
             if ($action==='set-access') {

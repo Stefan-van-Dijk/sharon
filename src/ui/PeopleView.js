@@ -1,14 +1,15 @@
-import { parseCardPayload } from './CardPayload.js?v=0.3.93';
-import { saveReceivedCard } from './CardSharing.js?v=0.3.93';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.93';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.93';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.93';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.93';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.93';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.93';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.93';
-import { mountCardScanner } from './CardScanner.js?v=0.3.93';
-import { renderCardCode } from './CardCodes.js?v=0.3.93';
+import { parseLocationPayload, saveReceivedLocation } from './ReceivedObjects.js?v=0.3.94';
+import { parseCardPayload } from './CardPayload.js?v=0.3.94';
+import { saveReceivedCard } from './CardSharing.js?v=0.3.94';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.94';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.94';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.94';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.3.94';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.94';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.94';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.3.94';
+import { mountCardScanner } from './CardScanner.js?v=0.3.94';
+import { renderCardCode } from './CardCodes.js?v=0.3.94';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people [data-swipe-surface]:disabled{opacity:1}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 
@@ -72,7 +73,8 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
     for(const m of messages) {
       const article=document.createElement('article'); article.className='sh-chat-message'+(m.senderId===personId?' is-own':'');
       const sharedCard=parseCardPayload(m.text);
-      const text=document.createElement('p'); text.textContent=sharedCard?'Kaart · '+sharedCard.name:m.text;
+      const sharedPlace=parseLocationPayload(m.text);
+      const text=document.createElement('p'); text.textContent=sharedCard?'Kaart · '+sharedCard.name:sharedPlace?'Locatie · '+sharedPlace.title:m.text;
       const detail=document.createElement('small');
       detail.textContent=m.delivery==='sent'
         ? (m.senderId===personId?'Verstuurd · ':'Ontvangen · ')+new Date(m.at).toLocaleString('nl-NL')
@@ -83,6 +85,7 @@ export function openPeopleView(root, {store,settings,setTitle=()=>{},initialScre
         place.textContent='Locatie · '+[sharedCard.location.title,sharedCard.location.address].filter(Boolean).join(' · ');
         article.append(place);
       }
+      if(sharedPlace&&m.senderId!==personId){const save=document.createElement('button');save.type='button';save.textContent='Bewaar locatie';save.addEventListener('click',()=>run(async()=>{const id=await saveReceivedLocation(store,m);save.textContent='Locatie bewaard';save.disabled=true;}));article.append(save);}
       if(sharedCard&&m.senderId!==personId){
         const save=document.createElement('button');save.type='button';save.dataset.saveSharedCard=m.id;save.textContent=sharedCard.location?'Bewaar kaart en locatie':'Bewaar kaart';save.disabled=busy;
         save.addEventListener('click',()=>run(async()=>{await saveReceivedCard(store,m);save.textContent='Kaart bewaard';save.disabled=true;status(sharedCard.location?'Kaart en gekoppelde locatie bewaard.':'Kaart bewaard bij Kaarten.');}));

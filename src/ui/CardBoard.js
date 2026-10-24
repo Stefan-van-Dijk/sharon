@@ -1,10 +1,10 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.3.93';
-import { openCardShare } from './CardSharing.js?v=0.3.93';
-import { renderCardCode } from './CardCodes.js?v=0.3.93';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.3.93';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.93';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.93';
-import { cardSymbol } from './CardSymbols.js?v=0.3.93';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.3.94';
+import { openCardShare } from './CardSharing.js?v=0.3.94';
+import { renderCardCode } from './CardCodes.js?v=0.3.94';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.3.94';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.3.94';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.3.94';
+import { cardSymbol } from './CardSymbols.js?v=0.3.94';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -51,7 +51,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   stack.querySelector('.sh-board-deck').remove();stack.append(...nodes.slice(1));
   let closed=false,renderedCard='',gestures=null,closeShare=null;
   if(store)nodes.forEach((board,index)=>{
-    const button=document.createElement('button');button.type='button';button.dataset.shareCard='';button.className='sh-card-share-button';button.textContent='Deel met personen';
+    const button=document.createElement('button');button.type='button';button.dataset.shareCard='';button.className='sh-card-share-button';button.textContent='Delen';
     button.addEventListener('click',()=>{closeShare?.();closeShare=openCardShare(model.state.boards[index].card,{store,onClose:()=>{closeShare=null;button.focus();}});});
     board.querySelector('.sh-card-detail-heading').append(button);
   });

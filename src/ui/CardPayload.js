@@ -3,7 +3,7 @@
 export const CARD_PAYLOAD_KIND = 'sharon-card';
 const types = new Set(['loyalty', 'membership', 'access', 'ticket', 'other']);
 const formats = new Set(['', 'QR_CODE', 'CODE128', 'EAN13', 'EAN8', 'UPC', 'UPCE', 'CODE39', 'ITF', 'codabar']);
-function sharedLocation(value) {
+export function sharedLocation(value) {
   if (!value || typeof value.title !== 'string' || !value.title.trim() || value.title.length > 100 ||
       typeof value.address !== 'string' || value.address.length > 500) return null;
   const point = value.coordinates;

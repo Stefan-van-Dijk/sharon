@@ -1,21 +1,22 @@
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.93';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.93';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.93';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.93';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.93';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.93';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.93';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.93';
-import { renderStrip } from './Strip.js?v=0.3.93';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.93';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.93';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.93';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.93';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.93';
+import { openCardShare } from './CardSharing.js?v=0.3.94';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.94';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.94';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.94';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.94';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.94';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.94';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.94';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.94';
+import { renderStrip } from './Strip.js?v=0.3.94';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.94';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.94';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.94';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.94';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.94';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.93';
+} from '../core/location/LocationHierarchy.js?v=0.3.94';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -32,6 +33,7 @@ export async function openLocationsView(root, {
   let nearPoint = location.latest;
   if(prefs.sort==='near'&&!nearPoint)prefs.sort='alpha';
   let unbindSwipes = null;
+  let closeShare = null;
   let releaseOrder = null;
   let releaseEditor = null;
 
@@ -75,7 +77,7 @@ export async function openLocationsView(root, {
             const custom = prefs.sort === 'custom';
             return `<div class="sh-location-node" style="--nest:${Math.min(depth, 8)}" data-node="${escapeAttribute(item.id)}" data-order-group="${escapeAttribute(parentIdOf(item))}">
               ${renderObjectStrip({
-                id: item.id,
+                id: item.id, shareable:true,
                 className: 'sh-location-strip',
                 variant: 'location',
                 surfaceClassName: 'sh-location-row',
@@ -96,6 +98,7 @@ export async function openLocationsView(root, {
 
     root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
+      onShare: id=>{closeShare?.();closeShare=openCardShare(byId.get(id),{store});},
       onOpen: id => detail(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
       onDelete: id => removeLocation(id)
@@ -922,7 +925,7 @@ export async function openLocationsView(root, {
 
   if (initialLocationId && byId.has(initialLocationId)) await edit(byId.get(initialLocationId));
   else await list();
-  return () => { unbindSwipes?.(); releaseEditor?.(); releaseOrder?.(); };
+  return () => { closeShare?.(); unbindSwipes?.(); releaseEditor?.(); releaseOrder?.(); };
 }
 
 function radius(value) {
