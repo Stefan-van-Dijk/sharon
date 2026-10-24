@@ -58,7 +58,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
   }
   let store;
   if (!storageFailure) {
-    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.94');
+    const { ObjectStore } = await load('./src/core/storage/ObjectStore.js?v=0.3.95');
     store = await new ObjectStore().open();
     if (!firstRun) await store.put('settings', { key: 'app', value: { profile: { name: 'Testgebruiker' }, onboarding: { storySeen: true } } });
     await store.put('objects', { id: 'TestPlace001', type: 'location', data: { title: 'Persoonlijke plek', kind: 'other', address: {} } });

@@ -222,3 +222,23 @@ test('Personen rows stay opaque while returning from chat and do not expose thei
   await expect(surface).toHaveCSS('opacity','1');
   await expect(surface).toBeEnabled();await expect(surface).toHaveCSS('opacity','1');
 });
+
+test('card and location strips cover their actions at rest on a narrow screen',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await install(page);
+ await page.evaluate(async version=>{
+  const {ObjectStore}=await import('./src/core/storage/ObjectStore.js?v='+version);const store=await new ObjectStore().open();
+  await store.put('objects',{id:'UiPlace00001',type:'location',data:{title:'Voorbeeldlocatie',address:{text:'Straat 1'},coordinates:{lat:52,lng:5}}});
+ },currentVersion);
+ for(const module of ['cards','locations']){
+  if(module==='locations'){await page.reload();}
+  await page.locator('[data-module="'+module+'"]').click();
+  const row=page.locator('.sh-object-strip[data-shareable]').first();await expect(row).toBeVisible();
+  const geometry=await row.evaluate(row=>{
+   const surface=row.querySelector('[data-swipe-surface]'),share=row.querySelector('[data-swipe-share]');
+   const r=row.getBoundingClientRect(),s=surface.getBoundingClientRect();
+   return {position:getComputedStyle(share).position,opacity:getComputedStyle(share).opacity,top:Math.abs(s.top-r.top),gap:r.height-s.height,
+    covered:[r.left+12,r.right-12].every(x=>document.elementFromPoint(x,s.top+s.height/2)?.closest('[data-swipe-surface]')===surface)};
+  });
+  expect(geometry.position).toBe('absolute');expect(geometry.opacity).toBe('0');expect(geometry.top).toBeLessThanOrEqual(1);expect(geometry.gap).toBeLessThanOrEqual(2);expect(geometry.covered).toBe(true);
+ }
+});

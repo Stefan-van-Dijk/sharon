@@ -1,11 +1,11 @@
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.3.94';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.3.94';
-import { publishTransfer } from './ObjectTransfer.js?v=0.3.94';
-import { renderCardCode } from './CardCodes.js?v=0.3.94';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.94';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.94';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.94';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.94';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.3.95';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.3.95';
+import { publishTransfer } from './ObjectTransfer.js?v=0.3.95';
+import { renderCardCode } from './CardCodes.js?v=0.3.95';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.95';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.95';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.95';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.95';
 
 export function openCardShare(card,{store,onClose=()=>{}}) {
   const isLocation=card.type==='location';
