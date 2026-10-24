@@ -1,8 +1,8 @@
-import { chainById, CHAIN_CACHE_KEY } from '../core/chains/ChainCatalog.js?v=0.3.88';
-import { localBranches, branchZone, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.3.88';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.88';
-import { ChainSyncService } from '../core/chains/ChainSyncService.js?v=0.3.88';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.88';
+import { chainById, CHAIN_CACHE_KEY } from '../core/chains/ChainCatalog.js?v=0.3.89';
+import { localBranches, branchZone, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.3.89';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.3.89';
+import { ChainSyncService } from '../core/chains/ChainSyncService.js?v=0.3.89';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.89';
 
 const fresh=point=>point&&Number.isFinite(point.lat)&&Number.isFinite(point.lng)&&Number.isFinite(point.at)&&Date.now()-point.at<120000&&point.at<=Date.now()&&Number.isFinite(point.accuracy)&&point.accuracy<=2000;
 export function mountChainZonePanel(host,{card,store,location,events,onEnvironment=null}={}) {
