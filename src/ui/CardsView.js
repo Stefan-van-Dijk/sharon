@@ -30,6 +30,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
   let editingId = null;
   let stopScanner = null;
   let closeBoard = null;
+  let closeShare = null;
   let prefs = (await store.get('meta', 'cards.list.preferences'))?.value || {sort:'alpha',order:[]};
   let sort = prefs.sort || 'alpha';
   let query = '';
@@ -104,7 +105,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         </div>
       </section>`;
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
-      onShare: async id=>{const card=await store.get('objects',id);if(card)openCardShare(card,{store});},
+      onShare: async id=>{const card=await store.get('objects',id);if(card){closeShare?.();closeShare=openCardShare(card,{store});}},
       onOpen: id => showDetail(id),
       onEdit: id => showForm(id),
       onDelete: async id => {
@@ -638,5 +639,5 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     await showList();
     if(initialCardId)await showDetail(initialCardId);
   }
-  return () => { closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
+  return () => { closeShare?.(); closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }

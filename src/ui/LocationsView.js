@@ -33,6 +33,7 @@ export async function openLocationsView(root, {
   let nearPoint = location.latest;
   if(prefs.sort==='near'&&!nearPoint)prefs.sort='alpha';
   let unbindSwipes = null;
+  let closeShare = null;
   let releaseOrder = null;
   let releaseEditor = null;
 
@@ -97,7 +98,7 @@ export async function openLocationsView(root, {
 
     root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
-      onShare: id=>openCardShare(byId.get(id),{store}),
+      onShare: id=>{closeShare?.();closeShare=openCardShare(byId.get(id),{store});},
       onOpen: id => detail(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
       onDelete: id => removeLocation(id)
@@ -924,7 +925,7 @@ export async function openLocationsView(root, {
 
   if (initialLocationId && byId.has(initialLocationId)) await edit(byId.get(initialLocationId));
   else await list();
-  return () => { unbindSwipes?.(); releaseEditor?.(); releaseOrder?.(); };
+  return () => { closeShare?.(); unbindSwipes?.(); releaseEditor?.(); releaseOrder?.(); };
 }
 
 function radius(value) {

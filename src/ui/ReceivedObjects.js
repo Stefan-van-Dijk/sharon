@@ -48,7 +48,11 @@ export function parseLocationPayload(text){
  try {const data=JSON.parse(text);if(data.kind!=='sharon-location'||data.version!==1)return null;return sharedLocation(data.location);}catch{return null;}
 }
 export function buildLocationPayload(location){const value=sharedLocation(location);if(!value)throw Error('Ongeldige locatie.');return JSON.stringify({kind:'sharon-location',version:1,location:value});}
-export async function saveReceivedLocation(store,message){
+export function saveReceivedLocation(store,message){
+ const previous=saves.get(store)||Promise.resolve();
+ const result=previous.catch(()=>{}).then(()=>saveLocation(store,message));saves.set(store,result);return result;
+}
+async function saveLocation(store,message){
  const location=parseLocationPayload(message.text);if(!location)throw Error('Ongeldige locatie.');
  const key='locations.received.'+message.id;
  const previous=(await store.get('meta',key))?.value;if(previous&&await store.get('objects',previous))return previous;
