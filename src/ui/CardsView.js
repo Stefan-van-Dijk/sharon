@@ -1,22 +1,22 @@
-import { openCardShare } from './CardSharing.js?v=0.3.95';
-import { isObjectTransfer, receiveTransfer } from './ObjectTransfer.js?v=0.3.95';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.3.95';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.95';
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.95';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.95';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.95';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.95';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.95';
-import { openCardBoard } from './CardBoard.js?v=0.3.95';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.95';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.95';
-import { mountCardScanner } from './CardScanner.js?v=0.3.95';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.95';
-import { renderStrip } from './Strip.js?v=0.3.95';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.95';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.95';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.95';
-import { cardSymbol } from './CardSymbols.js?v=0.3.95';
+import { openCardShare } from './CardSharing.js?v=0.3.96';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.3.96';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.3.96';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.3.96';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.96';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.3.96';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.96';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.96';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.96';
+import { openCardBoard } from './CardBoard.js?v=0.3.96';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.3.96';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.96';
+import { mountCardScanner } from './CardScanner.js?v=0.3.96';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.3.96';
+import { renderStrip } from './Strip.js?v=0.3.96';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.96';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.96';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.96';
+import { cardSymbol } from './CardSymbols.js?v=0.3.96';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -163,7 +163,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       onClose: showList,
       onResult: async result => {
         stopScanner = null;
-        if(isObjectTransfer(result.value)){const saved=await receiveTransfer(store,result.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});return saved.type==='card'?showDetail(saved.id):showList();}
+        if(await isTransferScan(store,result)){const saved=await receiveTransfer(store,result.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});return saved.type==='card'?showDetail(saved.id):showList();}
         if(onConnection && await new ConnectionService(store).isConnectionScan(result)) {
           const invitation=parseConnectionLink(result.value);
           await new ConnectionService(store).setPending(invitation);
@@ -630,7 +630,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     selectedPeople = await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:card?.personIds || []});
   }
 
-  if(initialScan&&isObjectTransfer(initialScan.value)){const saved=await receiveTransfer(store,initialScan.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});if(saved.type==='card')await showDetail(saved.id);else await showList();}
+  if(initialScan&&await isTransferScan(store,initialScan)){const saved=await receiveTransfer(store,initialScan.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});if(saved.type==='card')await showDetail(saved.id);else await showList();}
   else if(initialScan) {
     const existing=(await records()).find(item=>item.codeValue===initialScan.value&&item.codeFormat===initialScan.format);
     if(existing)await showDetail(existing.id);

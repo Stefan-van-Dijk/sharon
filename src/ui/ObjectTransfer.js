@@ -1,23 +1,32 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.95';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.95';
-import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.3.95';
-import { parseCardPayload } from './CardPayload.js?v=0.3.95';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.96';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.96';
+import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.3.96';
+import { parseCardPayload } from './CardPayload.js?v=0.3.96';
 const encode=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=text=>Uint8Array.from(atob(text.replace(/-/g,'+').replace(/_/g,'/')),x=>x.charCodeAt(0));
 const digest=text=>crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
 const key=async secret=>crypto.subtle.importKey('raw',await digest('encrypt:'+secret),'AES-GCM',false,['encrypt','decrypt']);
-export const isObjectTransfer=value=>/^S1:[A-Za-z0-9_-]{12}:[A-Za-z0-9_-]{22}$/.test(value||'');
+const legacyTransfer=value=>/^S1:[A-Za-z0-9_-]{12}:[A-Za-z0-9_-]{22}$/.test(value||'');
+export const isObjectTransfer=value=>IdentifierService.isValid(value)||legacyTransfer(value);
+export async function isTransferScan(store,result){
+ if(result?.format!=='QR_CODE')return false;
+ if(legacyTransfer(result.value))return true;
+ if(!IdentifierService.isValid(result.value))return false;
+ if((await store.get('meta','transfer.received.'+result.value))?.value)return true;
+ const response=await new ConnectionService(store).request('share-check',{id:result.value});return response.valid===true;
+}
 export async function publishTransfer(store,text){
  if(!parseCardPayload(text)&&!parseLocationPayload(text))throw Error('Ongeldige informatie om te delen.');
- const id=IdentifierService.create(),secret=encode(crypto.getRandomValues(new Uint8Array(16))),iv=crypto.getRandomValues(new Uint8Array(12));
+ const id=IdentifierService.create(),secret=id,iv=crypto.getRandomValues(new Uint8Array(12));
  const payload={iv:encode(iv),data:encode(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(id)},await key(secret),new TextEncoder().encode(text)))};
  const access=encode(await digest('access:'+secret));
  const service=new ConnectionService(store);await service.request('share-publish',{id,access,payload},await service.device());
- return 'S1:'+id+':'+secret;
+ return id;
 }
 export async function receiveTransfer(store,reference){
  if(!isObjectTransfer(reference))throw Error('Ongeldige deelcode.');
- const [,id,secret]=reference.split(':'),service=new ConnectionService(store),access=encode(await digest('access:'+secret));
+ const [id,secret]=IdentifierService.isValid(reference)?[reference,reference]:reference.split(':').slice(1);
+ const service=new ConnectionService(store),access=encode(await digest('access:'+secret));
  const saved=(await store.get('meta','transfer.received.'+id))?.value;
  if(saved&&await store.get('objects',saved.id)){await service.request('share-ack',{id,access});return saved;}
  const result=await service.request('share-read',{id,access});

@@ -40,6 +40,7 @@ for(const contact of [false,true])test('central camera distinguishes a bare cont
   app.window.fetch=async(_,options)=>{
     const input=JSON.parse(options.body);actions.push(input.action);let data;
     if(input.action==='invite-code-check')data={valid:contact};
+    else if(input.action==='share-check')data={valid:false};
     else if(input.action==='register'){personId=input.personId;data={self:{personId,networkId:'Network00001',line:null}};}
     else if(input.action==='accept-code'){assert.equal(input.id,value);assert.equal(input.token,undefined);data={self:{personId,networkId:'Network00001',line:1},contact:{personId:'OtherUser001',chatId:'ChatWith0001',name:'Afzender'}};}
     else if(input.action==='contacts')data={contacts:[{personId:'OtherUser001',chatId:'ChatWith0001',name:'Afzender'}]};
@@ -56,7 +57,7 @@ for(const contact of [false,true])test('central camera distinguishes a bare cont
   }else{
     await until(()=>app.document.querySelector('[name="codeValue"]')?.value===value);
     await until(()=>app.document.querySelector('[data-person-links] summary'));
-    assert.ok(!actions.includes('register'));assert.ok(!actions.includes('accept-code'));
+    assert.ok(actions.includes('share-check'));assert.ok(!actions.includes('register'));assert.ok(!actions.includes('accept-code'));
   }
   assert.equal((await app.store.getAll('objects')).filter(o=>o.type==='card').length,0);
   assert.deepEqual(app.errors,[]);
