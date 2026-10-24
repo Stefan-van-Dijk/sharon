@@ -204,3 +204,21 @@ test('branch points stay unclustered; board ratings persist, retract and hide/re
   assert.equal(saved.read,true);assert.equal(saved.liked,false);assert.equal(saved.disliked,false);assert.equal(saved.hidden,false);
  }finally{layer?.destroy();app.close();}
 });
+
+test('Omgeving browses an unlinked chain and loads details only when its board opens',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));const root=app.document.createElement('div');
+  root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map(),calls=[],version='v1-'+'a'.repeat(24);
+  app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);calls.push(q);return {ok:true,json:async()=>q.action==='catalog'?{schema:1,version,chains:[{id:'Q999999',name:'Andere keten'}]}:q.action==='map'?{schema:1,version,points:[['remote000001','Q999999',5000000,52000000,'Andere winkel','node/99']]}:{schema:1,version,detail:{id:q.id,chainId:'Q999999',sourceRef:'node/99',address:'Bronstraat 99',openingHours:'',website:''}}};};
+  const map={addSource(id,o){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){handlers.set(n,f);},off(n){handlers.delete(n);},easeTo(){},getCenter:()=>point,getZoom:()=>15,getBounds:()=>({getWest:()=>4.99,getSouth:()=>51.99,getEast:()=>5.01,getNorth:()=>52.01}),queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});root.querySelector('[data-chain-toggle]').click();
+  await until(()=>sources.get('sharon-chain-branches')?.data.features.some(f=>f.id==='remote000001'));
+  assert.ok(root.querySelector('option[value="Q999999"]'));assert.equal(calls.filter(q=>q.action==='detail').length,0);
+  [...root.querySelectorAll('[data-places-list] button')].find(b=>b.textContent.includes('Andere winkel')).click();
+  await until(()=>app.document.querySelector('.sh-board-overlay')?.textContent.includes('Bronstraat 99'));
+  assert.equal(calls.filter(q=>q.action==='detail').length,1);
+  assert.ok(!JSON.stringify(calls).includes('accuracy'));
+ }finally{layer?.destroy();app.close();}
+});

@@ -1,7 +1,7 @@
-import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.3.96';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.96';
-import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.3.96';
-import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.3.96';
+import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.3.97';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.97';
+import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.3.97';
+import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.3.97';
 
 export function decodeBranch(row, chainId) {
   // Compact schema: stable Sharon ID, OSM type/id, cell, microdegrees or null,

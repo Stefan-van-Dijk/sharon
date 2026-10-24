@@ -39,7 +39,7 @@ function chain_validate_register(array $register):void {
         }
     }
 }
-function chain_register(string $path, ?callable $download=null, ?int $clock=null):array {
+function chain_register(string $path, ?callable $download=null, ?int $clock=null, callable $validate='chain_validate_register',string $source='register-v1.json',int $maxBytes=8000000):array {
     $now=$clock??time();$directory=dirname($path);clearstatcache(true,$path);clearstatcache(true,$path.'.checked');
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Storage unavailable');
     if(is_link($path)||is_link($path.'.lock')||is_link($path.'.checked'))throw new RuntimeException('Invalid storage');
@@ -54,12 +54,12 @@ function chain_register(string $path, ?callable $download=null, ?int $clock=null
         if($due&&$retry){
             touch($path.'.checked',$now);
             try{
-                $raw=$download?$download():file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/register-v1.json',false,
-                    stream_context_create(['http'=>['timeout'=>12,'follow_location'=>0,'header'=>"User-Agent: Sharon-chain-register/1.0\r\n"]]),0,8000001);
-                if(!is_string($raw)||strlen($raw)>8000000)throw new RuntimeException('Register download failed');
+                $raw=$download?$download():file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/'.$source,false,
+                    stream_context_create(['http'=>['timeout'=>12,'follow_location'=>0,'header'=>"User-Agent: Sharon-chain-register/1.0\r\n"]]),0,$maxBytes+1);
+                if(!is_string($raw)||strlen($raw)>$maxBytes)throw new RuntimeException('Register download failed');
                 $fresh=json_decode($raw,true,128,JSON_THROW_ON_ERROR);
                 if(!is_array($fresh))throw new RuntimeException('Invalid register');
-                chain_validate_register($fresh);
+                $validate($fresh);
                 $temporary=$path.'.'.bin2hex(random_bytes(6)).'.tmp';
                 if(file_put_contents($temporary,$raw,LOCK_EX)===false)throw new RuntimeException('Commit failed');
                 @chmod($temporary,0600);
@@ -70,6 +70,44 @@ function chain_register(string $path, ?callable $download=null, ?int $clock=null
         if(!$cached)throw new RuntimeException('Register unavailable');
         return $cached;
     }finally{flock($lock,LOCK_UN);fclose($lock);}
+}
+function chain_validate_browse(array $data):void {
+    if(($data['schema']??null)!==1||($data['coverage']??'')!=='NL'||!preg_match('/\Av1-[a-f0-9]{24}\z/',$data['version']??'')||!is_array($data['chains']??null)||!is_array($data['points']??null)||!is_array($data['detailFiles']??null)||count($data['points'])>500000)throw new RuntimeException('Invalid browse register');
+    $chains=[];foreach($data['chains'] as $chain){if(!is_array($chain)||!is_string($chain['id']??null)||!preg_match('/\A(Q[1-9][0-9]*|b-[a-f0-9]{16})\z/',$chain['id'])||!is_string($chain['name']??null)||strlen($chain['name'])>2000)throw new RuntimeException('Invalid browse chain');$chains[$chain['id']]=true;}
+    foreach($data['detailFiles'] as $prefix=>$hash)if(!preg_match('/\A[A-Za-z0-9_-]\z/',(string)$prefix)||!is_string($hash)||!preg_match('/\A[a-f0-9]{64}\z/',$hash))throw new RuntimeException('Invalid detail reference');
+    $seen=[];foreach($data['points'] as $row){if(!is_array($row)||count($row)!==6||!is_string($row[0])||!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$row[0])||isset($seen[$row[0]])||!isset($chains[$row[1]])||!is_int($row[2])||!is_int($row[3])||abs($row[2])>180000000||abs($row[3])>90000000||!is_string($row[4])||strlen($row[4])>2000||!preg_match('/\A(node|way|relation)\/[1-9][0-9]*\z/',$row[5])||!isset($data['detailFiles'][$row[0][0]]))throw new RuntimeException('Invalid browse point');$seen[$row[0]]=true;}
+}
+function chain_browse_query(array $data,array $input):array {
+    $action=$input['action']??'';
+    $base=['schema'=>1,'coverage'=>'NL','version'=>$data['version']];
+    if($action==='catalog'){
+        if(array_diff(array_keys($input),['schema','action']))throw new InvalidArgumentException('unexpected_fields');
+        return [...$base,'chains'=>$data['chains']];
+    }
+    if($action!=='map'||array_diff(array_keys($input),['schema','action','bounds','chainId']))throw new InvalidArgumentException('invalid_request');
+    $bounds=$input['bounds']??null;$chain=$input['chainId']??'';
+    if(!is_array($bounds)||!array_is_list($bounds)||count($bounds)!==4||!is_string($chain))throw new InvalidArgumentException('invalid_bounds');
+    foreach($bounds as $v)if((!is_float($v)&&!is_int($v))||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
+    [$west,$south,$east,$north]=$bounds;
+    if($west< -180||$east>180||$south< -90||$north>90||$west>=$east||$south>=$north||$east-$west>1||$north-$south>0.5)throw new InvalidArgumentException('zoom_required');
+    $rows=[];$truncated=false;
+    foreach($data['points'] as $row){if($chain!==''&&$row[1]!==$chain)continue;if($row[2]<$west*1e6||$row[2]>$east*1e6||$row[3]<$south*1e6||$row[3]>$north*1e6)continue;if(count($rows)>=2000){$truncated=true;break;}$rows[]=$row;}
+    return [...$base,'points'=>$rows,'truncated'=>$truncated];
+}
+function chain_browse_detail(array $data,string $id,string $directory,?callable $download=null):array {
+    if(!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$id))throw new InvalidArgumentException('invalid_branch');
+    $row=null;foreach($data['points'] as $p)if($p[0]===$id){$row=$p;break;}if(!$row)throw new InvalidArgumentException('branch_unavailable');
+    $name=$id[0].'-'.$data['detailFiles'][$id[0]].'.json';$path=$directory.'/'.$name;
+    if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Storage unavailable');
+    if(is_link($directory)||is_link($path))throw new RuntimeException('Invalid storage');
+    if(!is_file($path)){
+        $raw=$download?$download($name):file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/browse-details/'.$name,false,stream_context_create(['http'=>['timeout'=>12,'follow_location'=>0]]),0,2000001);
+        if(!is_string($raw)||strlen($raw)>2000000||!hash_equals($data['detailFiles'][$id[0]],hash('sha256',$raw)))throw new RuntimeException('Incomplete details');
+        $temp=$path.'.'.bin2hex(random_bytes(6)).'.tmp';if(file_put_contents($temp,$raw,LOCK_EX)===false)throw new RuntimeException('Commit failed');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Commit failed');}
+    }
+    $details=json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR);$detail=$details[$id]??null;
+    if(!is_array($detail)||($detail['sourceRef']??null)!==$row[5]||($detail['chainId']??null)!==$row[1])throw new RuntimeException('Invalid detail');
+    return ['schema'=>1,'version'=>$data['version'],'detail'=>$detail];
 }
 if(defined('SHARON_CHAINS_LIBRARY_ONLY'))return;
 function chain_out(int $status,array $data):never{http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);exit;}
@@ -87,6 +125,15 @@ try{$input=json_decode($raw,true,16,JSON_THROW_ON_ERROR);if(!is_array($input))th
 catch(Throwable $e){chain_out(400,['error'=>'invalid_request']);}
 $path=dirname(__DIR__).'/private/chains/register-v1.json';
 try{
+    if(isset($input['action'])){
+        if(($input['schema']??null)!==1||!in_array($input['action'],['catalog','map','detail'],true))throw new InvalidArgumentException('invalid_request');
+        $directory=dirname($path);$browse=chain_register($directory.'/browse-v1.json',null,null,'chain_validate_browse','browse-v1.json',16000000);
+        if($input['action']==='detail'){
+            if(array_diff(array_keys($input),['schema','action','id']))throw new InvalidArgumentException('unexpected_fields');
+            chain_out(200,chain_browse_detail($browse,(string)($input['id']??''),$directory.'/browse-details'));
+        }
+        chain_out(200,chain_browse_query($browse,$input));
+    }
     $register=chain_register($path);
     chain_out(200,chain_bundle($register,$input));
 }catch(InvalidArgumentException $e){chain_out(400,['error'=>$e->getMessage()]);}
