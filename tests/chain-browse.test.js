@@ -4,9 +4,9 @@ import {ChainBrowse} from '../src/core/chains/ChainBrowse.js';
 const register={sourceTimestamp:'2026-10-24T00:00:00Z',chains:{}};
 const feature=(id,brand,qid)=>({type:'Feature',properties:{'@type':'node','@id':id,shop:'bakery',brand,'brand:wikidata':qid,name:brand,opening_hours:'Mo-Sa 08:00-18:00','addr:street':'Straat','addr:housenumber':'1',website:'https://example.com'},geometry:{type:'Point',coordinates:[5,52]}});
 test('national browse includes unknown brands and unlinked chains, preserves source identities and excludes offices',()=>{
- const data={type:'FeatureCollection',features:[feature(1,'Nieuwe keten','Q9876543'),feature(2,'Lokale keten'),{...feature(3,'Kantoor','Q1234'),properties:{...feature(3,'Kantoor','Q1234').properties,shop:undefined,office:'company'}}]};
+ const data={type:'FeatureCollection',features:[feature(1,'Nieuwe keten','Q9876543'),feature(2,'Lokale keten'),feature(4,'Nieuwe keten'),{...feature(3,'Kantoor','Q1234'),properties:{...feature(3,'Kantoor','Q1234').properties,shop:undefined,office:'company'}}]};
  const first=buildBrowse(data,register),second=buildBrowse(data,register,first);
- assert.equal(first.chains.length,2);assert.equal(first.points.length,2);assert.equal(second.points[0][0],first.points[0][0]);
+ assert.equal(first.chains.length,2);assert.equal(first.points.length,3);assert.equal(second.points[0][0],first.points[0][0]);
  assert.equal(first.points[0].length,6);assert.ok(!JSON.stringify(first.points).includes('08:00'));assert.ok(Object.values(first.details).some(d=>d.address==='Straat 1'));
 });
 test('browse catalog/points/details are separate bounded cached requests with no personal payload',async()=>{

@@ -8,6 +8,11 @@ export function buildBrowse(data,register,previous=null){
  if(data?.type!=='FeatureCollection'||!Array.isArray(data.features)||!register?.sourceTimestamp)throw Error('Ongeldige landelijke bron.');
  const identities=new Map((previous?.points||[]).map(row=>[row[5],row[0]]));
  for(const c of Object.values(register.chains))for(const row of c.rows)if(!identities.has(row[1]))identities.set(row[1],row[0]);
+ const labels=new Map();const normalize=value=>value.toLocaleLowerCase('nl').normalize('NFKC').trim();
+ const canonical=qid=>CHAIN_CATALOG.find(c=>c.brands.includes(qid))?.id||qid;
+ const add=(label,id)=>{const key=normalize(label);if(!labels.has(key))labels.set(key,new Set());labels.get(key).add(id);};
+ for(const chain of CHAIN_CATALOG)add(chain.name,chain.id);
+ for(const f of data.features){const p=f.properties||{};if((p.shop||p.amenity||p.tourism)&&typeof p.brand==='string'&&/^Q[1-9][0-9]*$/.test(p['brand:wikidata']||''))add(p.brand,canonical(p['brand:wikidata']));}
  const chains=new Map(),points=new Map(),details={};const used=new Set(identities.values());
  const flatten=value=>Array.isArray(value)&&value.length>=2&&value.every(Number.isFinite)?[value]:Array.isArray(value)?value.flatMap(flatten):[];
  for(const f of data.features){
@@ -18,8 +23,9 @@ export function buildBrowse(data,register,previous=null){
   const lngs=positions.map(x=>x[0]),lats=positions.map(x=>x[1]);
   const lng=(Math.min(...lngs)+Math.max(...lngs))/2,lat=(Math.min(...lats)+Math.max(...lats))/2;
   if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw Error('Ongeldige positie.');
-  const known=CHAIN_CATALOG.find(c=>c.brands.includes(qid));
-  const chainId=known?.id||qid||'b-'+createHash('sha256').update(brand.toLocaleLowerCase('nl').normalize('NFKC')).digest('hex').slice(0,16);
+  const byName=labels.get(normalize(brand));const inferred=!qid&&byName?.size===1?[...byName][0]:null;
+  const known=CHAIN_CATALOG.find(c=>c.brands.includes(qid)||c.id===inferred);
+  const chainId=known?.id||qid||inferred||'b-'+createHash('sha256').update(brand.toLocaleLowerCase('nl').normalize('NFKC')).digest('hex').slice(0,16);
   const chainName=known?.name||brand||String(p.name||qid),sourceRef=p['@type']+'/'+p['@id'];
   let id=identities.get(sourceRef);if(!id){do{id=IdentifierService.create();}while(used.has(id));used.add(id);identities.set(sourceRef,id);}
   const name=String(p.name||chainName).slice(0,300);
