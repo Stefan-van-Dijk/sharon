@@ -1,5 +1,5 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.90';
-import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.3.90';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.93';
+import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.3.93';
 
 // One test workspace for the same production modules and context rules.
 // Existing graph identifiers and legacy test metadata remain readable.

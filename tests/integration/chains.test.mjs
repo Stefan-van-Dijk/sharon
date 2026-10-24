@@ -180,3 +180,27 @@ test('editing preserves an explicit chain despite a conflicting nickname and rem
   assert.equal(form.elements.chainLinkEnabled.checked,false);
  }finally{close?.();app.close();}
 });
+
+test('branch points stay unclustered; board ratings persist, retract and hide/restore the map point',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),layers=[];let active;
+  app.window.addEventListener('sharon-place-board-active',e=>{active=e.detail.point;});
+  const map={addSource(id,o){sources.set(id,{options:o,setData(data){this.data=data;}});},addLayer(o){layers.push(o);},getSource:id=>sources.get(id),on(){},off(){},easeTo(){},getCenter:()=>point,queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
+  (await until(()=>root.querySelector('[data-places-list] button'))).click();
+  const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
+  const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,undefined);assert.equal(layers.length,1);assert.equal(layers[0].paint['circle-radius'],6);
+  assert.equal(active.lat,52);
+  const button=label=>board.querySelector('[aria-label="'+label+'"]');
+  button('Vind ik leuk').click();assert.equal(button('Hartje verwijderen').getAttribute('aria-pressed'),'true');
+  button('Niet leuk').click();assert.equal(button('Vind ik leuk').getAttribute('aria-pressed'),'false');
+  button('Niet leuk verwijderen').click();button('Markeer als gelezen').click();
+  button('Verberg deze locatie op de kaart').click();assert.equal(source.data.features.length,0);assert.equal(active,null);
+  button('Toon deze locatie weer op de kaart').click();assert.equal(source.data.features.length,1);
+  const saved=JSON.parse(app.window.localStorage.getItem('sharon.place.feedback.v1:node/1'));
+  assert.equal(saved.read,true);assert.equal(saved.liked,false);assert.equal(saved.disliked,false);assert.equal(saved.hidden,false);
+ }finally{layer?.destroy();app.close();}
+});

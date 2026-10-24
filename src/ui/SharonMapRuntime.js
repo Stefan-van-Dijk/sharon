@@ -1,3 +1,4 @@
+import { compactEnvironmentAttribution } from './EnvironmentAttribution.js?v=0.3.93';
 /**
  * Shared renderer bootstrap for Omgeving and Locaties.
  * Both screens must use the same MapLibre module, stylesheet, worker and
@@ -28,7 +29,8 @@ export function configureRenderer(library) {
 
 export function createSharonMap(library, options) {
   configureRenderer(library);
-  return new library.Map(options);
+  const style = compactEnvironmentAttribution(options.style);
+  return new library.Map(style === options.style ? options : {...options, style});
 }
 
 export async function loadSharonRenderer(loadRenderer = () => import(MAPLIBRE_JS)) {

@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.90';
-import { wikipediaReference } from '../core/information/InformationItem.js?v=0.3.90';
-import { createBoardDeck } from './BoardChrome.js?v=0.3.90';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.93';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.3.93';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.93';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -349,12 +349,13 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     });
     footer.append(saveButton,saveStatus);
   }
-  if (!isLocal && !external) {
-    const articleId = String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
-    const feedbackKey = 'sharon.wiki.feedback.v1:' + articleId;
+  if ((!isLocal && !external) || localBoard?.feedbackId) {
+    const articleId = localBoard?.feedbackId || String(feature?.properties?.wikidata || feature?.id || feature?.properties?.url || '');
+    const feedbackKey = (isLocal?'sharon.place.feedback.v1:':'sharon.wiki.feedback.v1:') + articleId;
+    const feedbackEvent=isLocal?'sharon-place-feedback-changed':'sharon-wiki-feedback-changed';
     const information = informationFeedback();
     let reference = null;
-    try { reference = wikipediaReference(feature); } catch {}
+    try { reference = isLocal ? (localBoard.feedbackReference?informationReference(localBoard.feedbackReference):null) : wikipediaReference(feature); } catch {}
     const syncStatus = document.createElement('small');
     syncStatus.setAttribute('role','status');
     syncStatus.style.cssText = 'font-size:11px;line-height:1.3;max-width:150px';
@@ -386,7 +387,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       dislikeButton.setAttribute('aria-pressed',String(feedback.disliked));
       dislikeButton.style.color = feedback.disliked ? '#9b6271' : '#88949e';
       hideButton.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c5.4 0 9.3 4.5 10 7a12.5 12.5 0 0 1-3.1 4.5M6.1 6.2A12.4 12.4 0 0 0 2 12c.7 2.5 4.6 7 10 7a10 10 0 0 0 4.1-.9"/></svg>';
-      hideButton.setAttribute('aria-label',feedback.hidden ? 'Toon dit artikel weer op de kaart' : 'Verberg dit artikel op de kaart');
+      hideButton.setAttribute('aria-label',feedback.hidden ? (isLocal?'Toon deze locatie weer op de kaart':'Toon dit artikel weer op de kaart') : (isLocal?'Verberg deze locatie op de kaart':'Verberg dit artikel op de kaart'));
       hideButton.title = hideButton.getAttribute('aria-label');
       hideButton.setAttribute('aria-pressed',String(feedback.hidden));
       hideButton.style.color = feedback.hidden ? '#334e63' : '#88949e';
@@ -402,7 +403,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     };
     const persistFeedback = () => {
       try { localStorage.setItem(feedbackKey,JSON.stringify(feedback)); } catch {}
-      window.dispatchEvent(new CustomEvent('sharon-wiki-feedback-changed',{detail:{id:articleId,...feedback}}));
+      window.dispatchEvent(new CustomEvent(feedbackEvent,{detail:{id:articleId,...feedback}}));
       renderFeedback();
       if (information && reference) {
         syncStatus.textContent = 'Waardering bewaren…';
@@ -428,7 +429,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
         if (closed) return;
         feedback = {...feedback, ...row.state};
         try { localStorage.setItem(feedbackKey, JSON.stringify(feedback)); } catch {}
-        window.dispatchEvent(new CustomEvent('sharon-wiki-feedback-changed',{detail:{id:articleId,...feedback}}));
+        window.dispatchEvent(new CustomEvent(feedbackEvent,{detail:{id:articleId,...feedback}}));
         renderFeedback(); syncNotice();
       }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; })
         .finally(() => buttons.forEach(button => { button.disabled = false; }));

@@ -39,6 +39,14 @@ test('stylesheet is injected only once and both maps reuse the ESM worker', asyn
   assert.equal(count,2);
   const map=createSharonMap(renderer,{test:true});
   assert.equal(map.options.test,true);
+  const style={version:8,sources:{openmaptiles:{type:'vector',url:'https://tiles.openfreemap.org/planet'},extra:{attribution:'Other provider'}},layers:[]};
+  const configured=createSharonMap(renderer,{style});
+  assert.match(configured.options.style.sources.openmaptiles.attribution,/OpenMapTiles/);
+  assert.match(configured.options.style.sources.openmaptiles.attribution,/openstreetmap.org\/copyright/);
+  assert.equal(style.sources.openmaptiles.attribution,undefined);
+  assert.equal(configured.options.style.sources.extra.attribution,'Other provider');
+  const other={sources:{openmaptiles:{url:'https://other.example/tiles',attribution:'Other provider'}}};
+  assert.equal(createSharonMap(renderer,{style:other}).options.style,other);
   assert.throws(()=>configureRenderer({}), /kaartbibliotheek/i);
 
   const prev=globalThis.document;
