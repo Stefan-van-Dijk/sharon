@@ -1,11 +1,11 @@
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.94';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.94';
-import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.94';
-import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.94';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.94';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.94';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.94';
-import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.94';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.95';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.95';
+import { suggestConnections, CONTEXT_CASES } from '../core/skeleton/ContextSuggestions.js?v=0.3.95';
+import {RELATION_TYPES,graphConnections,graphNeighborhood,addGraphRelation,removeGraphRelation} from '../core/skeleton/GraphService.js?v=0.3.95';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.95';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.95';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.95';
+import { SKELETON_MODULES,demoWorkspace,setDemoEnabled,saveDemoDataset,resetDemoDataset,skeletonCapabilities,applySkeletonAction,addSkeletonObject,renameSkeletonObject } from '../core/skeleton/SkeletonCore.js?v=0.3.95';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',rides:'Ritten',tasks:'Tijd/Taken',actions:'Acties'};
 export async function mountSkeletonDemo(root,store,{initialModule='cards',fullScreen=false,onTitleChange=()=>{}}={}) {

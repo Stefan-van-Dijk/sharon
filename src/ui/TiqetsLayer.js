@@ -1,4 +1,4 @@
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.3.94';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.3.95';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
