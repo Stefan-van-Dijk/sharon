@@ -6,8 +6,9 @@ export const OSM_MAP_CREDIT = '© <a href="https://www.openstreetmap.org/copyrig
 const OPENMAPTILES_CREDIT = '© <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer" title="OpenMapTiles · CC BY 4.0">OpenMapTiles</a>';
 
 export function compactEnvironmentAttribution(style) {
-  // Presentation is local to Omgeving; the shared style remains unchanged for
-  // Locaties and the other map viewers. MapLibre still manages source credits.
+  // Apply to the known OpenFreeMap basemap in every shared map viewer.
+  // Other providers and shared input styles remain unchanged.
+  if(style?.sources?.openmaptiles?.url!=='https://tiles.openfreemap.org/planet')return style;
   return {...style,sources:{...style.sources,openmaptiles:{...style.sources.openmaptiles,
     attribution:OPENMAPTILES_CREDIT+' · '+OSM_MAP_CREDIT}}};
 }
