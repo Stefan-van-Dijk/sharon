@@ -223,7 +223,7 @@ test('Personen rows stay opaque while returning from chat and do not expose thei
   await expect(surface).toBeEnabled();await expect(surface).toHaveCSS('opacity','1');
 });
 
-test('card and location strips cover their actions at rest on a narrow screen',async({page})=>{
+test('card and location strips cover their actions at rest on a narrow screen',async({page},testInfo)=>{
  await page.setViewportSize({width:390,height:844});await install(page);
  await page.evaluate(async version=>{
   const {ObjectStore}=await import('./src/core/storage/ObjectStore.js?v='+version);const store=await new ObjectStore().open();
@@ -240,5 +240,6 @@ test('card and location strips cover their actions at rest on a narrow screen',a
     covered:[r.left+12,r.right-12].every(x=>document.elementFromPoint(x,s.top+s.height/2)?.closest('[data-swipe-surface]')===surface)};
   });
   expect(geometry.position).toBe('absolute');expect(geometry.opacity).toBe('0');expect(geometry.top).toBeLessThanOrEqual(1);expect(geometry.gap).toBeLessThanOrEqual(2);expect(geometry.covered).toBe(true);
+  await page.screenshot({path:testInfo.outputPath(module+'-strips.png')});
  }
 });
