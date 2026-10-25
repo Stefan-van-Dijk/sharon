@@ -114,9 +114,13 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   expect(uploads).toBe(2);
   await expect(page.locator('[data-share-close]')).toHaveCount(0);
   await expect(page.locator('.sh-share-board [data-deck-size]')).toHaveCount(2);
-  const info=page.locator('.sh-share-board-info');const top=await page.locator('.sh-share-fixed').boundingBox();
-  await info.evaluate(element=>{element.scrollTop=100;});
-  expect((await page.locator('.sh-share-fixed').boundingBox()).y).toBe(top.y);
+  const scroll=await page.locator('.sh-share-board-info').evaluate(element=>{
+    const filler=document.createElement('div');filler.style.height='600px';element.append(filler);
+    const header=element.closest('.sh-share-board').querySelector('.sh-share-fixed');
+    const before=header.getBoundingClientRect().top;element.scrollTop=100;
+    return {moved:header.getBoundingClientRect().top-before,scrolled:element.scrollTop};
+  });
+  expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);
   const header=await page.locator('.sh-share-board-header').boundingBox();
   await page.mouse.move(header.x+header.width/2,header.y+header.height/2);
   await page.mouse.down();await page.mouse.move(header.x+header.width/2,header.y+header.height/2+110,{steps:8});await page.mouse.up();
