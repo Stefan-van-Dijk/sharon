@@ -616,7 +616,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         await store.put('objects', record);
         events?.emit('cards.changed',{id:record.id});
         await showDetail(record.id);
-      } catch {
+      } catch (cause) {
+        console.error('Kaart opslaan mislukt:', cause);
         error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';
       }
     });
