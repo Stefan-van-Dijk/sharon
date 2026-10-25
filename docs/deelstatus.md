@@ -28,3 +28,9 @@ De samenvatting is standaard zichtbaar. Deel met personen klapt de personenkeuze
 ## Bediening vanaf 0.4.04
 
 De QR-uitleg staat rechts naast de QR, 90 graden gedraaid. Titel en QR blijven vast terwijl het informatiedeel scrolt. De bovenste greep verandert de boardhoogte; de greep tussen QR en informatie verandert hun verdeling. Swipe de pil naar rechts en sleep daarna om het hele board te verplaatsen. Omlaag swipen over het vaste QR-deel sluit het board; scrollen in de informatie sluit het niet. Escape blijft beschikbaar. Hoogte en positie worden apart bewaard onder sharing.board.layout en beïnvloeden andere boards niet. Er is geen sluitkruisje meer.
+
+## Indeling en personen vanaf 0.4.05
+
+De QR staat in het midden. Links staat de kaarttitel; de uitleg rechts is omgekeerd ten opzichte van de eerdere versie. De breedte van de uitleg volgt de ruimte naast de vierkante QR: bij een lager QR-vlak wordt de QR kleiner en de tekstruimte breder. De locatiekeuze is een ronde pin-knop rechts onderin het vaste vlak, met een actieve of inactieve toestand en uitleg naast de QR. De normale intrekking van vervangen QR-codes wordt niet meer als geschiedenisregel weergegeven; fouten bij intrekken blijven zichtbaar.
+
+Tik op de pil voor de volgende sortering: alfabetisch, dichtbij, recent, logisch of eigen volgorde. Swipe rechts om het board te verzamelen en te verplaatsen, of links om het zoekveld te openen. Zoeken doorzoekt de volledige personenlijst en selectie blijft behouden bij sorteren. De personen gebruiken de centrale stroken. Eigen volgorde heeft omhoog/omlaag-bediening en wordt lokaal bewaard. Dichtbij gebruikt de bekende toestelpositie, of de gekoppelde kaartlocatie wanneer geen toestelpositie bekend is. Onbekende afstanden komen achteraan; er wordt geen extra GPS-opvraag gestart.

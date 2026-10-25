@@ -1,10 +1,10 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.04';
-import { openCardShare } from './CardSharing.js?v=0.4.04';
-import { renderCardCode } from './CardCodes.js?v=0.4.04';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.04';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.04';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.04';
-import { cardSymbol } from './CardSymbols.js?v=0.4.04';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.05';
+import { openCardShare } from './CardSharing.js?v=0.4.05';
+import { renderCardCode } from './CardCodes.js?v=0.4.05';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.05';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.05';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.05';
+import { cardSymbol } from './CardSymbols.js?v=0.4.05';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
