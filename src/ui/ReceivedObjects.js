@@ -1,6 +1,6 @@
-import { parseCardPayload, sharedLocation } from './CardPayload.js?v=0.3.97';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.97';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.97';
+import { parseCardPayload, sharedLocation } from './CardPayload.js?v=0.3.98';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.98';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.98';
 const saves = new WeakMap();
 export function saveReceivedCard(store,message) {
   const previous=saves.get(store)||Promise.resolve();

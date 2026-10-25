@@ -32,11 +32,20 @@ jobs:
           php-version: '8.3'
           coverage: none
       - run: npm ci
+      - name: Appwijzigingen vereisen een hogere versie
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-pr-version.mjs "$PR_BASE_SHA"
       - name: Bron, tests, release-assets en opstartketens
         shell: bash # Explicit bash enables pipefail, including through tee.
         run: npm run verify 2>&1 | tee verification.log
+      - name: Browsers installeren
+        run: npx playwright install --with-deps chromium webkit
       - name: PWA-upgrade in Chromium
-        run: npx playwright install --with-deps chromium && npm run test:pwa
+        run: npm run test:pwa
+      - name: Mobiele boardbediening in Chromium en WebKit
+        run: npm run test:boards
       - name: Pakket na browsertests onveranderd
         run: node scripts/verify-site.mjs
       - name: Controlebewijs bewaren
@@ -48,6 +57,7 @@ jobs:
             verification.log
             _site/release.json
             test-results/
+            playwright-report/
       - name: Alleen het gecontroleerde pakket klaarzetten
         uses: actions/upload-pages-artifact@v3
         with:

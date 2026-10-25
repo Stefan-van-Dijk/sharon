@@ -1,22 +1,22 @@
-import { openCardShare } from './CardSharing.js?v=0.3.97';
-import { mountPersonLinks } from './PersonLinks.js?v=0.3.97';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.97';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.97';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.97';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.97';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.97';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.97';
-import { bindSwipeRows } from './SwipeRows.js?v=0.3.97';
-import { renderStrip } from './Strip.js?v=0.3.97';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.3.97';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.97';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.97';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.97';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.97';
+import { openCardShare } from './CardSharing.js?v=0.3.98';
+import { mountPersonLinks } from './PersonLinks.js?v=0.3.98';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.3.98';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.3.98';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.3.98';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.98';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.3.98';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.98';
+import { bindSwipeRows } from './SwipeRows.js?v=0.3.98';
+import { renderStrip } from './Strip.js?v=0.3.98';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.3.98';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.3.98';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.98';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.3.98';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.3.98';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.3.97';
+} from '../core/location/LocationHierarchy.js?v=0.3.98';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);

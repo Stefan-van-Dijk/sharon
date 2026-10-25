@@ -3,6 +3,6 @@ export default defineConfig({
   testDir: './tests/pwa', fullyParallel: false, workers: 1,
   maxFailures: 1,
   timeout: 60000, expect: { timeout: 15000 },
-  use: { browserName: 'chromium', headless: true, serviceWorkers: 'allow' },
+  use: { browserName: 'chromium', headless: true, serviceWorkers: 'allow', trace: 'retain-on-failure', screenshot: 'only-on-failure', video: 'retain-on-failure' },
   reporter: [['list']],
 });
