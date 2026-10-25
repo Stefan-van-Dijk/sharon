@@ -30,7 +30,7 @@ test('QR upload tracks source only locally, survives closing share sheet and reu
   close();assert.equal(publishes,1);assert.ok(!JSON.stringify(entry).includes(card.id));
   const rows=await sharingRecords(app.store,card.id);assert.equal(rows.length,1);assert.equal(rows[0].state,'online');
   const root=app.document.createElement('div');root.innerHTML='<div data-swipe-row="PrivateCard1"><button data-swipe-surface>Pas</button></div>';app.document.body.append(root);
-  await mountSharingBadges(root,app.store,{refresh:false});assert.equal(root.querySelector('[data-sharing-state]').textContent,'Online');
+  await mountSharingBadges(root,app.store,{refresh:false});assert.equal(root.querySelector('[data-sharing-state]').textContent,'');assert.equal(root.querySelector('[data-sharing-state]').className,'sh-sharing-dot');assert.match(root.querySelector('[data-sharing-state]').getAttribute('aria-label'),/online/);
   assert.ok(!root.innerHTML.includes(rows[0].id));assert.ok(!root.innerHTML.includes(rows[0].access));
   close=openCardShare(card,{store:app.store});t.after(close);
   await until(()=>app.document.querySelector('[data-share-qr]').textContent==='Toon gedeelde QR'&&!app.document.querySelector('[data-share-qr]').disabled);

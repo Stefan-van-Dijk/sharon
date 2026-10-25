@@ -1,4 +1,4 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.99';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.100';
 const QR_PREFIX='sharing.qr.';
 export const qrShareKey=id=>QR_PREFIX+id;
 export async function sharingRecords(store,objectId){
@@ -23,7 +23,7 @@ export function sharingSummary(records,now=Date.now()){
 }
 export function sharingBadge(summary){
   if(!summary)return '';
-  return `<span class="sh-sharing-badge" data-sharing-state="${summary.state}" title="${summary.description}" aria-label="${summary.description}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 18h11a4 4 0 0 0 0-8 6 6 0 0 0-11-2 5 5 0 0 0 0 10Z"/></svg><span>${summary.label}</span></span>`;
+  return `<span class="sh-sharing-dot" data-sharing-state="${summary.state}" title="${summary.description}" role="img" aria-label="${summary.description}"></span>`;
 }
 // Status reads use the existing authenticated-by-code endpoint. No server upload is required.
 export async function refreshQrShares(store,objectId,{force=false}={}){
