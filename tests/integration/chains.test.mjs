@@ -20,7 +20,7 @@ test('card name recognizes a chain, enables its switch and saves the link',async
   const host=app.document.createElement('div'),header=app.document.createElement('div');app.document.body.append(host,header);
   close=await openCardsView(host,{store:app.store,events,location:{latest:point},headerActions:header});
   (await until(()=>header.querySelector('[aria-label="Kaart toevoegen"]'))).click();
-  const form=await until(()=>host.querySelector('[data-card-form]'));
+  const form=await until(()=>host.querySelector('[data-card-form][data-card-ready="true"]'));
   assert.equal(form.elements.chainId.value,'');form.elements.name.value='Jumbo pas';form.elements.name.dispatchEvent(new app.window.Event('input',{bubbles:true}));
   assert.equal(form.elements.chainId.value,'Q2262314');assert.equal(form.elements.chainLinkEnabled.checked,true);
   assert.equal(form.querySelector('[data-chain-link]').hidden,false);
@@ -128,7 +128,7 @@ test('chain opt-out survives further typing, unknown names clear the link and no
   const host=app.document.createElement('div'),header=app.document.createElement('div');app.document.body.append(host,header);
   close=await openCardsView(host,{store:app.store,events,location:{latest:point},headerActions:header});
   (await until(()=>header.querySelector('[aria-label="Kaart toevoegen"]'))).click();
-  const form=await until(()=>host.querySelector('[data-card-form]'));
+  const form=await until(()=>host.querySelector('[data-card-form][data-card-ready="true"]'));
   const type=value=>{form.elements.name.value=value;form.elements.name.dispatchEvent(new app.window.Event('input',{bubbles:true}));};
   type('AH');assert.equal(form.elements.chainId.value,'Q1653985');
   form.elements.chainLinkEnabled.checked=false;form.elements.chainLinkEnabled.dispatchEvent(new app.window.Event('change',{bubbles:true}));
@@ -153,7 +153,7 @@ test('search text seeds a new card and recognizes its chain without a separate c
   close=await openCardsView(host,{store:app.store,events,location:{latest:point},headerActions:header});
   const search=host.querySelector('[data-list-search]');search.value='Kruidvat';search.dispatchEvent(new app.window.Event('input',{bubbles:true}));
   (await until(()=>header.querySelector('[aria-label="Kaart toevoegen"]'))).click();
-  const form=await until(()=>host.querySelector('[data-card-form]'));
+  const form=await until(()=>host.querySelector('[data-card-form][data-card-ready="true"]'));
   await until(()=>form.elements.chainId.value==='Q2226366');
   assert.equal(form.elements.name.value,'Kruidvat');assert.equal(form.elements.chainLinkEnabled.checked,true);
   assert.equal(form.querySelector('select[name="chainId"]'),null);assert.equal(app.requests.length,0);
