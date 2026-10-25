@@ -574,8 +574,9 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     bindEditorSwipe(swipeArea, () => openEditorScanner(), () => openEditorScanner(true));
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      const name = normalizeName(input.value);
       const error = form.querySelector('[data-card-error]');
+      try {
+      const name = normalizeName(input.value);
       if (!name) { error.textContent = 'Vul eerst een naam in.'; return; }
       const format = form.elements.codeFormat.value, value = form.elements.codeValue.value;
       if (format || value) {
@@ -618,6 +619,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         await showDetail(record.id);
       } catch (cause) {
         console.error('Kaart opslaan mislukt:', cause);
+        error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';
+      }
+      } catch (cause) {
+        console.error('Kaartformulier verwerken mislukt:', cause);
         error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';
       }
     });
