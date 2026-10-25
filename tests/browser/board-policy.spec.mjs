@@ -35,8 +35,11 @@ async function open(page,owner=true){
 async function swipe(page,selector,dx=-130){
   await page.locator(selector).evaluate((target,dx)=>{
     for(const [type,x] of [['touchstart',220],['touchmove',220+dx],['touchend',220+dx]]){
-      const touch=new Touch({identifier:1,target,clientX:x,clientY:300});
-      target.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));
+      // WebKit exposes Touch but does not allow constructing it.
+      const touch={identifier:1,target,clientX:x,clientY:300};
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperties(event,{touches:{value:type==='touchend'?[]:[touch]},changedTouches:{value:[touch]}});
+      target.dispatchEvent(event);
     }
   },dx);
 }
