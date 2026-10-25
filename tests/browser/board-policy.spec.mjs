@@ -65,6 +65,8 @@ test('non-owner cannot open relevance management',async({page})=>{
 
 test('shared card shows online status and clears it when the temporary QR file disappears',async({page})=>{
   await open(page);
+  const statusStyles=readFileSync('index.html','utf8').split('\n').filter(line=>line.includes('.sh-sharing-dot')||line.includes('.sh-strip--accent .sh-strip-surface{position:relative}')).join('\n');
+  await page.addStyleTag({content:statusStyles});
   let remote=null,uploads=0;
   await page.route('https://sharon.life/log/api/connections.php',async route=>{
     const input=route.request().postDataJSON();
@@ -87,6 +89,13 @@ test('shared card shows online status and clears it when the temporary QR file d
   await page.getByRole('button',{name:'Deel via korte QR',exact:true}).click();
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
+  const dot=page.locator('.sh-sharing-dot');
+  await expect(dot).toHaveText('');
+  await expect(dot).toHaveCSS('width','9px');
+  await expect(dot).toHaveCSS('height','9px');
+  await expect(dot).toHaveCSS('background-color','rgb(73, 209, 125)');
+  await expect(dot).toHaveCSS('left','10px');
+  await expect(dot).toHaveCSS('top','10px');
   await page.getByRole('button',{name:'Sluiten',exact:true}).click();
   await page.locator('[data-swipe-share]').click();
   await page.getByRole('button',{name:'Toon gedeelde QR',exact:true}).click();

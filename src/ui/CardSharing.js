@@ -1,12 +1,12 @@
-import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.3.99';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.3.99';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.3.99';
-import { publishTransfer } from './ObjectTransfer.js?v=0.3.99';
-import { renderCardCode } from './CardCodes.js?v=0.3.99';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.99';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.99';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.99';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.99';
+import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.3.100';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.3.100';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.3.100';
+import { publishTransfer } from './ObjectTransfer.js?v=0.3.100';
+import { renderCardCode } from './CardCodes.js?v=0.3.100';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.100';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.100';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.100';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.100';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}}) {
   const isLocation=card.type==='location';

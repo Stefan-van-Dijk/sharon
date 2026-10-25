@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.3.99">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.99">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.3.100">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.3.100">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2810,9 +2810,10 @@
     /* One compact search/sort toolbar for every module list. */
     .sh-card-share-overlay{position:fixed;inset:0;z-index:10000;background:#0005;display:flex;align-items:center;justify-content:center;padding:20px}
     .sh-card-share-dialog{background:#fff;color:#202025;border-radius:18px;padding:22px;box-sizing:border-box;width:min(100%,440px);max-height:85dvh;overflow:auto}
-    .sh-sharing-badge{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:10px;color:#72828a;margin-left:6px}
-    .sh-sharing-badge[data-sharing-state="online"]{color:#25854e}
-    .sh-sharing-badge[data-sharing-state="unknown"]{color:#997131}
+    .sh-sharing-dot{position:absolute;left:10px;top:10px;width:9px;height:9px;border-radius:50%;z-index:8;pointer-events:none;background:#8d98a6;box-shadow:0 0 0 2px #fff}
+    .sh-sharing-dot[data-sharing-state="online"],.sh-sharing-dot[data-sharing-state="shared"]{background:#49d17d}
+    .sh-sharing-dot[data-sharing-state="unknown"]{background:#ffbd4a}
+    .sh-sharing-dot[data-sharing-state="offline"]{background:#8d98a6}
     .sh-sharing-details:empty{display:none}
     .sh-sharing-details{display:grid;gap:5px;padding:10px 0;margin-bottom:8px;font-size:13px}
     .sh-sharing-details small{color:#68737c;line-height:1.4}
@@ -3017,16 +3018,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.99#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.99#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.99#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.99#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.99#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.3.100#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.3.100#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.3.100#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.3.100#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.3.100#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.3.99"></script>
+  <script type="module" src="./src/main.js?v=0.3.100"></script>
 </body>
 </html>

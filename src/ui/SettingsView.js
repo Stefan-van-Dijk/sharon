@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.3.99';
-import {mountGraphInspector} from './GraphInspector.js?v=0.3.99';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.99';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.3.100';
+import {mountGraphInspector} from './GraphInspector.js?v=0.3.100';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.3.100';
 export function openSettings(root, {
   settings,
   install,
@@ -37,6 +37,12 @@ export function openSettings(root, {
 
       ${store?`<section class="settings-section">
         <span class="settings-kicker">Netwerkverbinding</span>
+        <div class="privacy-principle" data-network-role>
+          <strong data-role-label>Rol ophalen…</strong>
+          <small data-role-description></small>
+          <small role="status" data-role-confirmation></small>
+        </div>
+        <button type="button" class="settings-row" data-check-role disabled><span>Rol controleren</span><span class="settings-arrow">›</span></button>
         <button type="button" class="settings-row" data-reset-network>
           <span><strong>Opnieuw instellen</strong><small>Wis de netwerkverbinding, contacten en chatberichten op dit toestel. Behoud kaarten, locaties en profiel.</small></span><span class="settings-arrow">›</span>
         </button>
@@ -107,6 +113,29 @@ export function openSettings(root, {
     </section>
   `;
 
+  let disposed=false;
+  const roleService=store?new ConnectionService(store):null;
+  async function renderRole(verified=false){
+    if(!roleService)return;
+    const device=await roleService.device();
+    const host=root.querySelector('[data-network-role]');if(disposed||!host?.isConnected)return;
+    const line=device.self?.line;
+    const owner=device.registered&&line===0;
+    const member=device.registered&&Number.isInteger(line)&&line>0;
+    host.querySelector('[data-role-label]').textContent=owner?'Jouw rol: Beheerder':member?'Jouw rol: Deelnemer':device.registered?'Nog geen netwerktoegang':'Niet verbonden met een netwerk';
+    host.querySelector('[data-role-description]').textContent=owner?'Je gebruikt de identiteit van de netwerkeigenaar. Je kunt de relevantie van boards beheren.':member?'Je bent via een uitnodiging verbonden. De netwerkeigenaar beheert de relevantie van boards.':'Je hebt op dit toestel geen actieve netwerkrol. Deelname vereist een geldige uitnodiging of startcode.';
+    host.querySelector('[data-role-confirmation]').textContent=device.registered?(verified?'Door de server bevestigd.':'Laatst bekende rol op dit toestel.') : '';
+    root.querySelector('[data-check-role]').disabled=!device.registered;
+  }
+  renderRole().catch(()=>{});
+  root.querySelector('[data-check-role]')?.addEventListener('click',async event=>{
+    const button=event.currentTarget;button.disabled=true;
+    const status=root.querySelector('[data-role-confirmation]');status.textContent='Rol controleren…';
+    try{await roleService.refreshSelf();await renderRole(true);}
+    catch{if(!disposed&&status.isConnected)status.textContent='Niet te controleren. De laatst bekende rol blijft zichtbaar; de server controleert je beheerrechten bij elke wijziging.';}
+    finally{if(!disposed&&button.isConnected)button.disabled=false;}
+  });
+
   root.querySelector('[data-reset-network]')?.addEventListener('click',async event=>{
     if(!window.confirm('Netwerkverbinding opnieuw instellen? De contacten en chatberichten op dit toestel worden gewist. Kaarten, locaties en profiel blijven behouden.'))return;
     const button=event.currentTarget;button.disabled=true;
@@ -114,6 +143,7 @@ export function openSettings(root, {
     try {
       await (resetNetwork?resetNetwork():new ConnectionService(store).resetNetwork());
       onNetworkReset();
+      await renderRole();
       if(!status.isConnected)return;
       status.textContent='Opnieuw ingesteld. Start als eerste je eigen netwerk, of ga terug naar Home en scan de QR van de eigenaar.';
       root.querySelector('[data-start-network]').hidden=false;
@@ -224,6 +254,7 @@ export function openSettings(root, {
   });
 
   return () => {
+    disposed=true;
     unsubscribeAvailable();
     unsubscribeCompleted();
   };

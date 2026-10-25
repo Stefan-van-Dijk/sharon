@@ -1,11 +1,11 @@
-# Deelstatus bij kaarten en locaties (0.3.99)
+# Deelstatus bij kaarten en locaties (0.3.100)
 
-Een wolkje met een kort label op de strook laat zien dat een kaart of locatie is gedeeld:
+Een gekleurd stipje linksboven in de strook laat zien dat een kaart of locatie is gedeeld:
 
-- **Online**: een tijdelijke QR-deling is door de server bevestigd en nog niet verlopen.
-- **Gedeeld**: de kopie is via een chat door de server bevestigd. Het deelvenster toont het tijdstip van die bevestiging; dit is geen voortdurende controle van het chatbestand.
-- **Controleren**: de opslag of bereikbaarheid is niet bevestigd. Een netwerkfout betekent niet dat het bestand verwijderd is.
-- **Offline**: de QR-deling is verlopen of de server geeft aan dat het bestand niet meer beschikbaar is. De app kan opgehaald en handmatig verwijderd niet onderscheiden.
+- **Groen — Online**: een tijdelijke QR-deling is door de server bevestigd en nog niet verlopen.
+- **Groen — Gedeeld**: de kopie is via een chat door de server bevestigd. Het deelvenster toont het tijdstip van die bevestiging; dit is geen voortdurende controle van het chatbestand.
+- **Oranje — Controleren**: de opslag of bereikbaarheid is niet bevestigd. Een netwerkfout betekent niet dat het bestand verwijderd is.
+- **Grijs — Offline**: de QR-deling is verlopen of de server geeft aan dat het bestand niet meer beschikbaar is. De app kan opgehaald en handmatig verwijderd niet onderscheiden.
 
 Veeg de strook naar rechts voor de details en om een bestaande QR opnieuw te tonen. Dit maakt geen tweede bestand. Een meegestuurde locatie krijgt ook een deelkenmerk. De QR bij het opnieuw delen van die locatie blijft een zelfstandige locatiedeling; een QR van de bovenliggende kaart wordt daar niet voor hergebruikt.
 
@@ -14,3 +14,7 @@ De bronverwijzingen en sleutels blijven op het apparaat. Uitgaande chatberichten
 Er is geen nieuw PHP-bestand nodig. Historische QR-delingen kunnen niet automatisch worden gekoppeld aan een bronitem: eerdere releases hebben die relatie niet opgeslagen. Er worden geen relaties geraden op basis van een naam of de inhoud. De nieuwe kenmerken worden bijgehouden voor delingen vanaf deze versie. Ontvangers krijgen geen informatie over met wie de afzender verder heeft gedeeld.
 
 De deling is een kopie. Een wijziging aan de lokale kaart past een eerder verzonden kopie niet automatisch aan.
+
+## Beheerdersrol
+
+Instellingen → Netwerkverbinding toont de laatst bekende rol van de netwerkidentiteit op dit toestel: Beheerder, Deelnemer of geen toegang. Met Rol controleren wordt de actuele rol opgehaald via het bestaande self-endpoint. Beheerder betekent netwerk-eigenaar (line 0), toegekend bij het claimen van de startcode. De server controleert information-policy tegen ownerId; je profielnaam verleent geen rechten. De app kan deze rol niet zelf toekennen. Bij een mislukte controle wordt de cache als laatst bekende rol aangeduid.
