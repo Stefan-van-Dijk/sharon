@@ -65,7 +65,7 @@ test('non-owner cannot open relevance management',async({page})=>{
 
 test('sharing opens QR automatically, reuses it and replaces a consumed transfer',async({page})=>{
   await open(page);
-  const statusStyles=readFileSync('index.html','utf8').split('\n').filter(line=>line.includes('.sh-sharing-dot')||line.includes('.sh-strip--accent .sh-strip-surface{position:relative}')||line.includes('.sh-share-qr-panel')||line.includes('.sh-share-side')).join('\n');
+  const statusStyles=[...readFileSync('index.html','utf8').matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(match=>match[1]).join('\n');
   await page.addStyleTag({content:statusStyles});
   let remote=null,uploads=0;
   await page.route('https://sharon.life/log/api/connections.php',async route=>{
@@ -85,7 +85,7 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
-  await page.locator('[data-swipe-share]').click();
+  await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('staat online');
   await expect(page.locator('[data-share-person-panel]')).toBeHidden();
@@ -101,15 +101,24 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   await expect(dot).toHaveCSS('background-color','rgb(73, 209, 125)');
   await expect(dot).toHaveCSS('left','10px');
   await expect(dot).toHaveCSS('top','10px');
-  await page.getByRole('button',{name:'Sluiten',exact:true}).click();
-  await page.locator('[data-swipe-share]').click();
+  await page.keyboard.press('Escape');
+  await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   expect(uploads).toBe(1);
-  await page.getByRole('button',{name:'Sluiten',exact:true}).click();
+  await page.keyboard.press('Escape');
   remote=null;
-  await page.locator('[data-swipe-share]').click();
+  await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
   await expect(page.locator('[data-sharing-details]')).toContainText('opgehaald of verwijderd');
   expect(uploads).toBe(2);
+  await expect(page.locator('[data-share-close]')).toHaveCount(0);
+  await expect(page.locator('.sh-share-board [data-deck-size]')).toHaveCount(2);
+  const info=page.locator('.sh-share-board-info');const top=await page.locator('.sh-share-fixed').boundingBox();
+  await info.evaluate(element=>{element.scrollTop=100;});
+  expect((await page.locator('.sh-share-fixed').boundingBox()).y).toBe(top.y);
+  const header=await page.locator('.sh-share-board-header').boundingBox();
+  await page.mouse.move(header.x+header.width/2,header.y+header.height/2);
+  await page.mouse.down();await page.mouse.move(header.x+header.width/2,header.y+header.height/2+110,{steps:8});await page.mouse.up();
+  await expect(page.locator('.sh-card-share-overlay')).toHaveCount(0);
 });

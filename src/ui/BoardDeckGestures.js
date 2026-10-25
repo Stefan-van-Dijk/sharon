@@ -1,8 +1,8 @@
 // Swipe the pill right to gather the boards, then drag the collected deck.
-export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore}={}) {
+export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout'}={}) {
   let gesture=null,closed=false,interacted=false;
   let layout={x:0,y:0,height:Math.min(580,window.innerHeight-112),media:Math.min(330,window.innerHeight*.34)};
-  const key='cards.board.layout';
+  const key=layoutKey;
   const constrain=()=>{
     const maxHeight=Math.max(180,window.innerHeight-112);
     layout.height=Math.max(Math.min(260,maxHeight),Math.min(maxHeight,layout.height));

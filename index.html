@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.03">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.03">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.04">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.04">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2826,10 +2826,23 @@
     .sh-share-qr-panel{display:grid;grid-template-columns:24px minmax(0,1fr) 24px;gap:8px;align-items:center;padding:12px 0}
     .sh-share-side{writing-mode:vertical-rl;white-space:nowrap;text-align:center;justify-self:center;font-size:12px;color:#68737c}
     .sh-share-side-left{transform:rotate(180deg)}
-    .sh-share-board-info{border-top:1px solid #e9e9ed;padding-top:12px}
+    .sh-share-board-info{border-top:1px solid #e9e9ed;padding:12px 16px;overflow:auto;min-height:0;flex:1;overscroll-behavior:contain}
     .sh-share-board [data-qr-status]{font-size:12px;line-height:1.4;color:#68737c}
     .sh-share-board [data-share-suggestions]{font-size:12px;color:#68737c}
     .sh-share-board [data-share-person-toggle]{width:100%;text-align:left}
+    .sh-card-share-overlay{align-items:flex-end;padding:28px 16px max(16px,env(safe-area-inset-bottom))}
+    .sh-share-zone-stack{height:var(--card-deck-height,580px);animation:none;transform:translate3d(var(--card-deck-x,0px),var(--card-deck-y,0px),0)}
+    .sh-share-zone-stack .sh-share-board{display:flex;flex-direction:column;height:100%;max-height:none;padding:0;overflow:hidden}
+    .sh-share-fixed{position:relative;display:flex;flex-direction:column;flex:none;height:var(--card-deck-media,330px);padding:20px 14px 48px;box-sizing:border-box;min-height:0;touch-action:none;user-select:none}
+    .sh-share-fixed .sh-share-board-header{flex:none}
+    .sh-share-fixed .sh-share-board-header h2{margin:0;font-size:20px}
+    .sh-share-fixed .sh-share-qr-panel{flex:1;min-height:0;padding:8px 0;grid-template-columns:20px minmax(0,1fr) 48px}
+    .sh-share-fixed [data-share-qr-slot],.sh-share-fixed [data-share-qr-code]{height:100%;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+    .sh-share-fixed [data-share-qr-code] svg{height:100%;max-height:100%!important;max-width:100%;object-fit:contain}
+    .sh-share-fixed .sh-share-side-right{height:100%;max-height:100%;max-width:48px;white-space:normal;overflow:auto;font-size:10px;line-height:1.4;touch-action:pan-y}
+    .sh-share-fixed .sh-board-resizer{position:absolute;top:0;left:25%;width:50%;height:18px;padding:0;border:0;background:transparent;touch-action:none}
+    .sh-share-fixed .sh-board-resizer[data-deck-size="media"]{top:auto;bottom:0}
+    .sh-share-fixed .sh-card-deck-grab{bottom:18px}
     .sh-card-share-dialog h2{font-size:21px;font-weight:500;margin:0 0 12px}
     .sh-card-share-dialog [data-share-search]{box-sizing:border-box;width:100%;font:inherit;padding:10px;border:0;border-bottom:1px solid #ddd}
     .sh-card-share-dialog .sh-person-choice{display:flex;align-items:center;gap:12px;min-height:44px}
@@ -3031,16 +3044,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.03#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.03#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.03#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.03#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.03#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.04#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.04#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.04#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.04#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.04#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.03"></script>
+  <script type="module" src="./src/main.js?v=0.4.04"></script>
 </body>
 </html>
