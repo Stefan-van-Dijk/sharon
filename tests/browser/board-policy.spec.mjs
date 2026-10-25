@@ -89,11 +89,11 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('staat online');
-  await expect(page.locator('[data-share-person-panel]')).toBeHidden();
-  await expect(page.locator('.sh-share-side-left')).toHaveCSS('writing-mode','vertical-rl');
-  await page.getByRole('button',{name:'Deel met personen',exact:true}).click();
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();
-  await page.getByRole('button',{name:'Deel met personen',exact:true}).click();
+  await expect(page.locator('[data-share-person-toggle]')).toHaveCount(0);
+  await expect(page.locator('[data-deck-grab] svg')).toHaveCount(0);
+  await expect(page.locator('.sh-share-side-left')).toHaveCSS('writing-mode','vertical-rl');
+  await expect(page.locator('[data-share-person-panel]')).toBeVisible();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
   const dot=page.locator('.sh-sharing-dot');
   await expect(dot).toHaveText('');
@@ -118,6 +118,8 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   await expect(page.locator('[data-share-title]')).toHaveText('Testpas');
   await expect(page.locator('.sh-share-side-right')).toHaveCSS('transform','matrix(-1, 0, 0, -1, 0, 0)');
   const locationToggle=page.getByRole('button',{name:'Locatie meesturen',exact:true});
+  const clearOfButton=await page.locator('[data-qr-status]').evaluate(text=>{const button=document.querySelector('[data-share-location-toggle]');return text.getBoundingClientRect().bottom<=button.getBoundingClientRect().top;});
+  expect(clearOfButton).toBe(true);
   await locationToggle.click();await expect(locationToggle).toHaveAttribute('aria-pressed','true');
   await expect.poll(()=>uploads).toBe(3);
   await expect(page.locator('[data-qr-status]')).toContainText('locatie wordt meegestuurd');

@@ -50,8 +50,13 @@ test('a card is sent only to selected contacts and retry uses the same message i
   await until(()=>app.document.querySelector('[data-share-status]')?.textContent.includes('Kaart verstuurd'));
   assert.equal(seen.length,2);assert.equal(seen[0].id,seen[1].id);
   assert.equal(app.document.querySelector('[data-share-send]').disabled,true);
-  assert.match(app.document.querySelector('[data-sharing-details]').textContent,/Gedeeld met Bram/);
+  assert.match(app.document.querySelector('[data-share-person="BetaUser0001"]').textContent,/Bram.*Gedeeld/);
+  assert.ok(!app.document.querySelector('[data-sharing-details]').textContent.includes('Bram'));
   assert.match(app.document.querySelector('[data-share-status]').textContent,/Bram/);
+  stop();
+  const reopened=openCardShare({id:'PrivateCard1',name:'Mijn pas',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(reopened);
+  await until(()=>app.document.querySelector('[data-share-person="BetaUser0001"]')?.textContent.includes('Gedeeld'));
+  assert.match(app.document.querySelector('[data-share-person="BetaUser0001"]').textContent,/Gedeeld ·/);
   const {saveReceivedCard}=await app.load(modulePath('ui/CardSharing'));
   const message={id:'Received0001',text:seen[1].text};
   const id=await saveReceivedCard(app.store,message);
