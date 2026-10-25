@@ -323,7 +323,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
           </div>
           <div class="sh-card-form-actions">
             <button type="button" data-card-cancel>Annuleren</button>
-            <button type="submit" class="sh-card-form-save">Kaart toevoegen</button>
+            <button type="submit" class="sh-card-form-save" disabled>Kaart toevoegen</button>
           </div>
           <div class="sh-card-section sh-card-more">
             <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="${Boolean((card?.fields || imported?.fields)?.length || card?.cardNumber || imported?.cardNumber || card?.locationId)}"><span>Extra informatie aanvullen</span><span aria-hidden="true">＋</span></button>
@@ -629,6 +629,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       await showList();
     });
     selectedPeople = await mountPersonLinks(form.querySelector('[data-person-links]'),{store,personIds:card?.personIds || []});
+    form.querySelector('.sh-card-form-save').disabled = false;
+    form.setAttribute('data-card-ready', 'true');
   }
 
   if(initialScan&&await isTransferScan(store,initialScan)){const saved=await receiveTransfer(store,initialScan.value);events?.emit(saved.type==='card'?'cards.changed':'location.created',{id:saved.id});if(saved.type==='card')await showDetail(saved.id);else await showList();}
