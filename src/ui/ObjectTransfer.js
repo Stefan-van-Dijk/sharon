@@ -1,7 +1,7 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.97';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.97';
-import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.3.97';
-import { parseCardPayload } from './CardPayload.js?v=0.3.97';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.98';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.98';
+import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.3.98';
+import { parseCardPayload } from './CardPayload.js?v=0.3.98';
 const encode=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=text=>Uint8Array.from(atob(text.replace(/-/g,'+').replace(/_/g,'/')),x=>x.charCodeAt(0));
 const digest=text=>crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));

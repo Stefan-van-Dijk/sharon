@@ -1,8 +1,8 @@
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.3.97';
-import { focusTextField } from './TextInputFocus.js?v=0.3.97';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.97';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.97';
-import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.3.97';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.3.98';
+import { focusTextField } from './TextInputFocus.js?v=0.3.98';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.3.98';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.3.98';
+import { locationConclusion, typeLocationConclusion } from './LocationConclusion.js?v=0.3.98';
 
 export function keyboardInset(viewport, layoutHeight) {
   if (!viewport || !Number.isFinite(layoutHeight)) return 0;

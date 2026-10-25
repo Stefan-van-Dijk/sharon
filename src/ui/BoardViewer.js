@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.97';
-import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.3.97';
-import { createBoardDeck } from './BoardChrome.js?v=0.3.97';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.3.98';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.3.98';
+import { createBoardDeck } from './BoardChrome.js?v=0.3.98';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -178,6 +178,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     catch { return ''; }
   };
   let stopInformation = () => {};
+  let closePolicyEditor = () => {};
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
   const destination = coords?.length === 2 ? {lat: coords[1], lng: coords[0]} : null;
@@ -440,6 +441,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
         if (!owner || closed) return;
         // Personal management action: keep the board itself focused on content.
         const openPolicyEditor = () => {
+          if (closed) return;
+          closePolicyEditor();
+          const previousFocus = document.activeElement;
           const overlay = document.createElement('div');
           overlay.className = 'sh-board-owner-policy-overlay';
           overlay.style.cssText = 'position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:20px';
@@ -448,11 +452,22 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
           const form = overlay.querySelector('form'), status = overlay.querySelector('[role="status"]');
           const policy = information.summary(reference)?.policy || {baseRadius:10000,maxRadius:10000,weight:0.5};
           for (const key of ['baseRadius','maxRadius','weight']) form.elements[key].value = policy[key];
-          const closeEditor = () => { overlay.remove(); window.removeEventListener('keydown', onKey); };
-          const onKey = event => { if (event.key === 'Escape') closeEditor(); };
+          const closeEditor = () => {
+            overlay.remove();
+            window.removeEventListener('keydown', onKey, true);
+            if (closePolicyEditor === closeEditor) closePolicyEditor = () => {};
+            if (previousFocus?.isConnected) previousFocus.focus();
+          };
+          closePolicyEditor = closeEditor;
+          const onKey = event => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            closeEditor();
+          };
           overlay.querySelector('[data-policy-close]').addEventListener('click', closeEditor);
           overlay.addEventListener('click', event => { if (event.target === overlay) closeEditor(); });
-          window.addEventListener('keydown', onKey);
+          window.addEventListener('keydown', onKey, true);
           form.addEventListener('submit', async event => {
             event.preventDefault();
             const next = Object.fromEntries(['baseRadius','maxRadius','weight'].map(key => [key,Number(form.elements[key].value)]));
@@ -468,34 +483,63 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
           document.body.append(overlay);
           dialog.querySelector('[data-policy-close]').focus();
         };
-        let startX = null, startY = null;
-        actions.addEventListener('touchstart', event => {
-          if (event.touches.length !== 1) { startX = null; return; }
-          startX = event.touches[0].clientX;
-          startY = event.touches[0].clientY;
-        }, { passive: true });
-        actions.addEventListener('touchend', event => {
-          if (startX === null || !event.changedTouches.length) return;
-          const dx = event.changedTouches[0].clientX - startX;
-          const dy = event.changedTouches[0].clientY - startY;
-          startX = null;
-          if (dx < -65 && Math.abs(dy) < 35 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        // The whole footer owns this gesture; it must never reach deck navigation.
+        footer.dataset.policySwipe = 'true';
+        let start = null, suppressClickUntil = 0;
+        footer.addEventListener('click', event => {
+          if (Date.now() < suppressClickUntil) {
             event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+        const horizontal = (dx, dy) => Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5;
+        footer.addEventListener('touchstart', event => {
+          event.stopPropagation();
+          start = event.touches.length === 1 ? {x:event.touches[0].clientX,y:event.touches[0].clientY} : null;
+        }, {passive:true});
+        footer.addEventListener('touchmove', event => {
+          event.stopPropagation();
+          if (!start || event.touches.length !== 1) { start = null; return; }
+          const touch = event.touches[0];
+          if (horizontal(touch.clientX-start.x,touch.clientY-start.y) && event.cancelable) event.preventDefault();
+        }, {passive:false});
+        footer.addEventListener('touchend', event => {
+          event.stopPropagation();
+          if (!start || !event.changedTouches.length) return;
+          const dx = event.changedTouches[0].clientX-start.x, dy = event.changedTouches[0].clientY-start.y;
+          start = null;
+          if (dx < -65 && Math.abs(dy) < 35 && horizontal(dx,dy)) {
+            event.preventDefault();
+            suppressClickUntil = Date.now() + 400;
             openPolicyEditor();
           }
-        }, { passive: false });
-        // Trackpad/mouse drag on desktop, without interfering with clicks.
-        let pointerX = null, pointerY = null;
-        actions.addEventListener('pointerdown', event => {
-          if (event.pointerType === 'touch') return;
-          pointerX = event.clientX; pointerY = event.clientY;
+        }, {passive:false});
+        footer.addEventListener('touchcancel', () => { start = null; });
+        let pointer = null;
+        footer.addEventListener('pointerdown', event => {
+          if (event.pointerType === 'touch' || event.button !== 0) return;
+          pointer = {id:event.pointerId,x:event.clientX,y:event.clientY};
         });
-        actions.addEventListener('pointerup', event => {
-          if (pointerX === null || event.pointerType === 'touch') return;
-          const dx = event.clientX - pointerX, dy = event.clientY - pointerY;
-          pointerX = null;
-          if (dx < -65 && Math.abs(dy) < 35 && Math.abs(dx) > Math.abs(dy) * 1.5) openPolicyEditor();
+        footer.addEventListener('pointermove', event => {
+          if (!pointer || pointer.id !== event.pointerId) return;
+          if (horizontal(event.clientX-pointer.x,event.clientY-pointer.y)) {
+            footer.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+          }
         });
+        footer.addEventListener('pointerup', event => {
+          if (!pointer || pointer.id !== event.pointerId) return;
+          const dx=event.clientX-pointer.x, dy=event.clientY-pointer.y;
+          pointer = null;
+          if (footer.hasPointerCapture?.(event.pointerId)) footer.releasePointerCapture(event.pointerId);
+          if (dx < -65 && Math.abs(dy) < 35 && horizontal(dx,dy)) {
+            event.preventDefault();
+            suppressClickUntil = Date.now() + 400;
+            openPolicyEditor();
+          }
+        });
+        footer.addEventListener('pointercancel', () => { pointer = null; });
+        footer.addEventListener('lostpointercapture', () => { pointer = null; });
       }).catch(() => {});
     }
   }
@@ -840,6 +884,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     closed = true;
     abort.abort();
     stopInformation();
+    closePolicyEditor();
     unsubscribe?.();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('deviceorientation', onOrientation);
