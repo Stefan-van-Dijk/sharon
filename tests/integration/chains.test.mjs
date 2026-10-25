@@ -25,7 +25,7 @@ test('card name recognizes a chain, enables its switch and saves the link',async
   assert.equal(form.elements.chainId.value,'Q2262314');assert.equal(form.elements.chainLinkEnabled.checked,true);
   assert.equal(form.querySelector('[data-chain-link]').hidden,false);
   form.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
-  const saved=await until(async()=>(await app.store.getAll('objects')).find(item=>item.type==='card'&&item.name==='Jumbo pas'));
+  const saved=await until(async()=>{ const row=(await app.store.getAll('objects')).find(item=>item.type==='card'&&item.name==='Jumbo pas'); if (!row && form.querySelector('[data-card-error]')?.textContent) throw new Error('Kaart opslaan: '+form.querySelector('[data-card-error]').textContent+'; console: '+app.errors.join(' | ')); return row; });
   assert.equal(saved.chainId,'Q2262314');assert.equal(saved.locationId,null);
  }finally{close?.();app.close();}
 });
@@ -140,7 +140,7 @@ test('chain opt-out survives further typing, unknown names clear the link and no
   form.querySelector('[data-kind="loyalty"]').click();assert.equal(form.elements.chainId.value,'Q2262314');
   form.elements.chainLinkEnabled.checked=false;form.elements.chainLinkEnabled.dispatchEvent(new app.window.Event('change',{bubbles:true}));
   form.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
-  const saved=await until(async()=>(await app.store.getAll('objects')).find(item=>item.name==='Jumbo'));
+  const saved=await until(async()=>{ const row=(await app.store.getAll('objects')).find(item=>item.name==='Jumbo'); if (!row && form.querySelector('[data-card-error]')?.textContent) throw new Error('Opt-out-kaart opslaan: '+form.querySelector('[data-card-error]').textContent+'; console: '+app.errors.join(' | ')); return row; });
   assert.equal(saved.chainId,null);assert.equal(saved.chainLinkEnabled,false);assert.equal(app.requests.length,0);
  }finally{close?.();app.close();}
 });
