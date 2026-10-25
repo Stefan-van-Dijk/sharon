@@ -439,14 +439,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       information.canManage().then(owner => {
         if (!owner || closed) return;
         // Personal management action: keep the board itself focused on content.
-        const manage = document.createElement('button');
-        manage.type = 'button';
-        manage.className = 'sh-board-relevance-manage';
-        manage.setAttribute('aria-label', 'Relevantie van dit board beheren');
-        manage.title = 'Relevantie beheren';
-        manage.textContent = '⚙';
-        manage.style.cssText = 'border:0;background:transparent;color:inherit;opacity:.65;font-size:19px;padding:5px;min-width:32px;min-height:32px';
-        manage.addEventListener('click', () => {
+        const openPolicyEditor = () => {
           const overlay = document.createElement('div');
           overlay.className = 'sh-board-owner-policy-overlay';
           overlay.style.cssText = 'position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:20px';
@@ -474,8 +467,35 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
           });
           document.body.append(overlay);
           dialog.querySelector('[data-policy-close]').focus();
+        };
+        let startX = null, startY = null;
+        actions.addEventListener('touchstart', event => {
+          if (event.touches.length !== 1) { startX = null; return; }
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        }, { passive: true });
+        actions.addEventListener('touchend', event => {
+          if (startX === null || !event.changedTouches.length) return;
+          const dx = event.changedTouches[0].clientX - startX;
+          const dy = event.changedTouches[0].clientY - startY;
+          startX = null;
+          if (dx < -65 && Math.abs(dy) < 35 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            event.preventDefault();
+            openPolicyEditor();
+          }
+        }, { passive: false });
+        // Trackpad/mouse drag on desktop, without interfering with clicks.
+        let pointerX = null, pointerY = null;
+        actions.addEventListener('pointerdown', event => {
+          if (event.pointerType === 'touch') return;
+          pointerX = event.clientX; pointerY = event.clientY;
         });
-        actions.append(manage);
+        actions.addEventListener('pointerup', event => {
+          if (pointerX === null || event.pointerType === 'touch') return;
+          const dx = event.clientX - pointerX, dy = event.clientY - pointerY;
+          pointerX = null;
+          if (dx < -65 && Math.abs(dy) < 35 && Math.abs(dx) > Math.abs(dy) * 1.5) openPolicyEditor();
+        });
       }).catch(() => {});
     }
   }
