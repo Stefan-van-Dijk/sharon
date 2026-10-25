@@ -184,12 +184,34 @@ export class ObjectStore {
     return requestResult(this.#store(storeName).get(key));
   }
 
+  // A successful IDB request is not a committed write: resolve only
+  // after the entire transaction completes, including quota/abort handling.
+  #write(storeName, operation) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve, reject) => {
+      let tx;
+      try {
+        tx = this.#db.transaction(storeName, 'readwrite');
+        const request = operation(tx.objectStore(storeName));
+        let result;
+        request.onsuccess = () => { result = request.result; };
+        // The transaction's abort/error handlers own rejection, preventing
+        // a misleading request-level success before the commit.
+        tx.oncomplete = () => resolve(result);
+        tx.onabort = () => reject(tx.error || request.error || new Error('Opslaan is afgebroken.'));
+        tx.onerror = () => {}; // onabort supplies the final transaction error
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   async put(storeName, value) {
-    return requestResult(this.#store(storeName, 'readwrite').put(value));
+    return this.#write(storeName, table => table.put(value));
   }
 
   async delete(storeName, key) {
-    return requestResult(this.#store(storeName, 'readwrite').delete(key));
+    return this.#write(storeName, table => table.delete(key));
   }
 
   async getAll(storeName) {
