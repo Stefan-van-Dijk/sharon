@@ -1,7 +1,7 @@
 {
   "name": "sharon-app",
   "private": true,
-  "version": "0.4.02",
+  "version": "0.4.03",
   "type": "module",
   "scripts": {
     "test:pwa": "playwright test",

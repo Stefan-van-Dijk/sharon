@@ -115,3 +115,22 @@ test('share board collapses people, ranks linked contacts and renews encrypted Q
  const card=await receiver.store.get('objects',result.id);assert.ok(card.locationId);
  assert.equal((await receiver.store.get('objects',card.locationId)).data.title,'Winkel');
 });
+
+test('late QR status cannot overwrite a location choice made while the share board initializes',async t=>{
+ const {app}=await setup(t);app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));
+ await app.store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',address:{text:'Dorpsstraat 1'}}});
+ await app.store.put('meta',{key:'sharing.qr.Transfer0001',value:{id:'Transfer0001',access:'a'.repeat(43),sourceId:'PrivateCard1',includeLocation:false,state:'online',expiresAt:Date.now()+86400000}});
+ let release;const gate=new Promise(resolve=>release=resolve);const getAll=app.store.getAll.bind(app.store);
+ app.store.getAll=async table=>{if(table==='meta')await gate;return getAll(table);};
+ const publications=[];
+ app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);
+ if(q.action==='share-publish')publications.push(q);
+ return {ok:true,status:200,json:async()=>q.action==='share-read'?{payload:{iv:'test',data:'test'}}:{ok:true}};};
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ const close=openCardShare({id:'PrivateCard1',type:'card',name:'Pas',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(close);
+ const choice=app.document.querySelector('[data-share-location]');choice.click();assert.equal(choice.checked,true);
+ release();await until(()=>app.document.querySelector('[data-share-qr-code] svg'));
+ assert.equal(choice.checked,true);assert.equal(publications.length,1);
+ const rows=await getAll('meta');const current=rows.find(row=>row.key.startsWith('sharing.qr.')&&row.value.state==='online');
+ assert.equal(current.value.includeLocation,true);assert.ok(current.value.relatedIds.includes('PrivateHome1'));
+});
