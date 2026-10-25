@@ -134,3 +134,23 @@ test('late QR status cannot overwrite a location choice made while the share boa
  const rows=await getAll('meta');const current=rows.find(row=>row.key.startsWith('sharing.qr.')&&row.value.state==='online');
  assert.equal(current.value.includeLocation,true);assert.ok(current.value.relatedIds.includes('PrivateHome1'));
 });
+
+test('share board reuses deck resizing, dragging, cancellation and pull-down close with independent layout',async t=>{
+ const {app}=await setup(t);app.window.fetch=async()=>{throw new TypeError('Offline');};
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ const stop=openCardShare({id:'PrivateCard1',type:'card',name:'Pas',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(stop);
+ const board=app.document.querySelector('.sh-share-board'),stack=board.parentElement;
+ assert.equal(board.querySelector('[data-share-close]'),null);assert.equal(board.querySelectorAll('[data-deck-size]').length,2);
+ assert.ok(board.querySelector('.sh-share-side-right[data-qr-status]'));
+ function pointer(target,type,x,y){const e=new app.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',button:0,clientX:x,clientY:y});target.dispatchEvent(e);}
+ const resizer=board.querySelector('[data-deck-size="media"]');const before=stack.style.getPropertyValue('--card-deck-media');
+ pointer(resizer,'pointerdown',100,200);pointer(app.window,'pointermove',100,240);pointer(app.window,'pointercancel',100,240);
+ assert.equal(stack.style.getPropertyValue('--card-deck-media'),before);
+ pointer(resizer,'pointerdown',100,200);pointer(app.window,'pointermove',100,230);pointer(app.window,'pointerup',100,230);
+ await until(async()=>await app.store.get('meta','sharing.board.layout'));
+ assert.equal(await app.store.get('meta','cards.board.layout'),undefined);
+ const grab=board.querySelector('[data-deck-grab]');pointer(grab,'pointerdown',100,100);pointer(app.window,'pointermove',130,100);pointer(app.window,'pointermove',150,120);pointer(app.window,'pointerup',150,120);
+ assert.equal(stack.style.getPropertyValue('--card-deck-x'),'20px');
+ const title=board.querySelector('[data-share-title]');pointer(title,'pointerdown',100,100);pointer(app.window,'pointermove',100,210);pointer(app.window,'pointerup',100,210);
+ assert.equal(app.document.querySelector('.sh-card-share-overlay'),null);
+});

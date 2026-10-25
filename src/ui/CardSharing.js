@@ -1,19 +1,22 @@
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.03';
-import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.4.03';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.03';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.03';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.03';
-import { renderCardCode } from './CardCodes.js?v=0.4.03';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.03';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.03';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.03';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.03';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.04';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.04';
+import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.4.04';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.04';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.04';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.04';
+import { renderCardCode } from './CardCodes.js?v=0.4.04';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.04';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.04';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.04';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.04';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}}) {
   const isLocation=card.type==='location';
   const layer=document.createElement('div');layer.className='sh-card-share-overlay';
-  layer.innerHTML='<section class="sh-card-share-dialog sh-share-board" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><header class="sh-share-board-header"><h2 data-share-title></h2><button type="button" data-share-close aria-label="Sluiten">×</button></header><div class="sh-share-qr-panel"><span class="sh-share-side sh-share-side-left" data-share-kind>Deel kaart</span><div data-share-qr-slot></div><span class="sh-share-side sh-share-side-right">Scan in Sharon</span></div><p role="status" data-qr-status></p><div class="sh-share-board-info"><div data-share-location-option hidden><label class="sh-person-choice"><input type="checkbox" data-share-location>Locatie meesturen in QR en bericht</label><p data-share-location-preview></p></div><div data-share-summary-slot></div><button type="button" data-share-person-toggle aria-expanded="false">Deel met personen</button><div data-share-person-panel hidden><label>Zoek een persoon<input type="search" data-share-search></label><p data-share-suggestions>Suggesties op basis van locatie en recente contacten</p><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div><p role="status" data-share-status>Contacten laden…</p></div></section>';
-  const surface=layer.firstElementChild;wrapBoardSurface(layer,surface);
+  layer.innerHTML='<section class="sh-card-share-dialog sh-share-board" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><div class="sh-share-fixed sh-card-media" data-card-media><button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button><header class="sh-share-board-header"><h2 data-share-title></h2></header><div class="sh-share-qr-panel"><span class="sh-share-side sh-share-side-left" data-share-kind>Deel kaart</span><div data-share-qr-slot></div><span class="sh-share-side sh-share-side-right" role="status" data-qr-status>Scan in Sharon</span></div><button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts en sleep om het deelboard te verplaatsen" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span>Deel kaart</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button><button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van QR en informatie aanpassen"></button></div><div class="sh-share-board-info"><div data-share-location-option hidden><label class="sh-person-choice"><input type="checkbox" data-share-location>Locatie meesturen in QR en bericht</label><p data-share-location-preview></p></div><div data-share-summary-slot></div><button type="button" data-share-person-toggle aria-expanded="false">Deel met personen</button><div data-share-person-panel hidden><label>Zoek een persoon<input type="search" data-share-search></label><p data-share-suggestions>Suggesties op basis van locatie en recente contacten</p><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div><p role="status" data-share-status>Contacten laden…</p></div></section>';
+  const surface=layer.firstElementChild;surface.dataset.cardBoard='';surface.tabIndex=-1;
+  const stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');
+  let gestures=null;
   layer.querySelector('[data-share-title]').textContent=card.name||card.data?.title||'Locatie';
   if(isLocation){layer.querySelector('[data-share-kind]').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
@@ -45,8 +48,8 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
     onStatusChange();
   };
   const locationChoice=layer.querySelector('[data-share-location]');
-  const close=()=>{if(busy)return;if(disposed)return;disposed=true;layer.remove();onClose();};
-  const dispose=()=>{disposed=true;layer.remove();};
+  const close=()=>{if(busy)return;if(disposed)return;disposed=true;gestures?.dispose();layer.remove();onClose();};
+  const dispose=()=>{disposed=true;gestures?.dispose();layer.remove();};
   const status=message=>{if(!disposed)layer.querySelector('[data-share-status]').textContent=message;};
   const send=layer.querySelector('[data-share-send]');
   const paint=()=>{
@@ -74,7 +77,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
   });
   locationChoice.addEventListener('change',()=>{locationTouched=true;code.replaceChildren();qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
   layer.querySelector('[data-share-search]').addEventListener('input',paint);
-  layer.querySelector('[data-share-close]').addEventListener('click',close);
+  gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore:store,layoutKey:'sharing.board.layout'});
   layer.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();close();}});
   layer.addEventListener('click',event=>{if(event.target===layer)close();});
   send.addEventListener('click',async()=>{
@@ -128,9 +131,9 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
     const reference=reusable?existingQr.id:await publishTransfer(store,qrText,{source:qrSource});
     if(previous&&!reusable){
       try{await service.request('share-ack',{id:previous.id,access:previous.access});await store.put('meta',{key:'sharing.qr.'+previous.id,value:{...previous,state:'missing'}});}catch{retirementWarning=' Vorige QR kon nog niet worden ingetrokken.';}
-    }await paintSharing();if(disposed)return;if(includedAtStart!==(!isLocation&&locationChoice.checked)){qrQueued=true;return;}await renderCardCode(code,'QR_CODE',reference);if(includedAtStart!==(!isLocation&&locationChoice.checked)){code.replaceChildren();qrQueued=true;return;}qr.hidden=true;qrStatus.textContent='QR-code staat online. Na opslaan door de ontvanger verdwijnt het tijdelijke bestand. Maximaal zeven dagen geldig.'+retirementWarning;
+    }await paintSharing();if(disposed)return;if(includedAtStart!==(!isLocation&&locationChoice.checked)){qrQueued=true;return;}await renderCardCode(code,'QR_CODE',reference);if(includedAtStart!==(!isLocation&&locationChoice.checked)){code.replaceChildren();qrQueued=true;return;}qr.hidden=true;qrStatus.textContent='Scan in Sharon. QR-code staat online. Na opslaan door de ontvanger verdwijnt het tijdelijke bestand. Maximaal zeven dagen geldig.'+retirementWarning;
   }catch(error){if(!disposed){qrStatus.textContent=error.message;qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed)qr.click();});}}}});
   paintSharing().then(()=>disposed?null:refreshQrShares(store,card.id,{force:true})).then(paintSharing).catch(()=>{}).finally(()=>{checking=false;if(!disposed)paint();});
-  layer.querySelector('[data-share-close]').focus();
+  surface.focus();
   return dispose;
 }

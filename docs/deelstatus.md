@@ -24,3 +24,7 @@ Instellingen → Netwerkverbinding toont de laatst bekende rol van de netwerkide
 Het deelvenster gebruikt de gedeelde boardstapel. Bovenaan staat de kaarttitel; naast de QR staan verticaal Deel kaart en Scan in Sharon. Locatie meesturen geldt nu voor zowel QR als chatbericht. Bij het wijzigen wordt een nieuwe QR aangemaakt en de vorige via het bestaande deelprotocol ingetrokken; een mislukte intrekking wordt expliciet vermeld. Na verzending blijft de keuze vergrendeld zodat een herhaalde verzendpoging dezelfde inhoud behoudt. Heropenen laat de eerder gekozen QR-locatiekeuze zien.
 
 De samenvatting is standaard zichtbaar. Deel met personen klapt de personenkeuze open. Maximaal zes suggesties worden getoond: contacten gekoppeld aan de kaart of haar locatie eerst, daarna recente contacten. Zoeken doorzoekt alle contacten, ongeacht de suggestielimiet. Dit gebruikt bestaande lokale relaties en activiteit, zonder extra GPS-tracking.
+
+## Bediening vanaf 0.4.04
+
+De QR-uitleg staat rechts naast de QR, 90 graden gedraaid. Titel en QR blijven vast terwijl het informatiedeel scrolt. De bovenste greep verandert de boardhoogte; de greep tussen QR en informatie verandert hun verdeling. Swipe de pil naar rechts en sleep daarna om het hele board te verplaatsen. Omlaag swipen over het vaste QR-deel sluit het board; scrollen in de informatie sluit het niet. Escape blijft beschikbaar. Hoogte en positie worden apart bewaard onder sharing.board.layout en beïnvloeden andere boards niet. Er is geen sluitkruisje meer.
