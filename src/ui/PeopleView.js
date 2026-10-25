@@ -1,15 +1,15 @@
-import { parseLocationPayload, saveReceivedLocation } from './ReceivedObjects.js?v=0.4.02';
-import { parseCardPayload } from './CardPayload.js?v=0.4.02';
-import { saveReceivedCard } from './CardSharing.js?v=0.4.02';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.02';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.02';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.02';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.02';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.02';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.02';
-import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.4.02';
-import { mountCardScanner } from './CardScanner.js?v=0.4.02';
-import { renderCardCode } from './CardCodes.js?v=0.4.02';
+import { parseLocationPayload, saveReceivedLocation } from './ReceivedObjects.js?v=0.4.03';
+import { parseCardPayload } from './CardPayload.js?v=0.4.03';
+import { saveReceivedCard } from './CardSharing.js?v=0.4.03';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.03';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.03';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.03';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.03';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.03';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.03';
+import { ConnectionService, parseConnectionLink, connectionLink } from '../core/connection/ConnectionService.js?v=0.4.03';
+import { mountCardScanner } from './CardScanner.js?v=0.4.03';
+import { renderCardCode } from './CardCodes.js?v=0.4.03';
 
 const css = '.sh-people{max-width:640px;margin:auto;padding-bottom:32px}.sh-people h2{font-weight:400;font-size:21px}.sh-people p{line-height:1.5}.sh-people label:not(.sh-list-search){display:block;margin:18px 0}.sh-people input:not([data-list-search]),.sh-people textarea{box-sizing:border-box;width:100%;padding:13px;font:inherit;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717}.sh-people button:not([data-swipe-surface]):not([data-swipe-edit]):not([data-swipe-delete]):not([data-list-sort]):not([data-list-drag]){font:inherit;min-height:44px;padding:10px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;color:#171717;cursor:pointer}.sh-people button:disabled{opacity:.55;cursor:wait}.sh-people [data-swipe-surface]:disabled{opacity:1}.sh-people form button[type=submit]{background:#171717;color:white}.sh-people code{display:block;font-size:19px;letter-spacing:1px;overflow-wrap:anywhere}.sh-chat-messages{display:grid;gap:10px;margin:16px 0;max-height:48dvh;overflow-y:auto}.sh-chat-message{max-width:88%;padding:12px;background:#eee;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}.sh-chat-message.is-own{justify-self:end;background:#e4eee9}.sh-chat-message small{display:block;white-space:normal;color:#555;font-size:11px;margin-top:6px}.sh-chat-message p{margin:0}.sh-people [data-qr]{max-width:300px;background:#fff;margin:20px auto}.sh-people [role=status]{min-height:24px;color:#555}.sh-people .sh-connection-actions{display:flex;flex-wrap:wrap;gap:8px}';
 

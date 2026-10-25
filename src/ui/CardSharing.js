@@ -1,13 +1,13 @@
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.02';
-import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.4.02';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.02';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.02';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.02';
-import { renderCardCode } from './CardCodes.js?v=0.4.02';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.02';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.02';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.02';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.02';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.03';
+import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.4.03';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.03';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.03';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.03';
+import { renderCardCode } from './CardCodes.js?v=0.4.03';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.03';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.03';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.03';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.03';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}}) {
   const isLocation=card.type==='location';
@@ -18,7 +18,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
   if(isLocation){layer.querySelector('[data-share-kind]').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
   const service=new ConnectionService(store),selected=new Set(),sent=new Set(),retries=new Map();
-  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,personPanelOpen=false;
+  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,personPanelOpen=false,locationTouched=false,qrQueued=false;
   let relatedPeople=new Set();
   const source=()=>({id:card.id,relatedIds:!isLocation&&locationChoice.checked&&card.locationId?[card.locationId]:[]});
   const sharing=document.createElement('div');sharing.className='sh-sharing-details';sharing.setAttribute('role','status');
@@ -40,7 +40,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
       }
     }
     existingQr=rows.find(row=>row.sourceId===card.id&&row.channel==='qr'&&['online','unknown'].includes(row.state)&&row.expiresAt>Date.now());
-    if(existingQr&&!autoQr)locationChoice.checked=Boolean(existingQr.includeLocation);
+    if(existingQr&&!autoQr&&!locationTouched&&!busy&&shareText===null)locationChoice.checked=Boolean(existingQr.includeLocation);
     qr.textContent=existingQr?'Toon gedeelde QR':'Deel via korte QR';
     onStatusChange();
   };
@@ -65,14 +65,14 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
     qr.disabled=qrBusy||!ready||checking;
     if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed)qr.click();});}
     send.disabled=busy||![...selected].some(id=>!sent.has(id));
-    locationChoice.disabled=busy||qrBusy||shareText!==null;
+    locationChoice.disabled=busy||shareText!==null;
   };
   layer.querySelector('[data-share-person-toggle]').addEventListener('click',()=>{
     personPanelOpen=!personPanelOpen;layer.querySelector('[data-share-person-panel]').hidden=!personPanelOpen;
     layer.querySelector('[data-share-person-toggle]').setAttribute('aria-expanded',String(personPanelOpen));
     sharing.hidden=personPanelOpen;paint();if(personPanelOpen)layer.querySelector('[data-share-search]').focus();
   });
-  locationChoice.addEventListener('change',()=>{code.replaceChildren();qr.hidden=false;qr.click();});
+  locationChoice.addEventListener('change',()=>{locationTouched=true;code.replaceChildren();qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
   layer.querySelector('[data-share-search]').addEventListener('input',paint);
   layer.querySelector('[data-share-close]').addEventListener('click',close);
   layer.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();close();}});
@@ -119,15 +119,17 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
   layer.querySelector('[data-share-qr-slot]').append(code);layer.querySelector('.sh-share-board-info').prepend(qr);
   const qrStatus=layer.querySelector('[data-qr-status]');
   qr.addEventListener('click',async()=>{if(disposed||qrBusy||!ready||checking)return;qrBusy=true;qr.disabled=true;let retirementWarning='';qrStatus.textContent='QR-code voorbereiden…';try{
+    const includedAtStart=!isLocation&&locationChoice.checked;
+    const qrSource={id:card.id,relatedIds:includedAtStart&&card.locationId?[card.locationId]:[],includeLocation:includedAtStart};
     const qrText=isLocation?buildLocationPayload(location):buildCardPayload(card,{location:locationChoice.checked?location:null});
-    paint();const includeLocation=!isLocation&&locationChoice.checked;
+    paint();const includeLocation=includedAtStart;
     const reusable=existingQr&&Boolean(existingQr.includeLocation)===includeLocation;
     const previous=existingQr;
-    const reference=reusable?existingQr.id:await publishTransfer(store,qrText,{source:{...source(),includeLocation}});
+    const reference=reusable?existingQr.id:await publishTransfer(store,qrText,{source:qrSource});
     if(previous&&!reusable){
       try{await service.request('share-ack',{id:previous.id,access:previous.access});await store.put('meta',{key:'sharing.qr.'+previous.id,value:{...previous,state:'missing'}});}catch{retirementWarning=' Vorige QR kon nog niet worden ingetrokken.';}
-    }await paintSharing();if(disposed)return;await renderCardCode(code,'QR_CODE',reference);qr.hidden=true;qrStatus.textContent='QR-code staat online. Na opslaan door de ontvanger verdwijnt het tijdelijke bestand. Maximaal zeven dagen geldig.'+retirementWarning;
-  }catch(error){if(!disposed){qrStatus.textContent=error.message;qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});}}});
+    }await paintSharing();if(disposed)return;if(includedAtStart!==(!isLocation&&locationChoice.checked)){qrQueued=true;return;}await renderCardCode(code,'QR_CODE',reference);if(includedAtStart!==(!isLocation&&locationChoice.checked)){code.replaceChildren();qrQueued=true;return;}qr.hidden=true;qrStatus.textContent='QR-code staat online. Na opslaan door de ontvanger verdwijnt het tijdelijke bestand. Maximaal zeven dagen geldig.'+retirementWarning;
+  }catch(error){if(!disposed){qrStatus.textContent=error.message;qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed)qr.click();});}}}});
   paintSharing().then(()=>disposed?null:refreshQrShares(store,card.id,{force:true})).then(paintSharing).catch(()=>{}).finally(()=>{checking=false;if(!disposed)paint();});
   layer.querySelector('[data-share-close]').focus();
   return dispose;
