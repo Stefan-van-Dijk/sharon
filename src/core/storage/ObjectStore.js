@@ -134,7 +134,12 @@ export class ObjectStore {
             failure=new Error('Dit bericht heeft een conflicterende identiteit.');
             tx.abort();return;
           }
-          objects.put(message);
+          // Chat sync must preserve the sender's local source link. It is never
+          // included in the server payload and cannot be reconstructed later.
+          objects.put({...message,...(old?.sharedObjectId?{
+            sharedObjectId:old.sharedObjectId,sharedRelatedIds:old.sharedRelatedIds||[],
+            sharedConfirmedAt:message.sharedConfirmedAt||old.sharedConfirmedAt
+          }:{})});
         };
       }
       if(cursor!==null) {

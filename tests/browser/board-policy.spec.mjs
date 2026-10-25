@@ -62,3 +62,40 @@ test('non-owner cannot open relevance management',async({page})=>{
   await open(page,false);await swipe(page,'.sh-board-footer');
   await expect(page.locator('.sh-board-owner-policy-overlay')).toHaveCount(0);
 });
+
+test('shared card shows online status and clears it when the temporary QR file disappears',async({page})=>{
+  await open(page);
+  let remote=null,uploads=0;
+  await page.route('https://sharon.life/log/api/connections.php',async route=>{
+    const input=route.request().postDataJSON();
+    if(input.action==='share-publish'){
+      remote=input;uploads++;await route.fulfill({status:200,json:{ok:true}});
+    }else if(input.action==='share-read'){
+      await route.fulfill(remote?{status:200,json:{payload:remote.payload}}:{status:410,json:{error:'share_unavailable'}});
+    }else await route.abort();
+  });
+  await page.evaluate(async version=>{
+    window.closeBoard();
+    const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
+    const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
+    const store=await new ObjectStore().open();
+    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
+    const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
+    await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
+  },version);
+  await page.locator('[data-swipe-share]').click();
+  await page.getByRole('button',{name:'Deel via korte QR',exact:true}).click();
+  await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
+  await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
+  await page.getByRole('button',{name:'Sluiten',exact:true}).click();
+  await page.locator('[data-swipe-share]').click();
+  await page.getByRole('button',{name:'Toon gedeelde QR',exact:true}).click();
+  await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
+  expect(uploads).toBe(1);
+  await page.getByRole('button',{name:'Sluiten',exact:true}).click();
+  remote=null;
+  await page.locator('[data-swipe-share]').click();
+  await expect(page.locator('[data-sharing-state="offline"]')).toHaveCount(1);
+  await expect(page.locator('[data-sharing-details]')).toContainText('opgehaald of verwijderd');
+  expect(uploads).toBe(1);
+});
