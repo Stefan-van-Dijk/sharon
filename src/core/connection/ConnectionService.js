@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.100';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.100';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.01';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.01';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -281,11 +281,11 @@ export class ConnectionService {
       let id;
       do { id=IdentifierService.create(); } while(await this.store.get('objects',id));
       message={id,type:'chat-message',chatId,senderId:d.personId,text,
-        createdAt:Date.now(),delivery:'pending',...(source?.id?{sharedObjectId:IdentifierService.assert(source.id),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))}:{})};
+        createdAt:Date.now(),delivery:'pending',...(source?.id?{sharedObjectId:IdentifierService.assert(source.id),sharedRecipientName:String(source.recipientName||'').slice(0,240),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))}:{})};
       await this.store.saveChatMessages(chatId,[message]);
     }
     if(source?.id&&!message.sharedObjectId){
-      message={...message,sharedObjectId:IdentifierService.assert(source.id),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))};
+      message={...message,sharedObjectId:IdentifierService.assert(source.id),sharedRecipientName:String(source.recipientName||'').slice(0,240),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))};
       await this.store.saveChatMessages(chatId,[message]);
     }
     const result=await this.request('send',{id:message.id,chatId,text:message.text},d);

@@ -86,8 +86,8 @@ test('shared card shows online status and clears it when the temporary QR file d
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
   await page.locator('[data-swipe-share]').click();
-  await page.getByRole('button',{name:'Deel via korte QR',exact:true}).click();
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
+  await expect(page.locator('[data-qr-status]')).toContainText('staat online');
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
   const dot=page.locator('.sh-sharing-dot');
   await expect(dot).toHaveText('');
@@ -98,7 +98,6 @@ test('shared card shows online status and clears it when the temporary QR file d
   await expect(dot).toHaveCSS('top','10px');
   await page.getByRole('button',{name:'Sluiten',exact:true}).click();
   await page.locator('[data-swipe-share]').click();
-  await page.getByRole('button',{name:'Toon gedeelde QR',exact:true}).click();
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   expect(uploads).toBe(1);
   await page.getByRole('button',{name:'Sluiten',exact:true}).click();

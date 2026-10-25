@@ -137,7 +137,7 @@ export class ObjectStore {
           // Chat sync must preserve the sender's local source link. It is never
           // included in the server payload and cannot be reconstructed later.
           objects.put({...message,...(old?.sharedObjectId?{
-            sharedObjectId:old.sharedObjectId,sharedRelatedIds:old.sharedRelatedIds||[],
+            sharedObjectId:old.sharedObjectId,sharedRecipientName:old.sharedRecipientName||'',sharedRelatedIds:old.sharedRelatedIds||[],
             sharedConfirmedAt:message.sharedConfirmedAt||old.sharedConfirmedAt
           }:{})});
         };

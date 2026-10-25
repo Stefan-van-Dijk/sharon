@@ -1,4 +1,4 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.100';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.01';
 const QR_PREFIX='sharing.qr.';
 export const qrShareKey=id=>QR_PREFIX+id;
 export async function sharingRecords(store,objectId){
@@ -6,7 +6,7 @@ export async function sharingRecords(store,objectId){
   return [
     ...meta.filter(row=>row.key.startsWith(QR_PREFIX)).map(row=>({...row.value,channel:'qr'})),
     ...objects.filter(row=>row.type==='chat-message'&&row.sharedObjectId).map(row=>({
-      id:row.id,sourceId:row.sharedObjectId,relatedIds:row.sharedRelatedIds||[],channel:'chat',chatId:row.chatId,
+      id:row.id,sourceId:row.sharedObjectId,relatedIds:row.sharedRelatedIds||[],channel:'chat',chatId:row.chatId,recipientName:row.sharedRecipientName||'',
       state:row.delivery==='sent'?'sent':'pending',verifiedAt:row.sharedConfirmedAt||row.updatedAt||row.at||row.createdAt
     }))
   ].filter(row=>!objectId||(row.sourceId===objectId||row.relatedIds?.includes(objectId)));

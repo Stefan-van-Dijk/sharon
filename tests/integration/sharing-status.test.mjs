@@ -25,7 +25,6 @@ test('QR upload tracks source only locally, survives closing share sheet and reu
   const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
   let close=openCardShare(card,{store:app.store});
   await until(()=>!app.document.querySelector('[data-share-qr]').disabled);
-  app.document.querySelector('[data-share-qr]').click();
   await until(()=>app.document.querySelector('[data-sharing-details]').textContent.includes('QR-deling online'));
   close();assert.equal(publishes,1);assert.ok(!JSON.stringify(entry).includes(card.id));
   const rows=await sharingRecords(app.store,card.id);assert.equal(rows.length,1);assert.equal(rows[0].state,'online');
@@ -34,7 +33,6 @@ test('QR upload tracks source only locally, survives closing share sheet and reu
   assert.ok(!root.innerHTML.includes(rows[0].id));assert.ok(!root.innerHTML.includes(rows[0].access));
   close=openCardShare(card,{store:app.store});t.after(close);
   await until(()=>app.document.querySelector('[data-share-qr]').textContent==='Toon gedeelde QR'&&!app.document.querySelector('[data-share-qr]').disabled);
-  app.document.querySelector('[data-share-qr]').click();
   await until(()=>app.document.querySelector('[data-share-qr-code] svg'));
   assert.equal(publishes,1);
 });
