@@ -438,27 +438,44 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       information.load([reference]).then(syncNotice).catch(() => { if (!closed) syncStatus.textContent = 'Waardering wacht op verbinding'; });
       information.canManage().then(owner => {
         if (!owner || closed) return;
-        const editor = document.createElement('details');
-        editor.innerHTML = '<summary>Relevantie instellen</summary><form style="display:grid;gap:8px;padding-top:8px"><label>Basisbereik (meter) <input name="baseRadius" type="number" min="0" max="100000" step="1" required></label><label>Maximaal bereik (meter) <input name="maxRadius" type="number" min="0" max="100000" step="1" required></label><label>Redactionele waardering (0–1) <input name="weight" type="number" min="0" max="1" step="0.1" required></label><button type="submit">Bewaren</button><small role="status"></small></form>';
-        const form = editor.querySelector('form'), status = editor.querySelector('[role="status"]');
-        editor.addEventListener('toggle', () => {
-          if (!editor.open) return;
+        // Personal management action: keep the board itself focused on content.
+        const manage = document.createElement('button');
+        manage.type = 'button';
+        manage.className = 'sh-board-relevance-manage';
+        manage.setAttribute('aria-label', 'Relevantie van dit board beheren');
+        manage.title = 'Relevantie beheren';
+        manage.textContent = '⚙';
+        manage.style.cssText = 'border:0;background:transparent;color:inherit;opacity:.65;font-size:19px;padding:5px;min-width:32px;min-height:32px';
+        manage.addEventListener('click', () => {
+          const overlay = document.createElement('div');
+          overlay.className = 'sh-board-owner-policy-overlay';
+          overlay.style.cssText = 'position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:20px';
+          overlay.innerHTML = '<section role="dialog" aria-modal="true" aria-label="Relevantie beheren" style="background:var(--card-bg,#fff);color:var(--text-color,#222);border-radius:18px;max-width:340px;width:100%;padding:20px;box-sizing:border-box;box-shadow:0 16px 50px #0003"><header style="display:flex;align-items:center;justify-content:space-between;gap:10px"><strong>Relevantie</strong><button type="button" data-policy-close aria-label="Sluiten">✕</button></header><p style="font-size:13px;opacity:.7">Alleen zichtbaar voor beheerders.</p><form style="display:grid;gap:12px"><label>Basisbereik (m)<input name="baseRadius" type="number" min="0" max="100000" step="1" required style="width:100%"></label><label>Maximum (m)<input name="maxRadius" type="number" min="0" max="100000" step="1" required style="width:100%"></label><label>Waardering (0–1)<input name="weight" type="number" min="0" max="1" step="0.1" required style="width:100%"></label><button type="submit">Bewaren</button><small role="status"></small></form></section>';
+          const dialog = overlay.querySelector('[role="dialog"]');
+          const form = overlay.querySelector('form'), status = overlay.querySelector('[role="status"]');
           const policy = information.summary(reference)?.policy || {baseRadius:10000,maxRadius:10000,weight:0.5};
           for (const key of ['baseRadius','maxRadius','weight']) form.elements[key].value = policy[key];
+          const closeEditor = () => { overlay.remove(); window.removeEventListener('keydown', onKey); };
+          const onKey = event => { if (event.key === 'Escape') closeEditor(); };
+          overlay.querySelector('[data-policy-close]').addEventListener('click', closeEditor);
+          overlay.addEventListener('click', event => { if (event.target === overlay) closeEditor(); });
+          window.addEventListener('keydown', onKey);
+          form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const next = Object.fromEntries(['baseRadius','maxRadius','weight'].map(key => [key,Number(form.elements[key].value)]));
+            if (next.baseRadius > next.maxRadius) { status.textContent = 'Basisbereik moet binnen het maximum vallen.'; return; }
+            const save = form.querySelector('[type="submit"]'); save.disabled = true;
+            try {
+              await information.setPolicy(reference,next,{title:String(feature.properties?.title || '').slice(0,500),categories:feature.properties?.categories || [],location:destination});
+              status.textContent = 'Bewaard.';
+              closeEditor();
+            } catch { status.textContent = 'Bewaren mislukt. Controleer je verbinding.'; }
+            finally { save.disabled = false; }
+          });
+          document.body.append(overlay);
+          dialog.querySelector('[data-policy-close]').focus();
         });
-        form.addEventListener('submit', async event => {
-          event.preventDefault();
-          const policy = Object.fromEntries(['baseRadius','maxRadius','weight'].map(key=>[key,Number(form.elements[key].value)]));
-          if (policy.baseRadius > policy.maxRadius) { status.textContent = 'Basisbereik moet binnen het maximale bereik vallen.'; return; }
-          const button = form.querySelector('button'); button.disabled = true;
-          try {
-            await information.setPolicy(reference, policy, {title:String(feature.properties?.title || '').slice(0,500),
-              categories:feature.properties?.categories || [], location:destination});
-            status.textContent = 'Relevantie opgeslagen.';
-          } catch { status.textContent = 'Bewaren mislukt. Controleer je verbinding.'; }
-          finally { button.disabled = false; }
-        });
-        footer.append(editor);
+        actions.append(manage);
       }).catch(() => {});
     }
   }
