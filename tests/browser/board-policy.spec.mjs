@@ -63,7 +63,7 @@ test('non-owner cannot open relevance management',async({page})=>{
   await expect(page.locator('.sh-board-owner-policy-overlay')).toHaveCount(0);
 });
 
-test('shared card shows online status and clears it when the temporary QR file disappears',async({page})=>{
+test('sharing opens QR automatically, reuses it and replaces a consumed transfer',async({page})=>{
   await open(page);
   const statusStyles=readFileSync('index.html','utf8').split('\n').filter(line=>line.includes('.sh-sharing-dot')||line.includes('.sh-strip--accent .sh-strip-surface{position:relative}')).join('\n');
   await page.addStyleTag({content:statusStyles});
@@ -103,7 +103,8 @@ test('shared card shows online status and clears it when the temporary QR file d
   await page.getByRole('button',{name:'Sluiten',exact:true}).click();
   remote=null;
   await page.locator('[data-swipe-share]').click();
-  await expect(page.locator('[data-sharing-state="offline"]')).toHaveCount(1);
+  await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
+  await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
   await expect(page.locator('[data-sharing-details]')).toContainText('opgehaald of verwijderd');
-  expect(uploads).toBe(1);
+  expect(uploads).toBe(2);
 });
