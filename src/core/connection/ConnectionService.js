@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.98';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.98';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.3.99';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.3.99';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -267,7 +267,7 @@ export class ConnectionService {
     }
     return this.cachedMessages(chatId);
   }
-  async send(chatId, text, retryId = '') {
+  async send(chatId, text, retryId = '', {source} = {}) {
     IdentifierService.assert(chatId);
     const d=await this.device();
     let message;
@@ -281,14 +281,18 @@ export class ConnectionService {
       let id;
       do { id=IdentifierService.create(); } while(await this.store.get('objects',id));
       message={id,type:'chat-message',chatId,senderId:d.personId,text,
-        createdAt:Date.now(),delivery:'pending'};
+        createdAt:Date.now(),delivery:'pending',...(source?.id?{sharedObjectId:IdentifierService.assert(source.id),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))}:{})};
+      await this.store.saveChatMessages(chatId,[message]);
+    }
+    if(source?.id&&!message.sharedObjectId){
+      message={...message,sharedObjectId:IdentifierService.assert(source.id),sharedRelatedIds:(source.relatedIds||[]).map(id=>IdentifierService.assert(id))};
       await this.store.saveChatMessages(chatId,[message]);
     }
     const result=await this.request('send',{id:message.id,chatId,text:message.text},d);
     const m=result.message;
     if(m?.id!==message.id||m.chatId!==chatId||m.senderId!==d.personId||m.text!==message.text||!Number.isSafeInteger(m.seq))
       throw Error('De ontvangst is niet bevestigd. Je kunt hetzelfde bericht opnieuw proberen.');
-    await this.store.saveChatMessages(chatId,[{...message,...m,delivery:'sent',updatedAt:m.at}]);
+    await this.store.saveChatMessages(chatId,[{...message,...m,delivery:'sent',updatedAt:m.at,...(message.sharedObjectId?{sharedConfirmedAt:Date.now()}:{})}]);
     return m;
   }
 }
