@@ -1,22 +1,22 @@
-import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.3.100';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.3.100';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.3.100';
-import { publishTransfer } from './ObjectTransfer.js?v=0.3.100';
-import { renderCardCode } from './CardCodes.js?v=0.3.100';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.3.100';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.3.100';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.3.100';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.3.100';
+import { sharingRecords, sharingSummary, refreshQrShares } from './SharingStatus.js?v=0.4.01';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.01';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.01';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.01';
+import { renderCardCode } from './CardCodes.js?v=0.4.01';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.01';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.01';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.01';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.01';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}}) {
   const isLocation=card.type==='location';
   const layer=document.createElement('div');layer.className='sh-card-share-overlay';
-  layer.innerHTML='<section class="sh-card-share-dialog" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><h2>Deel kaart</h2><p data-share-title></p><div data-share-location-option hidden><label class="sh-person-choice"><input type="checkbox" data-share-location>Locatie meesturen</label><p data-share-location-preview></p></div><label>Zoek een persoon<input type="search" data-share-search></label><div data-share-people></div><p role="status" data-share-status>Contacten laden…</p><div class="sh-connection-actions"><button type="button" data-share-close>Sluiten</button><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div></section>';
+  layer.innerHTML='<section class="sh-card-share-dialog" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><h2>Deel kaart</h2><p data-share-title></p><div data-share-location-option hidden><label class="sh-person-choice"><input type="checkbox" data-share-location>Locatie meesturen</label><p data-share-location-preview></p></div><h3 data-share-with>Delen met</h3><label>Zoek een persoon<input type="search" data-share-search></label><div data-share-people></div><p role="status" data-share-status>Contacten laden…</p><div class="sh-connection-actions"><button type="button" data-share-close>Sluiten</button><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div></section>';
   layer.querySelector('[data-share-title]').textContent=card.name||card.data?.title||'Locatie';
   if(isLocation){layer.querySelector('h2').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
   const service=new ConnectionService(store),selected=new Set(),sent=new Set(),retries=new Map();
-  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true;
+  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false;
   const source=()=>({id:card.id,relatedIds:!isLocation&&locationChoice.checked&&card.locationId?[card.locationId]:[]});
   const sharing=document.createElement('div');sharing.className='sh-sharing-details';sharing.setAttribute('role','status');
   sharing.dataset.sharingDetails='';layer.querySelector('[data-share-title]').after(sharing);
@@ -28,8 +28,9 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
       const heading=document.createElement('strong');heading.textContent=summary.label;sharing.append(heading);
       for(const row of rows){
         const line=document.createElement('small');
+        const recipient=contacts.find(contact=>contact.chatId===row.chatId)?.name||row.recipientName||'een contact';
         const when=row.verifiedAt?new Date(row.verifiedAt).toLocaleString('nl-NL'):'';
-        line.textContent=row.channel==='chat'?(row.state==='sent'?'Verstuurd via chat · laatst bevestigd online':'Chatbericht wacht op bevestiging'):
+        line.textContent=row.channel==='chat'?(row.state==='sent'?'Gedeeld met '+recipient+' · laatst bevestigd online':'Delen met '+recipient+' wacht op bevestiging'):
           row.expiresAt<=Date.now()?'QR-deling verlopen':row.state==='online'?'QR-deling online':row.state==='missing'?'QR-deling opgehaald of verwijderd':'QR-status niet bevestigd';
         if(when)line.textContent+=' · '+when;
         sharing.append(line);
@@ -55,7 +56,8 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
       check.addEventListener('change',()=>{if(check.checked)selected.add(contact.personId);else selected.delete(contact.personId);paint();});
       label.append(check,document.createTextNode(contact.name+(sent.has(contact.personId)?' · Verstuurd':'')));host.append(label);
     }
-    qr.disabled=busy||!ready||checking;
+    qr.disabled=qrBusy||!ready||checking;
+    if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed)qr.click();});}
     send.disabled=busy||![...selected].some(id=>!sent.has(id));
     locationChoice.disabled=busy||shareText!==null;
   };
@@ -73,14 +75,14 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
           const pending=(await service.cachedMessages(contact.chatId)).find(m=>m.text===text&&m.delivery==='pending'&&(!m.sharedObjectId||m.sharedObjectId===card.id));
           if(pending)retries.set(contact.personId,pending.id);
         }
-        try {await service.send(contact.chatId,text,retries.get(contact.personId)||'',{source:source()});sent.add(contact.personId);await paintSharing();}
+        try {await service.send(contact.chatId,text,retries.get(contact.personId)||'',{source:{...source(),recipientName:contact.name}});sent.add(contact.personId);await paintSharing();}
         catch(error){
           const pending=(await service.cachedMessages(contact.chatId)).find(m=>m.text===text&&m.delivery==='pending'&&(!m.sharedObjectId||m.sharedObjectId===card.id));
           if(pending)retries.set(contact.personId,pending.id);
           throw error;
         }
       }
-      status((isLocation?'Locatie':'Kaart')+' verstuurd naar '+sent.size+' '+(sent.size===1?'persoon.':'personen.'));
+      status((isLocation?'Locatie':'Kaart')+' verstuurd naar '+contacts.filter(c=>sent.has(c.personId)).map(c=>c.name).join(', ')+'.');
     }catch(error){status((sent.size?'Al verstuurd naar '+sent.size+'. ':'')+error.message);}
     finally{busy=false;if(!disposed){paint();paintSharing().catch(()=>{});}}
   });
@@ -97,15 +99,16 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{}})
       layer.querySelector('[data-share-location-preview]').textContent=[location.title,location.address,
         location.coordinates?'Kaartpositie beschikbaar.':'Geen kaartpositie bekend.'].filter(Boolean).join(' · ');
     }
-    ready=true;paint();status(contacts.length?'Kies met wie je deze kaart wilt delen.':'Nog geen contacten. Maak eerst verbinding bij Personen.');
+    ready=true;paintSharing().catch(()=>{});paint();status(contacts.length?'Kies met wie je deze kaart wilt delen.':'Nog geen contacten. Maak eerst verbinding bij Personen.');
   }).catch(error=>status(error.message));
   const qr=document.createElement('button');qr.type='button';qr.textContent='Deel via korte QR';qr.dataset.shareQr='';qr.disabled=true;
   const code=document.createElement('div');code.dataset.shareQrCode='';
-  layer.querySelector('.sh-connection-actions').prepend(qr);layer.querySelector('section').append(code);
-  qr.addEventListener('click',async()=>{if(busy||!ready||checking)return;busy=true;qr.disabled=true;status('QR-overdracht voorbereiden…');try{
-    shareText=shareText??(isLocation?buildLocationPayload(location):buildCardPayload(card,{location:locationChoice.checked?location:null}));
-    paint();const reference=existingQr?.id||await publishTransfer(store,shareText,{source:source()});await paintSharing();if(disposed)return;await renderCardCode(code,'QR_CODE',reference);status('Eenmalige QR, maximaal zeven dagen geldig. Het tijdelijke bestand verdwijnt na succesvol opslaan bij de ontvanger.');
-  }catch(error){status(error.message);}finally{busy=false;if(!disposed){paint();paintSharing().catch(()=>{});}}});
+  layer.querySelector('[data-share-with]').before(code,qr);
+  const qrStatus=document.createElement('p');qrStatus.setAttribute('role','status');qrStatus.dataset.qrStatus='';code.after(qrStatus);
+  qr.addEventListener('click',async()=>{if(disposed||qrBusy||!ready||checking)return;qrBusy=true;qr.disabled=true;qrStatus.textContent='QR-code voorbereiden…';try{
+    const qrText=isLocation?buildLocationPayload(location):buildCardPayload(card);
+    paint();const reference=existingQr?.id||await publishTransfer(store,qrText,{source:{id:card.id,relatedIds:[]}});await paintSharing();if(disposed)return;await renderCardCode(code,'QR_CODE',reference);qr.hidden=true;qrStatus.textContent='QR-code staat online. Na opslaan door de ontvanger verdwijnt het tijdelijke bestand. Maximaal zeven dagen geldig.';
+  }catch(error){if(!disposed){qrStatus.textContent=error.message;qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});}}});
   paintSharing().then(()=>disposed?null:refreshQrShares(store,card.id,{force:true})).then(paintSharing).catch(()=>{}).finally(()=>{checking=false;if(!disposed)paint();});
   layer.querySelector('[data-share-search]').focus();
   return dispose;

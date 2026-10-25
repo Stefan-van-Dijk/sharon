@@ -50,6 +50,8 @@ test('a card is sent only to selected contacts and retry uses the same message i
   await until(()=>app.document.querySelector('[data-share-status]')?.textContent.includes('Kaart verstuurd'));
   assert.equal(seen.length,2);assert.equal(seen[0].id,seen[1].id);
   assert.equal(app.document.querySelector('[data-share-send]').disabled,true);
+  assert.match(app.document.querySelector('[data-sharing-details]').textContent,/Gedeeld met Bram/);
+  assert.match(app.document.querySelector('[data-share-status]').textContent,/Bram/);
   const {saveReceivedCard}=await app.load(modulePath('ui/CardSharing'));
   const message={id:'Received0001',text:seen[1].text};
   const id=await saveReceivedCard(app.store,message);
@@ -88,7 +90,7 @@ test('location sharing is opt-in, resolves parent data, and preserves the exact 
   await app.store.put('objects',{id:'PrivateShop1',type:'location',personIds:['PrivateUser1'],data:{title:'Winkel',parentId:'PrivateHome1',notes:'Privénotities'}});
   let fail=false;const seen=[];
   app.window.fetch=async(_,options)=>{
-    const input=JSON.parse(options.body);seen.push(input);
+    const input=JSON.parse(options.body);if(input.action!=='send')return {ok:false,status:410,json:async()=>({error:'share_unavailable'})};seen.push(input);
     if(fail)throw new TypeError('Offline');
     return {ok:true,json:async()=>({message:{id:input.id,chatId:input.chatId,senderId:device.personId,text:input.text,seq:1,at:1000}})};
   };

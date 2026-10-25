@@ -1,4 +1,4 @@
-import { environmentIdForPoint } from './EnvironmentIdentifier.js?v=0.3.100';
+import { environmentIdForPoint } from './EnvironmentIdentifier.js?v=0.4.01';
 
 const EARTH_RADIUS_METERS = 6371008.8;
 const RAD = Math.PI / 180;
