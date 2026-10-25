@@ -154,3 +154,34 @@ test('share board reuses deck resizing, dragging, cancellation and pull-down clo
  const title=board.querySelector('[data-share-title]');pointer(title,'pointerdown',100,100);pointer(app.window,'pointermove',100,210);pointer(app.window,'pointerup',100,210);
  assert.equal(app.document.querySelector('.sh-card-share-overlay'),null);
 });
+
+test('share pill cycles five sorts, persists custom order and opens search on left swipe without sorting',async t=>{
+ const {app}=await setup(t);app.window.fetch=async()=>{throw new TypeError('Offline');};
+ await app.store.setMeta('connection.contacts.log-json.v1',[
+ {personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna',updatedAt:100},
+ {personId:'BetaUser0001',chatId:'BetaChat0001',name:'Bram',updatedAt:900},
+ {personId:'GammaUser001',chatId:'GammaChat001',name:'Cato',updatedAt:500}]);
+ await app.store.put('objects',{id:'NearPlace001',type:'location',personIds:['GammaUser001'],data:{title:'Dichtbij',coordinates:{lat:52,lng:5}}});
+ await app.store.put('objects',{id:'FarPlace0001',type:'location',personIds:['BetaUser0001'],data:{title:'Ver',coordinates:{lat:53,lng:6}}});
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ const card={id:'PrivateCard1',type:'card',name:'Pas',personIds:['BetaUser0001'],cardKind:'loyalty',codeFormat:'',codeValue:''};
+ let close=openCardShare(card,{store:app.store,location:{latest:{lat:52,lng:5}}});t.after(()=>close());
+ await until(()=>app.document.querySelector('[data-share-person]'));
+ const first=()=>app.document.querySelector('[data-share-person]').dataset.sharePerson;
+ const pill=()=>app.document.querySelector('[data-deck-grab]');
+ assert.equal(first(),'BetaUser0001');assert.ok(app.document.querySelector('[data-share-person]').closest('.sh-object-strip'));
+ pill().click();assert.match(pill().getAttribute('aria-label'),/Eigen volgorde/);
+ app.document.querySelector('[data-share-move="1"]').click();
+ await until(async()=> (await app.store.get('meta','sharing.people.preferences'))?.value.order?.[0]==='BetaUser0001');
+ pill().click();assert.equal(first(),'AlphaUser001');assert.match(pill().getAttribute('aria-label'),/Alfabetisch/);
+ pill().click();assert.equal(first(),'GammaUser001');assert.match(pill().getAttribute('aria-label'),/Dichtbij/);
+ pill().click();assert.equal(first(),'BetaUser0001');assert.match(pill().getAttribute('aria-label'),/Recent/);
+ pill().click();assert.match(pill().getAttribute('aria-label'),/Logisch/);
+ function pointer(target,type,x,y){const e=new app.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',button:0,clientX:x,clientY:y});target.dispatchEvent(e);}
+ pointer(pill(),'pointerdown',200,100);pointer(app.window,'pointermove',100,100);pointer(app.window,'pointerup',100,100);
+ assert.equal(app.document.querySelector('[data-share-search-wrap]').hidden,false);
+ pill().click();assert.match(pill().getAttribute('aria-label'),/Logisch/); // Synthetic click following swipe is suppressed.
+ const search=app.document.querySelector('[data-share-search]');search.value='Cato';search.dispatchEvent(new app.window.Event('input'));assert.equal(first(),'GammaUser001');
+ close();close=openCardShare(card,{store:app.store});
+ await until(()=>app.document.querySelector('[data-share-person]'));assert.match(pill().getAttribute('aria-label'),/Logisch/);
+});

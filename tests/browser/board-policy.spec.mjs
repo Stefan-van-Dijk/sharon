@@ -74,14 +74,15 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
       remote=input;uploads++;await route.fulfill({status:200,json:{ok:true}});
     }else if(input.action==='share-read'){
       await route.fulfill(remote?{status:200,json:{payload:remote.payload}}:{status:410,json:{error:'share_unavailable'}});
-    }else await route.abort();
+    }else if(input.action==='share-ack'){await route.fulfill({status:200,json:{ok:true}});}else await route.abort();
   });
   await page.evaluate(async version=>{
     window.closeBoard();
     const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
     const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
     const store=await new ObjectStore().open();
-    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
+    await store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:5}}});
+    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
@@ -110,8 +111,21 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
-  await expect(page.locator('[data-sharing-details]')).toContainText('opgehaald of verwijderd');
+  await expect(page.locator('[data-sharing-details]')).not.toContainText('opgehaald of verwijderd');
   expect(uploads).toBe(2);
+  const centered=await page.locator('.sh-share-qr-panel').evaluate(panel=>{const code=panel.querySelector('[data-share-qr-code] svg').getBoundingClientRect(),box=panel.getBoundingClientRect();return Math.abs((code.left+code.right)/2-(box.left+box.right)/2);});
+  expect(centered).toBeLessThan(1);
+  await expect(page.locator('[data-share-title]')).toHaveText('Testpas');
+  await expect(page.locator('.sh-share-side-right')).toHaveCSS('transform','matrix(-1, 0, 0, -1, 0, 0)');
+  const locationToggle=page.getByRole('button',{name:'Locatie meesturen',exact:true});
+  await locationToggle.click();await expect(locationToggle).toHaveAttribute('aria-pressed','true');
+  await expect.poll(()=>uploads).toBe(3);
+  await expect(page.locator('[data-qr-status]')).toContainText('locatie wordt meegestuurd');
+  await expect(page.locator('[data-sharing-details]')).not.toContainText('opgehaald of verwijderd');
+  const pill=page.locator('[data-deck-grab]');await pill.click();await expect(pill).toHaveAccessibleName(/Eigen volgorde/);
+  const pillBox=await pill.boundingBox();await page.mouse.move(pillBox.x+pillBox.width-15,pillBox.y+pillBox.height/2);await page.mouse.down();await page.mouse.move(pillBox.x+15,pillBox.y+pillBox.height/2,{steps:8});await page.mouse.up();
+  await expect(page.locator('[data-share-search-wrap]')).toBeVisible();
+  await expect(pill).toHaveAccessibleName(/Eigen volgorde/);
   await expect(page.locator('[data-share-close]')).toHaveCount(0);
   await expect(page.locator('.sh-share-board [data-deck-size]')).toHaveCount(2);
   const scroll=await page.locator('.sh-share-board-info').evaluate(element=>{
@@ -121,7 +135,7 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
     return {moved:header.getBoundingClientRect().top-before,scrolled:element.scrollTop};
   });
   expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);
-  const header=await page.locator('.sh-share-board-header').boundingBox();
+  const header=await page.locator('.sh-share-side-left').boundingBox();
   await page.mouse.move(header.x+header.width/2,header.y+header.height/2);
   await page.mouse.down();await page.mouse.move(header.x+header.width/2,header.y+header.height/2+110,{steps:8});await page.mouse.up();
   await expect(page.locator('.sh-card-share-overlay')).toHaveCount(0);

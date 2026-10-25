@@ -1,6 +1,6 @@
 // Swipe the pill right to gather the boards, then drag the collected deck.
-export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout'}={}) {
-  let gesture=null,closed=false,interacted=false;
+export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout',onGrabTap,onGrabSearch}={}) {
+  let gesture=null,closed=false,interacted=false,suppressGrabClickUntil=0;
   let layout={x:0,y:0,height:Math.min(580,window.innerHeight-112),media:Math.min(330,window.innerHeight*.34)};
   const key=layoutKey;
   const constrain=()=>{
@@ -55,6 +55,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
     if(gesture.mode==='gather'){
       event.preventDefault();
+      if(onGrabSearch&&dx < -22&&Math.abs(dx)>Math.abs(dy)*1.2){gesture.mode='search';return;}
       if(dx>22&&dx>Math.abs(dy)*1.2){
         gesture.mode='move';
         // Gathering consumes the swipe. Start dragging here without a jump.
@@ -79,7 +80,9 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
   const up=event=>{
     if(!gesture||gesture.id!==event.pointerId)return;
     const current=gesture,dx=event.clientX-current.x,dy=event.clientY-current.y;end();
-    if(['move','board','media'].includes(current.mode))save();
+    if(['move','search'].includes(current.mode)||(current.mode==='gather'&&Math.max(Math.abs(dx),Math.abs(dy))>9))suppressGrabClickUntil=Date.now()+400;
+    if(current.mode==='search'&&dx < -45&&Math.abs(dx)>Math.abs(dy)*1.2)onGrabSearch?.();
+    else if(['move','board','media'].includes(current.mode))save();
     else if(current.mode==='swipe'&&Math.abs(dx)>45)onSwipe?.(dx<0?1:-1);
     else if(current.mode==='vertical'&&dy>70&&current.target.closest('[data-card-media]'))onClose?.();
   };
@@ -96,12 +99,14 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     }
     apply();clamp();save();
   };
+  const grabClick=event=>{if(!event.target.closest('[data-deck-grab]'))return;if(Date.now()<suppressGrabClickUntil){event.preventDefault();event.stopImmediatePropagation();return;}onGrabTap?.();};
+  stack.addEventListener('click',grabClick,true);
   const resize=()=>{apply();clamp();};
   stack.addEventListener('pointerdown',down);stack.addEventListener('keydown',keydown);
   window.addEventListener('pointermove',move,{passive:false});window.addEventListener('pointerup',up);window.addEventListener('pointercancel',cancel);window.addEventListener('resize',resize);
   apply();
   return {refresh:()=>requestAnimationFrame(()=>{if(!closed)clamp();}),dispose:()=>{
-    closed=true;cancel();stack.removeEventListener('pointerdown',down);stack.removeEventListener('keydown',keydown);
+    closed=true;cancel();stack.removeEventListener('click',grabClick,true);stack.removeEventListener('pointerdown',down);stack.removeEventListener('keydown',keydown);
     window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cancel);window.removeEventListener('resize',resize);
   }};
 }

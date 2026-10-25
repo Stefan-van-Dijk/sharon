@@ -1,23 +1,23 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.04';
-import { openCardShare } from './CardSharing.js?v=0.4.04';
-import { mountPersonLinks } from './PersonLinks.js?v=0.4.04';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.04';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.04';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.04';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.04';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.04';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.04';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.04';
-import { renderStrip } from './Strip.js?v=0.4.04';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.04';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.4.04';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.4.04';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.4.04';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.4.04';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.05';
+import { openCardShare } from './CardSharing.js?v=0.4.05';
+import { mountPersonLinks } from './PersonLinks.js?v=0.4.05';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.05';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.05';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.05';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.05';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.05';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.05';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.05';
+import { renderStrip } from './Strip.js?v=0.4.05';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.05';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.4.05';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.4.05';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.4.05';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.4.05';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.4.04';
+} from '../core/location/LocationHierarchy.js?v=0.4.05';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -100,7 +100,7 @@ export async function openLocationsView(root, {
     mountSharingBadges(root,store).catch(()=>{});
     root.querySelector('[data-create-location]')?.addEventListener('click', () => edit(null));
     unbindSwipes = bindSwipeRows(root.querySelector('[data-swipe-list]'), {
-      onShare: id=>{closeShare?.();closeShare=openCardShare(byId.get(id),{store,onStatusChange:()=>mountSharingBadges(root,store)});},
+      onShare: id=>{closeShare?.();closeShare=openCardShare(byId.get(id),{store,location,onStatusChange:()=>mountSharingBadges(root,store)});},
       onOpen: id => detail(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
       onDelete: id => removeLocation(id)
