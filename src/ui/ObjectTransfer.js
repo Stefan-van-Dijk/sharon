@@ -1,8 +1,8 @@
-import { qrShareKey } from './SharingStatus.js?v=0.4.01';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.01';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.01';
-import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.4.01';
-import { parseCardPayload } from './CardPayload.js?v=0.4.01';
+import { qrShareKey } from './SharingStatus.js?v=0.4.02';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.02';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.02';
+import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.4.02';
+import { parseCardPayload } from './CardPayload.js?v=0.4.02';
 const encode=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=text=>Uint8Array.from(atob(text.replace(/-/g,'+').replace(/_/g,'/')),x=>x.charCodeAt(0));
 const digest=text=>crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
@@ -21,7 +21,7 @@ export async function publishTransfer(store,text,{source}={}){
  const id=IdentifierService.create(),secret=id,iv=crypto.getRandomValues(new Uint8Array(12));
  const payload={iv:encode(iv),data:encode(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(id)},await key(secret),new TextEncoder().encode(text)))};
  const access=encode(await digest('access:'+secret));
- const record=source?.id?{id,access,sourceId:source.id,relatedIds:source.relatedIds||[],state:'pending',createdAt:Date.now(),expiresAt:Date.now()+7*86400000}:null;
+ const record=source?.id?{id,access,sourceId:source.id,includeLocation:Boolean(source.includeLocation),relatedIds:source.relatedIds||[],state:'pending',createdAt:Date.now(),expiresAt:Date.now()+7*86400000}:null;
  if(record)await store.put('meta',{key:qrShareKey(id),value:record});
  const service=new ConnectionService(store);await service.request('share-publish',{id,access,payload},await service.device());
  if(record)await store.put('meta',{key:qrShareKey(id),value:{...record,state:'online',verifiedAt:Date.now()}});

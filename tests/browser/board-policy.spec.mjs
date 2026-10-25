@@ -65,7 +65,7 @@ test('non-owner cannot open relevance management',async({page})=>{
 
 test('sharing opens QR automatically, reuses it and replaces a consumed transfer',async({page})=>{
   await open(page);
-  const statusStyles=readFileSync('index.html','utf8').split('\n').filter(line=>line.includes('.sh-sharing-dot')||line.includes('.sh-strip--accent .sh-strip-surface{position:relative}')).join('\n');
+  const statusStyles=readFileSync('index.html','utf8').split('\n').filter(line=>line.includes('.sh-sharing-dot')||line.includes('.sh-strip--accent .sh-strip-surface{position:relative}')||line.includes('.sh-share-qr-panel')||line.includes('.sh-share-side')).join('\n');
   await page.addStyleTag({content:statusStyles});
   let remote=null,uploads=0;
   await page.route('https://sharon.life/log/api/connections.php',async route=>{
@@ -88,6 +88,11 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   await page.locator('[data-swipe-share]').click();
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('staat online');
+  await expect(page.locator('[data-share-person-panel]')).toBeHidden();
+  await expect(page.locator('.sh-share-side-left')).toHaveCSS('writing-mode','vertical-rl');
+  await page.getByRole('button',{name:'Deel met personen',exact:true}).click();
+  await expect(page.locator('[data-share-person-panel]')).toBeVisible();
+  await page.getByRole('button',{name:'Deel met personen',exact:true}).click();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
   const dot=page.locator('.sh-sharing-dot');
   await expect(dot).toHaveText('');

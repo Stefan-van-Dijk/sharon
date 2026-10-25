@@ -83,3 +83,35 @@ test('failed QR publication never produces an online badge and creates no untrac
   const put=app.store.put.bind(app.store);app.store.put=async(name,row)=>{if(row.key?.startsWith('sharing.qr.'))throw Error('Disk full');return put(name,row);};
   await assert.rejects(publishTransfer(app.store,text,{source:{id:'PrivateCard1'}}),/Disk full/);assert.equal(uploaded,false);
 });
+
+test('share board collapses people, ranks linked contacts and renews encrypted QR when location is included',async t=>{
+ const {app}=await setup(t);app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));
+ await app.store.put('objects',{id:'PrivateHome1',type:'location',personIds:['AlphaUser001'],data:{title:'Winkel',address:{text:'Dorpsstraat 1'},coordinates:{lat:52,lng:5}}});
+ await app.store.setMeta('connection.contacts.log-json.v1',[{personId:'BetaUser0001',chatId:'BetaChat0001',name:'Bram',updatedAt:900},{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna',updatedAt:100}]);
+ const entries=new Map();let uploads=0;
+ app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);
+ if(q.action==='share-publish'){entries.set(q.id,q);uploads++;return {ok:true,status:200,json:async()=>({ok:true})};}
+ if(q.action==='share-read')return {ok:true,status:200,json:async()=>({payload:entries.get(q.id).payload})};
+ if(q.action==='share-ack'){entries.delete(q.id);return {ok:true,status:200,json:async()=>({ok:true})};}throw Error(q.action);};
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ const close=openCardShare({id:'PrivateCard1',type:'card',name:'Mijn kaart',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(close);
+ await until(()=>app.document.querySelector('[data-share-qr-code] svg'));
+ assert.ok(app.document.querySelector('.sh-board-stack .sh-share-board'));
+ assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,true);
+ assert.equal(app.document.querySelector('[data-share-title]').textContent,'Mijn kaart');
+ app.document.querySelector('[data-share-person-toggle]').click();
+ assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,false);
+ assert.equal(app.document.querySelector('[data-share-person]').dataset.sharePerson,'AlphaUser001');
+ const search=app.document.querySelector('[data-share-search]');search.value='Bram';search.dispatchEvent(new app.window.Event('input'));
+ assert.equal(app.document.querySelector('[data-share-person]').dataset.sharePerson,'BetaUser0001');
+ await until(()=>!app.document.querySelector('[data-share-location]').disabled);
+ const previous=[...entries.keys()][0];app.document.querySelector('[data-share-location]').click();
+ await until(()=>uploads===2&&entries.size===1&&app.document.querySelector('[data-share-qr-code] svg'));
+ assert.equal(entries.has(previous),false);
+ const receiver=await appHarness();t.after(()=>receiver.close());
+ receiver.window.fetch=app.window.fetch;
+ const {receiveTransfer}=await receiver.load(modulePath('ui/ObjectTransfer'));
+ const result=await receiveTransfer(receiver.store,[...entries.keys()][0]);
+ const card=await receiver.store.get('objects',result.id);assert.ok(card.locationId);
+ assert.equal((await receiver.store.get('objects',card.locationId)).data.title,'Winkel');
+});
