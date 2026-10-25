@@ -26,6 +26,9 @@ test('QR upload tracks source only locally, survives closing share sheet and reu
   let close=openCardShare(card,{store:app.store});
   await until(()=>!app.document.querySelector('[data-share-qr]').disabled);
   await until(()=>app.document.querySelector('[data-sharing-details]').textContent.includes('QR-deling online'));
+  assert.match(app.document.querySelector('[data-qr-status]').textContent,/Geen locatie gekoppeld/);
+  assert.ok(!app.document.querySelector('[data-qr-status]').textContent.includes('Locatie-icoon'));
+  assert.equal(app.document.querySelector('[data-share-location-option]').hidden,true);
   close();assert.equal(publishes,1);assert.ok(!JSON.stringify(entry).includes(card.id));
   const rows=await sharingRecords(app.store,card.id);assert.equal(rows.length,1);assert.equal(rows[0].state,'online');
   const root=app.document.createElement('div');root.innerHTML='<div data-swipe-row="PrivateCard1"><button data-swipe-surface>Pas</button></div>';app.document.body.append(root);
@@ -84,7 +87,7 @@ test('failed QR publication never produces an online badge and creates no untrac
   await assert.rejects(publishTransfer(app.store,text,{source:{id:'PrivateCard1'}}),/Disk full/);assert.equal(uploaded,false);
 });
 
-test('share board collapses people, ranks linked contacts and renews encrypted QR when location is included',async t=>{
+test('share board immediately shows people, ranks linked contacts and renews encrypted QR when location is included',async t=>{
  const {app}=await setup(t);app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));
  await app.store.put('objects',{id:'PrivateHome1',type:'location',personIds:['AlphaUser001'],data:{title:'Winkel',address:{text:'Dorpsstraat 1'},coordinates:{lat:52,lng:5}}});
  await app.store.setMeta('connection.contacts.log-json.v1',[{personId:'BetaUser0001',chatId:'BetaChat0001',name:'Bram',updatedAt:900},{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna',updatedAt:100}]);
@@ -97,9 +100,10 @@ test('share board collapses people, ranks linked contacts and renews encrypted Q
  const close=openCardShare({id:'PrivateCard1',type:'card',name:'Mijn kaart',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(close);
  await until(()=>app.document.querySelector('[data-share-qr-code] svg'));
  assert.ok(app.document.querySelector('.sh-board-stack .sh-share-board'));
- assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,true);
+ assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,false);
+ assert.equal(app.document.querySelector('[data-share-person-toggle]'),null);
+ assert.equal(app.document.querySelector('[data-deck-grab] svg'),null);
  assert.equal(app.document.querySelector('[data-share-title]').textContent,'Mijn kaart');
- app.document.querySelector('[data-share-person-toggle]').click();
  assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,false);
  assert.equal(app.document.querySelector('[data-share-person]').dataset.sharePerson,'AlphaUser001');
  const search=app.document.querySelector('[data-share-search]');search.value='Bram';search.dispatchEvent(new app.window.Event('input'));
@@ -155,7 +159,7 @@ test('share board reuses deck resizing, dragging, cancellation and pull-down clo
  assert.equal(app.document.querySelector('.sh-card-share-overlay'),null);
 });
 
-test('share pill cycles five sorts, persists custom order and opens search on left swipe without sorting',async t=>{
+test('share pill cycles five sorts, uses the Persons custom order and opens search on left swipe without sorting',async t=>{
  const {app}=await setup(t);app.window.fetch=async()=>{throw new TypeError('Offline');};
  await app.store.setMeta('connection.contacts.log-json.v1',[
  {personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna',updatedAt:100},
@@ -163,6 +167,7 @@ test('share pill cycles five sorts, persists custom order and opens search on le
  {personId:'GammaUser001',chatId:'GammaChat001',name:'Cato',updatedAt:500}]);
  await app.store.put('objects',{id:'NearPlace001',type:'location',personIds:['GammaUser001'],data:{title:'Dichtbij',coordinates:{lat:52,lng:5}}});
  await app.store.put('objects',{id:'FarPlace0001',type:'location',personIds:['BetaUser0001'],data:{title:'Ver',coordinates:{lat:53,lng:6}}});
+ await app.store.setMeta('people.list.preferences',{sort:'custom',order:['GammaUser001','BetaUser0001','AlphaUser001']});
  const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
  const card={id:'PrivateCard1',type:'card',name:'Pas',personIds:['BetaUser0001'],cardKind:'loyalty',codeFormat:'',codeValue:''};
  let close=openCardShare(card,{store:app.store,location:{latest:{lat:52,lng:5}}});t.after(()=>close());
@@ -171,8 +176,9 @@ test('share pill cycles five sorts, persists custom order and opens search on le
  const pill=()=>app.document.querySelector('[data-deck-grab]');
  assert.equal(first(),'BetaUser0001');assert.ok(app.document.querySelector('[data-share-person]').closest('.sh-object-strip'));
  pill().click();assert.match(pill().getAttribute('aria-label'),/Eigen volgorde/);
- app.document.querySelector('[data-share-move="1"]').click();
- await until(async()=> (await app.store.get('meta','sharing.people.preferences'))?.value.order?.[0]==='BetaUser0001');
+ assert.equal(first(),'GammaUser001');
+ assert.equal(app.document.querySelector('[data-share-move]'),null);
+ assert.deepEqual(Array.from((await app.store.get('meta','people.list.preferences')).value.order),['GammaUser001','BetaUser0001','AlphaUser001']);
  pill().click();assert.equal(first(),'AlphaUser001');assert.match(pill().getAttribute('aria-label'),/Alfabetisch/);
  pill().click();assert.equal(first(),'GammaUser001');assert.match(pill().getAttribute('aria-label'),/Dichtbij/);
  pill().click();assert.equal(first(),'BetaUser0001');assert.match(pill().getAttribute('aria-label'),/Recent/);
