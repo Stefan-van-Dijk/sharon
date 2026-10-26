@@ -1,24 +1,28 @@
-import { cardSymbol } from './CardSymbols.js?v=0.4.11';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.11';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.11';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.11';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.11';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.11';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.11';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.11';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.11';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.11';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.11';
-import { renderCardCode } from './CardCodes.js?v=0.4.11';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.11';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.11';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.11';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.11';
+import { renderListControls } from './ListControls.js?v=0.4.12';
+import { cardSymbol } from './CardSymbols.js?v=0.4.12';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.12';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.12';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.12';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.12';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.12';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.12';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.12';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.12';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.12';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.12';
+import { renderCardCode } from './CardCodes.js?v=0.4.12';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.12';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.12';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.12';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.12';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
   const layer=document.createElement('div');layer.className='sh-card-share-overlay';
-  layer.innerHTML='<section class="sh-card-share-dialog sh-share-board" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><div class="sh-share-fixed sh-card-media" data-card-media><button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button><div class="sh-share-qr-panel"><h2 class="sh-share-side sh-share-side-left" data-share-title></h2><div data-share-qr-slot></div><span class="sh-share-side sh-share-side-right" role="status" data-qr-status>Scan in Sharon</span></div><button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts en sleep om het deelboard te verplaatsen" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span data-share-pill-label>Deel kaart</span><span aria-hidden="true">|</span><span data-share-sort-icon aria-hidden="true">◇</span></button><button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van QR en informatie aanpassen"></button></div><div class="sh-share-board-info"><div data-share-location-option hidden><input type="checkbox" data-share-location hidden><button type="button" class="sh-share-location-source" data-share-location-toggle aria-label="Locatie meesturen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 10c0 6-7 12-7 12S5 16 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2"/></svg></button><p data-share-location-preview hidden></p></div><div data-share-summary-slot></div><div data-share-person-panel><label data-share-search-wrap hidden>Zoek een persoon<input type="search" data-share-search></label><p data-share-suggestions>Suggesties op basis van locatie en recente contacten</p><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div><p role="status" data-share-status>Contacten laden…</p></div></section>';
+  layer.innerHTML='<section class="sh-card-share-dialog sh-share-board" role="dialog" aria-modal="true" aria-label="Kaart delen met personen"><div class="sh-share-fixed sh-card-media" data-card-media><button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button><div class="sh-share-qr-panel"><h2 class="sh-share-side sh-share-side-left" data-share-title></h2><div data-share-qr-slot></div><span class="sh-share-side sh-share-side-right" role="status" data-qr-status>Scan in Sharon</span></div><button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts en sleep om het deelboard te verplaatsen" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span data-share-pill-label>Deel kaart</span></button><button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van QR en informatie aanpassen"></button></div><div class="sh-share-board-info"><div data-share-location-option hidden><input type="checkbox" data-share-location hidden><button type="button" class="sh-share-location-source" data-share-location-toggle aria-label="Locatie meesturen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 10c0 6-7 12-7 12S5 16 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2"/></svg></button><p data-share-location-preview hidden></p></div><div data-share-summary-slot></div><div data-share-person-panel><div data-share-toolbar></div><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button></div><p role="status" data-share-status>Contacten laden…</p></div></section>';
+  const toolbar=layer.querySelector('[data-share-toolbar]');
+  toolbar.innerHTML=renderListControls({placeholder:'Zoek persoon',near:true,logical:true,sort:'logical'});
+  toolbar.dataset.shareSearchWrap='';toolbar.querySelector('input').dataset.shareSearch='';
   const surface=layer.firstElementChild;surface.dataset.cardBoard='';surface.tabIndex=-1;
   const stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');
   let gestures=null;
@@ -39,7 +43,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const sortIcons={alpha:'A–Z',near:'⌖',recent:'◷',logical:'◇',custom:'↕'};
   const savePrefs=()=>store.put('meta',{key:'sharing.people.preferences',value:prefs}).catch(()=>{});
   const openSearch=()=>{layer.querySelector('[data-share-search-wrap]').hidden=false;paint();layer.querySelector('[data-share-search]').focus();};
-  const cycleSort=()=>{prefs.sort=modes[(modes.indexOf(prefs.sort)+1)%modes.length];paint();savePrefs();};
+  toolbar.querySelectorAll('[data-list-sort]').forEach(button=>button.addEventListener('click',()=>{prefs.sort=button.dataset.listSort;paint();savePrefs();}));
   const source=()=>({id:card.id,relatedIds:!isLocation&&locationChoice.checked&&card.locationId?[card.locationId]:[]});
   const sharing=document.createElement('div');sharing.className='sh-sharing-details';
   sharing.dataset.sharingDetails='';layer.querySelector('[data-share-summary-slot]').append(sharing);
@@ -83,9 +87,8 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     let ranked=sortList(contacts.map(c=>({...c,id:c.personId})),{sort:prefs.sort,order:peopleOrder,distance});
     if(prefs.sort==='logical')ranked.sort((a,b)=>Number(relatedPeople.has(b.personId))-Number(relatedPeople.has(a.personId))||(Number(b.updatedAt)||0)-(Number(a.updatedAt)||0)||a.name.localeCompare(b.name,'nl'));
     const suggested=ranked.filter(c=>c.name.toLocaleLowerCase('nl').includes(query));
-    layer.querySelector('[data-share-sort-icon]').textContent=sortIcons[prefs.sort];
-    layer.querySelector('[data-deck-grab]').setAttribute('aria-label','Deel kaart · '+sortLabels[prefs.sort]+'. Klik om sortering te wijzigen, swipe links om te zoeken, swipe rechts om op te pakken.');
-    layer.querySelector('[data-share-suggestions]').textContent=sortLabels[prefs.sort]+(prefs.sort==='near'&&!origin?' · Geen locatie bekend':'');
+    toolbar.querySelectorAll('[data-list-sort]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.listSort===prefs.sort)));
+    layer.querySelector('[data-deck-grab]').setAttribute('aria-label',(isLocation?'Deel locatie':'Deel kaart')+' · swipe rechts om op te pakken en sleep om te verplaatsen.');
     for(const contact of suggested) {
       const row=document.createElement('div');row.className='sh-share-person-row';
       row.innerHTML=renderObjectStrip({module:'persons',id:contact.personId,title:contact.name,subtitle:contactShareLabel(contact),actions:[],trailingHtml:'<span aria-hidden="true">'+(selected.has(contact.personId)?'✓':'+')+'</span>'});
@@ -101,11 +104,11 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     locationChoice.disabled=busy||shareText!==null;
     const locationButton=layer.querySelector('[data-share-location-toggle]');locationButton.disabled=locationChoice.disabled;locationButton.setAttribute('aria-pressed',String(locationChoice.checked));
   };
-  layer.querySelector('.sh-share-fixed').append(layer.querySelector('[data-share-location-option]'));
+  layer.querySelector('.sh-share-fixed').append(layer.querySelector('[data-share-location-option]'),layer.querySelector('[data-share-summary-slot]'));
   layer.querySelector('[data-share-location-toggle]').addEventListener('click',()=>locationChoice.click());
   locationChoice.addEventListener('change',()=>{locationTouched=true;paint();code.replaceChildren();if(publicationOff){qrNote('QR-deling offline.');return;}qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
   layer.querySelector('[data-share-search]').addEventListener('input',paint);
-  gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore:store,layoutKey:'sharing.board.layout',onGrabTap:cycleSort,onGrabSearch:openSearch});
+  gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore:store,layoutKey:'sharing.board.layout',onGrabSearch:openSearch});
   layer.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();close();}});
   layer.addEventListener('click',event=>{if(event.target===layer)close();});
   send.addEventListener('click',async()=>{
@@ -154,7 +157,13 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const code=document.createElement('div');code.dataset.shareQrCode='';
   layer.querySelector('[data-share-qr-slot]').append(code);layer.querySelector('.sh-share-board-info').prepend(qr);
   const qrStatus=layer.querySelector('[data-qr-status]');
-  const qrNote=message=>{qrStatus.textContent=message+(isLocation?'':location?(locationChoice.checked?' Locatie wordt meegestuurd.':' Locatie wordt niet meegestuurd.'):' Geen locatie gekoppeld.');};
+  const qrNote=message=>{
+    qrStatus.replaceChildren();
+    if(message.startsWith('Scan in Sharon')){
+      for(const text of ['Scan in Sharon','Deling 7 dagen geldig']){const line=document.createElement('span');line.textContent=text;qrStatus.append(line);}
+      if(message.includes('Vorige QR'))status('Vorige QR kon nog niet worden ingetrokken.');
+    }else qrStatus.textContent=message;
+  };
   const setPublication=async online=>{
     if(qrBusy||busy||!ready||checking)return;
     if(online){

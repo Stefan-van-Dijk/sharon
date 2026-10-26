@@ -81,7 +81,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
     const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
     const store=await new ObjectStore().open();
-    await store.setMeta('connection.contacts.log-json.v1',[{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna'}]);
+    await store.setMeta('connection.contacts.log-json.v1',[{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna'},...Array.from({length:8},(_,i)=>({personId:'PersonTest0'+i,chatId:'ChatTest000'+i,name:'Persoon '+i}))]);
     await store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:5}}});
     await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas met een langere titel',color:'#d12b54',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
@@ -89,7 +89,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   },version);
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
-  await expect(page.locator('[data-qr-status]')).toContainText('staat online');
+  await expect(page.locator('[data-qr-status]')).toContainText('Deling 7 dagen geldig');
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();
   await expect(page.locator('[data-share-person-toggle]')).toHaveCount(0);
   await expect(page.locator('[data-deck-grab] svg')).toHaveCount(0);
@@ -123,7 +123,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   expect(clearOfButton).toBe(true);
   await locationToggle.click();await expect(locationToggle).toHaveAttribute('aria-pressed','true');
   await expect.poll(()=>uploads).toBe(3);
-  await expect(page.locator('[data-qr-status]')).toContainText('Locatie wordt meegestuurd');
+  await expect(page.locator('[data-qr-status]')).toContainText('Scan in Sharon');
   await expect(page.locator('[data-sharing-details]')).not.toContainText('opgehaald of verwijderd');
   await expect(page.locator('[data-qr-status]')).not.toContainText('Locatie-icoon');
   const geometry=await page.locator('.sh-share-fixed').evaluate(media=>{
@@ -138,6 +138,8 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   const iconPosition=await page.locator('[data-share-item-icon]').evaluate(icon=>{const r=icon.getBoundingClientRect(),board=icon.closest('.sh-share-fixed').getBoundingClientRect();return {left:r.left-board.left,top:r.top-board.top};});
   expect(iconPosition.left).toBe(14);expect(iconPosition.top).toBe(16);
   const person=page.locator('[data-share-person="AlphaUser001"]');await expect(person).toBeVisible();
+  await expect(person).toHaveCSS('border-top-width','0px');await expect(person).toHaveCSS('border-right-width','0px');
+  const controls=await page.locator('.sh-share-fixed').evaluate(header=>{const pill=header.querySelector('[data-deck-grab]'),toggle=header.querySelector('[data-share-publication]'),pin=header.querySelector('[data-share-location-toggle]');return !pill.contains(toggle)&&!pill.contains(pin)&&toggle.getBoundingClientRect().left>=pill.getBoundingClientRect().right;});expect(controls).toBe(true);
   const rowHeight=(await person.boundingBox()).height;expect(rowHeight).toBeGreaterThanOrEqual(44);expect(rowHeight).toBeLessThanOrEqual(56);
 
   for(const handle of geometry.handles){expect(Math.abs(handle.center-geometry.center)).toBeLessThan(1);expect(Math.abs(handle.edge-(handle.kind==='board'?geometry.top:geometry.bottom))).toBeLessThan(1);}
@@ -168,21 +170,22 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   expect(Math.abs(afterPosition.x-beforePosition.x)).toBeLessThan(1);
   expect(beforePosition.y-afterPosition.y).toBeGreaterThan(20);
   expect(await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')))).toBeLessThan(beforeY-20);
-  await expect(grab).toHaveAccessibleName(/Logisch/);
+  await expect(page.locator('[data-list-sort="logical"]')).toHaveAttribute('aria-pressed','true');
   await page.waitForTimeout(450); // The release click must not change the sort.
-  const pill=page.locator('[data-deck-grab]');await pill.click();await expect(pill).toHaveAccessibleName(/Eigen volgorde/);
+  const pill=page.locator('[data-deck-grab]');await page.locator('[data-list-sort="custom"]').click();await pill.click();
   const pillBox=await pill.boundingBox();await page.mouse.move(pillBox.x+pillBox.width-15,pillBox.y+pillBox.height/2);await page.mouse.down();await page.mouse.move(pillBox.x+15,pillBox.y+pillBox.height/2,{steps:8});await page.mouse.up();
   await expect(page.locator('[data-share-search-wrap]')).toBeVisible();
-  await expect(pill).toHaveAccessibleName(/Eigen volgorde/);
+  await expect(page.locator('[data-list-sort="custom"]')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('[data-share-close]')).toHaveCount(0);
   await expect(page.locator('.sh-share-board [data-deck-size]')).toHaveCount(2);
   const scroll=await page.locator('.sh-share-board-info').evaluate(element=>{
     const filler=document.createElement('div');filler.style.height='600px';element.append(filler);
     const header=element.closest('.sh-share-board').querySelector('.sh-share-fixed');
+    const toolbar=element.querySelector('[data-share-toolbar]');const toolbarBefore=toolbar.getBoundingClientRect().top;
     const before=header.getBoundingClientRect().top;element.scrollTop=100;
-    return {moved:header.getBoundingClientRect().top-before,scrolled:element.scrollTop};
+    return {moved:header.getBoundingClientRect().top-before,toolbarMoved:toolbar.getBoundingClientRect().top-toolbarBefore,scrolled:element.scrollTop};
   });
-  expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);
+  expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);expect(Math.abs(scroll.toolbarMoved)).toBeLessThan(1);
   const publication=page.getByRole('switch',{name:'QR-deling online',exact:true});
   await expect(publication).toBeChecked();await expect(publication).toBeEnabled();await publication.uncheck();
   await expect(publication).not.toBeChecked();
