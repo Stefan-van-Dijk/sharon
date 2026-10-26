@@ -1,4 +1,4 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.07';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.08';
 const QR_PREFIX='sharing.qr.';
 export const qrShareKey=id=>QR_PREFIX+id;
 export async function sharingRecords(store,objectId){
@@ -17,9 +17,9 @@ export function sharingSummary(records,now=Date.now()){
   const sent=records.some(row=>row.channel==='chat'&&row.state==='sent');
   const uncertain=records.some(row=>['unknown','pending'].includes(row.state)&&!(row.channel==='qr'&&row.expiresAt<=now));
   return online?{state:'online',label:'Online',description:'QR-deling online; bekijk de deelstatus voor de laatste controle.'}:
-    sent?{state:'shared',label:'Gedeeld',description:'Via chat verstuurd en online opgeslagen; laatst bevestigde deelstatus.'}:
+    sent?{state:'shared',label:'Gedeeld',description:'Bevestigd gedeeld met een persoon.'}:
     uncertain?{state:'unknown',label:'Controleren',description:'De online deelstatus is nog niet bevestigd.'}:
-    {state:'offline',label:'Offline',description:'De QR-deling is opgehaald, verwijderd of verlopen.'};
+    null;
 }
 export function sharingBadge(summary){
   if(!summary)return '';
@@ -30,7 +30,7 @@ export async function refreshQrShares(store,objectId,{force=false}={}){
   const rows=(await sharingRecords(store,objectId)).filter(row=>row.channel==='qr');
   const service=new ConnectionService(store);
   for(const row of rows){
-    if(row.state==='missing'||(!force&&Date.now()-Math.max(row.checkedAt||0,row.verifiedAt||0)<60000))continue;
+    if(['missing','withdrawn'].includes(row.state)||(!force&&Date.now()-Math.max(row.checkedAt||0,row.verifiedAt||0)<60000))continue;
     let next;
     if(row.expiresAt<=Date.now())next={...row,state:'expired'};
     else {

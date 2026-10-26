@@ -49,10 +49,10 @@ test('QR availability distinguishes consumed, expired and unreachable and never 
   app.window.fetch=async()=>({ok:false,status:403,json:async()=>({error:'unauthorized'})});
   rows=await refreshQrShares(app.store,row.sourceId,{force:true});assert.equal(sharingSummary(rows).state,'unknown');
   app.window.fetch=async()=>({ok:false,status:410,json:async()=>({error:'share_unavailable'})});
-  rows=await refreshQrShares(app.store,row.sourceId,{force:true});assert.equal(sharingSummary(rows).state,'offline');
+  rows=await refreshQrShares(app.store,row.sourceId,{force:true});assert.equal(sharingSummary(rows),null);
   await app.store.put('meta',{key:qrShareKey(row.id),value:{...row,expiresAt:Date.now()-1}});
   app.window.fetch=async()=>{throw Error('Expired records must not reach network');};
-  rows=await refreshQrShares(app.store,row.sourceId,{force:true});assert.equal(sharingSummary(rows).state,'offline');
+  rows=await refreshQrShares(app.store,row.sourceId,{force:true});assert.equal(sharingSummary(rows),null);
 });
 test('chat status waits for server confirmation, keeps retry identity and also marks an included location',async t=>{
   const {app,service,device,sharingRecords,sharingSummary}=await setup(t);let fail=true;const requests=[];
@@ -190,4 +190,54 @@ test('share pill cycles five sorts, uses the Persons custom order and opens sear
  const search=app.document.querySelector('[data-share-search]');search.value='Cato';search.dispatchEvent(new app.window.Event('input'));assert.equal(first(),'GammaUser001');
  close();close=openCardShare(card,{store:app.store});
  await until(()=>app.document.querySelector('[data-share-person]'));assert.match(pill().getAttribute('aria-label'),/Logisch/);
+});
+
+test('publication switch withdraws the live QR, stays offline after reopening and preserves confirmed person history',async t=>{
+ const {app,sharingRecords,sharingSummary,mountSharingBadges}=await setup(t);app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));
+ const entries=new Map();let uploads=0;
+ app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);
+ if(q.action==='share-publish'){entries.set(q.id,q);uploads++;return {ok:true,status:200,json:async()=>({ok:true})};}
+ if(q.action==='share-read')return entries.has(q.id)?{ok:true,status:200,json:async()=>({payload:entries.get(q.id).payload})}:{ok:false,status:410,json:async()=>({error:'share_unavailable'})};
+ if(q.action==='share-ack'){entries.delete(q.id);return {ok:true,status:200,json:async()=>({ok:true})};}throw Error(q.action);};
+ const card={id:'PrivateCard1',type:'card',name:'Pas',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:''};
+ await app.store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel'}});
+ await app.store.setMeta('connection.contacts.log-json.v1',[{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna'}]);
+ await app.store.put('objects',{id:'Message00001',type:'chat-message',chatId:'AlphaChat001',sharedObjectId:card.id,delivery:'sent',sharedConfirmedAt:Date.now()});
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ let close=openCardShare(card,{store:app.store});t.after(()=>close());
+ const toggle=()=>app.document.querySelector('[data-share-publication]');
+ await until(()=>app.document.querySelector('[data-share-qr-code] svg')&&!toggle().disabled);
+ assert.equal(toggle().checked,true);toggle().click();
+ await until(()=>entries.size===0&&!toggle().disabled);
+ assert.equal(toggle().checked,false);assert.equal(app.document.querySelector('[data-share-qr-code] svg'),null);
+ assert.equal(sharingSummary(await sharingRecords(app.store,card.id)).state,'shared');
+ const root=app.document.createElement('div');root.innerHTML='<div data-swipe-row="PrivateCard1"><button data-swipe-surface>Pas</button></div>';app.document.body.append(root);
+ await mountSharingBadges(root,app.store,{refresh:false});assert.equal(root.querySelector('[data-sharing-state]').dataset.sharingState,'shared');
+ close();close=openCardShare(card,{store:app.store});
+ await until(()=>toggle()&&!toggle().disabled);
+ assert.equal(uploads,1);assert.equal(entries.size,0);assert.equal(toggle().checked,false);
+ assert.match(app.document.querySelector('[data-share-person="AlphaUser001"]').textContent,/Gedeeld/);
+ app.document.querySelector('[data-share-location]').click();await new Promise(resolve=>setTimeout(resolve,20));assert.equal(uploads,1);
+ toggle().click();await until(()=>uploads===2&&app.document.querySelector('[data-share-qr-code] svg')&&!toggle().disabled);
+ assert.equal(toggle().checked,true);assert.equal(entries.size,1);
+});
+
+test('failed withdrawal retains online evidence and a missing QR has no status dot',async t=>{
+ const {app,sharingSummary,mountSharingBadges}=await setup(t);app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));
+ let payload;
+ app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);
+ if(q.action==='share-publish'){payload=q.payload;return {ok:true,status:200,json:async()=>({ok:true})};}
+ if(q.action==='share-read')return {ok:true,status:200,json:async()=>({payload})};
+ throw new TypeError('Offline');};
+ const {openCardShare}=await app.load(modulePath('ui/CardSharing'));
+ const close=openCardShare({id:'PrivateCard1',type:'card',name:'Pas',cardKind:'loyalty',codeFormat:'',codeValue:''},{store:app.store});t.after(close);
+ await until(()=>app.document.querySelector('[data-share-qr-code] svg')&&!app.document.querySelector('[data-share-publication]').disabled);
+ app.document.querySelector('[data-share-publication]').click();
+ await until(()=>app.document.querySelector('[data-share-status]').textContent.includes('kon niet worden ingetrokken'));
+ assert.equal(app.document.querySelector('[data-share-publication]').checked,true);
+ assert.match(app.document.querySelector('[data-qr-status]').textContent,/niet bevestigd/);
+ assert.equal(sharingSummary([{channel:'qr',state:'missing',expiresAt:Date.now()+1000}]),null);
+ await app.store.put('meta',{key:'sharing.qr.Missing00001',value:{id:'Missing00001',sourceId:'OtherCard001',state:'missing',expiresAt:Date.now()+1000}});
+ const root=app.document.createElement('div');root.innerHTML='<div data-swipe-row="OtherCard001"><button data-swipe-surface><span data-sharing-state="online"></span>Pas</button></div>';app.document.body.append(root);
+ await mountSharingBadges(root,app.store,{refresh:false});assert.equal(root.querySelector('[data-sharing-state]'),null);
 });
