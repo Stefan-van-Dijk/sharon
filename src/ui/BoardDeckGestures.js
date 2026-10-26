@@ -3,7 +3,9 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
   let gesture=null,closed=false,interacted=false,suppressGrabClickUntil=0;
   let layout={x:0,y:0,height:Math.min(580,window.innerHeight-112),media:Math.min(330,window.innerHeight*.34)};
   const key=layoutKey;
+  const mobile=()=>window.innerWidth<760;
   const constrain=()=>{
+    if(mobile())layout.x=0;
     const maxHeight=Math.max(180,window.innerHeight-112);
     layout.height=Math.max(Math.min(260,maxHeight),Math.min(maxHeight,layout.height));
     layout.media=Math.max(Math.min(190,layout.height-80),Math.min(layout.height-80,layout.media));
@@ -21,7 +23,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     const bounds=grab?.getBoundingClientRect();
     const anchor=bounds?.width?bounds:rect;
     const base={left:anchor.left-layout.x,right:anchor.right-layout.x,top:anchor.top-layout.y,bottom:anchor.bottom-layout.y};
-    layout.x=Math.max(8-base.left,Math.min(window.innerWidth-8-base.right,layout.x));
+    layout.x=mobile()?0:Math.max(8-base.left,Math.min(window.innerWidth-8-base.right,layout.x));
     layout.y=Math.max(28-base.top,Math.min(window.innerHeight-8-base.bottom,layout.y));apply();
   };
   const save=()=>layoutStore?.put('meta',{key,value:{x:layout.x/window.innerWidth,y:layout.y/window.innerHeight,height:layout.height/window.innerHeight,media:layout.media/window.innerHeight}}).catch(()=>{});
@@ -71,7 +73,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     }
     if(gesture.mode==='pending'&&Math.max(Math.abs(dx),Math.abs(dy))>=9)gesture.mode=Math.abs(dx)>Math.abs(dy)*1.2?'swipe':'vertical';
     if(gesture.mode==='move'){
-      layout.x=gesture.start.x+dx;layout.y=gesture.start.y+dy;apply();clamp();
+      layout.x=mobile()?0:gesture.start.x+dx;layout.y=gesture.start.y+dy;apply();clamp();
     }else if(gesture.mode==='board'){
       // The flex-end anchor already keeps the bottom fixed when height changes.
       layout.height=gesture.start.height-dy;apply();clamp();
@@ -97,7 +99,9 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     if(!target||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key))return;
     event.preventDefault();interacted=true;
     const delta=['ArrowDown','ArrowRight'].includes(event.key)?16:-16;
-    if(target.matches('[data-deck-grab]'))layout[['ArrowLeft','ArrowRight'].includes(event.key)?'x':'y']+=delta;
+    if(target.matches('[data-deck-grab]')){
+      if(!mobile()||!['ArrowLeft','ArrowRight'].includes(event.key))layout[['ArrowLeft','ArrowRight'].includes(event.key)?'x':'y']+=delta;
+    }
     else if(['ArrowUp','ArrowDown'].includes(event.key)){
       if(target.dataset.deckSize==='media')layout.media+=delta;
       else layout.height-=delta;

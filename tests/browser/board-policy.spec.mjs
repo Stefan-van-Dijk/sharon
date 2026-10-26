@@ -148,12 +148,18 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   }
   await expect(stack).toHaveClass(/is-card-deck-lifted/);
   await expect.poll(()=>page.locator('.sh-share-zone-stack .sh-board-deck-card-1').evaluate(card=>getComputedStyle(card).transform)).toBe('matrix(1, 0, 0, 1, -3, -3)');
+  // Continuing the gathering swipe horizontally must not move the stack.
+  if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+70,y}]});
+  else await page.evaluate(({x,y})=>window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+70,clientY:y})),{x,y});
+  const gatheredPosition=await stack.boundingBox();
+  expect(Math.abs(gatheredPosition.x-beforePosition.x)).toBeLessThan(1);
+  expect(Math.abs(gatheredPosition.y-beforePosition.y)).toBeLessThan(1);
   const beforeY=await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')));
   if(cdp){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+100,y:y-35}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
   else await page.evaluate(({x,y})=>{for(const type of ['pointermove','pointerup'])window.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+100,clientY:y-35}));},{x,y});
   await expect(stack).not.toHaveClass(/is-card-deck-lifted/);
   const afterPosition=await stack.boundingBox();
-  expect(afterPosition.x-beforePosition.x).toBeGreaterThan(40);
+  expect(Math.abs(afterPosition.x-beforePosition.x)).toBeLessThan(1);
   expect(beforePosition.y-afterPosition.y).toBeGreaterThan(20);
   expect(await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')))).toBeLessThan(beforeY-20);
   await expect(grab).toHaveAccessibleName(/Logisch/);
