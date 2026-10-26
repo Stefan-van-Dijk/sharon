@@ -81,6 +81,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
     const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
     const store=await new ObjectStore().open();
+    await store.setMeta('connection.contacts.log-json.v1',[{personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna'}]);
     await store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:5}}});
     await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas met een langere titel',color:'#d12b54',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
@@ -134,6 +135,11 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   expect(geometry.titleWidth).toBeGreaterThan(30);
   await expect(page.locator('[data-share-item-icon] svg')).toHaveCount(1);
   await expect(page.locator('[data-share-item-icon]')).toHaveCSS('color','rgb(209, 43, 84)');
+  const iconPosition=await page.locator('[data-share-item-icon]').evaluate(icon=>{const r=icon.getBoundingClientRect(),board=icon.closest('.sh-share-fixed').getBoundingClientRect();return {left:r.left-board.left,top:r.top-board.top};});
+  expect(iconPosition.left).toBe(14);expect(iconPosition.top).toBe(16);
+  const person=page.locator('[data-share-person="AlphaUser001"]');await expect(person).toBeVisible();
+  const rowHeight=(await person.boundingBox()).height;expect(rowHeight).toBeGreaterThanOrEqual(44);expect(rowHeight).toBeLessThanOrEqual(56);
+
   for(const handle of geometry.handles){expect(Math.abs(handle.center-geometry.center)).toBeLessThan(1);expect(Math.abs(handle.edge-(handle.kind==='board'?geometry.top:geometry.bottom))).toBeLessThan(1);}
   const grab=page.locator('[data-deck-grab]'),stack=page.locator('.sh-share-zone-stack');
   const grabBox=await grab.boundingBox(),x=grabBox.x+18,y=grabBox.y+grabBox.height/2;
