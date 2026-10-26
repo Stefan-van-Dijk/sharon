@@ -63,7 +63,7 @@ test('non-owner cannot open relevance management',async({page})=>{
   await expect(page.locator('.sh-board-owner-policy-overlay')).toHaveCount(0);
 });
 
-test('sharing opens QR automatically, reuses it and replaces a consumed transfer',async({page})=>{
+test('sharing opens QR automatically, reuses it and supports touch dragging and centered edge handles',async({page,browserName})=>{
   await open(page);
   const statusStyles=[...readFileSync('index.html','utf8').matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(match=>match[1]).join('\n');
   await page.addStyleTag({content:statusStyles});
@@ -82,7 +82,7 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
     const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
     const store=await new ObjectStore().open();
     await store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:5}}});
-    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
+    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas met een langere titel',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
@@ -115,15 +115,43 @@ test('sharing opens QR automatically, reuses it and replaces a consumed transfer
   expect(uploads).toBe(2);
   const centered=await page.locator('.sh-share-qr-panel').evaluate(panel=>{const code=panel.querySelector('[data-share-qr-code] svg').getBoundingClientRect(),box=panel.getBoundingClientRect();return Math.abs((code.left+code.right)/2-(box.left+box.right)/2);});
   expect(centered).toBeLessThan(1);
-  await expect(page.locator('[data-share-title]')).toHaveText('Testpas');
+  await expect(page.locator('[data-share-title]')).toHaveText('Testpas met een langere titel');
   await expect(page.locator('.sh-share-side-right')).toHaveCSS('transform','matrix(-1, 0, 0, -1, 0, 0)');
   const locationToggle=page.getByRole('button',{name:'Locatie meesturen',exact:true});
   const clearOfButton=await page.locator('[data-qr-status]').evaluate(text=>{const button=document.querySelector('[data-share-location-toggle]');return text.getBoundingClientRect().bottom<=button.getBoundingClientRect().top;});
   expect(clearOfButton).toBe(true);
   await locationToggle.click();await expect(locationToggle).toHaveAttribute('aria-pressed','true');
   await expect.poll(()=>uploads).toBe(3);
-  await expect(page.locator('[data-qr-status]')).toContainText('locatie wordt meegestuurd');
+  await expect(page.locator('[data-qr-status]')).toContainText('Locatie wordt meegestuurd');
   await expect(page.locator('[data-sharing-details]')).not.toContainText('opgehaald of verwijderd');
+  await expect(page.locator('[data-qr-status]')).not.toContainText('Locatie-icoon');
+  const geometry=await page.locator('.sh-share-fixed').evaluate(media=>{
+    const box=media.getBoundingClientRect(),title=media.querySelector('[data-share-title]');
+    const handles=[...media.querySelectorAll('[data-deck-size]')].map(handle=>{
+      const r=handle.getBoundingClientRect();return {center:(r.left+r.right)/2,edge:(r.top+r.bottom)/2,kind:handle.dataset.deckSize};
+    });return {center:(box.left+box.right)/2,top:box.top,bottom:box.bottom,titleWidth:title.getBoundingClientRect().width,handles};
+  });
+  expect(geometry.titleWidth).toBeGreaterThan(30);
+  for(const handle of geometry.handles){expect(Math.abs(handle.center-geometry.center)).toBeLessThan(1);expect(Math.abs(handle.edge-(handle.kind==='board'?geometry.top:geometry.bottom))).toBeLessThan(1);}
+  const grab=page.locator('[data-deck-grab]'),stack=page.locator('.sh-share-zone-stack');
+  const grabBox=await grab.boundingBox(),x=grabBox.x+18,y=grabBox.y+grabBox.height/2;
+  let cdp;
+  if(browserName==='chromium'){
+    cdp=await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+35,y}]});
+  }else{
+    await grab.evaluate((button,{x,y})=>{button.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x,clientY:y}));window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+35,clientY:y}));},{x,y});
+  }
+  await expect(stack).toHaveClass(/is-card-deck-lifted/);
+  await expect.poll(()=>page.locator('.sh-share-zone-stack .sh-board-deck-card-1').evaluate(card=>getComputedStyle(card).transform)).toBe('matrix(1, 0, 0, 1, -3, -3)');
+  const beforeY=await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')));
+  if(cdp){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+50,y:y-35}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
+  else await page.evaluate(({x,y})=>{for(const type of ['pointermove','pointerup'])window.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+50,clientY:y-35}));},{x,y});
+  await expect(stack).not.toHaveClass(/is-card-deck-lifted/);
+  expect(await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')))).toBeLessThan(beforeY-20);
+  await expect(grab).toHaveAccessibleName(/Logisch/);
+  await page.waitForTimeout(450); // The release click must not change the sort.
   const pill=page.locator('[data-deck-grab]');await pill.click();await expect(pill).toHaveAccessibleName(/Eigen volgorde/);
   const pillBox=await pill.boundingBox();await page.mouse.move(pillBox.x+pillBox.width-15,pillBox.y+pillBox.height/2);await page.mouse.down();await page.mouse.move(pillBox.x+15,pillBox.y+pillBox.height/2,{steps:8});await page.mouse.up();
   await expect(page.locator('[data-share-search-wrap]')).toBeVisible();

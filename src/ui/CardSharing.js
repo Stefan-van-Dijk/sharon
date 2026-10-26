@@ -1,17 +1,17 @@
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.06';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.06';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.06';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.06';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.06';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.06';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.06';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.06';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.06';
-import { renderCardCode } from './CardCodes.js?v=0.4.06';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.06';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.06';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.06';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.06';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.07';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.07';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.07';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.07';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.07';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.07';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.07';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.07';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.07';
+import { renderCardCode } from './CardCodes.js?v=0.4.07';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.07';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.07';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.07';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.07';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -139,7 +139,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const code=document.createElement('div');code.dataset.shareQrCode='';
   layer.querySelector('[data-share-qr-slot]').append(code);layer.querySelector('.sh-share-board-info').prepend(qr);
   const qrStatus=layer.querySelector('[data-qr-status]');
-  const qrNote=message=>{qrStatus.textContent=message+(isLocation?'':location?' Locatie-icoon: '+(locationChoice.checked?'locatie wordt meegestuurd.':'locatie wordt niet meegestuurd.'):' Geen locatie gekoppeld.');};
+  const qrNote=message=>{qrStatus.textContent=message+(isLocation?'':location?(locationChoice.checked?' Locatie wordt meegestuurd.':' Locatie wordt niet meegestuurd.'):' Geen locatie gekoppeld.');};
   qr.addEventListener('click',async()=>{if(disposed||qrBusy||!ready||checking)return;qrBusy=true;qr.disabled=true;let retirementWarning='';qrNote('QR-code voorbereiden…');try{
     const includedAtStart=!isLocation&&locationChoice.checked;
     const qrSource={id:card.id,relatedIds:includedAtStart&&card.locationId?[card.locationId]:[],includeLocation:includedAtStart};
