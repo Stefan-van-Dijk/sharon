@@ -1,17 +1,19 @@
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.08';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.08';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.08';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.08';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.08';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.08';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.08';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.08';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.08';
-import { renderCardCode } from './CardCodes.js?v=0.4.08';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.08';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.08';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.08';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.08';
+import { cardSymbol } from './CardSymbols.js?v=0.4.09';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.09';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.09';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.09';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.09';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.09';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.09';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.09';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.09';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.09';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.09';
+import { renderCardCode } from './CardCodes.js?v=0.4.09';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.09';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.09';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.09';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.09';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -20,7 +22,13 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const surface=layer.firstElementChild;surface.dataset.cardBoard='';surface.tabIndex=-1;
   const stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');
   let gestures=null;
-  layer.querySelector('[data-share-title]').textContent=card.name||card.data?.title||'Locatie';
+  const title=layer.querySelector('[data-share-title]');
+  const icon=document.createElement('span');icon.dataset.shareItemIcon='';icon.setAttribute('aria-hidden','true');
+  icon.innerHTML=isLocation?locationIcon(card.data?.kind):cardSymbol(card.cardKind);
+  const titleText=document.createElement('span');titleText.textContent=card.name||card.data?.title||'Locatie';
+  title.append(icon,titleText);
+  const color=isLocation?(card.data?.color||card.color):card.color;
+  title.style.setProperty('--share-accent',/^#[0-9a-f]{6}$/i.test(color||'')?color:'#489ff8');
   if(isLocation){layer.querySelector('[data-share-pill-label]').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
   const service=new ConnectionService(store),selected=new Set(),sent=new Set(),retries=new Map();
