@@ -26,7 +26,7 @@ test('QR upload tracks source only locally, survives closing share sheet and reu
   let close=openCardShare(card,{store:app.store});
   await until(()=>!app.document.querySelector('[data-share-qr]').disabled);
   await until(()=>app.document.querySelector('[data-sharing-details]').textContent.includes('QR-deling online'));
-  assert.match(app.document.querySelector('[data-qr-status]').textContent,/Geen locatie gekoppeld/);
+  assert.match(app.document.querySelector('[data-qr-status]').textContent,/Scan in SharonDeling 7 dagen geldig/);
   assert.ok(!app.document.querySelector('[data-qr-status]').textContent.includes('Locatie-icoon'));
   assert.equal(app.document.querySelector('[data-share-location-option]').hidden,true);
   close();assert.equal(publishes,1);assert.ok(!JSON.stringify(entry).includes(card.id));
@@ -159,7 +159,7 @@ test('share board reuses deck resizing, dragging, cancellation and pull-down clo
  assert.equal(app.document.querySelector('.sh-card-share-overlay'),null);
 });
 
-test('share pill cycles five sorts, uses the Persons custom order and opens search on left swipe without sorting',async t=>{
+test('share toolbar offers five sorts and Persons order while the separate pill does not sort',async t=>{
  const {app}=await setup(t);app.window.fetch=async()=>{throw new TypeError('Offline');};
  await app.store.setMeta('connection.contacts.log-json.v1',[
  {personId:'AlphaUser001',chatId:'AlphaChat001',name:'Anna',updatedAt:100},
@@ -174,22 +174,23 @@ test('share pill cycles five sorts, uses the Persons custom order and opens sear
  await until(()=>app.document.querySelector('[data-share-person]'));
  const first=()=>app.document.querySelector('[data-share-person]').dataset.sharePerson;
  const pill=()=>app.document.querySelector('[data-deck-grab]');
+ const sort=mode=>{app.document.querySelector('[data-list-sort="'+mode+'"]').click();assert.equal(app.document.querySelector('[data-list-sort="'+mode+'"]').getAttribute('aria-pressed'),'true');};
  assert.equal(first(),'BetaUser0001');assert.ok(app.document.querySelector('[data-share-person]').closest('.sh-object-strip'));
- pill().click();assert.match(pill().getAttribute('aria-label'),/Eigen volgorde/);
+ sort('custom');
  assert.equal(first(),'GammaUser001');
  assert.equal(app.document.querySelector('[data-share-move]'),null);
  assert.deepEqual(Array.from((await app.store.get('meta','people.list.preferences')).value.order),['GammaUser001','BetaUser0001','AlphaUser001']);
- pill().click();assert.equal(first(),'AlphaUser001');assert.match(pill().getAttribute('aria-label'),/Alfabetisch/);
- pill().click();assert.equal(first(),'GammaUser001');assert.match(pill().getAttribute('aria-label'),/Dichtbij/);
- pill().click();assert.equal(first(),'BetaUser0001');assert.match(pill().getAttribute('aria-label'),/Recent/);
- pill().click();assert.match(pill().getAttribute('aria-label'),/Logisch/);
+ sort('alpha');assert.equal(first(),'AlphaUser001');assert.equal(app.document.querySelector('[data-list-sort="alpha"]').getAttribute('aria-pressed'),'true');
+ sort('near');assert.equal(first(),'GammaUser001');assert.equal(app.document.querySelector('[data-list-sort="near"]').getAttribute('aria-pressed'),'true');
+ sort('recent');assert.equal(first(),'BetaUser0001');assert.equal(app.document.querySelector('[data-list-sort="recent"]').getAttribute('aria-pressed'),'true');
+ sort('logical');
  function pointer(target,type,x,y){const e=new app.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',button:0,clientX:x,clientY:y});target.dispatchEvent(e);}
  pointer(pill(),'pointerdown',200,100);pointer(app.window,'pointermove',100,100);pointer(app.window,'pointerup',100,100);
  assert.equal(app.document.querySelector('[data-share-search-wrap]').hidden,false);
- pill().click();assert.match(pill().getAttribute('aria-label'),/Logisch/); // Synthetic click following swipe is suppressed.
+ pill().click();assert.equal(app.document.querySelector('[data-list-sort="logical"]').getAttribute('aria-pressed'),'true'); // Synthetic click following swipe is suppressed.
  const search=app.document.querySelector('[data-share-search]');search.value='Cato';search.dispatchEvent(new app.window.Event('input'));assert.equal(first(),'GammaUser001');
  close();close=openCardShare(card,{store:app.store});
- await until(()=>app.document.querySelector('[data-share-person]'));assert.match(pill().getAttribute('aria-label'),/Logisch/);
+ await until(()=>app.document.querySelector('[data-share-person]'));assert.equal(app.document.querySelector('[data-list-sort="logical"]').getAttribute('aria-pressed'),'true');
 });
 
 test('publication switch withdraws the live QR, stays offline after reopening and preserves confirmed person history',async t=>{

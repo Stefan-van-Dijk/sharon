@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.11">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.11">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.12">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.12">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2864,9 +2864,9 @@
     .sh-share-fixed .sh-share-location-source{position:absolute;right:14px;bottom:18px;width:36px;height:36px;border-radius:50%;padding:8px;border:1px solid #d5dde3;background:#fff;color:#84929b;touch-action:manipulation}
     .sh-share-location-source svg{display:block;width:100%;height:100%}
     .sh-share-fixed .sh-share-location-source[aria-pressed="true"]{background:#e1f0ff;border-color:#489ff8;color:#2275bb}
-    .sh-share-person-row{display:flex;gap:4px;align-items:center;margin:4px 0}
-    .sh-share-person-row>.sh-object-strip{flex:1;min-width:0}
-    .sh-share-person-row .sh-object-strip .sh-strip-surface{min-height:52px;gap:9px;width:100%;text-align:left;border:1px solid #e4e7eb!important;padding:8px 10px!important;touch-action:pan-y}
+    .sh-share-person-row{display:flex;gap:4px;align-items:center;margin:1px 0}
+    .sh-share-person-row>.sh-object-strip{flex:1;min-width:0;border-radius:0;box-shadow:none}
+    .sh-share-person-row .sh-object-strip .sh-strip-surface{min-height:52px;gap:9px;width:100%;text-align:left;border:0!important;border-bottom:1px solid #e4e7eb!important;border-radius:0;box-shadow:none;padding:7px 10px!important;touch-action:pan-y}
     .sh-share-person-row .sh-strip-surface[aria-pressed="true"]{background:#eaf3ff}
     .sh-share-person-row .sh-strip-icon{width:26px;height:26px;flex:none}
     .sh-share-person-row .sh-strip-copy strong{font-size:14px;line-height:1.25}
@@ -2878,6 +2878,23 @@
     .sh-card-share-dialog .sh-person-choice{display:flex;align-items:center;gap:12px;min-height:44px}
     .sh-card-share-dialog button,.sh-card-share-button{font:inherit;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:inherit;cursor:pointer}
     .sh-card-share-dialog button:disabled{opacity:.5;cursor:default}
+    .sh-share-fixed [data-share-summary-slot]{position:absolute;right:68px;bottom:24px}
+    .sh-share-fixed .sh-sharing-details{padding:0;margin:0}
+    .sh-share-fixed .sh-share-publication-line{min-height:25px}
+    .sh-share-fixed .sh-share-publication-line>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .sh-share-fixed.sh-card-media .sh-card-deck-grab{left:13px;bottom:20px;max-width:calc(100% - 140px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sh-share-fixed .sh-share-location-source{right:13px;bottom:20px;width:35px;height:35px}
+    .sh-share-fixed .sh-share-side-right{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;white-space:nowrap;text-align:center}
+    .sh-share-fixed .sh-share-side-right>span{display:block}
+    .sh-share-board-info{padding:0 16px 12px}
+    [data-share-toolbar]{position:sticky;top:0;z-index:4;background:#fff;padding:4px 0;border-bottom:1px solid #e9e9ed}
+    .sh-share-board [data-share-toolbar] .sh-list-controls{display:flex;align-items:center;margin:0;gap:0}
+    .sh-share-board [data-share-toolbar] .sh-card-sort-icons{display:flex;flex:none;border-left:1px solid #e9e9ed;padding-left:2px;gap:0}
+    .sh-share-board [data-list-sort]{width:30px;min-width:30px;height:44px;padding:5px;border:0;background:transparent;border-radius:6px;font-size:11px}
+    .sh-share-board [data-list-sort] svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7}
+    .sh-share-board [data-list-sort][aria-pressed="true"]{background:#ededf0;color:#202025}
+    .sh-share-board [data-share-search]{padding:4px;font-size:13px;border:0}
+    .sh-share-board{mask-image:radial-gradient(circle at 0 var(--card-deck-media,330px),transparent 7px,#000 8px),radial-gradient(circle at 100% var(--card-deck-media,330px),transparent 7px,#000 8px);mask-composite:intersect}
     .sh-person-links{margin:18px 0;border-top:1px solid #e5e5e7;padding-top:14px}
     .sh-person-links summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
     .sh-person-links [data-person-search]{box-sizing:border-box;width:100%;font:inherit;padding:10px;border:0;border-bottom:1px solid #ddd;background:transparent;color:inherit}
@@ -3074,16 +3091,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.11#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.11#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.11#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.11#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.11#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.12#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.12#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.12#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.12#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.12#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.11"></script>
+  <script type="module" src="./src/main.js?v=0.4.12"></script>
 </body>
 </html>
