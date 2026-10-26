@@ -170,12 +170,12 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   expect(Math.abs(afterPosition.x-beforePosition.x)).toBeLessThan(1);
   expect(beforePosition.y-afterPosition.y).toBeGreaterThan(20);
   expect(await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')))).toBeLessThan(beforeY-20);
-  await expect(page.locator('[data-list-sort="logical"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.sh-share-board [data-list-sort="logical"]')).toHaveAttribute('aria-pressed','true');
   await page.waitForTimeout(450); // The release click must not change the sort.
-  const pill=page.locator('[data-deck-grab]');await page.locator('[data-list-sort="custom"]').click();await pill.click();
+  const pill=page.locator('[data-deck-grab]');await page.locator('.sh-share-board [data-list-sort="custom"]').click();await pill.click();
   const pillBox=await pill.boundingBox();await page.mouse.move(pillBox.x+pillBox.width-15,pillBox.y+pillBox.height/2);await page.mouse.down();await page.mouse.move(pillBox.x+15,pillBox.y+pillBox.height/2,{steps:8});await page.mouse.up();
   await expect(page.locator('[data-share-search-wrap]')).toBeVisible();
-  await expect(page.locator('[data-list-sort="custom"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.sh-share-board [data-list-sort="custom"]')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('[data-share-close]')).toHaveCount(0);
   await expect(page.locator('.sh-share-board [data-deck-size]')).toHaveCount(2);
   const scroll=await page.locator('.sh-share-board-info').evaluate(element=>{
