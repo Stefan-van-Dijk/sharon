@@ -15,8 +15,13 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
   const clamp=()=>{
     const rect=stack.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
-    const base={left:rect.left-layout.x,right:rect.right-layout.x,top:rect.top-layout.y,bottom:rect.bottom-layout.y};
-    layout.x=Math.max(8-base.left,Math.min(window.innerWidth-32-base.right,layout.x));
+    // Keep the grab pill reachable. Clamping the full-width board itself
+    // leaves almost no horizontal travel on a phone.
+    const grab=stack.querySelector('[data-card-board]:not([aria-hidden="true"]) [data-deck-grab]');
+    const bounds=grab?.getBoundingClientRect();
+    const anchor=bounds?.width?bounds:rect;
+    const base={left:anchor.left-layout.x,right:anchor.right-layout.x,top:anchor.top-layout.y,bottom:anchor.bottom-layout.y};
+    layout.x=Math.max(8-base.left,Math.min(window.innerWidth-8-base.right,layout.x));
     layout.y=Math.max(28-base.top,Math.min(window.innerHeight-8-base.bottom,layout.y));apply();
   };
   const save=()=>layoutStore?.put('meta',{key,value:{x:layout.x/window.innerWidth,y:layout.y/window.innerHeight,height:layout.height/window.innerHeight,media:layout.media/window.innerHeight}}).catch(()=>{});

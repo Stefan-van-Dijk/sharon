@@ -82,7 +82,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     const {openCardsView}=await import('/src/ui/CardsView.js?v='+version);
     const store=await new ObjectStore().open();
     await store.put('objects',{id:'PrivateHome1',type:'location',data:{title:'Winkel',coordinates:{lat:52,lng:5}}});
-    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas met een langere titel',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
+    await store.put('objects',{id:'PrivateCard1',type:'card',name:'Testpas met een langere titel',color:'#d12b54',locationId:'PrivateHome1',cardKind:'loyalty',codeFormat:'',codeValue:'',fields:[]});
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
@@ -132,9 +132,12 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     });return {center:(box.left+box.right)/2,top:box.top,bottom:box.bottom,titleWidth:title.getBoundingClientRect().width,handles};
   });
   expect(geometry.titleWidth).toBeGreaterThan(30);
+  await expect(page.locator('[data-share-item-icon] svg')).toHaveCount(1);
+  await expect(page.locator('[data-share-item-icon]')).toHaveCSS('color','rgb(209, 43, 84)');
   for(const handle of geometry.handles){expect(Math.abs(handle.center-geometry.center)).toBeLessThan(1);expect(Math.abs(handle.edge-(handle.kind==='board'?geometry.top:geometry.bottom))).toBeLessThan(1);}
   const grab=page.locator('[data-deck-grab]'),stack=page.locator('.sh-share-zone-stack');
   const grabBox=await grab.boundingBox(),x=grabBox.x+18,y=grabBox.y+grabBox.height/2;
+  const beforePosition=await stack.boundingBox();
   let cdp;
   if(browserName==='chromium'){
     cdp=await page.context().newCDPSession(page);
@@ -146,9 +149,12 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await expect(stack).toHaveClass(/is-card-deck-lifted/);
   await expect.poll(()=>page.locator('.sh-share-zone-stack .sh-board-deck-card-1').evaluate(card=>getComputedStyle(card).transform)).toBe('matrix(1, 0, 0, 1, -3, -3)');
   const beforeY=await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')));
-  if(cdp){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+50,y:y-35}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
-  else await page.evaluate(({x,y})=>{for(const type of ['pointermove','pointerup'])window.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+50,clientY:y-35}));},{x,y});
+  if(cdp){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+100,y:y-35}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
+  else await page.evaluate(({x,y})=>{for(const type of ['pointermove','pointerup'])window.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:99,pointerType:'touch',clientX:x+100,clientY:y-35}));},{x,y});
   await expect(stack).not.toHaveClass(/is-card-deck-lifted/);
+  const afterPosition=await stack.boundingBox();
+  expect(afterPosition.x-beforePosition.x).toBeGreaterThan(40);
+  expect(beforePosition.y-afterPosition.y).toBeGreaterThan(20);
   expect(await stack.evaluate(el=>parseFloat(el.style.getPropertyValue('--card-deck-y')))).toBeLessThan(beforeY-20);
   await expect(grab).toHaveAccessibleName(/Logisch/);
   await page.waitForTimeout(450); // The release click must not change the sort.
