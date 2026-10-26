@@ -1,11 +1,11 @@
-import { ChainBrowse } from '../core/chains/ChainBrowse.js?v=0.4.09';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.09';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.09';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.09';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.09';
-import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.4.09';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.09';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.09';
+import { ChainBrowse } from '../core/chains/ChainBrowse.js?v=0.4.10';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.10';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.10';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.10';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.10';
+import { localBranches, saveBranchLocation, branchZone } from '../core/chains/ChainModel.js?v=0.4.10';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.10';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.10';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',beforeOpen=()=>{}}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;

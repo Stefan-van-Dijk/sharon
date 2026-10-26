@@ -159,3 +159,21 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(active(app).querySelector('[data-deck-icon]').hasAttribute('hidden'),true);
   assert.deepEqual(app.errors,[]);
 });
+
+test('mobile restores a horizontally centered deck and a gathering swipe only enables vertical dragging',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ Object.defineProperty(app.window,'innerWidth',{value:390,configurable:true});
+ await app.store.setMeta('cards.board.layout',{x:.2,y:0,height:.65,media:.3});
+ const {openCardBoard}=await app.load('./src/ui/CardBoard.js');
+ const close=openCardBoard({id:'a',name:'Alpha'},{store:app.store});t.after(close);
+ const stack=active(app).parentElement;
+ await until(()=>parseFloat(stack.style.getPropertyValue('--card-deck-height'))===app.window.innerHeight*.65);
+ assert.equal(stack.style.getPropertyValue('--card-deck-x'),'0px');
+ const grab=active(app).querySelector('[data-deck-grab]');
+ pointer(app,grab,'pointerdown',50,300);pointer(app,grab,'pointermove',85,300);pointer(app,grab,'pointermove',150,300);
+ assert.equal(stack.style.getPropertyValue('--card-deck-x'),'0px');assert.equal(stack.style.getPropertyValue('--card-deck-y'),'0px');
+ pointer(app,grab,'pointermove',170,270);pointer(app,grab,'pointerup',170,270);
+ assert.equal(stack.style.getPropertyValue('--card-deck-x'),'0px');assert.equal(stack.style.getPropertyValue('--card-deck-y'),'-30px');
+ await until(async()=> (await app.store.get('meta','cards.board.layout')).value.y<0);
+ assert.equal((await app.store.get('meta','cards.board.layout')).value.x,0);
+});
