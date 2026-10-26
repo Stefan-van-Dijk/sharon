@@ -74,7 +74,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
       remote=input;uploads++;await route.fulfill({status:200,json:{ok:true}});
     }else if(input.action==='share-read'){
       await route.fulfill(remote?{status:200,json:{payload:remote.payload}}:{status:410,json:{error:'share_unavailable'}});
-    }else if(input.action==='share-ack'){await route.fulfill({status:200,json:{ok:true}});}else await route.abort();
+    }else if(input.action==='share-ack'){if(remote?.id===input.id)remote=null;await route.fulfill({status:200,json:{ok:true}});}else await route.abort();
   });
   await page.evaluate(async version=>{
     window.closeBoard();
@@ -165,6 +165,21 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     return {moved:header.getBoundingClientRect().top-before,scrolled:element.scrollTop};
   });
   expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);
+  const publication=page.getByRole('switch',{name:'QR-deling online',exact:true});
+  await expect(publication).toBeChecked();await expect(publication).toBeEnabled();await publication.uncheck();
+  await expect(publication).not.toBeChecked();
+  await expect(page.locator('[data-share-qr-code] svg')).toHaveCount(0);
+  await expect(page.locator('[data-sharing-state]')).toHaveCount(0);
+  expect(remote).toBeNull();
+  await page.evaluate(async version=>{
+    const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
+    const {mountSharingBadges}=await import('/src/ui/SharingStatus.js?v='+version);
+    const store=await new ObjectStore().open();
+    await store.put('objects',{id:'SharedMsg001',type:'chat-message',chatId:'AlphaChat001',sharedObjectId:'PrivateCard1',delivery:'sent',sharedConfirmedAt:Date.now()});
+    await mountSharingBadges(document,store,{refresh:false});
+  },version);
+  await expect(page.locator('[data-sharing-state="shared"]')).toHaveCSS('background-color','rgb(141, 152, 166)');
+  await publication.check();await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   const header=await page.locator('.sh-share-side-left').boundingBox();
   await page.mouse.move(header.x+header.width/2,header.y+header.height/2);
   await page.mouse.down();await page.mouse.move(header.x+header.width/2,header.y+header.height/2+110,{steps:8});await page.mouse.up();

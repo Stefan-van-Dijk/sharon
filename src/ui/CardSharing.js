@@ -1,17 +1,17 @@
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.07';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.07';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.07';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.07';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.07';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.07';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.07';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.07';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.07';
-import { renderCardCode } from './CardCodes.js?v=0.4.07';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.07';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.07';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.07';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.07';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.08';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.08';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.08';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.08';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.08';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.08';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.08';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.08';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.08';
+import { renderCardCode } from './CardCodes.js?v=0.4.08';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.08';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.08';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.08';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.08';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -24,7 +24,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   if(isLocation){layer.querySelector('[data-share-pill-label]').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
   const service=new ConnectionService(store),selected=new Set(),sent=new Set(),retries=new Map();
-  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,locationTouched=false,qrQueued=false;
+  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,locationTouched=false,qrQueued=false,publicationOff=false;
   let relatedPeople=new Set(),places=[],shareRows=[],peopleOrder=[],prefs={sort:'logical'};
   const modes=['alpha','near','recent','logical','custom'];
   const sortLabels={alpha:'Alfabetisch',near:'Dichtbij',recent:'Recent',logical:'Logisch',custom:'Eigen volgorde'};
@@ -33,15 +33,17 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const openSearch=()=>{layer.querySelector('[data-share-search-wrap]').hidden=false;paint();layer.querySelector('[data-share-search]').focus();};
   const cycleSort=()=>{prefs.sort=modes[(modes.indexOf(prefs.sort)+1)%modes.length];paint();savePrefs();};
   const source=()=>({id:card.id,relatedIds:!isLocation&&locationChoice.checked&&card.locationId?[card.locationId]:[]});
-  const sharing=document.createElement('div');sharing.className='sh-sharing-details';sharing.setAttribute('role','status');
+  const sharing=document.createElement('div');sharing.className='sh-sharing-details';
   sharing.dataset.sharingDetails='';layer.querySelector('[data-share-summary-slot]').append(sharing);
   const paintSharing=async()=>{
     const rows=await sharingRecords(store,card.id);if(disposed)return;
     shareRows=rows;
     sharing.replaceChildren();
-    for(const row of rows.filter(row=>row.channel==='qr'&&['online','unknown','pending'].includes(row.state)&&row.expiresAt>Date.now())){
-      const line=document.createElement('small');line.textContent=row.state==='online'?'QR-deling online':'QR-status niet bevestigd';sharing.append(line);
-    }
+    const active=rows.filter(row=>row.sourceId===card.id&&row.channel==='qr'&&['online','unknown','pending'].includes(row.state)&&row.expiresAt>Date.now());
+    const line=document.createElement('label');line.className='sh-share-publication-line';
+    const caption=document.createElement('span');caption.textContent=active.some(row=>row.state==='online')?'QR-deling online':active.length?'QR-status niet bevestigd':'QR-deling offline';
+    const toggle=document.createElement('input');toggle.type='checkbox';toggle.setAttribute('role','switch');toggle.setAttribute('aria-label','QR-deling online');toggle.dataset.sharePublication='';toggle.checked=active.length>0;toggle.disabled=!ready||checking||qrBusy||busy;
+    toggle.addEventListener('change',()=>setPublication(toggle.checked));line.append(caption,toggle);sharing.append(line);
     paint();
     existingQr=rows.find(row=>row.sourceId===card.id&&row.channel==='qr'&&['online','unknown'].includes(row.state)&&row.expiresAt>Date.now());
     if(existingQr&&!autoQr&&!locationTouched&&!busy&&shareText===null)locationChoice.checked=Boolean(existingQr.includeLocation);
@@ -84,14 +86,16 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
       host.append(row);
     }
     qr.disabled=qrBusy||!ready||checking;
-    if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed)qr.click();});}
+    const publication=layer.querySelector('[data-share-publication]');if(publication)publication.disabled=qrBusy||busy||!ready||checking;
+    if(publicationOff)qr.hidden=true;
+    if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}
     send.disabled=busy||![...selected].some(id=>!sent.has(id));
     locationChoice.disabled=busy||shareText!==null;
     const locationButton=layer.querySelector('[data-share-location-toggle]');locationButton.disabled=locationChoice.disabled;locationButton.setAttribute('aria-pressed',String(locationChoice.checked));
   };
   layer.querySelector('.sh-share-fixed').append(layer.querySelector('[data-share-location-option]'));
   layer.querySelector('[data-share-location-toggle]').addEventListener('click',()=>locationChoice.click());
-  locationChoice.addEventListener('change',()=>{locationTouched=true;paint();code.replaceChildren();qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
+  locationChoice.addEventListener('change',()=>{locationTouched=true;paint();code.replaceChildren();if(publicationOff){qrNote('QR-deling offline.');return;}qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
   layer.querySelector('[data-share-search]').addEventListener('input',paint);
   gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore:store,layoutKey:'sharing.board.layout',onGrabTap:cycleSort,onGrabSearch:openSearch});
   layer.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();close();}});
@@ -117,8 +121,10 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     }catch(error){status((sent.size?'Al verstuurd naar '+sent.size+'. ':'')+error.message);}
     finally{busy=false;if(!disposed){paint();paintSharing().catch(()=>{});}}
   });
-  Promise.all([service.contacts({offline:true}),store.getAll('objects'),store.get('meta','sharing.people.preferences'),store.get('meta','people.list.preferences')]).then(([value,objects,saved,peoplePrefs])=>{
+  Promise.all([service.contacts({offline:true}),store.getAll('objects'),store.get('meta','sharing.people.preferences'),store.get('meta','people.list.preferences'),store.get('meta','sharing.publication.'+card.id)]).then(([value,objects,saved,peoplePrefs,publication])=>{
     if(disposed)return;
+    publicationOff=publication?.value===false;
+    if(publicationOff){code.replaceChildren();qr.hidden=true;}
     contacts=value;places=objects.filter(o=>o.type==='location'&&!o.deletedAt&&!o.archivedAt);
     if(modes.includes(saved?.value?.sort))prefs={sort:saved.value.sort};
     peopleOrder=Array.isArray(peoplePrefs?.value?.order)?peoplePrefs.value.order:[];
@@ -133,6 +139,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
       layer.querySelector('[data-share-location-preview]').textContent=[location.title,location.address,
         location.coordinates?'Kaartpositie beschikbaar.':'Geen kaartpositie bekend.'].filter(Boolean).join(' · ');
     }
+    if(publicationOff)qrNote('QR-deling offline.');
     ready=true;paintSharing().catch(()=>{});paint();status(contacts.length?'':'Nog geen contacten. Maak eerst verbinding bij Personen.');
   }).catch(error=>status(error.message));
   const qr=document.createElement('button');qr.type='button';qr.textContent='Deel via korte QR';qr.dataset.shareQr='';qr.disabled=true;
@@ -140,7 +147,35 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   layer.querySelector('[data-share-qr-slot]').append(code);layer.querySelector('.sh-share-board-info').prepend(qr);
   const qrStatus=layer.querySelector('[data-qr-status]');
   const qrNote=message=>{qrStatus.textContent=message+(isLocation?'':location?(locationChoice.checked?' Locatie wordt meegestuurd.':' Locatie wordt niet meegestuurd.'):' Geen locatie gekoppeld.');};
-  qr.addEventListener('click',async()=>{if(disposed||qrBusy||!ready||checking)return;qrBusy=true;qr.disabled=true;let retirementWarning='';qrNote('QR-code voorbereiden…');try{
+  const setPublication=async online=>{
+    if(qrBusy||busy||!ready||checking)return;
+    if(online){
+      busy=true;paint();
+      try{await store.put('meta',{key:'sharing.publication.'+card.id,value:true});publicationOff=false;qr.hidden=false;busy=false;qr.click();}
+      catch(error){status(error.message);}
+      finally{busy=false;if(!disposed){await paintSharing();paint();}}
+      return;
+    }
+    busy=true;publicationOff=true;qrQueued=false;code.replaceChildren();qr.hidden=true;paint();
+    status('Publicatie intrekken…');
+    try{
+      // Persist the intent first: reopening must never republish a withdrawn QR.
+      await store.put('meta',{key:'sharing.publication.'+card.id,value:false});
+      const records=(await sharingRecords(store,card.id)).filter(row=>row.sourceId===card.id&&row.channel==='qr'&&!['missing','expired','withdrawn'].includes(row.state));
+      for(const row of records){
+        await service.request('share-ack',{id:row.id,access:row.access});
+        await store.put('meta',{key:'sharing.qr.'+row.id,value:{...row,state:'withdrawn',checkedAt:Date.now()}});
+      }
+      existingQr=null;qrNote('QR-deling offline.');status('Publicatie ingetrokken.');
+    }catch(error){
+      for(const row of (await sharingRecords(store,card.id)).filter(row=>row.sourceId===card.id&&row.channel==='qr'&&['online','pending'].includes(row.state))){
+        await store.put('meta',{key:'sharing.qr.'+row.id,value:{...row,state:'unknown',checkedAt:Date.now()}}).catch(()=>{});
+      }
+      qrNote('Intrekken niet bevestigd.');status('Publicatie kon niet worden ingetrokken. '+error.message);
+    }
+    finally{busy=false;if(!disposed){await paintSharing();paint();}}
+  };
+  qr.addEventListener('click',async()=>{if(disposed||qrBusy||publicationOff||!ready||checking)return;qrBusy=true;qr.disabled=true;let retirementWarning='';qrNote('QR-code voorbereiden…');try{
     const includedAtStart=!isLocation&&locationChoice.checked;
     const qrSource={id:card.id,relatedIds:includedAtStart&&card.locationId?[card.locationId]:[],includeLocation:includedAtStart};
     const qrText=isLocation?buildLocationPayload(location):buildCardPayload(card,{location:locationChoice.checked?location:null});
@@ -151,7 +186,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     if(previous&&!reusable){
       try{await service.request('share-ack',{id:previous.id,access:previous.access});await store.put('meta',{key:'sharing.qr.'+previous.id,value:{...previous,state:'missing'}});}catch{retirementWarning=' Vorige QR kon nog niet worden ingetrokken.';}
     }await paintSharing();if(disposed)return;if(includedAtStart!==(!isLocation&&locationChoice.checked)){qrQueued=true;return;}await renderCardCode(code,'QR_CODE',reference);if(includedAtStart!==(!isLocation&&locationChoice.checked)){code.replaceChildren();qrQueued=true;return;}qr.hidden=true;qrNote('Scan in Sharon. QR-code staat online. Maximaal zeven dagen geldig.'+retirementWarning);
-  }catch(error){if(!disposed){qrNote(error.message);qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed)qr.click();});}}}});
+  }catch(error){if(!disposed){qrNote(error.message);qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}}}});
   paintSharing().then(()=>disposed?null:refreshQrShares(store,card.id,{force:true})).then(paintSharing).catch(()=>{}).finally(()=>{checking=false;if(!disposed)paint();});
   surface.focus();
   return dispose;
