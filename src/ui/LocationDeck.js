@@ -1,6 +1,6 @@
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.16';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.16';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.16';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.17';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.17';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.17';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
