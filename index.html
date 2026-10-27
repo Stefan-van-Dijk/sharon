@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.14">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.14">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.15">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.15">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2896,10 +2896,18 @@
     .sh-share-board [data-list-sort][aria-pressed="true"]{background:#ededf0;color:#202025}
     .sh-share-board [data-share-search]{padding:4px;font-size:13px;border:0}
     .sh-share-board{mask-image:radial-gradient(circle at 0 var(--card-deck-media,330px),transparent 7px,#000 8px),radial-gradient(circle at 100% var(--card-deck-media,330px),transparent 7px,#000 8px);mask-composite:intersect}
-    .sh-share-fixed::after{content:'';position:absolute;left:8px;bottom:-1px;width:38%;height:9px;background:#fff;border-bottom:1px dashed #b9c2c9;pointer-events:none;opacity:0;z-index:5;transform-origin:left bottom;clip-path:polygon(0 0,100% 0,100% 70%,96% 100%,92% 70%,88% 100%,84% 70%,80% 100%,76% 70%,72% 100%,68% 70%,64% 100%,60% 70%,56% 100%,52% 70%,48% 100%,44% 70%,40% 100%,36% 70%,32% 100%,28% 70%,24% 100%,20% 70%,16% 100%,12% 70%,8% 100%,4% 70%,0 100%)}
-    .is-share-tearing .sh-share-fixed::after{animation:sh-share-ticket-tear 420ms ease-out both}
-    @keyframes sh-share-ticket-tear{0%{opacity:0;transform:translateY(0) rotate(0)}20%{opacity:1}65%{opacity:1;transform:translateY(3px) rotate(3deg);filter:drop-shadow(0 2px 2px #0002)}100%{opacity:0;transform:translateY(1px) rotate(0)}}
+    .sh-share-fixed::after{content:'';position:absolute;left:8px;bottom:-12px;width:48%;height:20px;background:linear-gradient(#fff,#edf0f2);border-bottom:1px dashed #b9c2c9;pointer-events:none;opacity:0;z-index:5;transform-origin:left bottom;clip-path:polygon(0 0,100% 0,100% 70%,96% 100%,92% 70%,88% 100%,84% 70%,80% 100%,76% 70%,72% 100%,68% 70%,64% 100%,60% 70%,56% 100%,52% 70%,48% 100%,44% 70%,40% 100%,36% 70%,32% 100%,28% 70%,24% 100%,20% 70%,16% 100%,12% 70%,8% 100%,4% 70%,0 100%)}
+    .is-share-tearing .sh-share-fixed::after{animation:sh-share-ticket-tear 700ms ease-out both}
+    @keyframes sh-share-ticket-tear{0%{opacity:0;transform:translateY(0) rotate(0)}20%{opacity:1}60%{opacity:1;transform:translateY(8px) rotate(5deg);filter:drop-shadow(0 4px 3px #0004)}100%{opacity:0;transform:translateY(14px) rotate(7deg)}}
     @media(prefers-reduced-motion:reduce){.is-share-tearing .sh-share-fixed::after{animation:none}}
+    .sh-share-fixed{z-index:5}
+    .sh-share-board [data-share-toolbar] .sh-list-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);position:relative}
+    .sh-share-board [data-share-toolbar] .sh-list-controls::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1px;height:28px;background:#e0e2e7;pointer-events:none}
+    .sh-share-board [data-share-toolbar] .sh-card-sort-icons{min-width:0;border:0;padding-left:6px;gap:2px;justify-content:space-evenly}
+    .sh-share-board [data-share-toolbar] .sh-card-sort-icons button{width:24px;min-width:24px;height:40px;padding:0;white-space:nowrap;font-size:10px}
+    .sh-share-board [data-share-toolbar] .sh-card-sort-icons span{white-space:nowrap;font-size:10px}
+    .sh-share-board [data-share-toolbar] .sh-card-sort-icons svg{width:17px;height:17px}
+    @media(max-width:360px){.sh-share-board [data-share-toolbar] .sh-card-sort-icons button{width:22px;min-width:22px}.sh-share-board [data-share-toolbar] .sh-card-sort-icons{gap:1px;padding-left:4px}}
     .sh-person-links{margin:18px 0;border-top:1px solid #e5e5e7;padding-top:14px}
     .sh-person-links summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
     .sh-person-links [data-person-search]{box-sizing:border-box;width:100%;font:inherit;padding:10px;border:0;border-bottom:1px solid #ddd;background:transparent;color:inherit}
@@ -3096,16 +3104,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.14#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.14#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.14#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.14#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.14#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.15#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.15#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.15#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.15#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.15#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.14"></script>
+  <script type="module" src="./src/main.js?v=0.4.15"></script>
 </body>
 </html>
