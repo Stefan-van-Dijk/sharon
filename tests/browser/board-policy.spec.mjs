@@ -90,6 +90,9 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('Deling 7 dagen geldig');
+  await expect.poll(()=>page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop)).toBeGreaterThan(40);
+  await page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop=0);
+
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();
   await expect(page.locator('[data-share-person-toggle]')).toHaveCount(0);
   await expect(page.locator('[data-deck-grab] svg')).toHaveCount(0);
@@ -139,7 +142,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   expect(iconPosition.left).toBe(14);expect(iconPosition.top).toBe(16);
   const person=page.locator('[data-share-person="AlphaUser001"]');await expect(person).toBeVisible();
   await expect(person).toHaveCSS('border-top-width','0px');await expect(person).toHaveCSS('border-right-width','0px');
-  const controls=await page.locator('.sh-share-fixed').evaluate(header=>{const pill=header.querySelector('[data-deck-grab]'),toggle=header.querySelector('[data-share-publication]'),pin=header.querySelector('[data-share-location-toggle]');return !pill.contains(toggle)&&!pill.contains(pin)&&toggle.getBoundingClientRect().left>=pill.getBoundingClientRect().right;});expect(controls).toBe(true);
+  const controls=await page.locator('.sh-share-fixed').evaluate(header=>{const pill=header.querySelector('[data-deck-grab]'),toggle=header.querySelector('[data-share-publication]'),pin=header.querySelector('[data-share-location-toggle]');return !pill.contains(toggle)&&!pill.contains(pin)&&Math.abs(toggle.getBoundingClientRect().left-pill.getBoundingClientRect().right-12)<1;});expect(controls).toBe(true);
   const rowHeight=(await person.boundingBox()).height;expect(rowHeight).toBeGreaterThanOrEqual(44);expect(rowHeight).toBeLessThanOrEqual(56);
 
   for(const handle of geometry.handles){expect(Math.abs(handle.center-geometry.center)).toBeLessThan(1);expect(Math.abs(handle.edge-(handle.kind==='board'?geometry.top:geometry.bottom))).toBeLessThan(1);}
@@ -185,7 +188,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     const before=header.getBoundingClientRect().top;element.scrollTop=100;
     return {moved:header.getBoundingClientRect().top-before,toolbarMoved:toolbar.getBoundingClientRect().top-toolbarBefore,scrolled:element.scrollTop};
   });
-  expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);expect(Math.abs(scroll.toolbarMoved)).toBeLessThan(1);
+  expect(scroll.scrolled).toBeGreaterThan(0);expect(scroll.moved).toBe(0);expect(scroll.toolbarMoved).toBeLessThan(-50);
   const publication=page.getByRole('switch',{name:'QR-deling online',exact:true});
   await expect(publication).toBeChecked();await expect(publication).toBeEnabled();await publication.uncheck();
   await expect(publication).not.toBeChecked();

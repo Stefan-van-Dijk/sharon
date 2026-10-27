@@ -1,20 +1,20 @@
-import { renderListControls } from './ListControls.js?v=0.4.12';
-import { cardSymbol } from './CardSymbols.js?v=0.4.12';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.12';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.12';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.12';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.12';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.12';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.12';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.12';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.12';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.12';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.12';
-import { renderCardCode } from './CardCodes.js?v=0.4.12';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.12';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.12';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.12';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.12';
+import { renderListControls } from './ListControls.js?v=0.4.13';
+import { cardSymbol } from './CardSymbols.js?v=0.4.13';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.13';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.13';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.13';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.13';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.13';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.13';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.13';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.13';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.13';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.13';
+import { renderCardCode } from './CardCodes.js?v=0.4.13';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.13';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.13';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.13';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.13';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -25,7 +25,21 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   toolbar.dataset.shareSearchWrap='';toolbar.querySelector('input').dataset.shareSearch='';
   const surface=layer.firstElementChild;surface.dataset.cardBoard='';surface.tabIndex=-1;
   const stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');
-  let gestures=null;
+  let gestures=null,introTimer=null,introStarted=false,introCancelled=false;
+  const info=layer.querySelector('.sh-share-board-info');
+  const stopIntro=()=>{introCancelled=true;clearTimeout(introTimer);};
+  for(const event of ['pointerdown','keydown','wheel','touchstart'])layer.addEventListener(event,stopIntro,{capture:true,passive:true});
+  const previewToolbar=()=>{
+    if(introStarted||introCancelled||!contacts.length)return;
+    introStarted=true;
+    introTimer=setTimeout(()=>{
+      if(disposed||introCancelled||!layer.isConnected)return;
+      const top=info.scrollTop+toolbar.getBoundingClientRect().bottom-info.getBoundingClientRect().top;
+      if(info.scrollTo)info.scrollTo({top,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+      else info.scrollTop=top;
+    },1000);
+  };
+
   const title=layer.querySelector('[data-share-title]');
   const icon=document.createElement('span');icon.dataset.shareItemIcon='';icon.setAttribute('aria-hidden','true');
   icon.innerHTML=isLocation?locationIcon(card.data?.kind):cardSymbol(card.cardKind);
@@ -63,8 +77,8 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     onStatusChange();
   };
   const locationChoice=layer.querySelector('[data-share-location]');
-  const close=()=>{if(busy)return;if(disposed)return;disposed=true;gestures?.dispose();layer.remove();onClose();};
-  const dispose=()=>{disposed=true;gestures?.dispose();layer.remove();};
+  const close=()=>{if(busy)return;if(disposed)return;disposed=true;stopIntro();gestures?.dispose();layer.remove();onClose();};
+  const dispose=()=>{disposed=true;stopIntro();gestures?.dispose();layer.remove();};
   const status=message=>{if(!disposed)layer.querySelector('[data-share-status]').textContent=message;};
   const send=layer.querySelector('[data-share-send]');
   const contactShareLabel=contact=>{
@@ -100,11 +114,14 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     const publication=layer.querySelector('[data-share-publication]');if(publication)publication.disabled=qrBusy||busy||!ready||checking;
     if(publicationOff)qr.hidden=true;
     if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}
+    if(ready&&!checking&&!qrBusy&&autoQr)previewToolbar();
     send.disabled=busy||![...selected].some(id=>!sent.has(id));
     locationChoice.disabled=busy||shareText!==null;
     const locationButton=layer.querySelector('[data-share-location-toggle]');locationButton.disabled=locationChoice.disabled;locationButton.setAttribute('aria-pressed',String(locationChoice.checked));
   };
-  layer.querySelector('.sh-share-fixed').append(layer.querySelector('[data-share-location-option]'),layer.querySelector('[data-share-summary-slot]'));
+  const controlDock=document.createElement('div');controlDock.className='sh-share-controls';
+  controlDock.append(layer.querySelector('[data-deck-grab]'),layer.querySelector('[data-share-summary-slot]'));
+  layer.querySelector('.sh-share-fixed').append(layer.querySelector('[data-share-location-option]'),controlDock);
   layer.querySelector('[data-share-location-toggle]').addEventListener('click',()=>locationChoice.click());
   locationChoice.addEventListener('change',()=>{locationTouched=true;paint();code.replaceChildren();if(publicationOff){qrNote('QR-deling offline.');return;}qr.hidden=false;if(qrBusy)qrQueued=true;else qr.click();});
   layer.querySelector('[data-share-search]').addEventListener('input',paint);
