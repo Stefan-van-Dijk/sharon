@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.15';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.15';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.15';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.16';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.16';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.16';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();

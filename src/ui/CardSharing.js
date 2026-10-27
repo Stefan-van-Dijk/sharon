@@ -1,20 +1,20 @@
-import { renderListControls } from './ListControls.js?v=0.4.15';
-import { cardSymbol } from './CardSymbols.js?v=0.4.15';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.15';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.15';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.15';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.15';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.15';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.15';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.15';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.15';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.15';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.15';
-import { renderCardCode } from './CardCodes.js?v=0.4.15';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.15';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.15';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.15';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.15';
+import { renderListControls } from './ListControls.js?v=0.4.16';
+import { cardSymbol } from './CardSymbols.js?v=0.4.16';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.16';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.16';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.16';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.16';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.16';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.16';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.16';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.16';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.16';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.16';
+import { renderCardCode } from './CardCodes.js?v=0.4.16';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.16';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.16';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.16';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.16';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -27,7 +27,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   const stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');
   let gestures=null,introTimer=null,introStarted=false,introCancelled=false;
   const info=layer.querySelector('.sh-share-board-info');
-  const stopIntro=()=>{introCancelled=true;clearTimeout(introTimer);surface.classList.remove('is-share-tearing');};
+  const stopIntro=()=>{introCancelled=true;clearTimeout(introTimer);};
   for(const event of ['pointerdown','keydown','wheel','touchstart'])layer.addEventListener(event,stopIntro,{capture:true,passive:true});
   const previewToolbar=()=>{
     if(introStarted||introCancelled||!contacts.length)return;
@@ -36,13 +36,11 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
       if(disposed||introCancelled||!layer.isConnected)return;
       const top=info.scrollTop+toolbar.getBoundingClientRect().bottom-info.getBoundingClientRect().top;
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if(!reduced)surface.classList.add('is-share-tearing');
       if(info.scrollTo)info.scrollTo({top,behavior:reduced?'instant':'smooth'});
       else info.scrollTop=top;
     },500);
   };
 
-  surface.addEventListener('animationend',event=>{if(event.animationName==='sh-share-ticket-tear')surface.classList.remove('is-share-tearing');});
   const title=layer.querySelector('[data-share-title]');
   const icon=document.createElement('span');icon.dataset.shareItemIcon='';icon.setAttribute('aria-hidden','true');
   icon.innerHTML=isLocation?locationIcon(card.data?.kind):cardSymbol(card.cardKind);

@@ -92,12 +92,13 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('Deling 7 dagen geldig');
   await expect.poll(()=>page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop)).toBeGreaterThan(40);
-  await expect(page.locator('.sh-share-board-info')).toHaveCSS('border-top-style','dashed');
-  expect(await page.evaluate(()=>window.shareTearSeen)).toBe(true);
+  await expect(page.locator('.sh-share-board-info')).toHaveCSS('border-top-style','none');
+  expect(await page.evaluate(()=>window.shareTearSeen)).toBe(false);
   const toolbarGeometry=await page.locator('[data-share-toolbar] .sh-list-controls').evaluate(el=>{const box=el.getBoundingClientRect(),sort=el.querySelector('.sh-card-sort-icons').getBoundingClientRect(),alpha=el.querySelector('[data-list-sort="alpha"]'),glyph=el.querySelector('[data-list-sort="recent"] svg');return {divider:sort.left-box.left,width:box.width,alphaLines:alpha.querySelector('span').getBoundingClientRect().height,iconWidth:glyph.getBoundingClientRect().width};});
   expect(Math.abs(toolbarGeometry.divider-toolbarGeometry.width/2)).toBeLessThan(1);
   expect(toolbarGeometry.alphaLines).toBeLessThan(20);expect(toolbarGeometry.iconWidth).toBeLessThanOrEqual(18);
-  expect(await page.locator('.sh-share-fixed').evaluate(el=>parseFloat(getComputedStyle(el,'::after').height))).toBe(20);
+  await expect(page.locator('.sh-share-fixed')).toHaveCSS('margin-bottom','6px');
+  expect(await page.locator('.sh-share-fixed').evaluate(el=>getComputedStyle(el).boxShadow)).not.toBe('none');
 
   await page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop=0);
 
@@ -145,9 +146,9 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   });
   expect(geometry.titleWidth).toBeGreaterThan(30);
   await expect(page.locator('[data-share-item-icon] svg')).toHaveCount(1);
-  await expect(page.locator('[data-share-item-icon]')).toHaveCSS('color','rgb(209, 43, 84)');
-  const iconPosition=await page.locator('[data-share-item-icon]').evaluate(icon=>{const r=icon.getBoundingClientRect(),board=icon.closest('.sh-share-fixed').getBoundingClientRect();return {left:r.left-board.left,top:r.top-board.top};});
-  expect(iconPosition.left).toBe(14);expect(iconPosition.top).toBe(16);
+  await expect(page.locator('[data-share-item-icon]')).toHaveCSS('background-color','rgb(209, 43, 84)');
+  await expect(page.locator('[data-share-item-icon]')).toHaveCSS('color','rgb(255, 255, 255)');
+  expect(await page.locator('[data-share-item-icon]').evaluate(el=>getComputedStyle(el).transform)).not.toBe('none');
   const person=page.locator('[data-share-person="AlphaUser001"]');await expect(person).toBeVisible();
   await expect(person).toHaveCSS('border-top-width','0px');await expect(person).toHaveCSS('border-right-width','0px');
   const controls=await page.locator('.sh-share-fixed').evaluate(header=>{const pill=header.querySelector('[data-deck-grab]'),toggle=header.querySelector('[data-share-publication]'),pin=header.querySelector('[data-share-location-toggle]');return !pill.contains(toggle)&&!pill.contains(pin)&&Math.abs(toggle.getBoundingClientRect().left-pill.getBoundingClientRect().right-12)<1;});expect(controls).toBe(true);
