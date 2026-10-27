@@ -87,10 +87,13 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     const root=document.createElement('main');const headerActions=document.createElement('div');document.body.append(headerActions,root);
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
+  await page.evaluate(()=>{window.shareTearSeen=false;document.addEventListener('animationstart',e=>{if(e.animationName==='sh-share-ticket-tear')window.shareTearSeen=true;});});
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('Deling 7 dagen geldig');
   await expect.poll(()=>page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop)).toBeGreaterThan(40);
+  await expect(page.locator('.sh-share-board-info')).toHaveCSS('border-top-style','dashed');
+  expect(await page.evaluate(()=>window.shareTearSeen)).toBe(true);
   await page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop=0);
 
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();

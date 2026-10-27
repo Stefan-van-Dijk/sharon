@@ -1,4 +1,4 @@
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.13';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.14';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();}
  async request(input,signal){
