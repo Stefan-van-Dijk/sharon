@@ -151,6 +151,11 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await expect(page.locator('[data-share-item-icon]')).toHaveCSS('background-color','rgb(209, 43, 84)');
   await expect(page.locator('[data-share-item-icon]')).toHaveCSS('color','rgb(255, 255, 255)');
   expect(await page.locator('[data-share-item-icon]').evaluate(el=>getComputedStyle(el).transform)).not.toBe('none');
+  const corner=await page.locator('.sh-share-fixed').evaluate(media=>{
+    const icon=media.querySelector('[data-share-item-icon]').getBoundingClientRect(),title=media.querySelector('[data-share-title]').getBoundingClientRect(),box=media.getBoundingClientRect();
+    return {clear:title.top>=icon.bottom,iconCenter:(icon.left+icon.right)/2-box.left,gap:parseFloat(getComputedStyle(media).marginBottom)};
+  });
+  expect(corner.clear).toBe(true);expect(corner.iconCenter).toBeLessThan(20);expect(corner.gap).toBe(2);
   const person=page.locator('[data-share-person="AlphaUser001"]');await expect(person).toBeVisible();
   await expect(person).toHaveCSS('border-top-width','0px');await expect(person).toHaveCSS('border-right-width','0px');
   const controls=await page.locator('.sh-share-fixed').evaluate(header=>{const pill=header.querySelector('[data-deck-grab]'),toggle=header.querySelector('[data-share-publication]'),pin=header.querySelector('[data-share-location-toggle]');return !pill.contains(toggle)&&!pill.contains(pin)&&Math.abs(toggle.getBoundingClientRect().left-pill.getBoundingClientRect().right-12)<1;});expect(controls).toBe(true);
