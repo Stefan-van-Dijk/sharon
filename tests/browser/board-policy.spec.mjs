@@ -94,6 +94,11 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await expect.poll(()=>page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop)).toBeGreaterThan(40);
   await expect(page.locator('.sh-share-board-info')).toHaveCSS('border-top-style','dashed');
   expect(await page.evaluate(()=>window.shareTearSeen)).toBe(true);
+  const toolbarGeometry=await page.locator('[data-share-toolbar] .sh-list-controls').evaluate(el=>{const box=el.getBoundingClientRect(),sort=el.querySelector('.sh-card-sort-icons').getBoundingClientRect(),alpha=el.querySelector('[data-list-sort="alpha"]'),glyph=el.querySelector('[data-list-sort="recent"] svg');return {divider:sort.left-box.left,width:box.width,alphaLines:alpha.querySelector('span').getBoundingClientRect().height,iconWidth:glyph.getBoundingClientRect().width};});
+  expect(Math.abs(toolbarGeometry.divider-toolbarGeometry.width/2)).toBeLessThan(1);
+  expect(toolbarGeometry.alphaLines).toBeLessThan(20);expect(toolbarGeometry.iconWidth).toBeLessThanOrEqual(18);
+  expect(await page.locator('.sh-share-fixed').evaluate(el=>parseFloat(getComputedStyle(el,'::after').height))).toBe(20);
+
   await page.locator('.sh-share-board-info').evaluate(el=>el.scrollTop=0);
 
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();

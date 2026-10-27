@@ -1,20 +1,20 @@
-import { renderListControls } from './ListControls.js?v=0.4.14';
-import { cardSymbol } from './CardSymbols.js?v=0.4.14';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.14';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.14';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.14';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.14';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.14';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.14';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.14';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.14';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.14';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.14';
-import { renderCardCode } from './CardCodes.js?v=0.4.14';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.14';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.14';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.14';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.14';
+import { renderListControls } from './ListControls.js?v=0.4.15';
+import { cardSymbol } from './CardSymbols.js?v=0.4.15';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.15';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.15';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.15';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.15';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.15';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.15';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.15';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.15';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.15';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.15';
+import { renderCardCode } from './CardCodes.js?v=0.4.15';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.15';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.15';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.15';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.15';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';
@@ -53,7 +53,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
   if(isLocation){layer.querySelector('[data-share-pill-label]').textContent='Deel locatie';layer.querySelector('[role=dialog]').setAttribute('aria-label','Locatie delen');}
   document.body.append(layer);
   const service=new ConnectionService(store),selected=new Set(),sent=new Set(),retries=new Map();
-  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,locationTouched=false,qrQueued=false,publicationOff=false;
+  let disposed=false,busy=false,contacts=[],location=null,shareText=null,existingQr=null,ready=false,checking=true,qrBusy=false,autoQr=false,locationTouched=false,qrQueued=false,publicationOff=false,qrSettled=false;
   let relatedPeople=new Set(),places=[],shareRows=[],peopleOrder=[],prefs={sort:'logical'};
   const modes=['alpha','near','recent','logical','custom'];
   const sortLabels={alpha:'Alfabetisch',near:'Dichtbij',recent:'Recent',logical:'Logisch',custom:'Eigen volgorde'};
@@ -117,7 +117,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     const publication=layer.querySelector('[data-share-publication]');if(publication)publication.disabled=qrBusy||busy||!ready||checking;
     if(publicationOff)qr.hidden=true;
     if(ready&&!checking&&!autoQr){autoQr=true;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}
-    if(ready&&!checking&&!qrBusy&&autoQr)previewToolbar();
+    if(ready&&!checking&&!qrBusy&&autoQr&&(publicationOff||qrSettled))previewToolbar();
     send.disabled=busy||![...selected].some(id=>!sent.has(id));
     locationChoice.disabled=busy||shareText!==null;
     const locationButton=layer.querySelector('[data-share-location-toggle]');locationButton.disabled=locationChoice.disabled;locationButton.setAttribute('aria-pressed',String(locationChoice.checked));
@@ -223,7 +223,7 @@ export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},l
     if(previous&&!reusable){
       try{await service.request('share-ack',{id:previous.id,access:previous.access});await store.put('meta',{key:'sharing.qr.'+previous.id,value:{...previous,state:'missing'}});}catch{retirementWarning=' Vorige QR kon nog niet worden ingetrokken.';}
     }await paintSharing();if(disposed)return;if(includedAtStart!==(!isLocation&&locationChoice.checked)){qrQueued=true;return;}await renderCardCode(code,'QR_CODE',reference);if(includedAtStart!==(!isLocation&&locationChoice.checked)){code.replaceChildren();qrQueued=true;return;}qr.hidden=true;qrNote('Scan in Sharon. QR-code staat online. Maximaal zeven dagen geldig.'+retirementWarning);
-  }catch(error){if(!disposed){qrNote(error.message);qr.hidden=false;}}finally{qrBusy=false;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}}}});
+  }catch(error){if(!disposed){qrNote(error.message);qr.hidden=false;}}finally{qrBusy=false;qrSettled=true;if(!disposed){paint();paintSharing().catch(()=>{});if(qrQueued){qrQueued=false;queueMicrotask(()=>{if(!disposed&&!publicationOff)qr.click();});}}}});
   paintSharing().then(()=>disposed?null:refreshQrShares(store,card.id,{force:true})).then(paintSharing).catch(()=>{}).finally(()=>{checking=false;if(!disposed)paint();});
   surface.focus();
   return dispose;
