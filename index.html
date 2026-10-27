@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.12">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.12">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.13">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.13">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -2878,16 +2878,17 @@
     .sh-card-share-dialog .sh-person-choice{display:flex;align-items:center;gap:12px;min-height:44px}
     .sh-card-share-dialog button,.sh-card-share-button{font:inherit;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:inherit;cursor:pointer}
     .sh-card-share-dialog button:disabled{opacity:.5;cursor:default}
-    .sh-share-fixed [data-share-summary-slot]{position:absolute;right:68px;bottom:24px}
+    .sh-share-fixed .sh-share-controls{position:absolute;left:13px;right:61px;bottom:20px;display:flex;align-items:center;justify-content:flex-start;gap:12px}
+    .sh-share-fixed [data-share-summary-slot]{position:static;flex:none}
     .sh-share-fixed .sh-sharing-details{padding:0;margin:0}
     .sh-share-fixed .sh-share-publication-line{min-height:25px}
     .sh-share-fixed .sh-share-publication-line>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-    .sh-share-fixed.sh-card-media .sh-card-deck-grab{left:13px;bottom:20px;max-width:calc(100% - 140px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sh-share-fixed.sh-card-media .sh-card-deck-grab{position:relative;left:auto;bottom:auto;max-width:calc(100% - 54px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sh-share-fixed .sh-share-location-source{right:13px;bottom:20px;width:35px;height:35px}
     .sh-share-fixed .sh-share-side-right{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;white-space:nowrap;text-align:center}
     .sh-share-fixed .sh-share-side-right>span{display:block}
     .sh-share-board-info{padding:0 16px 12px}
-    [data-share-toolbar]{position:sticky;top:0;z-index:4;background:#fff;padding:4px 0;border-bottom:1px solid #e9e9ed}
+    [data-share-toolbar]{position:relative;z-index:4;background:#fff;padding:4px 0;border-bottom:1px solid #e9e9ed}
     .sh-share-board [data-share-toolbar] .sh-list-controls{display:flex;align-items:center;margin:0;gap:0}
     .sh-share-board [data-share-toolbar] .sh-card-sort-icons{display:flex;flex:none;border-left:1px solid #e9e9ed;padding-left:2px;gap:0}
     .sh-share-board [data-list-sort]{width:30px;min-width:30px;height:44px;padding:5px;border:0;background:transparent;border-radius:6px;font-size:11px}
@@ -3091,16 +3092,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.12#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.12#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.12#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.12#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.12#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.13#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.13#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.13#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.13#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.13#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.12"></script>
+  <script type="module" src="./src/main.js?v=0.4.13"></script>
 </body>
 </html>
