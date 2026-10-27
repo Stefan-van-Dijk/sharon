@@ -1,4 +1,4 @@
-import { informationReference, informationKey, feedbackState } from './InformationItem.js?v=0.4.17';
+import { informationReference, informationKey, feedbackState } from './InformationItem.js?v=0.4.18';
 const PREFIX = 'information.feedback.v1:';
 let activeService = null;
 export const informationFeedback = () => activeService;
