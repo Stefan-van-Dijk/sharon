@@ -88,6 +88,8 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
     await openCardsView(root,{store,location:{latest:null},events:{on:()=>()=>{},emit(){}},setTitle(){},headerActions});
   },version);
   await page.evaluate(()=>{window.shareTearSeen=false;document.addEventListener('animationstart',e=>{if(e.animationName==='sh-share-ticket-tear')window.shareTearSeen=true;});});
+  const moduleToolbar=await page.locator('main .sh-list-controls').evaluate(el=>{const box=el.getBoundingClientRect(),sort=el.querySelector('.sh-card-sort-icons').getBoundingClientRect();return {width:box.width,divider:sort.left-box.left,icon:getComputedStyle(el.querySelector('svg')).width,alphaHeight:el.querySelector('[data-list-sort="alpha"] span').getBoundingClientRect().height};});
+  expect(Math.abs(moduleToolbar.divider-moduleToolbar.width/2)).toBeLessThan(1);expect(moduleToolbar.icon).toBe('17px');expect(moduleToolbar.alphaHeight).toBeLessThan(20);
   await page.locator('[data-swipe-share]').evaluate(button=>button.click());
   await expect(page.locator('[data-share-qr-code] svg')).toBeVisible();
   await expect(page.locator('[data-qr-status]')).toContainText('Deling 7 dagen geldig');
