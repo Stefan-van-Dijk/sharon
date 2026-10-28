@@ -1,22 +1,22 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.20';
-import { openCardShare } from './CardSharing.js?v=0.4.20';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.20';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.20';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.20';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.20';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.20';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.20';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.20';
-import { openCardBoard } from './CardBoard.js?v=0.4.20';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.20';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.20';
-import { mountCardScanner } from './CardScanner.js?v=0.4.20';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.20';
-import { renderStrip } from './Strip.js?v=0.4.20';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.20';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.20';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.20';
-import { cardSymbol } from './CardSymbols.js?v=0.4.20';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.21';
+import { openCardShare } from './CardSharing.js?v=0.4.21';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.21';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.21';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.21';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.21';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.21';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.21';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.21';
+import { openCardBoard } from './CardBoard.js?v=0.4.21';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.21';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.21';
+import { mountCardScanner } from './CardScanner.js?v=0.4.21';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.21';
+import { renderStrip } from './Strip.js?v=0.4.21';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.21';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.21';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.21';
+import { cardSymbol } from './CardSymbols.js?v=0.4.21';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -291,18 +291,17 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
             </div>
           </div>
           <datalist id="card-chain-names">${CHAIN_CATALOG.map(chain=>`<option value="${escapeHtml(chain.name)}"></option>`).join('')}</datalist>
-          <div class="sh-card-section sh-chain-link" data-chain-link hidden>
-            <div class="sh-chain-link-row">
-              <div><label for="card-chain-enabled">Winkelketen koppelen</label><strong data-chain-name></strong></div>
-              <label class="mini-switch"><input id="card-chain-enabled" name="chainLinkEnabled" type="checkbox" role="switch" aria-label="Winkelketen koppelen"><span aria-hidden="true"></span></label>
-            </div>
-            <small data-chain-help>Toon deze pas bij vestigingen van deze keten.</small>
-          </div>
           <input type="hidden" name="chainId" value="">
           <div class="sh-card-kind-options" data-kind-options hidden>
             <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
             ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(label)}</button>`).join("")}
-            <button type="button" data-kind-done class="sh-card-kind-done">Klaar</button>
+          </div>
+          <div class="sh-card-section sh-chain-link" data-chain-link hidden>
+            <div class="sh-chain-link-row">
+              <label for="card-chain-enabled">Keten · <strong data-chain-name></strong></label>
+              <label class="mini-switch"><input id="card-chain-enabled" name="chainLinkEnabled" type="checkbox" role="switch" aria-label="Winkelketen koppelen"><span aria-hidden="true"></span></label>
+            </div>
+            <small data-chain-help hidden></small>
           </div>
           <input type="hidden" name="cardKind" value="${escapeHtml(chosenKind)}">
           <div class="sh-card-section">
@@ -310,7 +309,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
             <div class="sh-card-code-options" data-code-options hidden>
               ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
             </div>
-            <button type="button" class="sh-card-preview" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span><span class="sh-card-preview-label"><span data-code-icon></span><span data-code-label>QR / Barcode</span>⌄</span></button>
+            <div class="sh-card-preview"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span></div>
 
             <div class="sh-card-code-entry" data-code-swipe>
 
@@ -319,6 +318,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M7 12h10M9 9v6m6-6v6"/></svg>
               </button>
             </div>
+            <button type="button" class="sh-card-code-selector" data-code-type-toggle aria-label="Codetype kiezen" aria-expanded="false"><span data-code-icon></span><span data-code-label>Automatisch</span><span aria-hidden="true">⌄</span></button>
             <input type="hidden" name="codeFormat" value="${escapeHtml(card?.codeFormat || scanned?.codeFormat || scanned?.format || "")}">
 
           </div>
@@ -440,7 +440,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     const colorInput = form.elements.color;
     const swatch = form.querySelector('[data-card-color-swatch]');
     const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value;
-      kindToggle.style.backgroundColor = colorInput.value + '26'; };
+      kindToggle.style.backgroundColor = colorInput.value + '26';
+      kindToggle.style.setProperty('color','#111','important'); };
     colorInput.addEventListener('input', updateSwatch);
     updateSwatch();
     updateKind();
@@ -450,10 +451,11 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     };
     kindToggle.addEventListener('click', toggleKindOptions);
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
-      formKind.value = button.dataset.kind; updateKind(); syncChain();
+      dirty=true;formKind.value = button.dataset.kind; updateKind(); syncChain();
+      kindOptions.hidden=true;kindToggle.setAttribute('aria-expanded','false');kindToggle.focus();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
-    form.querySelector('[data-kind-done]').addEventListener('click', () => { kindOptions.hidden = true; kindToggle.setAttribute('aria-expanded', 'false'); });
+    form.addEventListener('click',event=>{if(!kindOptions.hidden&&!kindOptions.contains(event.target)&&!kindToggle.contains(event.target)){kindOptions.hidden=true;kindToggle.setAttribute('aria-expanded','false');}});
     const dictionaryKey = 'cards.nameQuestions.' + formKind.value;
     const configured = await store.get('meta', dictionaryKey);
     const legacy = await store.get('meta','cards.nameQuestions');
@@ -537,9 +539,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       form.querySelector('[data-code-icon]').innerHTML = format === 'QR_CODE'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14v3h3v4M20 14v2M14 20h2M20 19v2"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5v14M6 5v14M10 5v14M13 5v14M15 5v14M19 5v14M22 5v14"/></svg>';
-      form.querySelector('[data-code-label]').textContent = format ? CARD_FORMATS[format] : 'QR / Barcode';
+      form.querySelector('[data-code-label]').textContent = format ? CARD_FORMATS[format].replace('Barcode · ','') : 'Automatisch';
     };
     const codeToggle = form.querySelector('[data-code-type-toggle]');
+    codeToggle.after(codeOptions);
     codeToggle.addEventListener('click', () => {
       codeOptions.hidden = !codeOptions.hidden;
       codeToggle.setAttribute('aria-expanded', String(!codeOptions.hidden));
@@ -547,7 +550,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     });
     form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
       if (button.disabled) return;
-      formatInput.value = button.dataset.codeOption; manuallySelected = true;
+      dirty=true;formatInput.value = button.dataset.codeOption; manuallySelected = true;
       codeOptions.hidden = true; codeToggle.setAttribute('aria-expanded','false'); updateCodePreview();
     }));
     valueInput.addEventListener('input', updateCodePreview);
@@ -625,7 +628,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         await store.put('objects', record);
         events?.emit('cards.changed',{id:record.id});
         header();
-        await showDetail(record.id);
+        await showList();
       } catch (cause) {
         console.error('Kaart opslaan mislukt:', cause);
         error.textContent = 'Opslaan is niet gelukt. Probeer het opnieuw.';

@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.20">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.20">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.21">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.21">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3038,6 +3038,16 @@
     .sh-card-extra-value input,.sh-card-extra-value textarea{width:100%;min-width:0;padding:8px 0;font:inherit;font-size:16px;border:0;border-bottom:1px solid #ddd;border-radius:0;background:transparent}
     .sh-card-more [data-number-field],.sh-card-more [data-location-field]{position:relative;margin:14px 0;padding-right:32px}
     .sh-card-extra-remove{position:absolute;right:0;top:0;border:0;background:transparent;color:#777;font-size:20px}
+    .sh-card-compact .sh-card-kind-options{flex-wrap:wrap;overflow:visible;margin:6px 0;padding:4px 0;gap:6px}
+    .sh-card-compact .sh-card-kind-options>button{padding:8px 10px;border-radius:8px;font-size:12px}
+    .sh-card-compact .sh-chain-link{margin:8px 0 12px;padding:0}
+    .sh-card-compact .sh-chain-link-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .sh-card-compact .sh-chain-link-row>label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px}
+    .sh-card-compact .sh-chain-link-row strong{display:inline;font-size:13px}
+    .sh-card-code-selector{display:flex;align-items:center;gap:6px;max-width:100%;padding:6px 10px;margin:8px 0 0 auto;border:1px solid #e4e4e7;border-radius:8px;background:#fff;color:#333;font:inherit;font-size:12px}
+    .sh-card-code-selector svg{display:block;width:16px;height:16px}
+    .sh-card-compact .sh-card-code-options{margin:6px 0;gap:5px}
+    .sh-card-compact .sh-card-preview{display:grid;place-items:center;padding:14px;min-height:100px}
     /* Keep scan content above the controls, with quiet space around every code. */
     .sh-card-media .sh-card-board-code{padding:18px 12px 68px;border:0}
     .sh-card-media .sh-card-board-code>div,.sh-card-deck-board[data-code-type="barcode"] .sh-card-board-code>div{height:100%}
@@ -3136,16 +3146,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.20#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.20#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.20#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.20#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.20#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.21#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.21#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.21#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.21#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.21#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.20"></script>
+  <script type="module" src="./src/main.js?v=0.4.21"></script>
 </body>
 </html>

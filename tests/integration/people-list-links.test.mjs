@@ -59,7 +59,8 @@ test('Kaarten en Locaties: meerdere bestaande personen kiezen, annuleren, beware
   const form=await until(()=>app.document.querySelector('[data-card-form][data-card-ready="true"]'));
   assert.equal(form.querySelector('[data-person-id]'),null);
   submit(app,form);
-  await until(()=>app.document.querySelector('.sh-card-board-overlay'));
+  await until(()=>app.document.querySelector('[data-card-list]'));
+ assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
   app.window.dispatchEvent(new app.window.KeyboardEvent('keydown',{key:'Escape'}));
   app.document.querySelector('[data-brand-control]').click();
   (await until(()=>app.document.querySelector('.module-list [data-module="locations"]'))).click();
@@ -94,7 +95,8 @@ test('testomgeving: kaartbewerking toont geen persoonkeuze en behoudt bestaande 
   (await until(()=>app.document.querySelector('[data-swipe-row="DemoCard0001"] [data-swipe-edit]'))).click();
   const form=await until(()=>app.document.querySelector('[data-card-form][data-card-ready="true"]'));
   assert.equal(form.querySelector('[data-person-id]'),null);submit(app,form);
-  await until(()=>app.document.querySelector('.sh-card-board-overlay'));
+  await until(()=>app.document.querySelector('[data-card-list]'));
+ assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
   assert.equal((await app.store.get('meta','connection.contacts.log-json.v1')).value[0].personId,'AlphaUser001');
   assert.deepEqual(app.errors,[]);
 });
