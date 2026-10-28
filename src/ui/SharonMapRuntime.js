@@ -1,4 +1,4 @@
-import { compactEnvironmentAttribution } from './EnvironmentAttribution.js?v=0.4.18';
+import { compactEnvironmentAttribution } from './EnvironmentAttribution.js?v=0.4.19';
 /**
  * Shared renderer bootstrap for Omgeving and Locaties.
  * Both screens must use the same MapLibre module, stylesheet, worker and

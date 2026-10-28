@@ -1,22 +1,21 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.18';
-import { openCardShare } from './CardSharing.js?v=0.4.18';
-import { renderCardCode } from './CardCodes.js?v=0.4.18';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.18';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.18';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.18';
-import { cardSymbol } from './CardSymbols.js?v=0.4.18';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.19';
+import { renderCardCode } from './CardCodes.js?v=0.4.19';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.19';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.19';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.19';
+import { cardSymbol } from './CardSymbols.js?v=0.4.19';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
 
-export function openCardBoard(card,{cards=[],locations=[],store,location,events,onActiveCard=()=>{},onClose=()=>{}}={}) {
+export function openCardBoard(card,{cards=[],locations=[],store,location,events,onActiveCard=()=>{},onEdit=null,onClose=()=>{}}={}) {
   const model=createCardDeck(card,cards,locations);
   const layer=document.createElement('div');layer.className='sh-card-board-overlay';
   const nodes=model.state.boards.map(entry=>{
     const current=entry.card,kind=labels[current.cardKind]||labels.other;
     const board=document.createElement('section');board.className='sh-card-board sh-card-deck-board';board.dataset.cardBoard='';
     board.tabIndex=-1;
-    board.dataset.codeType=current.codeFormat==='QR_CODE'?'qr':current.codeFormat?'barcode':'empty';
+    board.dataset.codeType=current.codeValue&&current.codeFormat?(current.codeFormat==='QR_CODE'?'qr':'barcode'):'empty';
     board.dataset.cardId=current.id;board.dataset.detailIndex=String(entry.page);
     board.setAttribute('aria-label','Kaart '+current.name);
     board.innerHTML='<div class="sh-card-board-accent" data-card-accent></div>'+
@@ -49,12 +48,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   });
   const stack=wrapBoardSurface(layer,nodes[0]);stack.classList.add('sh-card-deck-stack','sh-card-zone-stack');
   stack.querySelector('.sh-board-deck').remove();stack.append(...nodes.slice(1));
-  let closed=false,renderedCard='',gestures=null,closeShare=null;
-  if(store)nodes.forEach((board,index)=>{
-    const button=document.createElement('button');button.type='button';button.dataset.shareCard='';button.className='sh-card-share-button';button.textContent='Delen';
-    button.addEventListener('click',()=>{closeShare?.();closeShare=openCardShare(model.state.boards[index].card,{store,onClose:()=>{closeShare=null;button.focus();}});});
-    board.querySelector('.sh-card-detail-heading').append(button);
-  });
+  let closed=false,renderedCard='',gestures=null;
   let activeChainPanel=-1,stopChainPanel=null;
   const ensureChainPanel=index=>{
     if(activeChainPanel===index)return;
@@ -69,10 +63,14 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     if(board.dataset.codeReady)return;board.dataset.codeReady='true';
     const holder=document.createElement('div');board.querySelector('[data-code]').append(holder);
     if(current.codeValue&&current.codeFormat)renderCardCode(holder,current.codeFormat,current.codeValue,{fullWidth:true}).catch(error=>{if(!closed&&holder.isConnected)holder.textContent=error.message;});
-    else holder.textContent=current.reference ? 'Nog geen toegangsbewijs. Voeg na aankoop je ticketcode toe.' : 'Geen scanbare code opgeslagen.';
+    else {
+      const message=document.createElement('span');message.textContent=current.reference?'Nog geen toegangsbewijs. Voeg na aankoop je ticketcode toe.':'Nog geen code opgeslagen';holder.append(message);
+      if(onEdit){const add=document.createElement('button');add.type='button';add.textContent='Code toevoegen';add.dataset.addCardCode='';add.addEventListener('click',()=>{close();onEdit(current.id);});holder.append(add);}
+    }
   };
   const distances=()=>nodes.forEach((node,index)=>{
-    const text=cardDistanceLabel(model.state.boards[index].card,locations,location?.latest);
+    const current=model.state.boards[index].card,label=cardDistanceLabel(current,locations,location?.latest);
+    const text=label===current.name?'':label.startsWith(current.name+' · ')?label.slice(current.name.length+3):label;
     node.querySelector('[data-distance]').textContent=text;
     node.querySelector('[data-distance]').hidden=!text;
     node.querySelector('[data-deck-start]').hidden=Boolean(text);
@@ -99,7 +97,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     const focused=nodes[model.state.boardIndex].contains(document.activeElement),state=model.swipe(direction);draw();
     if(focused)nodes[state.boardIndex].focus({preventScroll:true});
   };
-  const close=()=>{if(closed)return;closed=true;stopChainPanel?.();closeShare?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
+  const close=()=>{if(closed)return;closed=true;stopChainPanel?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
   const key=event=>{
     if(event.defaultPrevented||document.querySelector('.sh-card-share-overlay'))return;
     if(event.key==='Escape'){event.preventDefault();close();}
