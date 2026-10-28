@@ -440,8 +440,15 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     const colorInput = form.elements.color;
     const swatch = form.querySelector('[data-card-color-swatch]');
     const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value;
-      kindToggle.style.backgroundColor = colorInput.value + '26';
-      kindToggle.style.setProperty('color','#111','important'); };
+      kindToggle.style.backgroundColor = colorInput.value;
+      const rgb=colorInput.value.slice(1).match(/../g).map(hex=>{
+        const channel=parseInt(hex,16)/255;
+        return channel<=0.04045?channel/12.92:((channel+0.055)/1.055)**2.4;
+      });
+      const luminance=rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;
+      // Choose the higher WCAG contrast against the actual selected background.
+      const foreground=(luminance+0.05)/0.05>=1.05/(luminance+0.05)?'#000':'#fff';
+      kindToggle.style.setProperty('color',foreground,'important'); };
     colorInput.addEventListener('input', updateSwatch);
     updateSwatch();
     updateKind();

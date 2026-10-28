@@ -12,7 +12,12 @@ test('card editor uses header actions and one optional-field picker without losi
  const kind=form.querySelector('[data-kind-toggle]'),options=form.querySelector('[data-kind-options]'),chain=form.querySelector('[data-chain-link]');
  assert.ok(options.compareDocumentPosition(chain)&app.window.Node.DOCUMENT_POSITION_FOLLOWING);
  kind.click();assert.equal(options.hidden,false);form.querySelector('[data-kind="membership"]').click();assert.equal(options.hidden,true);
- assert.equal(form.querySelector('[data-kind-done]'),null);assert.equal(kind.style.color,'rgb(17, 17, 17)');
+ assert.equal(form.querySelector('[data-kind-done]'),null);const color=form.elements.color;
+ for(const [background,foreground] of [['#000000','rgb(255, 255, 255)'],['#ffffff','rgb(0, 0, 0)'],['#e51c00','rgb(255, 255, 255)'],['#ffff00','rgb(0, 0, 0)']]){
+   color.value=background;color.dispatchEvent(new app.window.Event('input',{bubbles:true}));
+   assert.equal(kind.style.color,foreground);assert.equal(kind.style.backgroundColor,background==='#000000'?'rgb(0, 0, 0)':background==='#ffffff'?'rgb(255, 255, 255)':background==='#e51c00'?'rgb(229, 28, 0)':'rgb(255, 255, 0)');
+ }
+
  assert.equal(form.querySelector('.sh-card-preview [data-code-type-toggle]'),null);form.querySelector('[data-code-type-toggle]').click();
  assert.equal(form.querySelector('[data-code-options]').hidden,false);form.querySelector('[data-code-option="QR_CODE"]').click();assert.equal(form.querySelector('[data-code-options]').hidden,true);
  assert.equal(form.querySelector('[data-person-links]'),null);assert.equal(form.querySelector('[data-extra-panel]').hidden,true);
