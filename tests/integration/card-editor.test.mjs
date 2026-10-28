@@ -11,7 +11,7 @@ test('card editor uses header actions and one optional-field picker without losi
  assert.equal(root.querySelector('[data-card-cancel]'),null);assert.equal(header.querySelector('[type="submit"]').getAttribute('form'),form.id);
  const kind=form.querySelector('[data-kind-toggle]'),options=form.querySelector('[data-kind-options]'),chain=form.querySelector('[data-chain-link]');
  assert.ok(options.compareDocumentPosition(chain)&app.window.Node.DOCUMENT_POSITION_FOLLOWING);
- kind.click();assert.equal(options.hidden,false);form.querySelector('[data-kind="membership"]').click();assert.equal(options.hidden,true);
+ kind.click();assert.equal(options.hidden,false);form.querySelector('[data-kind="membership"]').click();assert.equal(options.hidden,false);
  assert.equal(form.querySelector('[data-kind-done]'),null);const color=form.elements.color;
  for(const [background,foreground] of [['#000000','rgb(255, 255, 255)'],['#ffffff','rgb(0, 0, 0)'],['#e51c00','rgb(255, 255, 255)'],['#ffff00','rgb(0, 0, 0)']]){
    color.value=background;color.dispatchEvent(new app.window.Event('input',{bubbles:true}));
@@ -19,12 +19,12 @@ test('card editor uses header actions and one optional-field picker without losi
  }
 
  assert.equal(form.querySelector('.sh-card-preview [data-code-type-toggle]'),null);form.querySelector('[data-code-type-toggle]').click();
- assert.equal(form.querySelector('[data-code-options]').hidden,false);form.querySelector('[data-code-option="QR_CODE"]').click();assert.equal(form.querySelector('[data-code-options]').hidden,true);
+ assert.equal(form.querySelector('[data-code-options]').hidden,false);form.querySelector('[data-code-option="QR_CODE"]').click();assert.equal(form.querySelector('[data-code-options]').hidden,false);
  assert.equal(form.querySelector('[data-person-links]'),null);assert.equal(form.querySelector('[data-extra-panel]').hidden,true);
  assert.equal(form.querySelector('[data-field-preset="Website"]').hidden,true);
  form.querySelector('[data-extra-toggle]').click();form.querySelector('[data-field-preset="Notities"]').click();
  form.elements.codeFormat.value='';
- const notes=form.querySelector('textarea[data-field-value]');notes.value='Nieuwe notitie';notes.dispatchEvent(new app.window.Event('input',{bubbles:true}));
+ const notes=form.querySelector('textarea[aria-label="Notities"]');notes.click();notes.value='Nieuwe notitie';notes.dispatchEvent(new app.window.Event('input',{bubbles:true}));
  assert.equal(form.querySelector('[data-extra-panel]').hidden,true);assert.equal(form.querySelector('[data-field-preset="Notities"]').hidden,true);
  let asked=false;app.window.confirm=()=>{asked=true;return false;};header.querySelector('[data-card-cancel]').click();assert.equal(asked,true);assert.equal(form.isConnected,true);
  const expectedIcon=form.querySelector('[data-kind-icon]').innerHTML,expectedColor=kind.style.color,expectedBackground=kind.style.backgroundColor;
@@ -42,7 +42,7 @@ test('card editor uses header actions and one optional-field picker without losi
  assert.deepEqual(app.errors,[]);
 });
 
-test('visual choice groups are exclusive, toggle closed, and preview both QR and barcode',async t=>{
+test('visual choices stay open after selection, close outside, and support expanding text and both codes',async t=>{
  const app=await appHarness();t.after(()=>app.close());
  const {readFileSync}=await import('node:fs');
  app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));app.window.eval(readFileSync('vendor/jsbarcode-3.12.1.min.js','utf8'));
@@ -60,5 +60,12 @@ test('visual choice groups are exclusive, toggle closed, and preview both QR and
  value.value='8712345678906';value.dispatchEvent(new app.window.Event('input',{bubbles:true}));
  await until(()=>preview.dataset.previewType==='barcode'&&preview.querySelector('svg'));assert.equal(app.window.getComputedStyle(preview.querySelector('svg')).height,'100px');
  form.querySelector(triggers[1]).click();assert.equal(form.querySelector('[data-code-option="EAN8"]').hidden,true);assert.equal(form.querySelector('[data-code-option="EAN13"]').hidden,false);
- form.querySelector('[data-code-option="CODE128"]').click();assert.ok(panels.every(p=>form.querySelector(p).hidden));assert.deepEqual(app.errors,[]);
+ form.querySelector('[data-code-option="CODE128"]').click();assert.equal(form.querySelector('[data-code-options]').hidden,false);
+ preview.click();assert.ok(panels.every(p=>form.querySelector(p).hidden));
+ Object.defineProperty(value,'scrollHeight',{configurable:true,get:()=>value.value.length>80?180:44});
+ value.value='lange tekst '.repeat(20);value.dispatchEvent(new app.window.Event('input',{bubbles:true}));assert.equal(value.style.height,'180px');
+ value.value='kort';value.dispatchEvent(new app.window.Event('input',{bubbles:true}));assert.equal(value.style.height,'44px');
+ form.querySelector(triggers[2]).click();form.querySelector('[data-field-preset="Notities"]').click();assert.equal(form.querySelector('[data-extra-panel]').hidden,false);
+ const note=form.querySelector('textarea[aria-label="Notities"]');Object.defineProperty(note,'scrollHeight',{configurable:true,value:240});note.value='Notitie\n'.repeat(20);note.dispatchEvent(new app.window.Event('input',{bubbles:true}));assert.equal(note.style.height,'240px');
+ note.click();assert.ok(panels.every(p=>form.querySelector(p).hidden));assert.deepEqual(app.errors,[]);
 });

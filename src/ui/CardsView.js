@@ -1,22 +1,22 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.24';
-import { openCardShare } from './CardSharing.js?v=0.4.24';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.24';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.24';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.24';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.24';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.24';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.24';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.24';
-import { openCardBoard } from './CardBoard.js?v=0.4.24';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.24';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.24';
-import { mountCardScanner } from './CardScanner.js?v=0.4.24';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.24';
-import { renderStrip } from './Strip.js?v=0.4.24';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.24';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.24';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.24';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.24';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.25';
+import { openCardShare } from './CardSharing.js?v=0.4.25';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.25';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.25';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.25';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.25';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.25';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.25';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.25';
+import { openCardBoard } from './CardBoard.js?v=0.4.25';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.25';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.25';
+import { mountCardScanner } from './CardScanner.js?v=0.4.25';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.25';
+import { renderStrip } from './Strip.js?v=0.4.25';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.25';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.25';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.25';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.25';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -29,6 +29,7 @@ const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 
 
 export async function openCardsView(outlet, { store, location, events, setTitle, headerActions, onConnection, initialScan=null, initialCardId=null }) {
   let editingId = null;
+  let stopEditor=()=>{};
   let stopScanner = null;
   let closeBoard = null;
   let closeShare = null;
@@ -50,6 +51,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
   }
 
   async function showList() {
+    stopEditor();stopEditor=()=>{};
     releaseOrder?.(); releaseOrder = null;
     closeBoard?.(); closeBoard = null;
     stopScanner?.(); stopScanner = null;
@@ -192,6 +194,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
   }
 
   async function showQuestionLibrary(cardId = null, kind = 'loyalty') {
+    stopEditor();stopEditor=()=>{};
     releaseRows?.(); releaseRows = null;
     title('Zinnenbibliotheek');
     header();
@@ -272,6 +275,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
   }
 
   async function showForm(id = null, scanned = null) {
+    stopEditor();stopEditor=()=>{};
     const imported = scanned?.name ? scanned : null;
     const card = id ? await store.get('objects', id) : null;
     if (id && (!card || card.type !== 'card')) return showList();
@@ -359,6 +363,13 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     const panels=[['[data-kind-options]','[data-kind-toggle]'],['[data-code-options]','[data-code-type-toggle]'],['[data-extra-panel]','[data-extra-toggle]']];
     const setChoicePanel=target=>panels.forEach(([panel,trigger])=>{const node=form.querySelector(panel),open=node===target;node.hidden=!open;form.querySelector(trigger).setAttribute('aria-expanded',String(open));});
     const toggleChoicePanel=panel=>setChoicePanel(panel.hidden?panel:null);
+    const resizeText=area=>{if(area.tagName!=='TEXTAREA')return;area.style.height='auto';area.style.height=Math.max(44,area.scrollHeight)+'px';};
+    const resizeTexts=()=>form.querySelectorAll('textarea').forEach(resizeText);
+    form.addEventListener('input',event=>resizeText(event.target));
+    const outsideChoice=event=>{if(!panels.some(([panel,trigger])=>form.querySelector(panel).contains(event.target)||form.querySelector(trigger).contains(event.target)))setChoicePanel(null);};
+    const editorDocument=form.ownerDocument,editorWindow=editorDocument.defaultView;
+    editorDocument.addEventListener('click',outsideChoice);editorWindow.addEventListener('resize',resizeTexts);
+    stopEditor=()=>{editorDocument.removeEventListener('click',outsideChoice);editorWindow.removeEventListener('resize',resizeTexts);};
     let dirty=false;
     form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
     const actions=form.querySelector('.sh-card-form-actions');
@@ -396,30 +407,30 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       form.querySelector('[data-extra-number]').hidden=!form.querySelector('[data-number-field]').hidden;
       form.querySelector('[data-extra-location]').hidden=!form.querySelector('[data-location-field]').hidden;
     };
-    const closeChoices=()=>{setChoicePanel(null);updateChoices();};
+    const refreshChoices=()=>{updateChoices();resizeTexts();};
     const addField = (label = '', value = '',focus=false) => {
       if (fieldHost.children.length >= 30) return;
       const row=document.createElement('div');row.className='sh-card-extra-field';
       const key=document.createElement('input');key.dataset.fieldLabel='';key.maxLength=80;key.placeholder='Veldnaam';key.setAttribute('aria-label','Veldnaam');key.value=label;
       const valueLabel=document.createElement('label');valueLabel.className='sh-card-extra-value';
       const heading=document.createElement('span');heading.textContent=label||'Inhoud';
-      const input=document.createElement(label==='Notities'?'textarea':'input');input.dataset.fieldValue='';input.maxLength=1000;input.value=value;
-      if(input.tagName==='TEXTAREA')input.rows=3;
+      const input=document.createElement(['Website','Link'].includes(label)?'input':'textarea');input.dataset.fieldValue='';input.maxLength=1000;input.value=value;
+      if(input.tagName==='TEXTAREA')input.rows=1;
       else if(['Website','Link'].includes(label)){input.inputMode='url';input.placeholder='https://';}
       input.setAttribute('aria-label',label||'Inhoud');valueLabel.append(heading,input);
       const remove=document.createElement('button');remove.type='button';remove.textContent='−';remove.setAttribute('aria-label','Veld verwijderen');
       remove.addEventListener('click',()=>{dirty=true;row.remove();updateChoices();});
       key.addEventListener('input',()=>{heading.textContent=key.value||'Inhoud';input.setAttribute('aria-label',key.value||'Inhoud');updateChoices();});
       if(['Website','Link','Notities'].includes(label))key.hidden=true;
-      row.append(key,remove,valueLabel);fieldHost.append(row);updateChoices();
+      row.append(key,remove,valueLabel);fieldHost.append(row);updateChoices();resizeText(input);
       if(focus){dirty=true;(label?input:key).focus();}
     };
     (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field=>addField(field.label,field.value));
     extraToggle.addEventListener('click',()=>{toggleChoicePanel(extraPanel);updateChoices();});
-    form.querySelector('[data-add-card-field]').addEventListener('click',()=>{addField('','',true);closeChoices();});
-    form.querySelectorAll('[data-field-preset]').forEach(button=>button.addEventListener('click',()=>{addField(button.dataset.fieldPreset,'',true);closeChoices();}));
+    form.querySelector('[data-add-card-field]').addEventListener('click',()=>{addField('','',true);refreshChoices();});
+    form.querySelectorAll('[data-field-preset]').forEach(button=>button.addEventListener('click',()=>{addField(button.dataset.fieldPreset,'',true);refreshChoices();}));
     for(const [name,section,element] of [['number','number','cardNumber'],['location','location','locationId']]){
-      form.querySelector('[data-extra-'+name+']').addEventListener('click',()=>{dirty=true;form.querySelector('[data-'+section+'-field]').hidden=false;closeChoices();form.elements[element].focus();});
+      form.querySelector('[data-extra-'+name+']').addEventListener('click',()=>{dirty=true;form.querySelector('[data-'+section+'-field]').hidden=false;refreshChoices();form.elements[element].focus();});
       const remove=document.createElement('button');remove.type='button';remove.className='sh-card-extra-remove';remove.textContent='−';remove.setAttribute('aria-label',name==='number'?'Pasnummer verwijderen':'Locatie ontkoppelen');
       remove.addEventListener('click',()=>{dirty=true;form.elements[element].value='';form.querySelector('[data-'+section+'-field]').hidden=true;updateChoices();});
       form.querySelector('[data-'+section+'-field]').append(remove);
@@ -438,7 +449,6 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       applyCardAppearance(kindToggle,colorInput.value);
     };
     colorInput.addEventListener('input', updateSwatch);
-    colorInput.addEventListener('change',()=>setChoicePanel(null));
     updateSwatch();
     updateKind();
     const toggleKindOptions = () => {
@@ -447,10 +457,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     kindToggle.addEventListener('click', toggleKindOptions);
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
       dirty=true;formKind.value = button.dataset.kind; updateKind(); syncChain();
-      setChoicePanel(null);kindToggle.focus();
+      kindToggle.focus();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
-    form.addEventListener('click',event=>{if(!kindOptions.hidden&&!kindOptions.contains(event.target)&&!kindToggle.contains(event.target)){kindOptions.hidden=true;kindToggle.setAttribute('aria-expanded','false');}});
+
     const dictionaryKey = 'cards.nameQuestions.' + formKind.value;
     const configured = await store.get('meta', dictionaryKey);
     const legacy = await store.get('meta','cards.nameQuestions');
@@ -546,10 +556,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
       if (button.disabled) return;
       dirty=true;formatInput.value = button.dataset.codeOption; manuallySelected = true;
-      setChoicePanel(null); updateCodePreview();
+      updateCodePreview();
     }));
     valueInput.addEventListener('input', updateCodePreview);
-    updateCodePreview();
+    updateCodePreview();resizeTexts();
     // Going back discards the editor and returns to the card overview.
     const backHandler = event => { if (!outlet.contains(form)) return; event.preventDefault(); clearTimeout(questionTimer); showList(); };
     form.addEventListener('sharon:navigate-back', backHandler);
@@ -649,5 +659,5 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     await showList();
     if(initialCardId)await showDetail(initialCardId);
   }
-  return () => { closeShare?.(); closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
+  return () => { stopEditor();closeShare?.(); closeBoard?.(); stopScanner?.(); releaseRows?.(); releaseOrder?.(); header(); };
 }
