@@ -27,10 +27,17 @@ test('card editor uses header actions and one optional-field picker without losi
  const notes=form.querySelector('textarea[data-field-value]');notes.value='Nieuwe notitie';notes.dispatchEvent(new app.window.Event('input',{bubbles:true}));
  assert.equal(form.querySelector('[data-extra-panel]').hidden,true);assert.equal(form.querySelector('[data-field-preset="Notities"]').hidden,true);
  let asked=false;app.window.confirm=()=>{asked=true;return false;};header.querySelector('[data-card-cancel]').click();assert.equal(asked,true);assert.equal(form.isConnected,true);
+ const expectedIcon=form.querySelector('[data-kind-icon]').innerHTML,expectedColor=kind.style.color,expectedBackground=kind.style.backgroundColor;
  header.querySelector('[type="submit"]').click();
  await until(()=>app.document.querySelector('[data-card-list]'));
  assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
  assert.equal(header.querySelector('.sh-card-form-actions'),null);
  const saved=await app.store.get('objects','EditorCard01');assert.deepEqual(Array.from(saved.personIds),['LegacyUser01']);
- assert.equal(saved.fields.length,4);assert.equal(saved.fields[1].value,'oude-website');assert.equal(saved.fields[3].value,'Nieuwe notitie');assert.deepEqual(app.errors,[]);
+ assert.equal(saved.fields.length,4);assert.equal(saved.fields[1].value,'oude-website');assert.equal(saved.fields[3].value,'Nieuwe notitie');
+ const listIcon=root.querySelector('.sh-strip-icon');assert.equal(listIcon.innerHTML,expectedIcon);assert.equal(listIcon.style.color,expectedColor);assert.equal(listIcon.style.backgroundColor,expectedBackground);
+ const {openCardBoard}=await app.load('./src/ui/CardBoard.js');const closeBoard=openCardBoard(saved,{store:app.store});
+ const badge=app.document.querySelector('[data-card-kind]');assert.equal(badge.innerHTML,expectedIcon);assert.equal(badge.style.color,expectedColor);assert.equal(badge.style.backgroundColor,expectedBackground);closeBoard();
+ const {openCardShare}=await app.load('./src/ui/CardSharing.js');const closeShare=openCardShare(saved,{store:app.store});
+ const share=app.document.querySelector('[data-share-item-icon]');assert.equal(share.innerHTML,expectedIcon);assert.equal(share.style.color,expectedColor);assert.equal(share.style.backgroundColor,expectedBackground);closeShare();
+ assert.deepEqual(app.errors,[]);
 });

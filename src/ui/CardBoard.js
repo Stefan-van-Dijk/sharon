@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.21';
-import { renderCardCode } from './CardCodes.js?v=0.4.21';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.21';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.21';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.21';
-import { cardSymbol } from './CardSymbols.js?v=0.4.21';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.22';
+import { renderCardCode } from './CardCodes.js?v=0.4.22';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.22';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.22';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.22';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.22';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -43,7 +43,8 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
         }
       } catch {}
     }
-    board.querySelector('[data-card-accent]').style.background=/^#[0-9a-f]{6}$/i.test(current.color||'')?current.color:'#489ff8';
+    const appearance=applyCardAppearance(board.querySelector('[data-card-kind]'),current.color);
+    board.querySelector('[data-card-accent]').style.background=appearance.background;
     return board;
   });
   const stack=wrapBoardSurface(layer,nodes[0]);stack.classList.add('sh-card-deck-stack','sh-card-zone-stack');
