@@ -45,7 +45,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.20');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.21');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -83,8 +83,10 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
   form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   const card = await until(async () => (await app.store.getAll('objects')).find(o => o.name === 'Integratiepas'));
   assert.match(card.id, /^[A-Za-z0-9_-]{12}$/);
-  // Return through the real shell and reopen the persisted row.
-  await dismissCardBoard(app);
+  // Saving returns to the overview; opening a board is an explicit row action.
+  await until(()=>app.document.querySelector('[data-card-list]'));
+  assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
+  assert.equal(app.document.querySelector('[data-card-form]'),null);
   app.document.querySelector('[data-brand-control]').click();
   (await until(() => app.document.querySelector('.module-list [data-module="cards"]'))).click();
   const row = await until(() => app.document.querySelector(`[data-swipe-row="${card.id}"] [data-swipe-surface]`));
@@ -95,7 +97,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.20');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.21');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';
@@ -237,7 +239,9 @@ test('Testomgeving: locatie vastleggen, pas koppelen en dezelfde context op Home
   cardForm.elements.locationId.value=place.id;
   cardForm.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
   const card=await until(async()=>(await data())?.objects.find(o=>o.title==='Mijn testpas'));
-  await dismissCardBoard(app);
+  await until(()=>app.document.querySelector('[data-card-list]'));
+  assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
+  assert.ok(app.document.querySelector(`[data-swipe-row="${card.id}"]`));
   app.document.querySelector('[data-brand-control]').click();
   await until(()=>app.document.querySelector(`[data-context-card="${card.id}"]`));
   await until(()=>app.document.querySelector('[role="dialog"][aria-label="Kaart Mijn testpas"]'));

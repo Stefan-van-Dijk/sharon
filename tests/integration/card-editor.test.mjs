@@ -9,14 +9,27 @@ test('card editor uses header actions and one optional-field picker without losi
  const stop=await openCardsView(root,{store:app.store,headerActions:header});t.after(stop);
  root.querySelector('[data-swipe-edit]').click();const form=await until(()=>root.querySelector('[data-card-ready="true"]'));
  assert.equal(root.querySelector('[data-card-cancel]'),null);assert.equal(header.querySelector('[type="submit"]').getAttribute('form'),form.id);
+ const kind=form.querySelector('[data-kind-toggle]'),options=form.querySelector('[data-kind-options]'),chain=form.querySelector('[data-chain-link]');
+ assert.ok(options.compareDocumentPosition(chain)&app.window.Node.DOCUMENT_POSITION_FOLLOWING);
+ kind.click();assert.equal(options.hidden,false);form.querySelector('[data-kind="membership"]').click();assert.equal(options.hidden,true);
+ assert.equal(form.querySelector('[data-kind-done]'),null);const color=form.elements.color;
+ for(const [background,foreground] of [['#000000','rgb(255, 255, 255)'],['#ffffff','rgb(0, 0, 0)'],['#e51c00','rgb(255, 255, 255)'],['#ffff00','rgb(0, 0, 0)']]){
+   color.value=background;color.dispatchEvent(new app.window.Event('input',{bubbles:true}));
+   assert.equal(kind.style.color,foreground);assert.equal(kind.style.backgroundColor,background==='#000000'?'rgb(0, 0, 0)':background==='#ffffff'?'rgb(255, 255, 255)':background==='#e51c00'?'rgb(229, 28, 0)':'rgb(255, 255, 0)');
+ }
+
+ assert.equal(form.querySelector('.sh-card-preview [data-code-type-toggle]'),null);form.querySelector('[data-code-type-toggle]').click();
+ assert.equal(form.querySelector('[data-code-options]').hidden,false);form.querySelector('[data-code-option="QR_CODE"]').click();assert.equal(form.querySelector('[data-code-options]').hidden,true);
  assert.equal(form.querySelector('[data-person-links]'),null);assert.equal(form.querySelector('[data-extra-panel]').hidden,true);
  assert.equal(form.querySelector('[data-field-preset="Website"]').hidden,true);
  form.querySelector('[data-extra-toggle]').click();form.querySelector('[data-field-preset="Notities"]').click();
+ form.elements.codeFormat.value='';
  const notes=form.querySelector('textarea[data-field-value]');notes.value='Nieuwe notitie';notes.dispatchEvent(new app.window.Event('input',{bubbles:true}));
  assert.equal(form.querySelector('[data-extra-panel]').hidden,true);assert.equal(form.querySelector('[data-field-preset="Notities"]').hidden,true);
  let asked=false;app.window.confirm=()=>{asked=true;return false;};header.querySelector('[data-card-cancel]').click();assert.equal(asked,true);assert.equal(form.isConnected,true);
  header.querySelector('[type="submit"]').click();
- await until(()=>app.document.querySelector('.sh-card-board-overlay'));
+ await until(()=>app.document.querySelector('[data-card-list]'));
+ assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
  assert.equal(header.querySelector('.sh-card-form-actions'),null);
  const saved=await app.store.get('objects','EditorCard01');assert.deepEqual(Array.from(saved.personIds),['LegacyUser01']);
  assert.equal(saved.fields.length,4);assert.equal(saved.fields[1].value,'oude-website');assert.equal(saved.fields[3].value,'Nieuwe notitie');assert.deepEqual(app.errors,[]);
