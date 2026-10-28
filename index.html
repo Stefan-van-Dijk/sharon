@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.22">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.22">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.23">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.23">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3048,6 +3048,8 @@
     .sh-card-code-selector svg{display:block;width:16px;height:16px}
     .sh-card-compact .sh-card-code-options{margin:6px 0;gap:5px}
     .sh-card-compact .sh-card-preview{display:grid;place-items:center;padding:14px;min-height:100px}
+    /* Card strip SVGs inherit the computed black/white contrast, not generic row gray. */
+    .sh-card-view .sh-strip-icon svg{stroke:currentColor;stroke-width:1.7}
     /* Keep scan content above the controls, with quiet space around every code. */
     .sh-card-media .sh-card-board-code{padding:18px 12px 68px;border:0}
     .sh-card-media .sh-card-board-code>div,.sh-card-deck-board[data-code-type="barcode"] .sh-card-board-code>div{height:100%}
@@ -3146,16 +3148,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.22#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.22#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.22#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.22#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.22#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.23#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.23#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.23#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.23#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.23#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.22"></script>
+  <script type="module" src="./src/main.js?v=0.4.23"></script>
 </body>
 </html>
