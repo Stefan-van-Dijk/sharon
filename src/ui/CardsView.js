@@ -1,27 +1,28 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.23';
-import { openCardShare } from './CardSharing.js?v=0.4.23';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.23';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.23';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.23';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.23';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.23';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.23';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.23';
-import { openCardBoard } from './CardBoard.js?v=0.4.23';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.23';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.23';
-import { mountCardScanner } from './CardScanner.js?v=0.4.23';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.23';
-import { renderStrip } from './Strip.js?v=0.4.23';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.23';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.23';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.23';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.23';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.24';
+import { openCardShare } from './CardSharing.js?v=0.4.24';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.24';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.24';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.24';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.24';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.24';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.24';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.24';
+import { openCardBoard } from './CardBoard.js?v=0.4.24';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.24';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.24';
+import { mountCardScanner } from './CardScanner.js?v=0.4.24';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.24';
+import { renderStrip } from './Strip.js?v=0.4.24';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.24';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.24';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.24';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.24';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character]);
 
+const choiceSymbol=kind=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+({website:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/>',note:'<path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/>',field:'<path d="M4 4h16v16H4zM7 12h10M12 7v10"/>',number:'<path d="m9 3-2 18M17 3l-2 18M3 9h18M2 15h18"/>',location:'<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',qr:'<path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14v3h3v4M20 14v2M14 20h2M20 19v2"/>',barcode:'<path d="M3 5v14M6 5v14M10 5v14M13 5v14M15 5v14M19 5v14M22 5v14"/>'}[kind]||'')+'</svg>';
 const normalizeName = value => String(value ?? '').trim().replace(/\s+/g, ' ');
 const kindLabels = { loyalty: 'Klantenpas', membership: 'Lidmaatschap', access: 'Toegangspas', ticket: 'Ticket', other: 'Overige kaart' };
 
@@ -295,8 +296,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
           <datalist id="card-chain-names">${CHAIN_CATALOG.map(chain=>`<option value="${escapeHtml(chain.name)}"></option>`).join('')}</datalist>
           <input type="hidden" name="chainId" value="">
           <div class="sh-card-kind-options" data-kind-options hidden>
-            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
-            ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(label)}</button>`).join("")}
+            <label class="sh-card-color-picker" aria-label="Herkenningskleur aanpassen" title="Herkenningskleur aanpassen"><span class="sh-card-color-swatch" data-card-color-swatch></span><span>Kleur</span><input type="color" name="color" aria-label="Herkenningskleur" value="${/^#[0-9a-f]{6}$/i.test(chosenColor) ? chosenColor : "#489ff8"}"></label>
+            ${Object.entries(kindLabels).map(([key,label]) => `<button type="button" data-kind="${key}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" aria-pressed="${chosenKind === key}"><span data-kind-choice-icon="${key}"></span>${escapeHtml(({loyalty:"Pas",membership:"Lid",access:"Toegang",ticket:"Ticket",other:"Overig"})[key])}</button>`).join("")}
           </div>
           <div class="sh-card-section sh-chain-link" data-chain-link hidden>
             <div class="sh-chain-link-row">
@@ -309,7 +310,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
           <div class="sh-card-section">
 
             <div class="sh-card-code-options" data-code-options hidden>
-              ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}">${escapeHtml(label)}</button>`).join("")}
+              ${Object.entries(CARD_FORMATS).map(([value,label]) => `<button type="button" data-code-option="${value}" aria-label="${escapeHtml(label)}">${choiceSymbol(value==='QR_CODE'?'qr':'barcode')}<span>${escapeHtml(label.replace('Barcode · ','').replace('QR-code','QR'))}</span></button>`).join("")}
             </div>
             <div class="sh-card-preview"><span data-card-code-preview>Je code verschijnt hier zodra je inhoud invoert.</span></div>
 
@@ -332,10 +333,10 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
             <button type="button" data-extra-toggle class="sh-card-extra-toggle" aria-expanded="false"><span>Gegeven toevoegen</span><span aria-hidden="true">＋</span></button>
             <div data-extra-panel hidden>
               <div class="sh-card-extras-choices">
-                ${['Website','Notities'].map(label => `<button type="button" data-field-preset="${label}">${label}</button>`).join('')}
-                <button type="button" data-add-card-field>+ Eigen veld</button>
-                <button type="button" data-extra-number>Pasnummer</button>
-                <button type="button" data-extra-location>Locatie koppelen</button>
+                ${['Website','Notities'].map(label => `<button type="button" data-field-preset="${label}">${choiceSymbol(label==='Website'?'website':'note')}<span>${label==='Notities'?'Notitie':label}</span></button>`).join('')}
+                <button type="button" data-add-card-field>${choiceSymbol('field')}<span>Eigen veld</span></button>
+                <button type="button" data-extra-number>${choiceSymbol('number')}<span>Pasnummer</span></button>
+                <button type="button" data-extra-location>${choiceSymbol('location')}<span>Locatie</span></button>
               </div>
             </div>
               <div data-card-fields></div>
@@ -355,6 +356,9 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
         </form>
       </section>`;
     const form = outlet.querySelector('[data-card-form]');
+    const panels=[['[data-kind-options]','[data-kind-toggle]'],['[data-code-options]','[data-code-type-toggle]'],['[data-extra-panel]','[data-extra-toggle]']];
+    const setChoicePanel=target=>panels.forEach(([panel,trigger])=>{const node=form.querySelector(panel),open=node===target;node.hidden=!open;form.querySelector(trigger).setAttribute('aria-expanded',String(open));});
+    const toggleChoicePanel=panel=>setChoicePanel(panel.hidden?panel:null);
     let dirty=false;
     form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
     const actions=form.querySelector('.sh-card-form-actions');
@@ -392,7 +396,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       form.querySelector('[data-extra-number]').hidden=!form.querySelector('[data-number-field]').hidden;
       form.querySelector('[data-extra-location]').hidden=!form.querySelector('[data-location-field]').hidden;
     };
-    const closeChoices=()=>{extraPanel.hidden=true;extraToggle.setAttribute('aria-expanded','false');updateChoices();};
+    const closeChoices=()=>{setChoicePanel(null);updateChoices();};
     const addField = (label = '', value = '',focus=false) => {
       if (fieldHost.children.length >= 30) return;
       const row=document.createElement('div');row.className='sh-card-extra-field';
@@ -411,7 +415,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       if(focus){dirty=true;(label?input:key).focus();}
     };
     (Array.isArray(card?.fields || imported?.fields) ? (card?.fields || imported?.fields) : []).forEach(field=>addField(field.label,field.value));
-    extraToggle.addEventListener('click',()=>{extraPanel.hidden=!extraPanel.hidden;extraToggle.setAttribute('aria-expanded',String(!extraPanel.hidden));updateChoices();});
+    extraToggle.addEventListener('click',()=>{toggleChoicePanel(extraPanel);updateChoices();});
     form.querySelector('[data-add-card-field]').addEventListener('click',()=>{addField('','',true);closeChoices();});
     form.querySelectorAll('[data-field-preset]').forEach(button=>button.addEventListener('click',()=>{addField(button.dataset.fieldPreset,'',true);closeChoices();}));
     for(const [name,section,element] of [['number','number','cardNumber'],['location','location','locationId']]){
@@ -434,16 +438,16 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       applyCardAppearance(kindToggle,colorInput.value);
     };
     colorInput.addEventListener('input', updateSwatch);
+    colorInput.addEventListener('change',()=>setChoicePanel(null));
     updateSwatch();
     updateKind();
     const toggleKindOptions = () => {
-      kindOptions.hidden = !kindOptions.hidden;
-      kindToggle.setAttribute('aria-expanded', String(!kindOptions.hidden));
+      toggleChoicePanel(kindOptions);
     };
     kindToggle.addEventListener('click', toggleKindOptions);
     form.querySelectorAll('[data-kind]').forEach(button => button.addEventListener('click', () => {
       dirty=true;formKind.value = button.dataset.kind; updateKind(); syncChain();
-      kindOptions.hidden=true;kindToggle.setAttribute('aria-expanded','false');kindToggle.focus();
+      setChoicePanel(null);kindToggle.focus();
       form.querySelectorAll('[data-kind]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
     }));
     form.addEventListener('click',event=>{if(!kindOptions.hidden&&!kindOptions.contains(event.target)&&!kindToggle.contains(event.target)){kindOptions.hidden=true;kindToggle.setAttribute('aria-expanded','false');}});
@@ -517,6 +521,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       const value = valueInput.value, generation = ++previewGeneration;
       if (!manuallySelected || !compatible(formatInput.value, value)) { formatInput.value = guessFormat(value); manuallySelected = false; }
       const format = formatInput.value;
+      previewHost.closest('.sh-card-preview').dataset.previewType=!value?'empty':format==='QR_CODE'?'qr':'barcode';
       previewHost.replaceChildren();
       if (!value) previewHost.textContent = 'Je code verschijnt hier zodra je inhoud invoert.';
       else if (format) { try { await renderCardCode(previewHost, format, value); }
@@ -524,7 +529,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
 
       form.querySelectorAll('[data-code-option]').forEach(button => {
         const valid = compatible(button.dataset.codeOption, value);
-        button.disabled = !valid;
+        button.disabled = !valid;button.hidden=!valid;
         button.setAttribute('aria-pressed', String(button.dataset.codeOption === format));
       });
       form.querySelector('[data-code-icon]').innerHTML = format === 'QR_CODE'
@@ -535,14 +540,13 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     const codeToggle = form.querySelector('[data-code-type-toggle]');
     codeToggle.after(codeOptions);
     codeToggle.addEventListener('click', () => {
-      codeOptions.hidden = !codeOptions.hidden;
-      codeToggle.setAttribute('aria-expanded', String(!codeOptions.hidden));
+      toggleChoicePanel(codeOptions);
       updateCodePreview();
     });
     form.querySelectorAll('[data-code-option]').forEach(button => button.addEventListener('click', () => {
       if (button.disabled) return;
       dirty=true;formatInput.value = button.dataset.codeOption; manuallySelected = true;
-      codeOptions.hidden = true; codeToggle.setAttribute('aria-expanded','false'); updateCodePreview();
+      setChoicePanel(null); updateCodePreview();
     }));
     valueInput.addEventListener('input', updateCodePreview);
     updateCodePreview();

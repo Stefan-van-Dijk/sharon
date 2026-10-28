@@ -41,3 +41,24 @@ test('card editor uses header actions and one optional-field picker without losi
  const share=app.document.querySelector('[data-share-item-icon]');assert.equal(share.innerHTML,expectedIcon);assert.equal(share.style.color,expectedColor);assert.equal(share.style.backgroundColor,expectedBackground);closeShare();
  assert.deepEqual(app.errors,[]);
 });
+
+test('visual choice groups are exclusive, toggle closed, and preview both QR and barcode',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ const {readFileSync}=await import('node:fs');
+ app.window.eval(readFileSync('vendor/qrcode-2.0.4.js','utf8'));app.window.eval(readFileSync('vendor/jsbarcode-3.12.1.min.js','utf8'));
+ const {openCardsView}=await app.load('./src/ui/CardsView.js');
+ const root=app.document.createElement('main'),header=app.document.createElement('div');app.document.body.append(root,header);
+ const stop=await openCardsView(root,{store:app.store,headerActions:header});t.after(stop);header.querySelector('[aria-label="Kaart toevoegen"]').click();
+ const form=await until(()=>root.querySelector('[data-card-ready="true"]'));
+ const panels=['[data-kind-options]','[data-code-options]','[data-extra-panel]'];
+ const triggers=['[data-kind-toggle]','[data-code-type-toggle]','[data-extra-toggle]'];
+ for(let i=0;i<triggers.length;i++){form.querySelector(triggers[i]).click();assert.deepEqual(panels.map(p=>form.querySelector(p).hidden),panels.map((_,n)=>n!==i));}
+ form.querySelector(triggers[2]).click();assert.ok(panels.every(p=>form.querySelector(p).hidden));
+ const value=form.elements.codeValue,preview=form.querySelector('.sh-card-preview');
+ value.value='日本語のQRコード';value.dispatchEvent(new app.window.Event('input',{bubbles:true}));
+ await until(()=>preview.querySelector('svg'));assert.equal(preview.dataset.previewType,'qr');assert.equal(preview.querySelector('svg').getAttribute('preserveAspectRatio'),'xMidYMid meet');assert.equal(app.window.getComputedStyle(preview.querySelector('svg')).height,'190px');
+ value.value='8712345678906';value.dispatchEvent(new app.window.Event('input',{bubbles:true}));
+ await until(()=>preview.dataset.previewType==='barcode'&&preview.querySelector('svg'));assert.equal(app.window.getComputedStyle(preview.querySelector('svg')).height,'100px');
+ form.querySelector(triggers[1]).click();assert.equal(form.querySelector('[data-code-option="EAN8"]').hidden,true);assert.equal(form.querySelector('[data-code-option="EAN13"]').hidden,false);
+ form.querySelector('[data-code-option="CODE128"]').click();assert.ok(panels.every(p=>form.querySelector(p).hidden));assert.deepEqual(app.errors,[]);
+});
