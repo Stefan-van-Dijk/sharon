@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.22';
-import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.22';
-import { createBoardDeck } from './BoardChrome.js?v=0.4.22';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.23';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.23';
+import { createBoardDeck } from './BoardChrome.js?v=0.4.23';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;

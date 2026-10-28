@@ -34,7 +34,7 @@ test('card editor uses header actions and one optional-field picker without losi
  assert.equal(header.querySelector('.sh-card-form-actions'),null);
  const saved=await app.store.get('objects','EditorCard01');assert.deepEqual(Array.from(saved.personIds),['LegacyUser01']);
  assert.equal(saved.fields.length,4);assert.equal(saved.fields[1].value,'oude-website');assert.equal(saved.fields[3].value,'Nieuwe notitie');
- const listIcon=root.querySelector('.sh-strip-icon');assert.equal(listIcon.innerHTML,expectedIcon);assert.equal(listIcon.style.color,expectedColor);assert.equal(listIcon.style.backgroundColor,expectedBackground);
+ const listIcon=root.querySelector('.sh-strip-icon');assert.equal(app.window.getComputedStyle(listIcon.querySelector('svg')).stroke,'currentColor');assert.equal(listIcon.innerHTML,expectedIcon);assert.equal(listIcon.style.color,expectedColor);assert.equal(listIcon.style.backgroundColor,expectedBackground);
  const {openCardBoard}=await app.load('./src/ui/CardBoard.js');const closeBoard=openCardBoard(saved,{store:app.store});
  const badge=app.document.querySelector('[data-card-kind]');assert.equal(badge.innerHTML,expectedIcon);assert.equal(badge.style.color,expectedColor);assert.equal(badge.style.backgroundColor,expectedBackground);closeBoard();
  const {openCardShare}=await app.load('./src/ui/CardSharing.js');const closeShare=openCardShare(saved,{store:app.store});
