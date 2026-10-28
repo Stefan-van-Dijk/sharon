@@ -1,22 +1,22 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.21';
-import { openCardShare } from './CardSharing.js?v=0.4.21';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.21';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.21';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.21';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.21';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.21';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.21';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.21';
-import { openCardBoard } from './CardBoard.js?v=0.4.21';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.21';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.21';
-import { mountCardScanner } from './CardScanner.js?v=0.4.21';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.21';
-import { renderStrip } from './Strip.js?v=0.4.21';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.21';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.21';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.21';
-import { cardSymbol } from './CardSymbols.js?v=0.4.21';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.22';
+import { openCardShare } from './CardSharing.js?v=0.4.22';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.22';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.22';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.22';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.22';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.22';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.22';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.22';
+import { openCardBoard } from './CardBoard.js?v=0.4.22';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.22';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.22';
+import { mountCardScanner } from './CardScanner.js?v=0.4.22';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.22';
+import { renderStrip } from './Strip.js?v=0.4.22';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.22';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.22';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.22';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.22';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -104,6 +104,8 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
           }) + (sort==='custom' ? renderOrderControls(card.id,{first:index===0,last:index===cards.length-1}) : '') + '</div>').join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
       </section>`;
+    const cardLookup=new Map(cards.map(card=>[card.id,card]));
+    outlet.querySelectorAll('[data-swipe-row]').forEach(row=>{const icon=row.querySelector('.sh-strip-icon');if(icon)applyCardAppearance(icon,cardLookup.get(row.dataset.swipeRow)?.color);});
     mountSharingBadges(outlet,store).catch(()=>{});
     releaseRows = bindSwipeRows(outlet.querySelector('[data-card-list]'), {
       onShare: async id=>{const card=await store.get('objects',id);if(card){closeShare?.();closeShare=openCardShare(card,{store,location,onStatusChange:()=>mountSharingBadges(outlet,store)});}},
@@ -420,35 +422,17 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     }
     updateChoices();
     const formKind = form.elements.cardKind;
-    const icons = {
-      loyalty: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
-      membership: '<circle cx="12" cy="8" r="3"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/>',
-      access: '<circle cx="8" cy="9" r="4"/><path d="M11 12 21 22m-3-3 2-2m-5-1 2-2"/>',
-      ticket: '<path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/><path d="M12 5v14" stroke-dasharray="2 2"/>',
-      other: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9h8M8 13h6"/>'
-    };
     const kindToggle = form.querySelector('[data-kind-toggle]');
     const kindOptions = form.querySelector('[data-kind-options]');
     form.querySelectorAll('[data-kind-choice-icon]').forEach(element => {
-      element.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">' + (icons[element.dataset.kindChoiceIcon] || icons.other) + '</svg>';
+      element.innerHTML=cardSymbol(element.dataset.kindChoiceIcon);
     });
-    const updateKind = () => {
-      form.querySelector('[data-kind-icon]').innerHTML =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        (icons[formKind.value] || icons.other) + '</svg>';
-    };
+    const updateKind=()=>{form.querySelector('[data-kind-icon]').innerHTML=cardSymbol(formKind.value);};
     const colorInput = form.elements.color;
     const swatch = form.querySelector('[data-card-color-swatch]');
     const updateSwatch = () => { swatch.style.backgroundColor = colorInput.value;
-      kindToggle.style.backgroundColor = colorInput.value;
-      const rgb=colorInput.value.slice(1).match(/../g).map(hex=>{
-        const channel=parseInt(hex,16)/255;
-        return channel<=0.04045?channel/12.92:((channel+0.055)/1.055)**2.4;
-      });
-      const luminance=rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;
-      // Choose the higher WCAG contrast against the actual selected background.
-      const foreground=(luminance+0.05)/0.05>=1.05/(luminance+0.05)?'#000':'#fff';
-      kindToggle.style.setProperty('color',foreground,'important'); };
+      applyCardAppearance(kindToggle,colorInput.value);
+    };
     colorInput.addEventListener('input', updateSwatch);
     updateSwatch();
     updateKind();
