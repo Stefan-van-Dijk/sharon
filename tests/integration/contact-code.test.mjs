@@ -56,7 +56,8 @@ for(const contact of [false,true])test('central camera distinguishes a bare cont
     assert.ok(actions.includes('accept-code'));assert.ok(!actions.includes('invitation-resolve'));
   }else{
     await until(()=>app.document.querySelector('[name="codeValue"]')?.value===value);
-    await until(()=>app.document.querySelector('[data-person-links] summary'));
+    await until(()=>app.document.querySelector('[data-card-form][data-card-ready="true"]'));
+    assert.equal(app.document.querySelector('[data-person-links]'),null);
     assert.ok(actions.includes('share-check'));assert.ok(!actions.includes('register'));assert.ok(!actions.includes('accept-code'));
   }
   assert.equal((await app.store.getAll('objects')).filter(o=>o.type==='card').length,0);

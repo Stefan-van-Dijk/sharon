@@ -171,7 +171,7 @@ test('editing preserves an explicit chain despite a conflicting nickname and rem
   host.querySelector('[data-swipe-row="'+card.id+'"] [data-swipe-edit]').click();
   let form=await until(()=>host.querySelector('[data-card-form]'));
   assert.equal(form.elements.chainId.value,'Q1653985');
-  form.querySelector('[data-card-cancel]').click();
+  app.document.querySelector('[data-card-cancel]').click();
   (await until(()=>host.querySelector('[data-swipe-row="optout000001"] [data-swipe-edit]'))).click();
   form=await until(()=>host.querySelector('[data-card-form]'));
   assert.equal(form.querySelector('[data-chain-link]').hidden,false);assert.equal(form.querySelector('[data-chain-name]').textContent,'HEMA');

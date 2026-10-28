@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.19">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.19">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.20">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.20">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3026,6 +3026,18 @@
 @media(prefers-reduced-motion:reduce){.sh-card-zone-stack>.sh-card-deck-board{transition:none}}
 
     /* Module lists and sharing use the same search/sort layout. */
+    .sh-card-form-actions{display:flex;gap:8px;align-items:center;margin:0}
+    .sh-card-form-actions button{padding:6px 10px;min-height:38px;font:inherit;border:0;border-radius:8px}
+    .sh-card-form-actions .sh-card-form-save{background:#111;color:#fff}
+    .sh-card-form-actions [data-card-cancel]{background:transparent;color:inherit}
+    .sh-card-compact .sh-card-section{margin:14px 0}
+    .sh-card-extra-field{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:4px;margin:14px 0}
+    .sh-card-extra-field>input{grid-column:1;padding:6px 0;font:inherit;min-width:0;border:0;border-bottom:1px solid #ddd}
+    .sh-card-extra-field>button{grid-column:2;grid-row:1;border:0;background:none;color:#777;font-size:20px}
+    .sh-card-extra-value{grid-column:1/-1;display:grid;gap:6px;font-size:13px}
+    .sh-card-extra-value input,.sh-card-extra-value textarea{width:100%;min-width:0;padding:8px 0;font:inherit;font-size:16px;border:0;border-bottom:1px solid #ddd;border-radius:0;background:transparent}
+    .sh-card-more [data-number-field],.sh-card-more [data-location-field]{position:relative;margin:14px 0;padding-right:32px}
+    .sh-card-extra-remove{position:absolute;right:0;top:0;border:0;background:transparent;color:#777;font-size:20px}
     /* Keep scan content above the controls, with quiet space around every code. */
     .sh-card-media .sh-card-board-code{padding:18px 12px 68px;border:0}
     .sh-card-media .sh-card-board-code>div,.sh-card-deck-board[data-code-type="barcode"] .sh-card-board-code>div{height:100%}
@@ -3124,16 +3136,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.19#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.19#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.19#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.19#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.19#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.20#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.20#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.20#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.20#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.20#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.19"></script>
+  <script type="module" src="./src/main.js?v=0.4.20"></script>
 </body>
 </html>
