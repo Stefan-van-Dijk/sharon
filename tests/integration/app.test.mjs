@@ -83,8 +83,10 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
   form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   const card = await until(async () => (await app.store.getAll('objects')).find(o => o.name === 'Integratiepas'));
   assert.match(card.id, /^[A-Za-z0-9_-]{12}$/);
-  // Return through the real shell and reopen the persisted row.
-  await dismissCardBoard(app);
+  // Saving returns to the overview; opening a board is an explicit row action.
+  await until(()=>app.document.querySelector('[data-card-list]'));
+  assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
+  assert.equal(app.document.querySelector('[data-card-form]'),null);
   app.document.querySelector('[data-brand-control]').click();
   (await until(() => app.document.querySelector('.module-list [data-module="cards"]'))).click();
   const row = await until(() => app.document.querySelector(`[data-swipe-row="${card.id}"] [data-swipe-surface]`));
@@ -237,7 +239,9 @@ test('Testomgeving: locatie vastleggen, pas koppelen en dezelfde context op Home
   cardForm.elements.locationId.value=place.id;
   cardForm.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
   const card=await until(async()=>(await data())?.objects.find(o=>o.title==='Mijn testpas'));
-  await dismissCardBoard(app);
+  await until(()=>app.document.querySelector('[data-card-list]'));
+  assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
+  assert.ok(app.document.querySelector(`[data-swipe-row="${card.id}"]`));
   app.document.querySelector('[data-brand-control]').click();
   await until(()=>app.document.querySelector(`[data-context-card="${card.id}"]`));
   await until(()=>app.document.querySelector('[role="dialog"][aria-label="Kaart Mijn testpas"]'));
