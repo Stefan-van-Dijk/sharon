@@ -1,19 +1,19 @@
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.18';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.18';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.18';
-import { mountCardArrival } from './CardArrival.js?v=0.4.18';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.18';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.18';
-import { syncViewportHeight } from './Viewport.js?v=0.4.18';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.18';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.18';
-import { openPeopleView } from './PeopleView.js?v=0.4.18';
-import { openCardsView } from './CardsView.js?v=0.4.18';
-import { openLocationsView } from './LocationsView.js?v=0.4.18';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.18';
-import { openSettings } from './SettingsView.js?v=0.4.18';
-import { sharonWordmark } from './Brand.js?v=0.4.18';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.18';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.19';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.19';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.19';
+import { mountCardArrival } from './CardArrival.js?v=0.4.19';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.19';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.19';
+import { syncViewportHeight } from './Viewport.js?v=0.4.19';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.19';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.19';
+import { openPeopleView } from './PeopleView.js?v=0.4.19';
+import { openCardsView } from './CardsView.js?v=0.4.19';
+import { openLocationsView } from './LocationsView.js?v=0.4.19';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.19';
+import { openSettings } from './SettingsView.js?v=0.4.19';
+import { sharonWordmark } from './Brand.js?v=0.4.19';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.19';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -35,7 +35,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.18';
+const APP_VERSION = '0.4.19';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

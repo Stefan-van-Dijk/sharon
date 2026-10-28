@@ -1,23 +1,23 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.18';
-import { openCardShare } from './CardSharing.js?v=0.4.18';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.18';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.18';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.18';
-import { mountPersonLinks } from './PersonLinks.js?v=0.4.18';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.18';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.18';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.18';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.18';
-import { openCardBoard } from './CardBoard.js?v=0.4.18';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.18';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.18';
-import { mountCardScanner } from './CardScanner.js?v=0.4.18';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.18';
-import { renderStrip } from './Strip.js?v=0.4.18';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.18';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.18';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.18';
-import { cardSymbol } from './CardSymbols.js?v=0.4.18';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.19';
+import { openCardShare } from './CardSharing.js?v=0.4.19';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.19';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.19';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.19';
+import { mountPersonLinks } from './PersonLinks.js?v=0.4.19';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.19';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.19';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.19';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.19';
+import { openCardBoard } from './CardBoard.js?v=0.4.19';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.19';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.19';
+import { mountCardScanner } from './CardScanner.js?v=0.4.19';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.19';
+import { renderStrip } from './Strip.js?v=0.4.19';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.19';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.19';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.19';
+import { cardSymbol } from './CardSymbols.js?v=0.4.19';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -186,7 +186,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     closeBoard?.();
     const available = new Map((await records()).map(item => [item.id,item]));
     const cards = deckIds.map(key => available.get(key)).filter(Boolean);
-    closeBoard = openCardBoard(card, { cards, locations, store, location, events, onClose: () => { closeBoard = null; } });
+    closeBoard = openCardBoard(card, { cards, locations, store, location, events, onEdit: id => showForm(id), onClose: () => { closeBoard = null; } });
   }
 
   async function showQuestionLibrary(cardId = null, kind = 'loyalty') {

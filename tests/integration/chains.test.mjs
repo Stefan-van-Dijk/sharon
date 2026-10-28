@@ -46,7 +46,7 @@ test('slider input previews without saving; release saves one personal zone and 
   assert.equal((await app.store.getAll('objects')).filter(item=>item.data?.personalZone).length,1);
   assert.equal(app.requests.length,0);
   let route;events.on('environment.chain.open',event=>{route=event.detail.chainId;});
-  [...host.querySelectorAll('button')].find(button=>button.textContent.includes('in Omgeving')).click();assert.equal(route,'Q1653985');
+  host.querySelector('[aria-label="Bekijk Albert Heijn in Omgeving"]').click();assert.equal(route,'Q1653985');
   // Reopening reads the saved refinement and exposes its removal.
   stop();stop=mountChainZonePanel(host,{card,store:app.store,location:{latest:point},events});
   const reset=await until(()=>[...host.querySelectorAll('button')].find(button=>button.textContent==='Persoonlijke verfijning verwijderen'));
@@ -221,4 +221,20 @@ test('Omgeving browses an unlinked chain and loads details only when its board o
   assert.equal(calls.filter(q=>q.action==='detail').length,1);
   assert.ok(!JSON.stringify(calls).includes('accuracy'));
  }finally{layer?.destroy();app.close();}
+});
+
+ test('compact branch picker searches beyond the nearest twenty and retains the chosen branch',async()=>{
+ const {app,events,card}=await setup();let stop;
+ try{
+  const cached=await app.store.get('meta','chains.local.v1');const chain=cached.value.chains.Q1653985;
+  chain.rows=Array.from({length:25},(_,i)=>{const row=[...chain.rows[0]];row[0]='branch'+String(i).padStart(6,'0');row[5]='Winkel '+String(i).padStart(2,'0');row[6]='Straat '+i;return row;});await app.store.put('meta',cached);
+  const {mountChainZonePanel}=await app.load(spec('ui/ChainZonePanel.js'));const host=app.document.createElement('div');app.document.body.append(host);
+  stop=mountChainZonePanel(host,{card,store:app.store,events});
+  const search=await until(()=>host.querySelector('input[type="search"]'));
+  assert.equal(host.querySelector('.sh-chain-register-info').open,false);
+  search.value='Straat 24';search.dispatchEvent(new app.window.Event('input'));
+  const select=host.querySelector('select');assert.equal(select.options.length,2);select.value='branch000024';select.dispatchEvent(new app.window.Event('change'));
+  await until(()=>host.querySelector('.sh-chain-picker summary').textContent.includes('Straat 24'));
+  assert.equal(host.querySelector('select').value,'branch000024');assert.equal(app.requests.length,0);
+ }finally{stop?.();app.close();}
 });

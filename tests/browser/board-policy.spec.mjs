@@ -225,3 +225,26 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
   await page.mouse.down();await page.mouse.move(header.x+header.width/2,header.y+header.height/2+110,{steps:8});await page.mouse.up();
   await expect(page.locator('.sh-card-share-overlay')).toHaveCount(0);
 });
+
+test('card barcode stays clear of footer controls and empty code opens editing',async({page})=>{
+  await open(page);
+  await page.addStyleTag({content:[...readFileSync('index.html','utf8').matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[1]).join('\n')});
+  await page.evaluate(async version=>{
+    window.closeBoard();
+    const {openCardBoard}=await import('/src/ui/CardBoard.js?v='+version);
+    window.closeBoard=openCardBoard({id:'barcode',name:'Kruidvat',cardKind:'loyalty',codeFormat:'EAN13',codeValue:'8712345678906'});
+  },version);
+  const svg=page.locator('[data-code] svg');await expect(svg).toBeVisible();
+  const bounds=await svg.boundingBox();const footer=await page.locator('[data-deck-grab]').boundingBox();
+  expect(bounds.y+bounds.height).toBeLessThanOrEqual(footer.y);
+  await expect(page.locator('[data-share-card]')).toHaveCount(0);
+  await page.screenshot({path:'test-results/card-board-mobile.png'});
+  await page.evaluate(async version=>{
+    window.closeBoard();const {openCardBoard}=await import('/src/ui/CardBoard.js?v='+version);
+    window.closeBoard=openCardBoard({id:'empty',name:'Lege kaart'},{onEdit:id=>{window.editedCard=id;}});
+  },version);
+  await expect(page.locator('[data-card-media]')).toHaveCSS('height','150px');
+  await page.getByRole('button',{name:'Code toevoegen',exact:true}).click();
+  expect(await page.evaluate(()=>window.editedCard)).toBe('empty');
+  await expect(page.locator('.sh-card-board-overlay')).toHaveCount(0);
+});

@@ -29,6 +29,7 @@ test('real boards form one continuous deck with immediately visible information 
   assert.equal(stack.querySelector('[data-close]'),null);
   assert.equal(stack.querySelector('[data-deck-position]'),null);
   assert.equal(stack.querySelector('nav'),null);
+  assert.equal(stack.querySelector('[data-share-card]'),null,'sharing is opened from the strip swipe');
   assert.equal(active(app).querySelector('[data-deck-size="board"]').parentElement,active(app).querySelector('[data-card-media]'));
   assert.equal(active(app).querySelector('[data-deck-size="media"]').parentElement,active(app).querySelector('[data-card-media]'));
   await until(()=>active(app).querySelector('[data-code] title')?.textContent==='code-a');
@@ -176,4 +177,11 @@ test('mobile restores a horizontally centered deck and a gathering swipe only en
  assert.equal(stack.style.getPropertyValue('--card-deck-x'),'0px');assert.equal(stack.style.getPropertyValue('--card-deck-y'),'-30px');
  await until(async()=> (await app.store.get('meta','cards.board.layout')).value.y<0);
  assert.equal((await app.store.get('meta','cards.board.layout')).value.x,0);
+});
+
+ test('empty pass offers code editing for the active card and closes the board',async t=>{
+ const app=await appHarness();t.after(()=>app.close());const {openCardBoard}=await app.load('./src/ui/CardBoard.js');let edited;
+ const close=openCardBoard({id:'empty',name:'Lege kaart',codeFormat:'CODE128'},{store:app.store,onEdit:id=>{edited=id;}});t.after(close);
+ assert.equal(active(app).dataset.codeType,'empty');active(app).querySelector('[data-add-card-code]').click();
+ assert.equal(edited,'empty');assert.equal(active(app),null);
 });
