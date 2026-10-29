@@ -1,4 +1,4 @@
-import { renderStrip } from './Strip.js?v=0.4.29';
+import { renderStrip } from './Strip.js?v=0.4.30';
 
 const symbols={
   persons:'<circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
