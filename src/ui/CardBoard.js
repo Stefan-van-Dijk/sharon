@@ -62,6 +62,11 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     if(node.dataset.codeType!=='qr'||node.hidden)return;
     const title=node.querySelector('[data-card-title]'),media=node.querySelector('[data-card-media]');
     if(media.clientHeight>120)title.style.width=(media.clientHeight-120)+'px';
+    let fontSize=15;title.style.fontSize=fontSize+'px';
+    if(media.clientWidth>0&&media.clientHeight>120){
+      const maxBand=(media.clientWidth-Math.min(120,media.clientHeight-120))/2-8;
+      while(Math.max(title.scrollHeight,title.offsetHeight)+24>maxBand&&fontSize>10){fontSize-=0.5;title.style.fontSize=fontSize+'px';}
+    }
     const bandPx=Math.max(66,Math.ceil(Math.max(title.scrollHeight,title.offsetHeight))+24),band=bandPx+'px';
     title.style.left=(bandPx/2)+'px';
     if(media.style.getPropertyValue('--qr-title-band')!==band)media.style.setProperty('--qr-title-band',band);
