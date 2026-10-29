@@ -154,6 +154,9 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(app.window.getComputedStyle(title).whiteSpace,'normal');assert.equal(app.window.getComputedStyle(title).textOverflow,'clip');
   Object.defineProperty(title,'scrollHeight',{configurable:true,value:90});app.window.dispatchEvent(new app.window.Event('resize'));
   assert.equal(board.querySelector('[data-card-media]').style.getPropertyValue('--qr-title-band'),'114px');
+  const face=board.querySelector('[data-card-media]');Object.defineProperties(face,{clientWidth:{configurable:true,value:390},clientHeight:{configurable:true,value:290}});
+  app.window.dispatchEvent(new app.window.Event('resize'));assert.equal(face.style.getPropertyValue('--card-qr-size'),'146px');
+
   const handleStyle=app.window.getComputedStyle(board.querySelector('[data-deck-size="board"]'));
   assert.equal(handleStyle.height,'30px');assert.equal(handleStyle.top,'-15px');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-size="media"]')).bottom,'-15px');

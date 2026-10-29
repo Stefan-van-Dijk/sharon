@@ -61,11 +61,14 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   const fitTitles=()=>nodes.forEach(node=>{
     if(node.dataset.codeType!=='qr'||node.hidden)return;
     const title=node.querySelector('[data-card-title]'),media=node.querySelector('[data-card-media]');
-    const band=Math.max(66,Math.ceil(title.scrollHeight)+24)+'px';
+    const bandPx=Math.max(66,Math.ceil(title.scrollHeight)+24),band=bandPx+'px';
     if(media.style.getPropertyValue('--qr-title-band')!==band)media.style.setProperty('--qr-title-band',band);
+    // An explicit square avoids WebKit's circular percentage/aspect-ratio grid sizing.
+    const size=Math.floor(Math.min(media.clientWidth-2*(bandPx+8),media.clientHeight-120));
+    if(size>0&&media.style.getPropertyValue('--card-qr-size')!==size+'px')media.style.setProperty('--card-qr-size',size+'px');
   });
   const titleObserver=window.ResizeObserver?new window.ResizeObserver(fitTitles):null;
-  nodes.forEach(node=>titleObserver?.observe(node.querySelector('[data-card-title]')));
+  nodes.forEach(node=>{titleObserver?.observe(node.querySelector('[data-card-title]'));titleObserver?.observe(node.querySelector('[data-card-media]'));});
   window.addEventListener('resize',fitTitles);
   let activeChainPanel=-1,stopChainPanel=null;
   const ensureChainPanel=index=>{
