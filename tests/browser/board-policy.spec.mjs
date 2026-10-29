@@ -252,7 +252,10 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   await expect(page.locator('[data-card-title]')).toHaveCSS('white-space','normal');
   await expect(page.locator('[data-card-title]')).toHaveCSS('text-overflow','clip');
   expect(qrTitle.x).toBeGreaterThanOrEqual(0);
-  const media=await page.locator('[data-card-media]').boundingBox();expect(qrTitle.y).toBeGreaterThanOrEqual(media.y);expect(qrTitle.y+qrTitle.height).toBeLessThanOrEqual(media.y+media.height);
+  const media=await page.locator('[data-card-media]').boundingBox();
+  expect(Math.abs((white.x+white.width/2)-(media.x+media.width/2))).toBeLessThan(1);
+  expect(Math.abs((white.y+white.height/2)-(media.y+media.height/2))).toBeLessThan(1);
+  expect(qrTitle.y).toBeGreaterThanOrEqual(media.y);expect(qrTitle.y+qrTitle.height).toBeLessThanOrEqual(media.y+media.height);
   await expect(page.locator('[data-deck-size="board"]')).toHaveCSS('height','30px');
   await expect(page.locator('[data-deck-size="media"]')).toHaveCSS('bottom','-15px');
 

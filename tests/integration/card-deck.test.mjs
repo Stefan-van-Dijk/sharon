@@ -144,6 +144,9 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(board.querySelector('[data-distance]').textContent,'Rolde');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-grab]')).flexDirection,'row');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).aspectRatio,'1');
+  const scanStyle=app.window.getComputedStyle(board.querySelector('[data-code]'));
+  assert.equal(scanStyle.paddingLeft,scanStyle.paddingRight);assert.equal(scanStyle.paddingTop,scanStyle.paddingBottom);
+
   assert.equal(board.querySelector('[data-card-location-pin]').hidden,false);
   assert.equal(board.querySelector('[data-card-title]').parentElement,board.querySelector('[data-card-media]'));
   assert.match(app.window.getComputedStyle(board.querySelector('[data-card-title]')).transform,/rotate\(-90deg\)/);
