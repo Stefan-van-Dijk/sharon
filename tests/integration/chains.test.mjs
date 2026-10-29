@@ -238,3 +238,31 @@ test('Omgeving browses an unlinked chain and loads details only when its board o
   assert.equal(host.querySelector('select').value,'branch000024');assert.equal(app.requests.length,0);
  }finally{stop?.();app.close();}
 });
+
+test('shop discovery stays within 10 km, excludes distant cached shops and follows map movement',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const cached=await app.store.get('meta','chains.local.v1');
+  const far=[...cached.value.chains.Q1653985.rows[0]];far[0]='distant00001';far[1]='node/2';far[3]=53000000;far[5]='Verre winkel';
+  cached.value.chains.Q1653985.rows.push(far);await app.store.put('meta',cached);
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map(),calls=[],camera=[],version='v1-'+'a'.repeat(24);let center=point,zoom=14,focused=0;
+  app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);calls.push(q);return {ok:true,json:async()=>q.action==='catalog'?{schema:1,version,chains:[{id:'Q1653985',name:'Albert Heijn'}]}:{schema:1,version,points:[['nearby000001','Q1653985',5010000,52010000,'Dichtbij','node/3'],['corner000001','Q1653985',5140000,52080000,'Buiten de straal','node/4']]}};};
+  const map={addSource(id){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){if(!handlers.has(n))handlers.set(n,new Set());handlers.get(n).add(f);},off(n,f){handlers.get(n)?.delete(f);},easeTo(value){camera.push(value);},getCenter:()=>center,getZoom:()=>zoom,getBounds:()=>({getWest:()=>-180,getSouth:()=>-85,getEast:()=>180,getNorth:()=>85}),queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},onFocus:()=>focused++});root.querySelector('[data-chain-toggle]').click();
+  await until(()=>root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
+  assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
+  assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Buiten de straal'));
+  const first=calls.find(q=>q.action==='map');assert.ok(first.bounds[2]-first.bounds[0]<.3);assert.ok(first.bounds[3]-first.bounds[1]<.2);
+  [...root.querySelectorAll('[data-places-list] button')].find(b=>b.textContent.includes('Albert Heijn')).click();
+  assert.equal(focused,1);assert.deepEqual(Array.from(camera.at(-1).center),[5,52]);layer.closeBoard();
+  center={lat:53,lng:5};for(const fn of handlers.get('moveend'))fn();
+  await until(()=>calls.filter(q=>q.action==='map').length===2);
+  await until(()=>!root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
+  assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
+  zoom=5;for(const fn of handlers.get('moveend'))fn();
+  await until(()=>root.querySelector('[data-chain-status]').textContent.includes('Zoom verder'));
+  assert.equal(calls.filter(q=>q.action==='map').length,2);
+ }finally{layer?.destroy();app.close();}
+});

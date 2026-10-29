@@ -18,3 +18,14 @@ test('browse catalog/points/details are separate bounded cached requests with no
  const detail=await browse.detail(points[0]);assert.equal(detail.address,'Straat 1');assert.equal(detail.website,'');assert.equal(calls.length,3);
  assert.deepEqual(Object.keys(calls[1]),['schema','action','bounds','chainId']);
 });
+
+test('shop discovery bounds cover 10 km without following a world-sized viewport',async()=>{
+ const {chainAreaBounds,CHAIN_RADIUS_METERS}=await import('../src/core/chains/ChainBrowse.js');
+ const {distanceMeters}=await import('../src/core/location/GeographicBranchIndex.js');
+ const center={lat:52,lng:5},[west,south,east,north]=chainAreaBounds(center);
+ assert.equal(CHAIN_RADIUS_METERS,10000);
+ for(const point of [{lat:south,lng:5},{lat:north,lng:5},{lat:52,lng:west},{lat:52,lng:east}])assert.ok(Math.abs(distanceMeters(center,point)-10000)<1);
+ assert.ok(east-west<1);assert.ok(north-south<.5);
+ assert.equal(chainAreaBounds({lat:NaN,lng:5}),null);
+ assert.equal(chainAreaBounds({lat:52,lng:180}),null);
+});

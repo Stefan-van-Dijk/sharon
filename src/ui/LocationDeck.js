@@ -1,6 +1,7 @@
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.30';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.30';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.30';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.31';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.31';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.31';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.31';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
@@ -12,6 +13,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
   }
   if (index < 0) return () => {};
   let expanded = false, page = 0, sources = [], image = '', closeViewer = null, disposed = false, replacing = false, sequence = 0;
+  let alignment = null, focusedId = null;
   const current = () => places[index];
   const addressText = data => typeof data.address === 'string' ? data.address :
     [data.address?.street, data.address?.houseNumber, data.address?.postalCode, data.address?.city].filter(Boolean).join(' ');
@@ -47,7 +49,10 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       if (!image) image = placeholder(item.data?.coordinates);
     }
     const data = item.data || {}, point = data.coordinates;
+    if (focusedId !== item.id) { focusedId = item.id; onLocation?.(item); }
     activePlace(point);
+    alignment?.destroy();
+    alignment = createBoardMapAlignment(map, [Number(point.lng), Number(point.lat)]);
     const source = expanded && page > 0 ? sources[page-1] : null;
     const title = source ? new URL(source.url).hostname : String(data.name || data.title || 'Locatie');
     const feature = {type:'Feature',geometry:{type:'Point',coordinates:[Number(point.lng),Number(point.lat)]},
@@ -56,7 +61,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     closeViewer?.();
     replacing = false;
     closeViewer = openBoardViewer(feature,{
-      location, events,
+      location, events, onLayout: alignment.onLayout,
       localBoard:{
         feedbackId:placeKey(item),
         feedbackReference:data.sourceRef?{source:'openstreetmap',id:data.sourceRef,uri:'https://www.openstreetmap.org/'+data.sourceRef}:null,
@@ -81,16 +86,16 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       onNext:()=>{
         complete('swipe');
         if(expanded){page=(page+1)%(sources.length+1);}
-        else {index=(index+1)%places.length;onLocation?.(current());}
+        else {index=(index+1)%places.length;}
         show();
       },
       onPrevious:()=>{
         complete('swipe');
         if(expanded){page=(page+sources.length)%(sources.length+1);}
-        else {index=(index-1+places.length)%places.length;onLocation?.(current());}
+        else {index=(index-1+places.length)%places.length;}
         show();
       },
-      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;activePlace();onClose?.();}
+      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;alignment?.destroy();activePlace();onClose?.();}
     });
   };
   show().catch(error => {
@@ -102,5 +107,5 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     document.body.append(notice);
     window.setTimeout(() => notice.remove(), 9000);
   });
-  return ()=>{disposed=true;++sequence;closeViewer?.();activePlace();};
+  return ()=>{alignment?.destroy();disposed=true;++sequence;closeViewer?.();activePlace();};
 }

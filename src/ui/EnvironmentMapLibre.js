@@ -1,26 +1,27 @@
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.30';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.30';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.30';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.30';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.30';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.30';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.30';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.30';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.31';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.31';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.31';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.31';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.31';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.31';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.31';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.31';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.31';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.30';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.30';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.30';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.30';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.30';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.30';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.30';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.30';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.30';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.31';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.31';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.31';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.31';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.31';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.31';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.31';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.31';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.31';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.30';
+} from './EnvironmentScale.js?v=0.4.31';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -420,41 +421,7 @@ export function openEnvironmentView(root, {
       awaitingFirstPosition = false;
       cameraControls?.reset();
     }
-    // Sample the map viewport and choose the largest unobstructed area.
-    // Projected point placement is recalculated whenever the deck changes.
-    let cameraFrame = 0;
-    const alignVisibleMap = (plateRect, deckRect) => {
-      if (!map || !Array.isArray(coords) || coords.length !== 2) return;
-      cancelAnimationFrame(cameraFrame);
-      cameraFrame = requestAnimationFrame(() => {
-        const rect = map.getContainer().getBoundingClientRect();
-        const blocked = [plateRect, deckRect].filter(Boolean).map(r => ({
-          left: Math.max(0, r.left - rect.left - 8), right: Math.min(rect.width, r.right - rect.left + 8),
-          top: Math.max(0, r.top - rect.top - 8), bottom: Math.min(rect.height, r.bottom - rect.top + 8)
-        }));
-        const step = 24;
-        let best = { x:rect.width/2, y:rect.height*.2, score:-Infinity };
-        for (let y = step; y < rect.height - step; y += step) {
-          for (let x = step; x < rect.width - step; x += step) {
-            if (blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) continue;
-            let clearance = Math.min(x, y, rect.width-x, rect.height-y);
-            for (const r of blocked) {
-              const dx = Math.max(r.left-x, 0, x-r.right);
-              const dy = Math.max(r.top-y, 0, y-r.bottom);
-              clearance = Math.min(clearance, Math.hypot(dx, dy));
-            }
-            const score = clearance - Math.hypot(x-rect.width/2,y-rect.height/2)*.08;
-            if (score > best.score) best = {x,y,score};
-          }
-        }
-        const point = map.project(coords);
-        const deltaX = best.x - point.x, deltaY = best.y - point.y;
-        if (Math.hypot(deltaX,deltaY) > 12) map.easeTo({
-          center: map.unproject([rect.width/2 - deltaX, rect.height/2 - deltaY]),
-          duration: 480, essential:true
-        });
-      });
-    };
+    const alignment = createBoardMapAlignment(map, coords);
     const previous = available.length > 1
       ? available[(index - 1 + available.length) % available.length] : null;
     // Keep both neighboring stories warm; errors never block navigation.
@@ -465,8 +432,8 @@ export function openEnvironmentView(root, {
     if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
     closeBoard = openBoardViewer(feature, { location, events,
       sourceBoard: isTiqets ? tiqetsBoard(feature, {store, events}) : null,
-      onClose: () => { cancelAnimationFrame(cameraFrame); closeBoard = null; wikipediaLayer?.setActive(null); },
-      onLayout: alignVisibleMap,
+      onClose: () => { alignment.destroy(); closeBoard = null; wikipediaLayer?.setActive(null); },
+      onLayout: alignment.onLayout,
       onNext: next ? () => showBoard(next, available) : null,
       onPrevious: previous ? () => showBoard(previous, available) : null });
   };
@@ -781,7 +748,7 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
@@ -844,6 +811,7 @@ export function openEnvironmentView(root, {
         closeLocationDeck = openLocationDeck({ store, objects, selected, map, location, events,
           onClose: () => { closeLocationDeck = null; },
           onLocation: item => {
+            followingPosition = false; awaitingFirstPosition = false; cameraControls?.reset();
             const point = item.data?.coordinates;
             if (point && Number.isFinite(Number(point.lng)) && Number.isFinite(Number(point.lat))) {
               map.easeTo({center:[Number(point.lng),Number(point.lat)],offset:[0,-map.getContainer().clientHeight*0.27],duration:650,essential:true});
