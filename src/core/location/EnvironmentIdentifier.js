@@ -1,4 +1,4 @@
-import { IDENTIFIER_ALPHABET } from '../ids/IdentifierService.js?v=0.4.26';
+import { IDENTIFIER_ALPHABET } from '../ids/IdentifierService.js?v=0.4.27';
 
 const VALID_LENGTHS = new Set([2, 4, 6, 8]);
 

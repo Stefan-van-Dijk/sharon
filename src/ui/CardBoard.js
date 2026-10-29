@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.26';
-import { renderCardCode } from './CardCodes.js?v=0.4.26';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.26';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.26';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.26';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.26';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.27';
+import { renderCardCode } from './CardCodes.js?v=0.4.27';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.27';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.27';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.27';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.27';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -58,6 +58,15 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   const stack=wrapBoardSurface(layer,nodes[0]);stack.classList.add('sh-card-deck-stack','sh-card-zone-stack');
   stack.querySelector('.sh-board-deck').remove();stack.append(...nodes.slice(1));
   let closed=false,renderedCard='',gestures=null;
+  const fitTitles=()=>nodes.forEach(node=>{
+    if(node.dataset.codeType!=='qr'||node.hidden)return;
+    const title=node.querySelector('[data-card-title]'),media=node.querySelector('[data-card-media]');
+    const band=Math.max(66,Math.ceil(title.scrollHeight)+24)+'px';
+    if(media.style.getPropertyValue('--qr-title-band')!==band)media.style.setProperty('--qr-title-band',band);
+  });
+  const titleObserver=window.ResizeObserver?new window.ResizeObserver(fitTitles):null;
+  nodes.forEach(node=>titleObserver?.observe(node.querySelector('[data-card-title]')));
+  window.addEventListener('resize',fitTitles);
   let activeChainPanel=-1,stopChainPanel=null;
   const ensureChainPanel=index=>{
     if(activeChainPanel===index)return;
@@ -100,13 +109,13 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     ensureChainPanel(state.boardIndex);
     distances();
     if(renderedCard!==state.card.id){renderedCard=state.card.id;onActiveCard(state.card);}
-    gestures?.refresh();
+    gestures?.refresh();fitTitles();
   };
   const swipe=direction=>{
     const focused=nodes[model.state.boardIndex].contains(document.activeElement),state=model.swipe(direction);draw();
     if(focused)nodes[state.boardIndex].focus({preventScroll:true});
   };
-  const close=()=>{if(closed)return;closed=true;stopChainPanel?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
+  const close=()=>{if(closed)return;closed=true;titleObserver?.disconnect();window.removeEventListener('resize',fitTitles);stopChainPanel?.();gestures?.dispose();offLocation?.();clearInterval(distanceTimer);window.removeEventListener('keydown',key);layer.remove();onClose();};
   const key=event=>{
     if(event.defaultPrevented||document.querySelector('.sh-card-share-overlay'))return;
     if(event.key==='Escape'){event.preventDefault();close();}
