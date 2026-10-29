@@ -45,7 +45,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.27');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.28');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -97,7 +97,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.27');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.28');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';
@@ -240,6 +240,9 @@ test('Testomgeving: locatie vastleggen, pas koppelen en dezelfde context op Home
   cardForm.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
   const card=await until(async()=>(await data())?.objects.find(o=>o.title==='Mijn testpas'));
   await until(()=>app.document.querySelector('[data-card-list]'));
+  // Rechecking a fresh location while the cards list is active must not open an arrival board.
+  app.document.dispatchEvent(new app.window.Event('visibilitychange'));
+  await new Promise(resolve=>setTimeout(resolve,50));
   assert.equal(app.document.querySelector('.sh-card-board-overlay'),null);
   assert.ok(app.document.querySelector(`[data-swipe-row="${card.id}"]`));
   app.document.querySelector('[data-brand-control]').click();
