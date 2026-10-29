@@ -1,4 +1,4 @@
-import { LOCATION_GROUPS, locationType, locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.24';
+import { LOCATION_GROUPS, locationType, locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.25';
 
 // Shared spherical taxonomy for first onboarding and location editing.
 export function mountLocationTypeSphere(graph, { selectedType = null, onSelect = () => {} } = {}) {
