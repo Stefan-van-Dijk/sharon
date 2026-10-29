@@ -239,11 +239,25 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   expect(bounds.y+bounds.height).toBeLessThanOrEqual(footer.y);
   await expect(page.locator('[data-share-card]')).toHaveCount(0);
   await page.screenshot({path:'test-results/card-board-mobile.png'});
+  await expect(page.locator('[data-card-title]')).toHaveText('Kruidvat');
+  const title=await page.locator('[data-card-title]').boundingBox();expect(title.y+title.height).toBeLessThan(bounds.y);
+  await expect(page.locator('[data-card-kind]')).toBeVisible();await expect(page.locator('[data-card-location-pin]')).toBeHidden();
+  await page.evaluate(async version=>{
+    window.closeBoard();const {openCardBoard}=await import('/src/ui/CardBoard.js?v='+version);
+    window.closeBoard=openCardBoard({id:'qr',name:'Mijn QR-kaart',color:'#cc3300',cardKind:'membership',codeFormat:'QR_CODE',codeValue:'kaart-qr',locationId:'place'},{locations:[{id:'place',data:{title:'Winkel'}}]});
+  },version);
+  await expect(page.locator('[data-code] svg')).toBeVisible();
+  const white=await page.locator('[data-code]>div').boundingBox(),qrTitle=await page.locator('[data-card-title]').boundingBox();
+  expect(Math.abs(white.width-white.height)).toBeLessThan(1);expect(qrTitle.x+qrTitle.width).toBeLessThanOrEqual(white.x);
+  await expect(page.locator('[data-code]>div')).toHaveCSS('background-color','rgb(255, 255, 255)');
+  await expect(page.locator('[data-card-media]')).toHaveCSS('background-color','rgb(204, 51, 0)');
+  await expect(page.locator('[data-card-location-pin]')).toBeVisible();
+
   await page.evaluate(async version=>{
     window.closeBoard();const {openCardBoard}=await import('/src/ui/CardBoard.js?v='+version);
     window.closeBoard=openCardBoard({id:'empty',name:'Lege kaart'},{onEdit:id=>{window.editedCard=id;}});
   },version);
-  await expect(page.locator('[data-card-media]')).toHaveCSS('height','150px');
+  await expect(page.locator('[data-card-media]')).toHaveCSS('height','190px');
   await page.getByRole('button',{name:'Code toevoegen',exact:true}).click();
   expect(await page.evaluate(()=>window.editedCard)).toBe('empty');
   await expect(page.locator('.sh-card-board-overlay')).toHaveCount(0);

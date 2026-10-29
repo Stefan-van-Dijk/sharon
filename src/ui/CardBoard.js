@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.25';
-import { renderCardCode } from './CardCodes.js?v=0.4.25';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.25';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.25';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.25';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.25';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.26';
+import { renderCardCode } from './CardCodes.js?v=0.4.26';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.26';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.26';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.26';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.26';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -21,12 +21,14 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     board.innerHTML='<div class="sh-card-board-accent" data-card-accent></div>'+
       '<div class="sh-card-media sh-board-photo-header" data-card-media>'+
         '<button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button>'+
+        '<h2 class="sh-card-face-title" data-card-title>'+esc(current.name)+'</h2>'+
         '<div class="sh-card-board-code" data-code></div>'+
+        '<span class="sh-card-location-pin" data-card-location-pin role="img" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>'+
         '<button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts om de boards te verzamelen en sleep daarna het deck" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span data-distance></span><svg data-deck-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>'+
         '<span class="sh-card-kind-badge sh-board-photo-source" data-card-kind role="img" aria-label="'+esc(kind)+'" title="'+esc(kind)+'">'+cardSymbol(current.cardKind)+'</span>'+
       '<button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van codevlak en informatie aanpassen"></button>'+
       '</div>'+
-      '<div data-details class="sh-card-board-details sh-board-scroller"><div class="sh-card-detail-heading"><h2 data-card-title>'+esc(current.name)+'</h2></div>'+
+      '<div data-details class="sh-card-board-details sh-board-scroller"><div class="sh-card-detail-heading"></div>'+
       entry.rows.map(field=>'<div class="sh-card-board-detail-row"><span>'+esc(field.label)+'</span><strong>'+esc(field.value)+'</strong></div>').join('')+'</div>';
     if (current.reference?.url) {
       try {
@@ -45,6 +47,12 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
     }
     const appearance=applyCardAppearance(board.querySelector('[data-card-kind]'),current.color);
     board.querySelector('[data-card-accent]').style.background=appearance.background;
+    board.querySelector('[data-card-title]').title=current.name;
+    const media=board.querySelector('[data-card-media]');media.style.setProperty('--card-face-color',appearance.background);media.style.setProperty('--card-face-ink',appearance.foreground);
+    const linked=locations.find(item=>item.id===current.locationId&&!item.deletedAt&&!item.archivedAt&&item.status!=='archived');
+    const pin=board.querySelector('[data-card-location-pin]');pin.hidden=!linked;
+    if(linked){pin.setAttribute('aria-label','Locatie: '+(linked.data?.title||'Gekoppelde locatie'));pin.title=pin.getAttribute('aria-label');}
+
     return board;
   });
   const stack=wrapBoardSurface(layer,nodes[0]);stack.classList.add('sh-card-deck-stack','sh-card-zone-stack');
