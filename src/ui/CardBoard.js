@@ -61,7 +61,9 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   const fitTitles=()=>nodes.forEach(node=>{
     if(node.dataset.codeType!=='qr'||node.hidden)return;
     const title=node.querySelector('[data-card-title]'),media=node.querySelector('[data-card-media]');
-    const bandPx=Math.max(66,Math.ceil(title.scrollHeight)+24),band=bandPx+'px';
+    if(media.clientHeight>120)title.style.width=(media.clientHeight-120)+'px';
+    const bandPx=Math.max(66,Math.ceil(Math.max(title.scrollHeight,title.offsetHeight))+24),band=bandPx+'px';
+    title.style.left=(bandPx/2)+'px';
     if(media.style.getPropertyValue('--qr-title-band')!==band)media.style.setProperty('--qr-title-band',band);
     // An explicit square avoids WebKit's circular percentage/aspect-ratio grid sizing.
     const size=Math.floor(Math.min(media.clientWidth-2*(bandPx+8),media.clientHeight-120));

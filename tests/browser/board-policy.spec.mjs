@@ -248,6 +248,7 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   },version);
   await expect(page.locator('[data-code] svg')).toBeVisible();
   const white=await page.locator('[data-code]>div').boundingBox(),qrTitle=await page.locator('[data-card-title]').boundingBox();
+  console.log('QR layout',await page.locator('[data-card-media]').evaluate(el=>{const title=el.querySelector('[data-card-title]');return {width:el.clientWidth,height:el.clientHeight,titleWidth:title.offsetWidth,titleHeight:title.offsetHeight,titleScroll:title.scrollHeight,titleLeft:getComputedStyle(title).left,band:el.style.getPropertyValue('--qr-title-band'),size:el.style.getPropertyValue('--card-qr-size')};}));
   expect(white.width).toBeGreaterThan(80);expect(white.height).toBeGreaterThan(80);
   expect(Math.abs(white.width-white.height)).toBeLessThan(1);expect(qrTitle.x+qrTitle.width).toBeLessThanOrEqual(white.x);
   await expect(page.locator('[data-card-title]')).toHaveCSS('white-space','normal');
