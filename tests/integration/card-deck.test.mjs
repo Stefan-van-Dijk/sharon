@@ -143,11 +143,15 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(board.querySelector('[data-deck-icon]').hasAttribute('hidden'),true);
   assert.equal(board.querySelector('[data-distance]').textContent,'Rolde');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-grab]')).flexDirection,'row');
-  assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).width,'100%');
+  assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).aspectRatio,'1');
+  assert.equal(board.querySelector('[data-card-location-pin]').hidden,false);
+  assert.equal(board.querySelector('[data-card-title]').parentElement,board.querySelector('[data-card-media]'));
+  assert.match(app.window.getComputedStyle(board.querySelector('[data-card-title]')).transform,/rotate\(-90deg\)/);
   assert.equal(board.querySelector('nav'),null);
   swipe(app,board.querySelector('[data-card-media]'));board=active(app);
   const barcode=await until(()=>board.querySelector('[data-code] svg'));
   assert.equal(board.dataset.codeType,'barcode');
+  assert.equal(board.querySelector('[data-card-location-pin]').hidden,true);
   assert.equal(barcode.getAttribute('preserveAspectRatio'),'none');
   assert.ok(barcode.querySelectorAll('rect').length>20,'the real barcode bars remain present');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).width,'100%');
