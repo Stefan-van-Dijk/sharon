@@ -2,17 +2,17 @@ import {
   APPEARANCE_GROUPS, APPEARANCE_SECTIONS, APPEARANCE_SCALE_OPTIONS, ENVIRONMENT_APPEARANCE_KEY,
   appearanceDefaults, appearanceDefaultLineStyle, appearanceSectionDefaults,
   appearanceSectionProperties, resolvedEnvironmentAppearance, sanitizeEnvironmentAppearance
-} from './EnvironmentAppearance.js?v=0.4.27';
+} from './EnvironmentAppearance.js?v=0.4.28';
 import {
   HEIGHT_TARGETS, MAX_HEIGHT_CUTS, addHeightCut, moveHeightCut,
   removeHeightCut, editHeightBand, heightBandLabel
-} from './EnvironmentHeight.js?v=0.4.27';
-import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.4.27';
+} from './EnvironmentHeight.js?v=0.4.28';
+import { HATCH_OPTIONS, environmentHatchPreview } from './EnvironmentHatch.js?v=0.4.28';
 import {
   ENVIRONMENT_SCENARIOS_KEY, STYLE_SCENARIOS,
   createEnvironmentScenarioDeck, saveEnvironmentScenario, changeEnvironmentScenario,
   isStandardScenario, parseEnvironmentStyle, serializeEnvironmentStyle, MAX_STYLE_FILE_BYTES
-} from './EnvironmentScenarios.js?v=0.4.27';
+} from './EnvironmentScenarios.js?v=0.4.28';
 
 const scaleIndex = id => APPEARANCE_SCALE_OPTIONS.findIndex(scale => scale.id === id);
 const dashOptions = [
