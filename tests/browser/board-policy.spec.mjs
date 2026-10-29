@@ -248,11 +248,16 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   },version);
   await expect(page.locator('[data-code] svg')).toBeVisible();
   const white=await page.locator('[data-code]>div').boundingBox(),qrTitle=await page.locator('[data-card-title]').boundingBox();
+  console.log('QR layout',await page.locator('[data-card-media]').evaluate(el=>{const title=el.querySelector('[data-card-title]');return {width:el.clientWidth,height:el.clientHeight,titleWidth:title.offsetWidth,titleHeight:title.offsetHeight,titleScroll:title.scrollHeight,titleLeft:getComputedStyle(title).left,band:el.style.getPropertyValue('--qr-title-band'),size:el.style.getPropertyValue('--card-qr-size')};}));
+  expect(white.width).toBeGreaterThan(80);expect(white.height).toBeGreaterThan(80);
   expect(Math.abs(white.width-white.height)).toBeLessThan(1);expect(qrTitle.x+qrTitle.width).toBeLessThanOrEqual(white.x);
   await expect(page.locator('[data-card-title]')).toHaveCSS('white-space','normal');
   await expect(page.locator('[data-card-title]')).toHaveCSS('text-overflow','clip');
   expect(qrTitle.x).toBeGreaterThanOrEqual(0);
-  const media=await page.locator('[data-card-media]').boundingBox();expect(qrTitle.y).toBeGreaterThanOrEqual(media.y);expect(qrTitle.y+qrTitle.height).toBeLessThanOrEqual(media.y+media.height);
+  const media=await page.locator('[data-card-media]').boundingBox();
+  expect(Math.abs((white.x+white.width/2)-(media.x+media.width/2))).toBeLessThan(1);
+  expect(Math.abs((white.y+white.height/2)-(media.y+media.height/2))).toBeLessThan(1);
+  expect(qrTitle.y).toBeGreaterThanOrEqual(media.y);expect(qrTitle.y+qrTitle.height).toBeLessThanOrEqual(media.y+media.height);
   await expect(page.locator('[data-deck-size="board"]')).toHaveCSS('height','30px');
   await expect(page.locator('[data-deck-size="media"]')).toHaveCSS('bottom','-15px');
 

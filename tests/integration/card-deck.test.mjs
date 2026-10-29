@@ -144,6 +144,9 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(board.querySelector('[data-distance]').textContent,'Rolde');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-grab]')).flexDirection,'row');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-code]>div')).aspectRatio,'1');
+  const scanStyle=app.window.getComputedStyle(board.querySelector('[data-code]'));
+  assert.equal(scanStyle.paddingLeft,scanStyle.paddingRight);assert.equal(scanStyle.paddingTop,scanStyle.paddingBottom);
+
   assert.equal(board.querySelector('[data-card-location-pin]').hidden,false);
   assert.equal(board.querySelector('[data-card-title]').parentElement,board.querySelector('[data-card-media]'));
   assert.match(app.window.getComputedStyle(board.querySelector('[data-card-title]')).transform,/rotate\(-90deg\)/);
@@ -151,6 +154,13 @@ test('real generators center enlarged QR, fill the barcode frame and show only t
   assert.equal(app.window.getComputedStyle(title).whiteSpace,'normal');assert.equal(app.window.getComputedStyle(title).textOverflow,'clip');
   Object.defineProperty(title,'scrollHeight',{configurable:true,value:90});app.window.dispatchEvent(new app.window.Event('resize'));
   assert.equal(board.querySelector('[data-card-media]').style.getPropertyValue('--qr-title-band'),'114px');
+  const face=board.querySelector('[data-card-media]');Object.defineProperties(face,{clientWidth:{configurable:true,value:390},clientHeight:{configurable:true,value:290}});
+  app.window.dispatchEvent(new app.window.Event('resize'));assert.equal(face.style.getPropertyValue('--card-qr-size'),'146px');assert.equal(title.style.left,'57px');assert.equal(title.style.width,'170px');
+  Object.defineProperties(face,{clientWidth:{configurable:true,value:345},clientHeight:{configurable:true,value:226}});
+  Object.defineProperty(title,'scrollHeight',{configurable:true,get:()=>Math.ceil(parseFloat(title.style.fontSize||'15')*8)});
+  app.window.dispatchEvent(new app.window.Event('resize'));assert.ok(parseFloat(title.style.fontSize)<15);assert.ok(parseFloat(face.style.getPropertyValue('--card-qr-size'))>=100);
+
+
   const handleStyle=app.window.getComputedStyle(board.querySelector('[data-deck-size="board"]'));
   assert.equal(handleStyle.height,'30px');assert.equal(handleStyle.top,'-15px');
   assert.equal(app.window.getComputedStyle(board.querySelector('[data-deck-size="media"]')).bottom,'-15px');

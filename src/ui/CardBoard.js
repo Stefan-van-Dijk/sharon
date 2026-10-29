@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.28';
-import { renderCardCode } from './CardCodes.js?v=0.4.28';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.28';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.28';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.28';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.28';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.29';
+import { renderCardCode } from './CardCodes.js?v=0.4.29';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.29';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.29';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.29';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.29';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -61,11 +61,21 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
   const fitTitles=()=>nodes.forEach(node=>{
     if(node.dataset.codeType!=='qr'||node.hidden)return;
     const title=node.querySelector('[data-card-title]'),media=node.querySelector('[data-card-media]');
-    const band=Math.max(66,Math.ceil(title.scrollHeight)+24)+'px';
+    if(media.clientHeight>120)title.style.width=(media.clientHeight-120)+'px';
+    let fontSize=15;title.style.fontSize=fontSize+'px';
+    if(media.clientWidth>0&&media.clientHeight>120){
+      const maxBand=(media.clientWidth-Math.min(120,media.clientHeight-120))/2-8;
+      while(Math.max(title.scrollHeight,title.offsetHeight)+24>maxBand&&fontSize>10){fontSize-=0.5;title.style.fontSize=fontSize+'px';}
+    }
+    const bandPx=Math.max(66,Math.ceil(Math.max(title.scrollHeight,title.offsetHeight))+24),band=bandPx+'px';
+    title.style.left=(bandPx/2)+'px';
     if(media.style.getPropertyValue('--qr-title-band')!==band)media.style.setProperty('--qr-title-band',band);
+    // An explicit square avoids WebKit's circular percentage/aspect-ratio grid sizing.
+    const size=Math.floor(Math.min(media.clientWidth-2*(bandPx+8),media.clientHeight-120));
+    if(size>0&&media.style.getPropertyValue('--card-qr-size')!==size+'px')media.style.setProperty('--card-qr-size',size+'px');
   });
   const titleObserver=window.ResizeObserver?new window.ResizeObserver(fitTitles):null;
-  nodes.forEach(node=>titleObserver?.observe(node.querySelector('[data-card-title]')));
+  nodes.forEach(node=>{titleObserver?.observe(node.querySelector('[data-card-title]'));titleObserver?.observe(node.querySelector('[data-card-media]'));});
   window.addEventListener('resize',fitTitles);
   let activeChainPanel=-1,stopChainPanel=null;
   const ensureChainPanel=index=>{
