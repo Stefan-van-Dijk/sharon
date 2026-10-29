@@ -244,11 +244,18 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   await expect(page.locator('[data-card-kind]')).toBeVisible();await expect(page.locator('[data-card-location-pin]')).toBeHidden();
   await page.evaluate(async version=>{
     window.closeBoard();const {openCardBoard}=await import('/src/ui/CardBoard.js?v='+version);
-    window.closeBoard=openCardBoard({id:'qr',name:'Mijn QR-kaart',color:'#cc3300',cardKind:'membership',codeFormat:'QR_CODE',codeValue:'kaart-qr',locationId:'place'},{locations:[{id:'place',data:{title:'Winkel'}}]});
+    window.closeBoard=openCardBoard({id:'qr',name:'Mijn uitgebreide QR-kaart met een lange naam die helemaal zichtbaar moet blijven',color:'#cc3300',cardKind:'membership',codeFormat:'QR_CODE',codeValue:'kaart-qr',locationId:'place'},{locations:[{id:'place',data:{title:'Winkel'}}]});
   },version);
   await expect(page.locator('[data-code] svg')).toBeVisible();
   const white=await page.locator('[data-code]>div').boundingBox(),qrTitle=await page.locator('[data-card-title]').boundingBox();
   expect(Math.abs(white.width-white.height)).toBeLessThan(1);expect(qrTitle.x+qrTitle.width).toBeLessThanOrEqual(white.x);
+  await expect(page.locator('[data-card-title]')).toHaveCSS('white-space','normal');
+  await expect(page.locator('[data-card-title]')).toHaveCSS('text-overflow','clip');
+  expect(qrTitle.x).toBeGreaterThanOrEqual(0);
+  const media=await page.locator('[data-card-media]').boundingBox();expect(qrTitle.y).toBeGreaterThanOrEqual(media.y);expect(qrTitle.y+qrTitle.height).toBeLessThanOrEqual(media.y+media.height);
+  await expect(page.locator('[data-deck-size="board"]')).toHaveCSS('height','30px');
+  await expect(page.locator('[data-deck-size="media"]')).toHaveCSS('bottom','-15px');
+
   await expect(page.locator('[data-code]>div')).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(page.locator('[data-card-media]')).toHaveCSS('background-color','rgb(204, 51, 0)');
   await expect(page.locator('[data-card-location-pin]')).toBeVisible();
