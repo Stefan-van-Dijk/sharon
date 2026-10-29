@@ -1,11 +1,13 @@
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.31';
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.31';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.31';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.31';
+import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.32';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.32';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.32';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.32';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.32';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
-  const places = objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates);
+  const orderCenter=map?.getCenter?.()||location?.latest;
+  let places = sortBoards(objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates),orderCenter);
   let index = places.findIndex(item => String(item.id) === String(selected.properties?.id));
   if (index < 0) {
     const [lng, lat] = selected.geometry?.coordinates || [];
@@ -95,9 +97,11 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
         else {index=(index-1+places.length)%places.length;}
         show();
       },
-      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;alignment?.destroy();activePlace();onClose?.();}
+      onClose:()=>{if(replacing)return;closeViewer=null;disposed=true;window.removeEventListener(BOARD_ORDER_EVENT,reorder);alignment?.destroy();activePlace();onClose?.();}
     });
   };
+  const reorder=()=>{const id=current().id;places=sortBoards(places,orderCenter);index=places.findIndex(item=>item.id===id);};
+  window.addEventListener(BOARD_ORDER_EVENT,reorder);
   show().catch(error => {
     console.error('Sharon locatie-Board kon niet openen', error);
     const notice = document.createElement('div');
@@ -107,5 +111,5 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
     document.body.append(notice);
     window.setTimeout(() => notice.remove(), 9000);
   });
-  return ()=>{alignment?.destroy();disposed=true;++sequence;closeViewer?.();activePlace();};
+  return ()=>{window.removeEventListener(BOARD_ORDER_EVENT,reorder);alignment?.destroy();disposed=true;++sequence;closeViewer?.();activePlace();};
 }

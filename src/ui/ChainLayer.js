@@ -1,12 +1,14 @@
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.31';
-import { ChainBrowse, CHAIN_RADIUS_METERS, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.31';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.31';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.31';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.31';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.31';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.31';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.31';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.31';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.32';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.32';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.32';
+import { ChainBrowse, CHAIN_RADIUS_METERS, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.32';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.32';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.32';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.32';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.32';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.32';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.32';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.32';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{}}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -27,14 +29,14 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     request=new AbortController();const signal=request.signal;
     try{const value=await browse.catalog(signal);if(disposed||run!==queryRevision)return;catalog=value;paintOptions();}catch(error){if(disposed||signal.aborted)return;loadMessage=error.message+' Lokale gegevens blijven beschikbaar.';draw();return;}
     loadMessage='Winkelvestigingen ophalen…';draw();
-    try{const area=await browse.area(bounds,selected,signal);if(disposed||run!==queryRevision)return;remote=area.points.filter(inRange);const merged=new Map(local.map(p=>[p.sourceRef,p]));for(const p of remote)merged.set(p.sourceRef,p);branches=[...merged.values()];loadMessage=area.truncated?'Veel vestigingen binnen 10 km: kies een keten om gerichter te zoeken.':'';draw();}
+    try{const area=await browse.area(bounds,selected,signal);if(disposed||run!==queryRevision)return;remote=area.points.filter(inRange);loadBoardSummaries(remote);const merged=new Map(local.map(p=>[p.sourceRef,p]));for(const p of remote)merged.set(p.sourceRef,p);branches=[...merged.values()];loadMessage=area.truncated?'Veel vestigingen binnen 10 km: kies een keten om gerichter te zoeken.':'';draw();}
     catch(error){if(disposed||run!==queryRevision||signal.aborted)return;remote=[];branches=local;loadMessage=error.message+' Lokale gegevens blijven beschikbaar.';draw();}
   };
   const schedule=()=>{clearTimeout(timer);if(!disposed)timer=setTimeout(loadArea,400);};
   const listen=(node,name,fn,options)=>{node?.addEventListener(name,fn,options);listeners.push(()=>node?.removeEventListener(name,fn,options));};
   const showSheet=value=>{
     sheet?.classList.toggle('is-open',value);sheet?.setAttribute('aria-hidden',String(!value));toggle.setAttribute('aria-expanded',String(value));
-    if(value){const wiki=root.querySelector('[data-source-sheet]');wiki?.classList.remove('is-open');wiki?.setAttribute('aria-hidden','true');root.querySelector('[data-wiki-settings]')?.setAttribute('aria-expanded','false');}
+    if(value){closeBoardOrder(root);const wiki=root.querySelector('[data-source-sheet]');wiki?.classList.remove('is-open');wiki?.setAttribute('aria-hidden','true');root.querySelector('[data-wiki-settings]')?.setAttribute('aria-expanded','false');}
   };
   const ownTitle=item=>String(item.data?.title||item.data?.name||'Locatie');
   const ownAddress=item=>typeof item.data?.address==='string'?item.data.address:[item.data?.address?.street,item.data?.address?.houseNumber,item.data?.address?.city].filter(Boolean).join(' ');
@@ -45,17 +47,25 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     }else showBranch(item);
   };
   const focus=point=>{if(point){onFocus();map.easeTo({center:[Number(point.lng),Number(point.lat)],zoom:15,duration:400});}};
-  const showBranch=branch=>{
+  const showBranch=(branch,deck=null)=>{
+    const deckCenter=deck?.center||map.getCenter?.()||location?.latest;
     alignment?.destroy();alignment=null;closeDeck?.();closeDeck=null;const ticket=++boardRevision;focus(branch.coordinates);activePlace(branch.coordinates);let replacing=false;
-    const available=branches.filter(item=>(!selected||item.chainId===selected)&&inRange(item)&&!placeHidden(item)),index=available.findIndex(item=>item.id===branch.id);
+    const order=deck||{center:deckCenter,mode:null,items:branches.filter(item=>(!selected||item.chainId===selected)&&inRange(item)&&!placeHidden(item))};
+    if(order.mode!==boardOrderMode()){order.items=sortBoards(order.items,order.center);order.mode=boardOrderMode();}
+    const available=order.items;
+    const moveBranch=step=>{
+      if(order.mode!==boardOrderMode()){order.items=sortBoards(order.items,order.center);order.mode=boardOrderMode();}
+      const index=order.items.findIndex(item=>item.id===branch.id);
+      showBranch(order.items[(index+step+order.items.length)%order.items.length],order);
+    };
     alignment=createBoardMapAlignment(map,[branch.coordinates.lng,branch.coordinates.lat]);
     const render=current=>{
       if(closeDeck){replacing=true;closeDeck();replacing=false;}
       closeDeck=openBoardViewer({geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{title:branch.name}},{location,events,onLayout:alignment.onLayout,
         onClose:()=>{if(!replacing){boardRevision++;alignment?.destroy();activePlace();}},localBoard:{feedbackId:branch.sourceRef,feedbackReference:{source:'openstreetmap',id:branch.sourceRef,uri:'https://www.openstreetmap.org/'+branch.sourceRef},title:branch.name,credit:'© OpenStreetMap',creditUrl:'https://www.openstreetmap.org/copyright',creditDescription:'© OpenStreetMap contributors · Open Database License (ODbL)',type:chainName(branch.chainId),address:current.address||'',description:[current.openingHours,current.loading,current.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:current.website||'https://www.openstreetmap.org/'+branch.sourceRef,
           save:async()=>{const complete=current.remote?await browse.detail(branch):current;const record=await saveBranchLocation(store,complete);events?.emit('location.created',{id:record.id});events?.emit('cards.context.check');}},
-        onNext:available.length>1?()=>showBranch(available[(index+1)%available.length]):null,
-        onPrevious:available.length>1?()=>showBranch(available[(index+available.length-1)%available.length]):null});
+        onNext:available.length>1?()=>moveBranch(1):null,
+        onPrevious:available.length>1?()=>moveBranch(-1):null});
     };
     render(branch.remote?{...branch,loading:'Vestigingsdetails ophalen…'}:branch);
     if(branch.remote)browse.detail(branch).then(full=>{if(!disposed&&ticket===boardRevision)render(full);}).catch(()=>{if(!disposed&&ticket===boardRevision)render({...branch,loading:'Details tijdelijk niet beschikbaar. Open de bron voor meer informatie.'});});
@@ -66,9 +76,9 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     const term=(search?.value||'').trim().toLocaleLowerCase('nl');
     const ownRefs=new Set(places.map(item=>item.data?.branchId).filter(Boolean));
     const candidates=[...places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected),...(selected==='@local'?[]:branches.filter(item=>(!selected||item.chainId===selected)&&inRange(item)&&!ownRefs.has(item.id)))];
-    const matches=candidates.filter(item=>{const own=item.type==='location';return [own?ownTitle(item):item.name,own?ownAddress(item):item.address,own?'':chainName(item.chainId)].join(' ').toLocaleLowerCase('nl').includes(term);});
+    let matches=candidates.filter(item=>{const own=item.type==='location';return [own?ownTitle(item):item.name,own?ownAddress(item):item.address,own?'':chainName(item.chainId)].join(' ').toLocaleLowerCase('nl').includes(term);});
     const center=map.getCenter?.()||location?.latest;
-    if(center)matches.sort((a,b)=>distanceMeters(center,a.data?.coordinates||a.coordinates)-distanceMeters(center,b.data?.coordinates||b.coordinates));
+    matches=sortBoards(matches,center);
     list.replaceChildren();
     for(const item of matches.slice(0,30)){
       const button=document.createElement('button');button.type='button';
@@ -105,9 +115,10 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     const ids=new Set(objects.filter(item=>item.type==='card'&&!item.deletedAt&&!item.archivedAt&&item.status!=='archived').map(item=>item.chainId));
     local=all.filter(branch=>ids.has(branch.chainId)&&branch.coordinates);const merged=new Map(local.map(p=>[p.sourceRef,p]));for(const p of remote)merged.set(p.sourceRef,p);branches=[...merged.values()];
     places=objects.filter(item=>item.type==='location'&&!item.deletedAt&&!item.archivedAt&&Number.isFinite(item.data?.coordinates?.lat)&&Number.isFinite(item.data?.coordinates?.lng));
+    loadBoardSummaries([...local.filter(inRange),...places]);
     paintOptions();draw();schedule();
   };
-  const onToggle=()=>{if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();draw();schedule();};
+  const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();draw();schedule();};
   const onSelect=()=>{selected=select.value;popup?.remove();remote=[];branches=local;draw();schedule();};
   listen(toggle,'click',onToggle);listen(select,'change',onSelect);
   listen(search,'input',drawList);listen(root.querySelector('[data-places-close]'),'click',()=>showSheet(false));
@@ -148,6 +159,8 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const offCards=events?.on('cards.changed',()=>refresh().catch(()=>{}));
   const offPlaces=['location.created','location.updated','location.deleted'].map(name=>events?.on(name,()=>refresh().catch(()=>{})));
   map.on('moveend',drawList);map.on('moveend',schedule);
+  listen(window,BOARD_ORDER_EVENT,draw);
+  listen(window,'sharon-information-changed',draw);
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   return {closeBoard(){alignment?.destroy();boardRevision++;closeDeck?.();closeDeck=null;activePlace();},handles(event){return enabled&&!disposed&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[points]}).length>0;},destroy(){alignment?.destroy();disposed=true;revision++;queryRevision++;boardRevision++;request?.abort();clearTimeout(timer);popup?.remove();closeDeck?.();off?.();offCards?.();offPlaces.forEach(off=>off?.());listeners.forEach(off=>off());map.off('click',click);map.off('moveend',drawList);map.off('moveend',schedule);}};

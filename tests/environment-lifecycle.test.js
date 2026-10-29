@@ -22,10 +22,10 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     '[data-map-position]', '[data-map-error]', '[data-readout-filters]', '[data-filter-return]']
     .map(key => [key, fake(key)]));
   globalThis.cancelAnimationFrame = () => {};
-  globalThis.window = { location: { search: '' } };
+  globalThis.window = { ...fake('window'), location: { search: '' } };
   globalThis.document = { querySelector: () => ({} ) };
   try {
-    const cleanup = openEnvironmentView({ innerHTML: '', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
+    const cleanup = openEnvironmentView({ ...fake('root'), innerHTML: '', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
       location: { latest: null }, events: {}, store: { get: async () => null },
       loadRenderer: () => renderer
     });
@@ -81,11 +81,11 @@ test('shared map controls are mounted immediately and cleaned up before a late r
     ['[data-filter-return]', fake('filter-return')],
     ['.environment-map-top-actions', mapActions]
   ]);
-  globalThis.window = { location: { search: '' } };
+  globalThis.window = { ...fake('window'), location: { search: '' } };
   globalThis.document = { querySelector: () => ({}) };
   globalThis.cancelAnimationFrame = () => {};
   try {
-    const cleanup = openEnvironmentView({ innerHTML:'', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
+    const cleanup = openEnvironmentView({ ...fake('root'), innerHTML:'', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
       headerActions,
       location: { latest: null },
       events: {},
