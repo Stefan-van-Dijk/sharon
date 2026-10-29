@@ -1,27 +1,29 @@
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.31';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.31';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.31';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.31';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.31';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.31';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.31';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.31';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.31';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.32';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.32';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.32';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.32';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.32';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.32';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.32';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.32';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.32';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.32';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.32';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.31';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.31';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.31';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.31';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.31';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.31';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.31';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.31';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.31';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.32';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.32';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.32';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.32';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.32';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.32';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.32';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.32';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.32';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.31';
+} from './EnvironmentScale.js?v=0.4.32';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -223,12 +225,24 @@ export function openEnvironmentView(root, {
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
               <button type="button" class="environment-source-circle" data-tiqets-toggle disabled aria-pressed="false" aria-label="Tiqets tonen of verbergen" title="Tiqets wordt voorbereid">T</button>
               <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
+              <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Volgorde van boards instellen" aria-expanded="false" aria-controls="environment-board-order">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
+              </button>
               <small data-tiqets-status role="status" aria-live="polite"></small>
               <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
 
           </div>
         </div>
+        <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Volgorde van boards" aria-hidden="true" hidden>
+          <header><strong>Volgorde van boards</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
+          <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
+            <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
+            <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
+            <button type="button" data-board-order="relevant" aria-pressed="false">Relevant</button>
+            <button type="button" data-board-order="popular" aria-pressed="false">Populair</button>
+          </div>
+        </section>
         <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-places-handle aria-hidden="true"></div>
           <header><strong>Locaties en ketens</strong><button type="button" data-places-close aria-label="Locaties sluiten">⌄</button></header>
@@ -240,10 +254,6 @@ export function openEnvironmentView(root, {
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
-          <label>Volgorde van wikiboards <select data-wiki-sort>
-            <option value="discover">Nog te ontdekken</option><option value="nearby">Dichtbij</option>
-            <option value="relevant">Relevant</option><option value="popular">Populair</option>
-          </select></label>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row">
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
@@ -400,19 +410,15 @@ export function openEnvironmentView(root, {
   let tiqetsLayer = null;
   let tiqetsEnabled = false;
   let closeBoard = null;
-  const showBoard = (feature, available = []) => {
+  const showBoard = (feature, available = [], orderContext = null) => {
     chainLayer?.closeBoard();
     closeLocationDeck?.();
     closeBoard?.();
     const isTiqets = feature.properties?.source === 'tiqets';
     wikipediaLayer?.setActive(isTiqets ? null : feature);
-    // Unread articles lead the swipe sequence; read ones remain accessible later.
-    const wasRead = item => {
-      const id = String(item?.properties?.wikidata || item?.id || item?.properties?.url || '');
-      try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}').read === true; }
-      catch { return false; }
-    };
-    if (!isTiqets && (root.querySelector('[data-wiki-sort]')?.value || 'discover') === 'discover') available = [...available].sort((a,b) => Number(wasRead(a)) - Number(wasRead(b)));
+    const order = orderContext || {mode:null,center:map?.getCenter()};
+    if (order.mode !== boardOrderMode()) { available = sortBoards(available,order.center); order.mode=boardOrderMode(); }
+    if (isTiqets) markBoardOpened(feature);
     const index = available.findIndex(item => item.id === feature.id);
     const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
@@ -430,12 +436,18 @@ export function openEnvironmentView(root, {
       if (neighbor?.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
     }
     if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
+    const switchBoard = step => {
+      const sequence = order.mode === boardOrderMode() ? available : sortBoards(available,order.center);
+      order.mode = boardOrderMode();
+      const current = sequence.findIndex(item => item.id === feature.id);
+      showBoard(sequence[(current+step+sequence.length)%sequence.length],sequence,order);
+    };
     closeBoard = openBoardViewer(feature, { location, events,
       sourceBoard: isTiqets ? tiqetsBoard(feature, {store, events}) : null,
       onClose: () => { alignment.destroy(); closeBoard = null; wikipediaLayer?.setActive(null); },
       onLayout: alignment.onLayout,
-      onNext: next ? () => showBoard(next, available) : null,
-      onPrevious: previous ? () => showBoard(previous, available) : null });
+      onNext: next ? () => switchBoard(1) : null,
+      onPrevious: previous ? () => switchBoard(-1) : null });
   };
   let wikipediaEnabled = false;
   const filterPanel = root.querySelector('[data-readout-filters]');
@@ -496,6 +508,7 @@ export function openEnvironmentView(root, {
     tiqetsToggle.title = configured ? 'Tiqets · musea en attracties' : 'Tiqets wordt voorbereid';
   }).catch(() => { if (!disposed) tiqetsToggle.title = 'Tiqets is momenteel niet beschikbaar'; });
   listenEarly(tiqetsToggle, 'click', () => {
+    closeBoardOrder(root);
     tiqetsEnabled = !tiqetsEnabled;
     tiqetsToggle.setAttribute('aria-pressed', String(tiqetsEnabled));
     tiqetsLayer?.setEnabled(tiqetsEnabled);
@@ -516,6 +529,7 @@ export function openEnvironmentView(root, {
     wikipediaToggle.title = state==="loading" ? "Wikipedia-gegevens ophalen" : "Wikipedia · omhoog slepen voor filters";
   };
   listenEarly(wikipediaToggle, "click", () => {
+    closeBoardOrder(root);
     if (root.querySelector("[data-source-sheet]")?.classList.contains("is-open")) {
       root.querySelector("[data-source-sheet]").classList.remove("is-open");
       root.querySelector("[data-source-sheet]").setAttribute("aria-hidden","true");
@@ -571,21 +585,21 @@ export function openEnvironmentView(root, {
     try { return JSON.parse(localStorage.getItem('sharon.source.wikipedia.filters.v1') || '{}'); }
     catch { return {}; }
   })();
-  const wikiSort = root.querySelector('[data-wiki-sort]');
-  wikiSort.value = ['discover','nearby','relevant','popular'].includes(savedSourceFilters.sort) ? savedSourceFilters.sort : 'discover';
-  listenEarly(wikiSort,'change',()=>syncWikiFilters());
+  const syncBoardOrder = () => wikipediaLayer?.setSort(boardOrderMode());
+  unsubscribers.push(mountBoardOrderControls(root));
+  listenEarly(window,BOARD_ORDER_EVENT,syncBoardOrder);
   const activeWikiFilters = new Set((Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []).filter(value=>value!=='unread'));
   const activeWikiCategories = new Set(Array.isArray(savedSourceFilters.categories) ? savedSourceFilters.categories : []);
   const syncWikiFilters = () => {
     for (const button of root.querySelectorAll('[data-wiki-filter]')) button.setAttribute('aria-pressed',String(activeWikiFilters.has(button.dataset.wikiFilter)));
     for (const button of root.querySelectorAll('[data-wiki-category]')) button.setAttribute('aria-pressed',String(activeWikiCategories.has(button.dataset.wikiCategory)));
     sourceSettings.classList.toggle('has-active-filters',activeWikiFilters.size + activeWikiCategories.size > 0);
-    wikipediaLayer?.setSort(wikiSort.value);
+    syncBoardOrder();
     wikipediaLayer?.setFilters([...activeWikiFilters],[...activeWikiCategories]);
-    try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({sort:wikiSort.value,statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
+    try { localStorage.setItem('sharon.source.wikipedia.filters.v1',JSON.stringify({statuses:[...activeWikiFilters],categories:[...activeWikiCategories]})); } catch {}
   };
   const toggleSourceSheet = value => {
-    if(value) {const places=root.querySelector('[data-places-sheet]');places?.classList.remove('is-open');places?.setAttribute('aria-hidden','true');root.querySelector('[data-chain-toggle]')?.setAttribute('aria-expanded','false');}
+    if(value) {closeBoardOrder(root);const places=root.querySelector('[data-places-sheet]');places?.classList.remove('is-open');places?.setAttribute('aria-hidden','true');root.querySelector('[data-chain-toggle]')?.setAttribute('aria-expanded','false');}
     sourceSheet.classList.toggle('is-open',value);
     sourceSheet.setAttribute('aria-hidden',String(!value));
     sourceSettings.setAttribute('aria-expanded',String(value));
@@ -595,8 +609,6 @@ export function openEnvironmentView(root, {
     for (const button of root.querySelectorAll('['+attribute+']')) listenEarly(button,'click',()=>{
       const value = button.getAttribute(attribute);
       if (selection.has(value)) selection.delete(value); else selection.add(value);
-      tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
-      if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
       syncWikiFilters();
     });
   }
@@ -750,6 +762,8 @@ export function openEnvironmentView(root, {
       installSharonLayers(map);
       chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
+      tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
+      if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);

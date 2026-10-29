@@ -1,6 +1,7 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.31';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.31';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.31';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.32';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.32';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.32';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.32';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -35,7 +36,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   let activeId = null;
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
-  let sortMode = 'discover';
+  let sortMode = boardOrderMode();
   let filters = [];
   let categoryFilters = [];
   const categoriesFor = feature => {
@@ -83,7 +84,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       return informationRank(information?.summary(wikipediaReference(feature)), distanceMeters(center,{lat,lng}),sortMode);
     };
     if (sortMode === 'relevant' || sortMode === 'popular') features = features.filter(feature => score(feature) !== -Infinity);
-    features.sort((a,b) => sortMode === 'discover' ? a.properties.read - b.properties.read : score(b) - score(a));
+    features = sortBoards(features, center, sortMode);
     currentFeatures = features;
     map.getSource(sourceId)?.setData({type:'FeatureCollection', features});
     reportCounts();

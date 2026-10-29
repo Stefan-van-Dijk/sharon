@@ -1,4 +1,5 @@
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.31';
+import { sortBoards } from './BoardOrder.js?v=0.4.32';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.32';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
@@ -42,7 +43,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
     const {x,y} = event.point;
     const hit = map.queryRenderedFeatures([[x-12,y-12],[x+12,y+12]],{layers:[layer]})[0];
     const chosen = hit && features.find(feature => String(feature.id) === String(hit.id));
-    if (chosen) onOpen?.(chosen, features);
+    if (chosen) onOpen?.(chosen, sortBoards(features,map.getCenter()));
   };
   map.on('moveend', schedule); map.on('click', click);
   return {
