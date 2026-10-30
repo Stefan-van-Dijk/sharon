@@ -39,10 +39,11 @@ selectie stuurt kaartpunten, de locatielijst en het gezamenlijke deck.
 
 ## Analysestraal
 
-Bij de gedeelde boardinstellingen staat een analysestraal in kilometers (standaard
-10 km, minimum 0,1 km) en de optie Onbeperkt naar buiten. De voorkeur wordt lokaal
-bewaard. De afstand wordt gemeten vanaf het actuele kaartmiddelpunt; het deck
-houdt tijdens bladeren zijn oorspronkelijke middelpunt. Het gedeelde deck past
+Bij de gedeelde boardinstellingen staat een slider van 0 tot 500 kilometer (standaard
+10 km); de volgende stand is ∞ / Onbeperkt naar buiten. De voorkeur wordt lokaal
+bewaard. Bij openen van de boardinstellingen wordt het huidige kaartmiddelpunt vastgezet
+als analysecentrum. De selectie blijft op die plek staan tijdens kaartbewegingen
+en bladeren. De knop Gebruik huidig kaartmiddelpunt verplaatst de zone expliciet. Het gedeelde deck past
 de afstandsselectie ook toe op toekomstige geregistreerde bronnen.
 
 Onbeperkt verwijdert de afstandsgrens voor ontdekte/geladen plekken. Winkels en
@@ -51,3 +52,8 @@ Dit is geen wereldwijde import: bronverzoeken blijven per gebied maximaal 10 km,
 met de bestaande zoom-, bron- en aantallimieten. Een grotere analysestraal vraagt
 niet automatisch alle tussenliggende gebieden op. Tiqets blijft een live bron
 zonder blijvende catalogus. Categorie- en statusfilters blijven van toepassing.
+
+De analysestraal verschijnt als geodetische cirkel met lichte vulling, stippellijn
+en middelpunt op de kaart. Sliderbewegingen werken direct door. Bij 0 km en ∞
+blijft het middelpunt zichtbaar, zonder cirkel; 0 km selecteert uitsluitend de
+exacte centrumpositie. Het centrum wordt samen met de straal lokaal bewaard.
