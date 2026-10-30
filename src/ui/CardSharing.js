@@ -1,20 +1,20 @@
-import { renderListControls } from './ListControls.js?v=0.4.38';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.38';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.38';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.38';
-import { sortList } from '../core/storage/ListOrder.js?v=0.4.38';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.38';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.38';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.38';
-import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.38';
-import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.38';
-export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.38';
-import { publishTransfer } from './ObjectTransfer.js?v=0.4.38';
-import { renderCardCode } from './CardCodes.js?v=0.4.38';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.38';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.38';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.38';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.38';
+import { renderListControls } from './ListControls.js?v=0.4.39';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.39';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.39';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.39';
+import { sortList } from '../core/storage/ListOrder.js?v=0.4.39';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.39';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.39';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.39';
+import { sharingRecords, refreshQrShares } from './SharingStatus.js?v=0.4.39';
+import { saveReceivedCard, buildLocationPayload } from './ReceivedObjects.js?v=0.4.39';
+export { saveReceivedCard } from './ReceivedObjects.js?v=0.4.39';
+import { publishTransfer } from './ObjectTransfer.js?v=0.4.39';
+import { renderCardCode } from './CardCodes.js?v=0.4.39';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.39';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.39';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.39';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.39';
 
 export function openCardShare(card,{store,onClose=()=>{},onStatusChange=()=>{},location:deviceLocation=null}) {
   const isLocation=card.type==='location';

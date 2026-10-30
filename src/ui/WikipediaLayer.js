@@ -1,8 +1,8 @@
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.38';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.38';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.38';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.38';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.38';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.39';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.39';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.39';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.39';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.39';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -67,6 +67,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     }
     window.dispatchEvent(new CustomEvent('sharon-wiki-counts-changed',{detail:{groups,total:features.length}}));
   };
+  let lastData='';
   const redraw = () => {
     let features = [...knownFeatures.values()].filter(feature => {
       const [lng,lat]=feature.geometry.coordinates;
@@ -89,7 +90,8 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (sortMode === 'relevant' || sortMode === 'popular') features = features.filter(feature => score(feature) !== -Infinity);
     features = sortBoards(features, center, sortMode);
     currentFeatures = features;
-    map.getSource(sourceId)?.setData({type:'FeatureCollection', features});
+    const data={type:'FeatureCollection',features},serialized=JSON.stringify(data);
+    if(serialized!==lastData){lastData=serialized;map.getSource(sourceId)?.setData(data);}
     reportCounts();
   };
   const pulse = () => {
@@ -109,7 +111,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
       paint: { 'circle-radius': 7, 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
   };
-  const clear = () => { knownFeatures.clear(); currentFeatures = []; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
+  const clear = () => { knownFeatures.clear(); currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
     if (!enabled || disposed || !map.isStyleLoaded()) return;

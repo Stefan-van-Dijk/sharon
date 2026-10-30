@@ -91,9 +91,23 @@ test('analysis overlay anchors the current map center and slider updates its cir
   center={lat:55,lng:10};assert.equal(inAnalysisRange(center,center),false,'panning does not move the selected zone');
   root.querySelector('button').click();assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[10,55]);
   field.value='200';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,2);
-  root.querySelector('[data-analysis-fit]').click();assert.ok(fitted[0][1]<55&&fitted[1][1]>55);
+  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,0);assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-pressed'),'false');
+  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,2);assert.equal(fitted,undefined,'visibility toggle does not move the map');
   field.value='201';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.match(root.querySelector('output').textContent,/∞/);
   field.value='0';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.equal(root.querySelector('output').textContent,'0 km');
   stop();stop=null;assert.equal(sources.size,0);assert.equal(layers.size,0);
+ }finally{stop?.();app.close();}
+});
+
+test('slider previews the circle continuously but commits source updates only on release',async()=>{
+ const app=await appHarness();let stop;
+ try{
+  const {mountAnalysisRange,ANALYSIS_RANGE_EVENT,ANALYSIS_PREVIEW_EVENT}=await app.load(spec('ui/AnalysisRange.js'));
+  const root=app.document.createElement('div');root.innerHTML='<input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output>';
+  stop=mountAnalysisRange(root);let updates=0,previews=0;
+  app.window.addEventListener(ANALYSIS_RANGE_EVENT,()=>updates++);app.window.addEventListener(ANALYSIS_PREVIEW_EVENT,()=>previews++);
+  const field=root.querySelector('input');for(const value of [15,20,25]){field.value=value;field.dispatchEvent(new app.window.Event('input'));}
+  assert.equal(previews,3);assert.equal(updates,0);assert.equal(root.querySelector('output').textContent,'25 km');
+  field.dispatchEvent(new app.window.Event('change'));assert.equal(updates,1);
  }finally{stop?.();app.close();}
 });

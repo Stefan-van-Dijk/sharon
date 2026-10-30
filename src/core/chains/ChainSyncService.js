@@ -1,5 +1,5 @@
-import { CHAIN_CACHE_KEY, CHAIN_SYNC_INTERVAL, chainById } from './ChainCatalog.js?v=0.4.38';
-import { decodeBranch } from './ChainModel.js?v=0.4.38';
+import { CHAIN_CACHE_KEY, CHAIN_SYNC_INTERVAL, chainById } from './ChainCatalog.js?v=0.4.39';
+import { decodeBranch } from './ChainModel.js?v=0.4.39';
 export const CHAIN_ENDPOINT='https://sharon.life/log/api/chains.php';
 export class ChainSyncService {
   constructor(store,{events=null,fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}) {
