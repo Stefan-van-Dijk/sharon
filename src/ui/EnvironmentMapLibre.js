@@ -1,30 +1,30 @@
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.33';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.33';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.33';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.33';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.33';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.33';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.33';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.33';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.33';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.33';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.33';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.33';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.34';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.34';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.34';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.34';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.34';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.34';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.34';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.34';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.34';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.34';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.34';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.34';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.33';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.33';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.33';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.33';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.33';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.33';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.33';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.33';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.33';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.34';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.34';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.34';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.34';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.34';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.34';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.34';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.34';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.34';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.33';
+} from './EnvironmentScale.js?v=0.4.34';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -249,6 +249,10 @@ export function openEnvironmentView(root, {
           <header><strong>Locaties en ketens</strong><button type="button" data-places-close aria-label="Locaties sluiten">⌄</button></header>
           <label>Toon <select data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select></label>
           <label>Zoeken <input type="search" data-places-search placeholder="Naam of keten" aria-label="Locatie of keten zoeken"></label>
+          <strong>Status</strong>
+          <div class="environment-source-filter-grid environment-source-status-row" data-chain-statuses></div>
+          <strong>Categorieën</strong>
+          <div class="environment-source-filter-grid" data-chain-categories></div>
           <small data-chain-status role="status"></small>
           <div class="environment-places-list" data-places-list></div>
         </section>
@@ -741,7 +745,7 @@ export function openEnvironmentView(root, {
       const revision = ++objectsRevision;
       const objects = await store.getAll('objects');
       if (disposed || revision !== objectsRevision || !mapReady) return;
-      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects.filter(item=>!placeHidden(item))));
+      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects.filter(item=>item.type==='location'?(chainLayer?.allowsLocation(item)??!placeHidden(item)):!placeHidden(item))));
     };
 
     map.on('load', () => {
@@ -750,6 +754,8 @@ export function openEnvironmentView(root, {
       unsubscribers.push(mountPlacePulse(map));
       const refreshPlaces=event=>{updateObjects().catch(()=>{});if(event.detail?.hidden)window.dispatchEvent(new CustomEvent('sharon-place-board-active',{detail:{point:null}}));};
       window.addEventListener('sharon-place-feedback-changed',refreshPlaces);
+      window.addEventListener('sharon-chain-filters-changed',refreshPlaces);
+      unsubscribers.push(()=>window.removeEventListener('sharon-chain-filters-changed',refreshPlaces));
       unsubscribers.push(()=>window.removeEventListener('sharon-place-feedback-changed',refreshPlaces));
       updateWikipediaZoomCue();
       reportDiagnosticStatus('kaartstijl geladen');
@@ -806,7 +812,7 @@ export function openEnvironmentView(root, {
       let selected = features.find(feature => feature.properties?.kind === 'location') || features[0];
       if (selected?.properties?.kind !== 'location') {
         const items = await store.getAll('objects');
-        const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && !placeHidden(item) && isCoordinate(item.data?.coordinates))
+        const nearest = items.filter(item => item.type === 'location' && !item.deletedAt && (chainLayer?.allowsLocation(item)??!placeHidden(item)) && isCoordinate(item.data?.coordinates))
           .map(item => ({item, point: map.project(coordinateArray(item.data.coordinates))}))
           .find(({point}) => Math.hypot(point.x - event.point.x, point.y - event.point.y) < 24);
         if (nearest) selected = {geometry:{type:'Point',coordinates:coordinateArray(nearest.item.data.coordinates)},properties:{kind:'location',id:String(nearest.item.id)}};

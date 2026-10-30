@@ -1,4 +1,4 @@
-import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.33';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.34';
 
 // The return-to-position action stays usable while a shared GPS request is pending.
 export function bindEnvironmentPositionButton(button, {

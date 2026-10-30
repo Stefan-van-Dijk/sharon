@@ -21,3 +21,18 @@ bronverversingen de volgorde tijdens het bladeren niet laten verspringen. Bij
 opnieuw openen worden actuele bronselecties en filters toegepast. Een wijziging van
 de gedeelde sortering wordt bij de volgende swipe toegepast. Extra websites binnen
 een uitgeklapt locatiedeck blijven bij die locatie horen.
+
+## Winkelcategorieën
+
+De winkelbron gebruikt `ChainCategories` voor een vaste, uitbreidbare indeling op
+basis van het beschikbare OSM-winkeltype in de ketencatalogus. Een vestigingstype,
+indien beschikbaar, gaat voor. De kleine offline catalogus heeft voor generieke
+winkeltypen expliciete categorieën; onbekende typen vallen onder Overig. Eigen
+locaties zonder ketenkoppeling hebben een aparte categorie. Er worden geen extra
+vestigingsdetails opgehaald om het filter te vullen.
+
+Het winkelpaneel gebruikt dezelfde categorie- en statusselectie als Wikipedia:
+meerdere selecties vormen een vereniging; zonder selectie worden verborgen items
+uitgesloten. Categorieën tonen aantallen en feedback binnen de opgehaalde selectie,
+niet een onbevestigd landelijk totaal. De voorkeur wordt lokaal bewaard. Dezelfde
+selectie stuurt kaartpunten, de locatielijst en het gezamenlijke deck.

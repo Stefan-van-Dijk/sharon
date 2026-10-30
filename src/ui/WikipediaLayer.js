@@ -1,7 +1,7 @@
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.33';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.33';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.33';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.33';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.34';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.34';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.34';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.34';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();

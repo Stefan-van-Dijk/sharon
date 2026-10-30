@@ -1,8 +1,8 @@
-import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.33';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.33';
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.33';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.33';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.33';
+import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.34';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.34';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.34';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.34';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.34';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events, navigation=null}) {
