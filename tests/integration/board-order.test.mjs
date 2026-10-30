@@ -18,7 +18,7 @@ test('a separate gear beside the sources controls all four board orders and reta
   assert.ok(gear.closest('.environment-source-options'));
   assert.equal(root.querySelector('[data-source-sheet] [data-wiki-sort]'),null);
   assert.equal(panel.querySelectorAll('[data-board-order]').length,4);
-  assert.equal(panel.querySelector('[aria-pressed="true"]').dataset.boardOrder,'popular');
+  assert.equal(panel.querySelector('[data-board-order][aria-pressed="true"]').dataset.boardOrder,'popular');
   assert.equal(panel.hidden,true);
   const wiki=root.querySelector('[data-source-sheet]');wiki.classList.add('is-open');wiki.setAttribute('aria-hidden','false');
   gear.click();assert.equal(panel.hidden,false);assert.equal(gear.getAttribute('aria-expanded'),'true');assert.equal(wiki.getAttribute('aria-hidden'),'true');
@@ -91,8 +91,9 @@ test('analysis overlay anchors the current map center and slider updates its cir
   center={lat:55,lng:10};assert.equal(inAnalysisRange(center,center),false,'panning does not move the selected zone');
   root.querySelector('button').click();assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[10,55]);
   field.value='200';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,2);
+  const beforeToggle=fitted;
   root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,0);assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-pressed'),'false');
-  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,2);assert.equal(fitted,undefined,'visibility toggle does not move the map');
+  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,2);assert.equal(fitted,beforeToggle,'visibility toggle does not move the map');
   field.value='201';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.match(root.querySelector('output').textContent,/∞/);
   field.value='0';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.equal(root.querySelector('output').textContent,'0 km');
   stop();stop=null;assert.equal(sources.size,0);assert.equal(layers.size,0);
@@ -109,5 +110,22 @@ test('slider previews the circle continuously but commits source updates only on
   const field=root.querySelector('input');for(const value of [15,20,25]){field.value=value;field.dispatchEvent(new app.window.Event('input'));}
   assert.equal(previews,3);assert.equal(updates,0);assert.equal(root.querySelector('output').textContent,'25 km');
   field.dispatchEvent(new app.window.Event('change'));assert.equal(updates,1);
+ }finally{stop?.();app.close();}
+});
+
+test('recenter uses the uncovered map midpoint and dragging fits the circle above the settings sheet',async()=>{
+ const app=await appHarness();let stop;
+ try{
+  const {mountAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
+  const {mountAnalysisZone}=await app.load(spec('ui/AnalysisZone.js'));
+  const root=app.document.createElement('div');root.innerHTML='<section data-board-order-sheet><button data-analysis-recenter></button><button data-analysis-fit></button><input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output></section>';app.document.body.append(root);
+  root.querySelector('section').getBoundingClientRect=()=>({left:0,top:600,right:800,bottom:1000,width:800,height:400});
+  let data,pixel,options,fits=0;const sources=new Map();
+  const map={getContainer:()=>({getBoundingClientRect:()=>({left:0,top:0,right:800,bottom:1000,width:800,height:1000})}),getCenter:()=>({lat:52,lng:5}),unproject(value){pixel=value;return {lng:4,lat:53};},addSource(id){sources.set(id,{setData(value){data=value;}});},getSource:id=>sources.get(id),addLayer(){},fitBounds(_,value){options=value;fits++;},removeSource:id=>sources.delete(id)};
+  const stopControls=mountAnalysisRange(root),stopZone=mountAnalysisZone(map,root);stop=()=>{stopControls();stopZone();};
+  assert.deepEqual(Array.from(pixel),[400,300]);assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[4,53]);
+  const field=root.querySelector('input');const before=fits;field.value='50';field.dispatchEvent(new app.window.Event('input'));
+  assert.equal(fits,before+1);assert.equal(options.padding.bottom,420);assert.equal(options.duration,0);
+  assert.ok(root.querySelector('[data-analysis-fit] svg'));assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-label'),'Verberg analysecirkel');
  }finally{stop?.();app.close();}
 });
