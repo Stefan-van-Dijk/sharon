@@ -1,4 +1,4 @@
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.37';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.38';
 export const ANALYSIS_RANGE_KEY='sharon.boards.analysis-range.v1';
 export const ANALYSIS_RANGE_EVENT='sharon-analysis-range-changed';
 export const validCenter=point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lng)&&Math.abs(point.lat)<=90&&Math.abs(point.lng)<=180;
@@ -9,7 +9,7 @@ export function saveAnalysisRange(patch){
 export function analysisRange(){
   let saved;try{saved=JSON.parse(localStorage.getItem(ANALYSIS_RANGE_KEY)||'null');}catch{}
   const meters=Number(saved?.meters);
-  return {meters:Number.isFinite(meters)&&meters>=0&&meters<=500000?meters:10000,unlimited:saved?.unlimited===true||meters>500000,center:validCenter(saved?.center)?{lat:saved.center.lat,lng:saved.center.lng}:null};
+  return {meters:Number.isFinite(meters)&&meters>=0?Math.min(meters,200000):10000,unlimited:saved?.unlimited===true,center:validCenter(saved?.center)?{lat:saved.center.lat,lng:saved.center.lng}:null};
 }
 export function inAnalysisRange(point,center){
   const range=analysisRange();center=range.center||center;
@@ -22,12 +22,12 @@ export function mountAnalysisRange(root){
   if(!field)return ()=>{};
   const render=()=>{
     const range=analysisRange(),label=range.unlimited?'∞ · Onbeperkt':range.meters/1000+' km';
-    field.value=range.unlimited?501:range.meters/1000;
+    field.value=range.unlimited?201:range.meters/1000;
     field.setAttribute('aria-valuetext',label);if(output)output.textContent=label;
   };
   const input=()=>{
-    const value=Number(field.value);if(!Number.isFinite(value)||value<0||value>501)return;
-    saveAnalysisRange({meters:Math.min(value,500)*1000,unlimited:value===501});render();
+    const value=Number(field.value);if(!Number.isFinite(value)||value<0||value>201)return;
+    saveAnalysisRange({meters:Math.min(value,200)*1000,unlimited:value===201});render();
   };
   field.addEventListener('input',input);field.addEventListener('change',input);
   window.addEventListener(ANALYSIS_RANGE_EVENT,render);render();

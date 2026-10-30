@@ -1,31 +1,31 @@
-import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.37';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.37';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.37';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.37';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.37';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.37';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.37';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.37';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.37';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.37';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.37';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.37';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.37';
+import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.38';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.38';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.38';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.38';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.38';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.38';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.38';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.38';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.38';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.38';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.38';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.38';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.38';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.37';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.37';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.37';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.37';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.37';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.37';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.37';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.37';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.37';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.38';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.38';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.38';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.38';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.38';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.38';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.38';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.38';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.38';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.37';
+} from './EnvironmentScale.js?v=0.4.38';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -237,13 +237,11 @@ export function openEnvironmentView(root, {
           </div>
         </div>
         <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Boardinstellingen" aria-hidden="true" hidden>
-          <header><strong>Volgorde en analysestraal</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
+          <header><strong>Boards</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
           <label for="analysis-radius">Analysestraal <output data-analysis-radius-value></output></label>
-          <input id="analysis-radius" type="range" data-analysis-radius min="0" max="501" step="1" aria-label="Analysestraal in kilometers">
-          <div style="display:flex;justify-content:space-between;font-size:12px"><span>0 km</span><span>500 km · ∞</span></div>
-          <button type="button" data-analysis-recenter>Gebruik huidig kaartmiddelpunt</button>
-          <button type="button" data-analysis-fit>Toon hele cirkel</button>
-          <small>De cirkel blijft op het gekozen middelpunt staan. Na 500 km volgt ∞. Nieuwe plekken worden per kaartgebied geladen.</small>
+          <input id="analysis-radius" type="range" data-analysis-radius min="0" max="201" step="1" aria-label="Analysestraal in kilometers">
+          <div style="display:flex;justify-content:space-between;font-size:12px"><span>0 km</span><span>200 km · ∞</span></div>
+          <div class="environment-analysis-actions"><button type="button" data-analysis-recenter aria-label="Gebruik huidig kaartmiddelpunt">Middelpunt hier</button><button type="button" data-analysis-fit>Toon cirkel</button></div>
           <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
             <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
