@@ -36,3 +36,18 @@ meerdere selecties vormen een vereniging; zonder selectie worden verborgen items
 uitgesloten. Categorieën tonen aantallen en feedback binnen de opgehaalde selectie,
 niet een onbevestigd landelijk totaal. De voorkeur wordt lokaal bewaard. Dezelfde
 selectie stuurt kaartpunten, de locatielijst en het gezamenlijke deck.
+
+## Analysestraal
+
+Bij de gedeelde boardinstellingen staat een analysestraal in kilometers (standaard
+10 km, minimum 0,1 km) en de optie Onbeperkt naar buiten. De voorkeur wordt lokaal
+bewaard. De afstand wordt gemeten vanaf het actuele kaartmiddelpunt; het deck
+houdt tijdens bladeren zijn oorspronkelijke middelpunt. Het gedeelde deck past
+de afstandsselectie ook toe op toekomstige geregistreerde bronnen.
+
+Onbeperkt verwijdert de afstandsgrens voor ontdekte/geladen plekken. Winkels en
+Wikipedia behouden ontdekte plekken terwijl andere kaartgebieden worden bezocht.
+Dit is geen wereldwijde import: bronverzoeken blijven per gebied maximaal 10 km,
+met de bestaande zoom-, bron- en aantallimieten. Een grotere analysestraal vraagt
+niet automatisch alle tussenliggende gebieden op. Tiqets blijft een live bron
+zonder blijvende catalogus. Categorie- en statusfilters blijven van toepassing.

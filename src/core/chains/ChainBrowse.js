@@ -1,4 +1,4 @@
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.35';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.36';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();}
  async request(input,signal){
@@ -36,10 +36,10 @@ export class ChainBrowse {
 
 // Match Wikipedia's discovery range; requests stay bounded even on world views.
 export const CHAIN_RADIUS_METERS = 10000;
-export function chainAreaBounds(center) {
+export function chainAreaBounds(center,radius=CHAIN_RADIUS_METERS) {
  const lat=Number(center?.lat),lng=Number(center?.lng);
  if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return null;
- const angle=CHAIN_RADIUS_METERS/6371008.8,latDelta=angle*180/Math.PI;
+ const angle=Math.min(CHAIN_RADIUS_METERS,Math.max(100,Number(radius)||CHAIN_RADIUS_METERS))/6371008.8,latDelta=angle*180/Math.PI;
  const lngDelta=Math.asin(Math.min(1,Math.sin(angle)/Math.max(1e-9,Math.cos(lat*Math.PI/180))))*180/Math.PI;
  const bounds=[lng-lngDelta,lat-latDelta,lng+lngDelta,lat+latDelta];
  // The current API accepts a single, non-wrapping box up to one degree wide.

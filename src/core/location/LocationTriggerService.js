@@ -1,4 +1,4 @@
-import { resolveLocation } from './LocationHierarchy.js?v=0.4.35';
+import { resolveLocation } from './LocationHierarchy.js?v=0.4.36';
 
 export class LocationTriggerService {
   #store;

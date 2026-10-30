@@ -1,7 +1,8 @@
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.35';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.35';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.35';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.35';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.36';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.36';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.36';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.36';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.36';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -21,7 +22,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   if (!Number.isFinite(center?.lat) || !Number.isFinite(center?.lng)) return EMPTY;
   const lang = /^[a-z]{2,3}$/.test(language) ? language : 'nl';
   const params = new URLSearchParams({ action: 'query', format: 'json', origin: '*', generator: 'geosearch',
-    ggscoord: center.lat + '|' + center.lng, ggsradius: '10000', ggslimit: '40',
+    ggscoord: center.lat + '|' + center.lng, ggsradius: String(analysisFetchRadius()), ggslimit: '40',
     prop: 'coordinates|pageprops|extracts|pageimages|categories', cllimit: 'max', pithumbsize: '480', exintro: '1', explaintext: '1', exsentences: '2', colimit: 'max' });
   const response = await fetcher('https://' + lang + '.wikipedia.org/w/api.php?' + params, { signal });
   if (!response.ok) throw new Error('Wikipedia is tijdelijk niet bereikbaar');
@@ -54,7 +55,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     catch { return {}; }
   };
   const reportCounts = () => {
-    const features = [...knownFeatures.values()];
+    const features = [...knownFeatures.values()].filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter());});
     const groups = Object.fromEntries(['erfgoed','bouw','natuur','cultuur','vervoer','overig'].map(key => [key,{total:0,read:0,liked:0,disliked:0,hidden:0}]));
     for (const feature of features) {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
@@ -68,6 +69,8 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   };
   const redraw = () => {
     let features = [...knownFeatures.values()].filter(feature => {
+      const [lng,lat]=feature.geometry.coordinates;
+      if(!inAnalysisRange({lng,lat},map.getCenter()))return false;
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       if (!filters.length && !categoryFilters.length) return !state.hidden;
       const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : filter === 'disliked' ? !!state.disliked && !state.hidden : false);
@@ -123,7 +126,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     } catch (error) { if (error.name !== 'AbortError') { console.warn('Wikipedia-laag:', error.message); if (request === controller) reportLoad('error'); } }
     finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
   };
-  const schedule = () => { clearTimeout(timeout); if (enabled) timeout = setTimeout(refresh, 450); };
+  const schedule = () => { clearTimeout(timeout); if (enabled) {redraw();timeout = setTimeout(refresh, 450);} };
   const click = event => {
     if (!enabled || !map.getLayer(layerId)) return;
     const point = event.point;
@@ -160,6 +163,8 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   };
   window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
   window.addEventListener('sharon-information-changed',onFeedbackChanged);
+  const rangeChanged=()=>{lastCenter=null;redraw();schedule();};
+  window.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   map.on('moveend', schedule); map.on('click', click);
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
@@ -169,5 +174,5 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged); window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
