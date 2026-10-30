@@ -305,3 +305,39 @@ test('mixed environment deck swipes from Wikipedia to a shop and saved location,
   deck.show(wiki,point);assert.equal(app.document.querySelector('.sh-board-overlay').textContent.includes('Wikipedia toren'),true);
  }finally{close?.();layer?.destroy();app.close();}
 });
+
+test('shop category panel filters markers, list and mixed deck, remembers multi-selection and reports feedback counts',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');
+  root.innerHTML='<button data-chain-toggle></button><section data-places-sheet><select data-chain-filter></select><input data-places-search><small data-chain-status></small><div class="environment-source-filter-grid environment-source-status-row" data-chain-statuses></div><div class="environment-source-filter-grid" data-chain-categories></div><div data-places-list></div></section>';app.document.body.append(root);
+  const sources=new Map();const map={getCenter:()=>point,addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;}});},getSource:id=>sources.get(id),addLayer(){},on(){},off(){},easeTo(){},queryRenderedFeatures:()=>[]};
+  await app.store.put('objects',{id:'ownplace0001',type:'location',data:{title:'Eigen plek',coordinates:{lat:52,lng:5}}});
+  const open=()=>mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:''});
+  layer=open();await until(()=>root.querySelector('[data-places-list]').textContent.includes('Albert Heijn'));
+  root.querySelector('[data-chain-toggle]').click();
+  const category=key=>root.querySelector('[data-chain-category="'+key+'"]');
+  assert.equal(category('groceries').querySelector('b').textContent,'1');
+  category('fashion').click();
+  assert.equal(layer.getBoards().length,0);assert.equal(sources.get('sharon-chain-branches').data.features.length,0);
+  assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Albert Heijn'));
+  assert.equal(layer.allowsLocation({type:'location',id:'ownplace0001',data:{}}),false);
+  category('groceries').click();
+  assert.equal(layer.getBoards().length,1);assert.equal(sources.get('sharon-chain-branches').data.features.length,1);
+  assert.match(root.querySelector('[data-places-list]').textContent,/Albert Heijn/);
+  assert.equal(app.requests.length,0,'filter changes never request details or a new area');
+  app.window.localStorage.setItem('sharon.place.feedback.v1:node/1',JSON.stringify({liked:true,hidden:true}));
+  app.window.dispatchEvent(new app.window.CustomEvent('sharon-place-feedback-changed'));
+  assert.equal(layer.getBoards().length,0);assert.match(category('groceries').querySelector('small').textContent,/♡ 1/);
+  root.querySelector('[data-chain-status-filter="hidden"]').click();assert.equal(layer.getBoards().length,1);
+  assert.equal(sources.get('sharon-chain-branches').data.features.length,1);
+  assert.equal(root.querySelector('[data-chain-status-filter="hidden"]').getAttribute('aria-pressed'),'true');
+  layer.destroy();layer=null;
+  // Mount a fresh view like re-entering Omgeving.
+  root.querySelector('[data-chain-categories]').replaceChildren();root.querySelector('[data-chain-statuses]').replaceChildren();
+  layer=open();await until(()=>category('groceries').getAttribute('aria-pressed')==='true');
+  assert.equal(category('fashion').getAttribute('aria-pressed'),'true');
+  assert.equal(root.querySelector('[data-chain-status-filter="hidden"]').getAttribute('aria-pressed'),'true');
+ }finally{layer?.destroy();app.close();}
+});
