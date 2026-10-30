@@ -59,9 +59,16 @@ blijft het middelpunt zichtbaar, zonder cirkel; 0 km selecteert uitsluitend de
 exacte centrumpositie. Het centrum wordt samen met de straal lokaal bewaard.
 
 De straalslider gebruikt de volledige breedte van het instellingenblad en een
-ruime aanraakhoogte. Tijdens slepen verandert alleen de cirkelvoorvertoning;
+ruime aanraakhoogte. Tijdens slepen veranderen de cirkelvoorvertoning en de kaartuitsnede;
 bronselecties worden na loslaten bijgewerkt. Toon/Verberg cirkel schakelt uitsluitend
 de zichtbaarheid van stip en cirkel (lokaal bewaard), zonder de selectie of camera
 te veranderen. Winkelpunten blijven staan tijdens gebiedsverversing en bij fouten;
 nieuwe resultaten vervangen ze pas na een geslaagd verzoek. Identieke winkel- en
 Wikipedia-kaartgegevens worden niet opnieuw naar de kaart gestuurd.
+
+De straalregel bevat links de middelpuntknop en rechts een cirkelicoon (met streep
+wanneer verborgen). Het middelpunt wordt bepaald via de schermpositie in het grootste
+vrije kaartvlak, rekening houdend met instellingenblad en kaartbediening. Tijdens
+slepen past de kaart zonder animatiewachttijd om de cirkel heen in dat vrije vlak;
+bronverzoeken blijven wachten op loslaten. Zichtbaarheid schakelen beweegt de kaart
+niet. Bij ∞ blijft de laatst bruikbare uitsnede staan; 0 km zoomt naar het middelpunt.
