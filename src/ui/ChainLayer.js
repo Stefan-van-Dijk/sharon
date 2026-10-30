@@ -1,17 +1,17 @@
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.40';
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.40';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.40';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.40';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.40';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.40';
-import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.40';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.40';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.40';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.40';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.40';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.40';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.40';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.40';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.41';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.41';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.41';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.41';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.41';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.41';
+import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.41';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.41';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.41';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.41';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.41';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.41';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.41';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.41';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -108,7 +108,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
       geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
-    toggle.setAttribute('aria-pressed',String(enabled));select.hidden=sheet?false:!enabled;status.hidden=sheet?false:!enabled;
+    toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
     filters.update();drawList();
     const nearby=branches.filter(branch=>(!selected||branch.chainId===selected)&&inRange(branch)&&filters.matches(branch));
@@ -131,6 +131,11 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
   const onSelect=()=>{selected=select.value;popup?.remove();remote=[];branches=local;draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
   listen(toggle,'click',onToggle);listen(select,'change',onSelect);
+  listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
+    const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
+    if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
+    if(!field.hidden)search?.focus();else{search.value='';drawList();}
+  });
   listen(search,'input',drawList);listen(root.querySelector('[data-places-close]'),'click',()=>showSheet(false));
   let start=null,suppressClick=false;
   listen(toggle,'touchstart',event=>{const touch=event.touches[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});

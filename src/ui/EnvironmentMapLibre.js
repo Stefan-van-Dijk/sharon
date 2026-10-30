@@ -1,31 +1,31 @@
-import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.40';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.40';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.40';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.40';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.40';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.40';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.40';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.40';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.40';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.40';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.40';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.40';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.40';
+import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.41';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.41';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.41';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.41';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.41';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.41';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.41';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.41';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.41';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.41';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.41';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.41';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.41';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.40';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.40';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.40';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.40';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.40';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.40';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.40';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.40';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.40';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.41';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.41';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.41';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.41';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.41';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.41';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.41';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.41';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.41';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.40';
+} from './EnvironmentScale.js?v=0.4.41';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -254,9 +254,9 @@ export function openEnvironmentView(root, {
         </section>
         <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-places-handle aria-hidden="true"></div>
-          <header><strong>Locaties en ketens</strong><button type="button" data-places-close aria-label="Locaties sluiten">⌄</button></header>
-          <label>Toon <select data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select></label>
-          <label>Zoeken <input type="search" data-places-search placeholder="Naam of keten" aria-label="Locatie of keten zoeken"></label>
+          <header><strong>Locaties en ketens</strong><small data-chain-available></small><button type="button" class="environment-source-search-toggle" data-places-search-toggle aria-label="Locaties zoeken" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button><button type="button" data-places-close aria-label="Locaties sluiten">⌄</button></header>
+          <select hidden data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select>
+          <label hidden data-places-search-field><input type="search" data-places-search placeholder="Naam of keten" aria-label="Locatie of keten zoeken"></label>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row" data-chain-statuses></div>
           <strong>Categorieën</strong>
@@ -266,7 +266,7 @@ export function openEnvironmentView(root, {
         </section>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <div class="environment-source-sheet-handle" data-source-sheet-handle aria-hidden="true"></div>
-          <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
+          <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small><button type="button" data-wiki-close aria-label="Wikipedia sluiten">⌄</button></header>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row">
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
@@ -611,6 +611,7 @@ export function openEnvironmentView(root, {
     sourceSheet.setAttribute('aria-hidden',String(!value));
     sourceSettings.setAttribute('aria-expanded',String(value));
   };
+  listenEarly(root.querySelector('[data-wiki-close]'),'click',()=>toggleSourceSheet(false));
   listenEarly(sourceSettings,'click',()=>toggleSourceSheet(!sourceSheet.classList.contains('is-open')));
   for (const [attribute,selection] of [['data-wiki-filter',activeWikiFilters],['data-wiki-category',activeWikiCategories]]) {
     for (const button of root.querySelectorAll('['+attribute+']')) listenEarly(button,'click',()=>{

@@ -1,5 +1,5 @@
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.40';
-import { placeKey } from './PlaceFeedback.js?v=0.4.40';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.41';
+import { placeKey } from './PlaceFeedback.js?v=0.4.41';
 export const CHAIN_FILTER_KEY='sharon.source.chains.filters.v1';
 export const SHOP_STATUSES={read:['☑','Gelezen'],liked:['♡','Leuk'],hidden:['◌','Verborgen'],disliked:['♧','Niet leuk']};
 const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
@@ -28,9 +28,10 @@ export function mountChainFilters(root,{getItems,getCatalog,onChange}){
     button.addEventListener('click',click);listeners.push(()=>button.removeEventListener('click',click));
   };
   for(const [key,label] of Object.entries(SHOP_CATEGORIES))add(panel,key,label,'data-chain-category');
-  for(const [key,[icon,label]] of Object.entries(SHOP_STATUSES))add(statusPanel,key,icon+' '+label,'data-chain-status-filter');
+  for(const [key,[icon,label]] of Object.entries(SHOP_STATUSES)){add(statusPanel,key,icon,'data-chain-status-filter');const button=statusPanel?.querySelector('[data-chain-status-filter="'+key+'"]');if(button){button.setAttribute('aria-label',label);button.title=label;}}
   const update=()=>{
     const items=getItems(),catalog=getCatalog();
+    const available=root.querySelector('[data-chain-available]');if(available)available.textContent=items.length+' beschikbaar';
     const groups=Object.fromEntries(Object.keys(SHOP_CATEGORIES).map(key=>[key,{total:0,read:0,liked:0,hidden:0,disliked:0}]));
     const totals={read:0,liked:0,hidden:0,disliked:0};
     for(const item of items){const group=groups[shopCategory(item,catalog)],state=shopFeedback(item);group.total++;for(const key of Object.keys(totals))if(state[key]){group[key]++;totals[key]++;}}

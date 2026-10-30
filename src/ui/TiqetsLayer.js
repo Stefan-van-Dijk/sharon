@@ -1,6 +1,6 @@
-import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.40';
-import { sortBoards } from './BoardOrder.js?v=0.4.40';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.40';
+import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.41';
+import { sortBoards } from './BoardOrder.js?v=0.4.41';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.41';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
