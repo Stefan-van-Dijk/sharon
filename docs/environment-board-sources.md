@@ -80,3 +80,9 @@ getoond. Statusknoppen tonen iconen en aantallen, met toegankelijke tekstlabels.
 De boardvoet toont bron en categorie op een eigen volle regel. Een geslaagde eigen
 waardering geeft geen opslagmelding; fouten blijven zichtbaar en de lokale opslag
 en synchronisatie blijven werken.
+
+Bronmenu's sluiten met een tik op de handgreep of een neerwaartse sleepbeweging
+vanaf de handgreep. De handgreep heeft een eigen aanraakvlak en ondersteunt pointer,
+touch en toetsenbordbediening. Scrollen in de inhoud sluit het menu niet. De losse
+pijltjes rechtsboven zijn verwijderd. Het zoekveld gebruikt 16 px tekst en focus
+zonder pagina-scroll; een gekozen locatie behoudt het bestaande kaartzoomniveau.

@@ -1,17 +1,19 @@
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.41';
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.41';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.41';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.41';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.41';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.41';
-import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.41';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.41';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.41';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.41';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.41';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.41';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.41';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.41';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.42';
+import { focusTextField } from './TextInputFocus.js?v=0.4.42';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.42';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.42';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.42';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.42';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.42';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.42';
+import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.42';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.42';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.42';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.42';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.42';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.42';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.42';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.42';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -56,7 +58,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
       closeDeck=openLocationDeck({store,objects:places,selected:{properties:{id:item.id}},map,location,events,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item);
   };
-  const focus=point=>{if(point){onFocus();map.easeTo({center:[Number(point.lng),Number(point.lat)],zoom:15,duration:400});}};
+  const focus=point=>{if(point){onFocus();map.easeTo({center:[Number(point.lng),Number(point.lat)],zoom:map.getZoom?.()??15,duration:400});}};
   const showBranch=(branch,deck=null,navigation=null)=>{
     const deckCenter=deck?.center||map.getCenter?.()||location?.latest;
     alignment?.destroy();alignment=null;closeDeck?.();closeDeck=null;const ticket=++boardRevision;focus(branch.coordinates);activePlace(branch.coordinates);let replacing=false;
@@ -134,7 +136,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
-    if(!field.hidden)search?.focus();else{search.value='';drawList();}
+    if(!field.hidden)focusTextField(search);else{search.value='';drawList();}
   });
   listen(search,'input',drawList);listen(root.querySelector('[data-places-close]'),'click',()=>showSheet(false));
   let start=null,suppressClick=false;
@@ -143,9 +145,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   listen(toggle,'touchcancel',()=>{start=null;suppressClick=false;},{passive:true});
   listen(toggle,'click',event=>{if(suppressClick){suppressClick=false;event.stopImmediatePropagation();event.preventDefault();}},true);
   listen(toggle,'keydown',event=>{if(event.key==='ArrowUp'){event.preventDefault();enabled=true;draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));showSheet(true);schedule();}});
-  let sheetStart=null;
-  listen(sheet,'touchstart',event=>{sheetStart=event.target.closest('[data-places-handle],header')?event.touches[0]?.clientY:null;},{passive:true});
-  listen(sheet,'touchend',event=>{if(sheetStart!=null&&event.changedTouches[0]?.clientY-sheetStart>70)showSheet(false);sheetStart=null;},{passive:true});
+  listeners.push(mountSourceSheetHandle(sheet,'[data-places-handle]',()=>showSheet(false)));
   const click=event=>{
     if(!enabled||disposed)return;
     const box=[[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]];
