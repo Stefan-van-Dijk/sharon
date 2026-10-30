@@ -1,5 +1,5 @@
-import { sortBoards } from './BoardOrder.js?v=0.4.32';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.32';
+import { sortBoards } from './BoardOrder.js?v=0.4.33';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.33';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
@@ -47,6 +47,8 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   };
   map.on('moveend', schedule); map.on('click', click);
   return {
+    getBoards(){return enabled?features:[];},
+    handles(event){return enabled&&!disposed&&!!map.getLayer(layer)&&map.queryRenderedFeatures([[event.point.x-12,event.point.y-12],[event.point.x+12,event.point.y+12]],{layers:[layer]}).length>0;},
     setEnabled(value) {
       enabled = Boolean(value); clearTimeout(timer); request?.abort(); request = null; clear();
       if (enabled) { ensure(); refresh(); } else onState('idle');

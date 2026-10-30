@@ -1,29 +1,30 @@
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.32';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.32';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.32';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.32';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.32';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.32';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.32';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.32';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.32';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.32';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.32';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.33';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.33';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.33';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.33';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.33';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.33';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.33';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.33';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.33';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.33';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.33';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.33';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.32';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.32';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.32';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.32';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.32';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.32';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.32';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.32';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.32';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.33';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.33';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.33';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.33';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.33';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.33';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.33';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.33';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.33';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.32';
+} from './EnvironmentScale.js?v=0.4.33';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -410,17 +411,15 @@ export function openEnvironmentView(root, {
   let tiqetsLayer = null;
   let tiqetsEnabled = false;
   let closeBoard = null;
-  const showBoard = (feature, available = [], orderContext = null) => {
+  const boardSources = createEnvironmentBoardSources({onOpen:(feature,navigation)=>renderBoard(feature,navigation)});
+  const showBoard = feature => boardSources.show(feature,map?.getCenter());
+  const renderBoard = (feature, {next, previous, onNext, onPrevious}) => {
     chainLayer?.closeBoard();
     closeLocationDeck?.();
     closeBoard?.();
     const isTiqets = feature.properties?.source === 'tiqets';
-    wikipediaLayer?.setActive(isTiqets ? null : feature);
-    const order = orderContext || {mode:null,center:map?.getCenter()};
-    if (order.mode !== boardOrderMode()) { available = sortBoards(available,order.center); order.mode=boardOrderMode(); }
+    wikipediaLayer?.setActive(feature.properties?.wikidata ? feature : null);
     if (isTiqets) markBoardOpened(feature);
-    const index = available.findIndex(item => item.id === feature.id);
-    const next = available.length > 1 ? available[(index + 1) % available.length] : null;
     const coords = feature.geometry?.coordinates;
     if (map && Array.isArray(coords) && coords.length === 2) {
       followingPosition = false;
@@ -428,26 +427,22 @@ export function openEnvironmentView(root, {
       cameraControls?.reset();
     }
     const alignment = createBoardMapAlignment(map, coords);
-    const previous = available.length > 1
-      ? available[(index - 1 + available.length) % available.length] : null;
     // Keep both neighboring stories warm; errors never block navigation.
     const neighbors = new Map();
     for (const neighbor of [previous, next]) {
-      if (neighbor?.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
+      if (neighbor?.properties?.wikidata && neighbor.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
     }
     if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
-    const switchBoard = step => {
-      const sequence = order.mode === boardOrderMode() ? available : sortBoards(available,order.center);
-      order.mode = boardOrderMode();
-      const current = sequence.findIndex(item => item.id === feature.id);
-      showBoard(sequence[(current+step+sequence.length)%sequence.length],sequence,order);
-    };
+    if (boardSources.openBoard(feature, {onNext,onPrevious})) {
+      alignment.destroy();
+      wikipediaLayer?.setActive(null);
+      return;
+    }
     closeBoard = openBoardViewer(feature, { location, events,
       sourceBoard: isTiqets ? tiqetsBoard(feature, {store, events}) : null,
       onClose: () => { alignment.destroy(); closeBoard = null; wikipediaLayer?.setActive(null); },
       onLayout: alignment.onLayout,
-      onNext: next ? () => switchBoard(1) : null,
-      onPrevious: previous ? () => switchBoard(-1) : null });
+      onNext, onPrevious });
   };
   let wikipediaEnabled = false;
   const filterPanel = root.querySelector('[data-readout-filters]');
@@ -760,9 +755,10 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map);
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
+      for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
       if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
@@ -798,7 +794,7 @@ export function openEnvironmentView(root, {
     });
 
     map.on('click', async event => {
-      if (!mapReady || chainLayer?.handles(event)) return;
+      if (!mapReady || chainLayer?.handles(event) || wikipediaLayer?.handles(event) || tiqetsLayer?.handles(event)) return;
       chainLayer?.closeBoard();
       closeBoard?.();
       try {
@@ -820,6 +816,8 @@ export function openEnvironmentView(root, {
       closeLocationDeck?.();
       closeLocationDeck = null;
       if (selected.properties?.kind === 'location') {
+        const shared=boardSources.getBoards().find(item=>item.type==='location'&&String(item.id)===String(selected.properties.id));
+        if(shared){showBoard(shared);return;}
         const objects = await store.getAll('objects');
         if (disposed) return;
         closeLocationDeck = openLocationDeck({ store, objects, selected, map, location, events,
