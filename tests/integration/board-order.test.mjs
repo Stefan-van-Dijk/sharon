@@ -55,3 +55,24 @@ test('changing the shared order also updates an open saved-location deck while r
   await until(()=>app.document.querySelector('.sh-board-overlay')?.textContent.includes('Locatie B'));
  }finally{close?.();app.close();}
 });
+
+test('analysis radius can be changed and made unlimited, persists and filters future sources in the shared deck',async()=>{
+ const app=await appHarness();let close;
+ try{
+  const {openEnvironmentView}=await app.load(spec('ui/EnvironmentMapLibre.js'));
+  const root=app.document.createElement('div');app.document.body.append(root);
+  const open=()=>openEnvironmentView(root,{store:app.store,events:{on:()=>()=>{}},location:{latest:{lat:52,lng:5}},loadRenderer:()=>new Promise(()=>{})});
+  close=open();root.querySelector('[data-board-order-settings]').click();
+  const requests=app.requests.length;
+  const field=root.querySelector('[data-analysis-radius]'),unlimited=root.querySelector('[data-analysis-unlimited]');
+  assert.equal(field.value,'10');field.value='0.5';field.dispatchEvent(new app.window.Event('change'));
+  const {createEnvironmentBoardSources}=await app.load(spec('ui/EnvironmentBoardSources.js'));
+  let nav;const deck=createEnvironmentBoardSources({onOpen:(_,navigation)=>{nav=navigation;}});
+  const near={id:'near',coordinates:{lat:52,lng:5}},far={id:'far',coordinates:{lat:53,lng:5}};deck.register({getBoards:()=>[near,far]});
+  deck.show(near,{lat:52,lng:5});assert.equal(nav.onNext,null);
+  unlimited.checked=true;unlimited.dispatchEvent(new app.window.Event('change'));assert.equal(field.disabled,true);
+  deck.show(near,{lat:52,lng:5});assert.equal(typeof nav.onNext,'function');
+  assert.equal(app.requests.length,requests,'range settings do not request source data before the map is ready');
+  close();close=open();assert.equal(root.querySelector('[data-analysis-unlimited]').checked,true);assert.equal(root.querySelector('[data-analysis-radius]').value,'0.5');
+ }finally{close?.();app.close();}
+});

@@ -1,30 +1,30 @@
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.35';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.35';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.35';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.35';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.35';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.35';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.35';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.35';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.35';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.35';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.35';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.35';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.36';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.36';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.36';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.36';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.36';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.36';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.36';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.36';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.36';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.36';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.36';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.36';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.35';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.35';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.35';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.35';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.35';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.35';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.35';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.35';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.35';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.36';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.36';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.36';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.36';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.36';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.36';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.36';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.36';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.36';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.35';
+} from './EnvironmentScale.js?v=0.4.36';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -235,8 +235,11 @@ export function openEnvironmentView(root, {
 
           </div>
         </div>
-        <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Volgorde van boards" aria-hidden="true" hidden>
-          <header><strong>Volgorde van boards</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
+        <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Boardinstellingen" aria-hidden="true" hidden>
+          <header><strong>Volgorde en analysestraal</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
+          <label>Analysestraal (km) <input type="number" data-analysis-radius min="0.1" max="20000" step="any" aria-label="Analysestraal in kilometers"></label>
+          <label><input type="checkbox" data-analysis-unlimited> Onbeperkt naar buiten</label>
+          <small>De straal geldt vanaf het kaartmiddelpunt. Onbeperkt toont alle ontdekte plekken. Nieuwe plekken laden per gebied; een grotere straal laadt niet automatisch alle tussenliggende gebieden.</small>
           <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
             <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>

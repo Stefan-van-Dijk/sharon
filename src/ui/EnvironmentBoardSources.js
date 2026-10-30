@@ -1,4 +1,6 @@
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.35';
+import { inAnalysisRange } from './AnalysisRange.js?v=0.4.36';
+import { boardPoint } from './BoardOrder.js?v=0.4.36';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.36';
 
 // Every source supplies its currently enabled, filtered boards. New sources
 // join the same deck by registering this interface, without another navigator.
@@ -13,7 +15,7 @@ export function createEnvironmentBoardSources({onOpen = () => {}} = {}) {
       }));
     },
     show(board, center) {
-      let items = registry.getBoards();
+      let items = registry.getBoards().filter(item=>inAnalysisRange(boardPoint(item),center));
       if (!items.includes(board)) items.push(board);
       let mode = null;
       const show = current => {

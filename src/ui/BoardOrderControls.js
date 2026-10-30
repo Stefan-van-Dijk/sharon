@@ -1,8 +1,10 @@
-import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.35';
+import { mountAnalysisRange } from './AnalysisRange.js?v=0.4.36';
+import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.36';
 export function mountBoardOrderControls(root) {
   const toggle=root.querySelector('[data-board-order-settings]'),panel=root.querySelector('[data-board-order-sheet]');
   // Preserve the previous Wikipedia preference before its filters are rewritten.
   try{localStorage.setItem(BOARD_ORDER_KEY,JSON.stringify(boardOrderMode()));}catch{}
+  const stopRange=mountAnalysisRange(root);
   const buttons=[...panel.querySelectorAll('[data-board-order]')];
   const show=value=>{
     if(value){
@@ -14,7 +16,7 @@ export function mountBoardOrderControls(root) {
   const render=()=>{
     const mode=boardOrderMode();
     for(const button of buttons)button.setAttribute('aria-pressed',String(button.dataset.boardOrder===mode));
-    toggle.title='Volgorde van boards: '+BOARD_ORDERS[mode];
+    toggle.title='Volgorde en analysestraal van boards: '+BOARD_ORDERS[mode];
     toggle.setAttribute('aria-label',toggle.title+'; instellen');
   };
   const click=event=>{
@@ -27,7 +29,7 @@ export function mountBoardOrderControls(root) {
   };
   const key=event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();event.stopImmediatePropagation();show(false);toggle.focus();}};
   root.addEventListener('click',click);window.addEventListener('keydown',key);render();
-  return ()=>{root.removeEventListener('click',click);window.removeEventListener('keydown',key);};
+  return ()=>{stopRange();root.removeEventListener('click',click);window.removeEventListener('keydown',key);};
 }
 export function closeBoardOrder(root) {
   const panel=root.querySelector('[data-board-order-sheet]');
