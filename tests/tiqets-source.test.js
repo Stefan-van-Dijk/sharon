@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { tiqetsFeatures, tiqetsBoard, tiqetsLink, tiqetsImage, fetchTiqetsPlaces, tiqetsStatus } from '../src/ui/TiqetsSource.js';
 import { mountTiqetsLayer } from '../src/ui/TiqetsLayer.js';
+import { ANALYSIS_RANGE_EVENT, ANALYSIS_RANGE_KEY } from '../src/ui/AnalysisRange.js';
 
 const product = (extra = {}) => ({
   id:'123', title:'Museumticket', sale_status:'available',
@@ -82,6 +83,37 @@ test('failed live refresh removes previous map offers and cannot open an old mar
   await new Promise(resolve=>setTimeout(resolve,500));
   map.fire('click',{point:{x:1,y:1}});assert.equal(opened,1);
   binding.destroy();
+});
+
+test('Tiqets range changes redraw browser markers and destroy removes the range listener', async t => {
+  const events = new EventTarget();
+  let stored = JSON.stringify({meters:100,unlimited:false});
+  for (const [key,value] of Object.entries({window:events,localStorage:{getItem:key=>key===ANALYSIS_RANGE_KEY?stored:null}})) {
+    const previous = Object.getOwnPropertyDescriptor(globalThis,key);
+    Object.defineProperty(globalThis,key,{configurable:true,value});
+    t.after(()=>{if(previous)Object.defineProperty(globalThis,key,previous);else delete globalThis[key];});
+  }
+  const add = t.mock.method(events, 'addEventListener');
+  const remove = t.mock.method(events, 'removeEventListener');
+  const map = fakeMap();
+  const binding = mountTiqetsLayer(map, {fetchPlaces:async()=>tiqetsFeatures([
+    product(), product({id:'124',venue:{id:'100',name:'Verder weg'},geolocation:{lat:52.11,lng:5.1}})
+  ])});
+  t.after(()=>binding.destroy());
+  binding.setEnabled(true);
+  await Promise.resolve(); await Promise.resolve();
+  const source = map.getSource('sharon-tiqets');
+  assert.equal(source.data.features.length,1);
+  stored = JSON.stringify({meters:100,unlimited:true});
+  events.dispatchEvent(new Event(ANALYSIS_RANGE_EVENT));
+  assert.equal(source.data.features.length,2);
+  assert.equal(binding.getBoards().length,2);
+  const listener = add.mock.calls.find(call=>call.arguments[0]===ANALYSIS_RANGE_EVENT).arguments[1];
+  binding.destroy();
+  assert.ok(remove.mock.calls.some(call=>call.arguments[0]===ANALYSIS_RANGE_EVENT&&call.arguments[1]===listener));
+  const setData = t.mock.method(source, 'setData');
+  events.dispatchEvent(new Event(ANALYSIS_RANGE_EVENT));
+  assert.equal(setData.mock.callCount(),0);
 });
 
 function php(expression) {

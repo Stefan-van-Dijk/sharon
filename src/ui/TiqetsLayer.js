@@ -5,6 +5,7 @@ import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.36';
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
   const source = 'sharon-tiqets', layer = 'sharon-tiqets-points';
+  const rangeEvents = globalThis.window;
   let enabled = false, disposed = false, timer, request, features = [];
   const ensure = () => {
     if (!map.getSource(source)) map.addSource(source, {type:'geojson',data:EMPTY});
@@ -15,7 +16,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   };
   const visible=()=>features.filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter());});
   const rangeChanged=()=>{if(enabled)map.getSource(source)?.setData({type:'FeatureCollection',features:visible()});};
-  window.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
+  rangeEvents?.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   const clear = () => { features = []; map.getSource(source)?.setData(EMPTY); };
   const refresh = async () => {
     if (!enabled || disposed || !map.isStyleLoaded()) return;
@@ -58,7 +59,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
       if (enabled) { ensure(); refresh(); } else onState('idle');
     },
     destroy() {
-      window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
+      rangeEvents?.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
       disposed = true; enabled = false; clearTimeout(timer); request?.abort(); request = null; clear();
       map.off('moveend', schedule); map.off('click', click);
       if (map.getLayer(layer)) map.removeLayer(layer);
