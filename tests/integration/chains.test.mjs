@@ -342,3 +342,21 @@ test('shop category panel filters markers, list and mixed deck, remembers multi-
   assert.equal(root.querySelector('[data-chain-status-filter="hidden"]').getAttribute('aria-pressed'),'true');
  }finally{layer?.destroy();app.close();}
 });
+
+test('remote shop markers remain visible during area refresh and unchanged data is not repainted',async()=>{
+ const {app,events,point}=await setup();let layer,release;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map();let writes=0,hold=false,waiting=false;
+  const version='v1-'+'a'.repeat(24);
+  app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);if(q.action==='map'&&hold){waiting=true;await new Promise(resolve=>release=resolve);}return {ok:true,json:async()=>q.action==='catalog'?{schema:1,version,chains:[{id:'Q999999',name:'Winkel',kind:'supermarket'}]}:{schema:1,version,points:[['remote000001','Q999999',5000000,52000000,'Winkel','node/99']]}};};
+  let center=point;
+  const map={addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;writes++;}});},getSource:id=>sources.get(id),addLayer(){},on(n,f){handlers.set(n,f);},off(){},getCenter:()=>center,getZoom:()=>15,getBounds:()=>({getWest:()=>4.9,getEast:()=>5.1,getSouth:()=>51.9,getNorth:()=>52.1}),easeTo(){},queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q999999'});
+  await until(()=>sources.get('sharon-chain-branches').data.features.length===1);
+  const before=writes;hold=true;center={lat:52.001,lng:5};handlers.get('moveend')();await until(()=>waiting);
+  assert.equal(sources.get('sharon-chain-branches').data.features.length,1);assert.equal(writes,before);
+  release();release=null;await new Promise(resolve=>setTimeout(resolve,30));assert.equal(writes,before);
+ }finally{release?.();layer?.destroy();app.close();}
+});

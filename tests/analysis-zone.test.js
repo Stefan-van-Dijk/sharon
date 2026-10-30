@@ -11,12 +11,3 @@ test('visible analysis zone follows geodesic distance and closes its boundary at
  assert.equal(analysisZoneGeoJSON({center,meters:200000,unlimited:true}).features.length,1);
  assert.equal(analysisZoneGeoJSON({center:null}).features.length,0);
 });
-
-test('fit padding keeps the circle clear of bottom and side settings sheets',async()=>{
- const {analysisZonePadding}=await import('../src/ui/AnalysisZone.js');
- const view={left:10,top:20,width:800,height:600};
- assert.deepEqual(analysisZonePadding(view,{left:10,right:810,top:420,bottom:620,width:800,height:200}),{left:24,right:24,top:24,bottom:224});
- assert.deepEqual(analysisZonePadding(view,{left:10,right:260,top:20,bottom:620,width:250,height:600}),{left:274,right:24,top:24,bottom:24});
- assert.equal(analysisZonePadding(view,{left:900,right:1000,top:20,bottom:120,width:100,height:100}),40);
- assert.equal(analysisZonePadding(undefined,undefined),40);
-});

@@ -57,3 +57,11 @@ De analysestraal verschijnt als geodetische cirkel met lichte vulling, stippelli
 en middelpunt op de kaart. Sliderbewegingen werken direct door. Bij 0 km en ∞
 blijft het middelpunt zichtbaar, zonder cirkel; 0 km selecteert uitsluitend de
 exacte centrumpositie. Het centrum wordt samen met de straal lokaal bewaard.
+
+De straalslider gebruikt de volledige breedte van het instellingenblad en een
+ruime aanraakhoogte. Tijdens slepen verandert alleen de cirkelvoorvertoning;
+bronselecties worden na loslaten bijgewerkt. Toon/Verberg cirkel schakelt uitsluitend
+de zichtbaarheid van stip en cirkel (lokaal bewaard), zonder de selectie of camera
+te veranderen. Winkelpunten blijven staan tijdens gebiedsverversing en bij fouten;
+nieuwe resultaten vervangen ze pas na een geslaagd verzoek. Identieke winkel- en
+Wikipedia-kaartgegevens worden niet opnieuw naar de kaart gestuurd.
