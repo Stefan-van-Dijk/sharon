@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.40';
-import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.40';
-import { createBoardDeck } from './BoardChrome.js?v=0.4.40';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.41';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.41';
+import { createBoardDeck } from './BoardChrome.js?v=0.4.41';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -367,7 +367,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     let reference = null;
     try { reference = isLocal ? (localBoard.feedbackReference?informationReference(localBoard.feedbackReference):null) : wikipediaReference(feature); } catch {}
     const syncStatus = document.createElement('small');
-    syncStatus.setAttribute('role','status');
+    syncStatus.setAttribute('role','status');syncStatus.hidden=true;
     syncStatus.style.cssText = 'font-size:11px;line-height:1.3;max-width:150px';
     let feedback = {read:false, liked:false, disliked:false, hidden:false, category:''};
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
@@ -411,10 +411,9 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
       window.dispatchEvent(new CustomEvent(feedbackEvent,{detail:{id:articleId,...feedback}}));
       renderFeedback();
       if (information && reference) {
-        syncStatus.textContent = 'Waardering bewaren…';
         information.set(reference, feedback).then(() => {
-          if (!closed) syncStatus.textContent = 'Opgeslagen op dit apparaat';
-        }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; });
+          if (!closed){syncStatus.textContent='';syncStatus.hidden=true;}
+        }).catch(() => { if (!closed){syncStatus.hidden=false;syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.';} });
       }
     };
     readButton.addEventListener('click', () => { feedback.read = !feedback.read; persistFeedback(); });
@@ -436,7 +435,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
         try { localStorage.setItem(feedbackKey, JSON.stringify(feedback)); } catch {}
         window.dispatchEvent(new CustomEvent(feedbackEvent,{detail:{id:articleId,...feedback}}));
         renderFeedback();
-      }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; })
+      }).catch(() => { if (!closed){syncStatus.hidden=false;syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.';} })
         .finally(() => buttons.forEach(button => { button.disabled = false; }));
       information.load([reference]).catch(() => {});
       information.canManage().then(owner => {

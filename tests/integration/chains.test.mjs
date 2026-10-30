@@ -360,3 +360,23 @@ test('remote shop markers remain visible during area refresh and unchanged data 
   release();release=null;await new Promise(resolve=>setTimeout(resolve,30));assert.equal(writes,before);
  }finally{release?.();layer?.destroy();app.close();}
 });
+
+test('source menu keeps the chain dropdown hidden and opens search through its header icon',async()=>{
+ const {app,events,point}=await setup();let close,layer;
+ try{
+  const {openEnvironmentView}=await app.load(spec('ui/EnvironmentMapLibre.js'));
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');app.document.body.append(root);
+  close=openEnvironmentView(root,{store:app.store,events,location:{latest:point},loadRenderer:()=>new Promise(()=>{})});
+  const sources=new Map(),map={getCenter:()=>point,addSource(id,o){sources.set(id,{data:o.data,setData(value){this.data=value;}});},getSource:id=>sources.get(id),addLayer(){},on(){},off(){},easeTo(){},queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});
+  await until(()=>root.querySelector('[data-chain-category="groceries"] b')?.textContent==='1');
+  assert.equal(root.querySelector('[data-chain-filter]').hidden,true);
+  const button=root.querySelector('[data-places-search-toggle]'),field=root.querySelector('[data-places-search-field]');
+  assert.equal(field.hidden,true);button.click();assert.equal(field.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');
+  const input=root.querySelector('[data-places-search]');input.value='geen resultaat';input.dispatchEvent(new app.window.Event('input'));assert.match(root.querySelector('[data-places-list]').textContent,/Geen locaties gevonden/);
+  button.click();assert.equal(field.hidden,true);assert.equal(input.value,'');
+  const status=root.querySelector('[data-chain-status-filter="read"]');assert.equal(status.getAttribute('aria-label'),'Gelezen');assert.ok(!status.textContent.includes('Gelezen'));
+  assert.ok(root.querySelector('[data-source-sheet] [data-wiki-close]'));
+ }finally{layer?.destroy();close?.();app.close();}
+});

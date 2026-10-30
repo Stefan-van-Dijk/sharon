@@ -1,8 +1,8 @@
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.40';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.40';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.40';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.40';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.40';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.41';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.41';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.41';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.41';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.41';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();

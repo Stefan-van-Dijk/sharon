@@ -72,3 +72,11 @@ vrije kaartvlak, rekening houdend met instellingenblad en kaartbediening. Tijden
 slepen past de kaart zonder animatiewachttijd om de cirkel heen in dat vrije vlak;
 bronverzoeken blijven wachten op loslaten. Zichtbaarheid schakelen beweegt de kaart
 niet. Bij ∞ blijft de laatst bruikbare uitsnede staan; 0 km zoomt naar het middelpunt.
+
+De winkel- en Wikipediakeuzebladen delen dezelfde vaste responsieve hoogte en
+kop-/status-/categorievormgeving. De winkelbron heeft een zoekicoon in de kop om
+zoeken uit te klappen; de interne ketenselectie wordt niet meer als dropdown
+getoond. Statusknoppen tonen iconen en aantallen, met toegankelijke tekstlabels.
+De boardvoet toont bron en categorie op een eigen volle regel. Een geslaagde eigen
+waardering geeft geen opslagmelding; fouten blijven zichtbaar en de lokale opslag
+en synchronisatie blijven werken.

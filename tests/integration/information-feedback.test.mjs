@@ -126,6 +126,7 @@ test('board footer shows category and personal feedback without community counts
       service.summary=original;
       like.click();assert.equal(like.getAttribute('aria-pressed'),'true');
       await until(async()=>(await app.store.getAll('meta')).some(row=>row.value.state?.liked));
+      assert.doesNotMatch(footer.textContent,/Opgeslagen op dit apparaat|Waardering bewaren/);
       like.click();assert.equal(like.getAttribute('aria-pressed'),'false');
       close();close=null;
     }
