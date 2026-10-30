@@ -1,11 +1,11 @@
-import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.32';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.32';
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.32';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.32';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.32';
+import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.33';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.33';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.33';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.33';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.33';
 
 const IMAGE_KEY = 'location.board.image.v1:';
-export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events}) {
+export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events, navigation=null}) {
   const orderCenter=map?.getCenter?.()||location?.latest;
   let places = sortBoards(objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates),orderCenter);
   let index = places.findIndex(item => String(item.id) === String(selected.properties?.id));
@@ -88,12 +88,14 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       onNext:()=>{
         complete('swipe');
         if(expanded){page=(page+1)%(sources.length+1);}
+        else if(navigation){navigation.onNext?.();return;}
         else {index=(index+1)%places.length;}
         show();
       },
       onPrevious:()=>{
         complete('swipe');
         if(expanded){page=(page+sources.length)%(sources.length+1);}
+        else if(navigation){navigation.onPrevious?.();return;}
         else {index=(index-1+places.length)%places.length;}
         show();
       },

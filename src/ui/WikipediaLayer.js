@@ -1,7 +1,7 @@
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.32';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.32';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.32';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.32';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.33';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.33';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.33';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.33';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -164,7 +164,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
-  return { setSort(value) { sortMode = ['discover','nearby','relevant','popular'].includes(value) ? value : 'discover'; if (enabled) redraw(); }, setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
+  return { getBoards(){return enabled?currentFeatures:[];}, handles(event){return enabled&&!!map.getLayer(layerId)&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[layerId]}).length>0;}, setSort(value) { sortMode = ['discover','nearby','relevant','popular'].includes(value) ? value : 'discover'; if (enabled) redraw(); }, setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); lastCenter = null;

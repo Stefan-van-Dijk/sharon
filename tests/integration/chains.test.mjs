@@ -266,3 +266,42 @@ test('shop discovery stays within 10 km, excludes distant cached shops and follo
   assert.equal(calls.filter(q=>q.action==='map').length,2);
  }finally{layer?.destroy();app.close();}
 });
+
+test('mixed environment deck swipes from Wikipedia to a shop and saved location, retaining source filters',async()=>{
+ const {app,events,point}=await setup();let layer,close;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const {createEnvironmentBoardSources}=await app.load(spec('ui/EnvironmentBoardSources.js'));
+  const {openBoardViewer}=await app.load(spec('ui/BoardViewer.js'));
+  await app.store.put('objects',{id:'mixedplace01',type:'location',data:{title:'Eigen werkplek',coordinates:{lat:52.002,lng:5}}});
+  app.window.localStorage.setItem('sharon.boards.order.v1',JSON.stringify('nearby'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small>';app.document.body.append(root);
+  const sources=new Map();
+  const map={getCenter:()=>point,addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;}});},getSource:id=>sources.get(id),addLayer(){},on(){},off(){},easeTo(){},queryRenderedFeatures:()=>[]};
+  const wiki={id:'Q42',geometry:{type:'Point',coordinates:[5,51.999]},properties:{wikidata:'Q42',title:'Wikipedia toren',url:'https://nl.wikipedia.org/?curid=42'}};
+  const deck=createEnvironmentBoardSources({onOpen:(item,nav)=>{
+    close?.();layer?.closeBoard();
+    if(!deck.openBoard(item,nav))close=openBoardViewer(item,{onNext:nav.onNext,onPrevious:nav.onPrevious});
+  }});
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985',onOpen:item=>deck.show(item,point)});
+  deck.register(layer);deck.register({getBoards:()=>[wiki]});
+  await until(()=>layer.getBoards().length===1);
+  // Remove the temporary chain selection: include saved locations as well.
+  root.querySelector('select').value='';root.querySelector('select').dispatchEvent(new app.window.Event('change'));
+  assert.equal(layer.getBoards().length,2);
+  deck.show(wiki,point);
+  const swipe=async(title)=>{
+    const plate=app.document.querySelector('.sh-board-plate');
+    for(const [type,x] of [['touchstart',220],['touchmove',20],['touchend',20]]){
+      const e=new app.window.Event(type,{bubbles:true,cancelable:true});Object.defineProperties(e,{touches:{value:[{clientX:x,clientY:100}]},changedTouches:{value:[{clientX:x,clientY:100}]}});plate.dispatchEvent(e);
+    }
+    await until(()=>app.document.querySelector('.sh-board-overlay')?.textContent.includes(title));
+    assert.equal(app.document.querySelectorAll('.sh-board-overlay').length,1);
+  };
+  await swipe('Eigen werkplek');
+  await swipe('Albert Heijn');
+  await swipe('Wikipedia toren');
+  root.querySelector('button').click();assert.equal(layer.getBoards().length,0);
+  deck.show(wiki,point);assert.equal(app.document.querySelector('.sh-board-overlay').textContent.includes('Wikipedia toren'),true);
+ }finally{close?.();layer?.destroy();app.close();}
+});
