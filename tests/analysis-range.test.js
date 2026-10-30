@@ -14,6 +14,7 @@ test('analysis radius defaults, custom limits and unlimited discovery keep sourc
   value=JSON.stringify({meters:100000,unlimited:false});assert.equal(analysisFetchRadius(),10000);
   value=JSON.stringify({meters:500,unlimited:true});assert.equal(inAnalysisRange({lat:-30,lng:130},{lat:52,lng:5}),true);assert.equal(analysisFetchRadius(),10000);
   value=JSON.stringify({meters:0,center:{lat:52,lng:5}});assert.equal(analysisRange().meters,0);assert.equal(inAnalysisRange({lat:52,lng:5},{lat:53,lng:6}),true);assert.equal(inAnalysisRange({lat:53,lng:6},{lat:53,lng:6}),false);
+  value=JSON.stringify({meters:500000,unlimited:false});assert.equal(analysisRange().meters,200000);assert.equal(analysisRange().unlimited,false);
   value=JSON.stringify({meters:-1});assert.equal(analysisRange().meters,10000);
  }finally{globalThis.localStorage=old;}
 });

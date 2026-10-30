@@ -1,4 +1,4 @@
-import { analysisRange, saveAnalysisRange, validCenter, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.37';
+import { analysisRange, saveAnalysisRange, validCenter, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.38';
 const EMPTY={type:'FeatureCollection',features:[]};
 export function analysisZoneGeoJSON(range){
   if(!validCenter(range.center))return EMPTY;
@@ -17,6 +17,18 @@ export function analysisZoneGeoJSON(range){
   }
   return {type:'FeatureCollection',features};
 }
+// Fit into the largest uncovered rectangle beside the settings sheet.
+export function analysisZonePadding(view, sheet){
+  if(!view?.width||!view?.height||!sheet?.width||!sheet?.height)return 40;
+  const width=view.width,height=view.height;
+  const left=Math.max(0,Math.min(width,sheet.left-view.left)),right=Math.max(0,Math.min(width,sheet.right-view.left));
+  const top=Math.max(0,Math.min(height,sheet.top-view.top)),bottom=Math.max(0,Math.min(height,sheet.bottom-view.top));
+  if(right<=left||bottom<=top)return 40;
+  const spaces=[{x:0,y:0,w:width,h:top},{x:0,y:bottom,w:width,h:height-bottom},{x:0,y:0,w:left,h:height},{x:right,y:0,w:width-right,h:height}];
+  const space=spaces.filter(s=>s.w>=80&&s.h>=80).sort((a,b)=>b.w*b.h-a.w*a.h)[0];
+  if(!space)return 24;
+  return {left:space.x+24,right:width-space.x-space.w+24,top:space.y+24,bottom:height-space.y-space.h+24};
+}
 export function mountAnalysisZone(map,root){
   const source='sharon-analysis-zone';
   map.addSource(source,{type:'geojson',data:EMPTY});
@@ -29,7 +41,7 @@ export function mountAnalysisZone(map,root){
     if(event.target.closest('[data-analysis-recenter]'))anchor();
     if(event.target.closest('[data-analysis-fit]')){
       const range=analysisRange(),polygon=analysisZoneGeoJSON(range).features.find(feature=>feature.geometry.type==='Polygon');
-      if(polygon){const ring=polygon.geometry.coordinates[0],xs=ring.map(point=>point[0]),ys=ring.map(point=>point[1]);map.fitBounds?.([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:70,duration:400,maxZoom:18});}
+      if(polygon){const ring=polygon.geometry.coordinates[0],xs=ring.map(point=>point[0]),ys=ring.map(point=>point[1]);map.fitBounds?.([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:analysisZonePadding(map.getContainer?.().getBoundingClientRect(),root.querySelector('[data-board-order-sheet]:not([hidden])')?.getBoundingClientRect()),duration:400,maxZoom:18,retainPadding:false});}
     }
     if(event.target.closest('[data-board-order-settings]')&&!root.querySelector('[data-board-order-sheet]')?.hidden)anchor();
   };

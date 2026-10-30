@@ -39,7 +39,7 @@ selectie stuurt kaartpunten, de locatielijst en het gezamenlijke deck.
 
 ## Analysestraal
 
-Bij de gedeelde boardinstellingen staat een slider van 0 tot 500 kilometer (standaard
+Bij de gedeelde boardinstellingen staat een slider van 0 tot 200 kilometer (standaard
 10 km); de volgende stand is ∞ / Onbeperkt naar buiten. De voorkeur wordt lokaal
 bewaard. Bij openen van de boardinstellingen wordt het huidige kaartmiddelpunt vastgezet
 als analysecentrum. De selectie blijft op die plek staan tijdens kaartbewegingen
