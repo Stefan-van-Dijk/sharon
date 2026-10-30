@@ -1,15 +1,16 @@
-import { mountChainFilters } from './ChainFilters.js?v=0.4.34';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.34';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.34';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.34';
-import { ChainBrowse, CHAIN_RADIUS_METERS, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.34';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.34';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.34';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.34';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.34';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.34';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.34';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.34';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.35';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.35';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.35';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.35';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.35';
+import { ChainBrowse, CHAIN_RADIUS_METERS, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.35';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.35';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.35';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.35';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.35';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.35';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.35';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.35';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -51,7 +52,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     beforeOpen();popup?.remove();closeDeck?.();showSheet(false);
     if(onOpen){onOpen(item);return;}
     if(item.type==='location'){
-      closeDeck=openLocationDeck({store,objects:places,selected:{properties:{id:item.id}},map,location,events,onLocation:place=>focus(place.data.coordinates)});
+      closeDeck=openLocationDeck({store,objects:places,selected:{properties:{id:item.id}},map,location,events,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item);
   };
   const focus=point=>{if(point){onFocus();map.easeTo({center:[Number(point.lng),Number(point.lat)],zoom:15,duration:400});}};
@@ -70,7 +71,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     const render=current=>{
       if(closeDeck){replacing=true;closeDeck();replacing=false;}
       closeDeck=openBoardViewer({geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{title:branch.name}},{location,events,onLayout:alignment.onLayout,
-        onClose:()=>{if(!replacing){boardRevision++;alignment?.destroy();activePlace();}},localBoard:{feedbackId:branch.sourceRef,feedbackReference:{source:'openstreetmap',id:branch.sourceRef,uri:'https://www.openstreetmap.org/'+branch.sourceRef},title:branch.name,credit:'© OpenStreetMap',creditUrl:'https://www.openstreetmap.org/copyright',creditDescription:'© OpenStreetMap contributors · Open Database License (ODbL)',type:chainName(branch.chainId),address:current.address||'',description:[current.openingHours,current.loading,current.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:current.website||'https://www.openstreetmap.org/'+branch.sourceRef,
+        onClose:()=>{if(!replacing){boardRevision++;alignment?.destroy();activePlace();}},localBoard:{feedbackId:branch.sourceRef,feedbackReference:{source:'openstreetmap',id:branch.sourceRef,uri:'https://www.openstreetmap.org/'+branch.sourceRef},title:branch.name,category:SHOP_CATEGORIES[shopCategory(branch,catalog)],credit:'© OpenStreetMap',creditUrl:'https://www.openstreetmap.org/copyright',creditDescription:'© OpenStreetMap contributors · Open Database License (ODbL)',type:chainName(branch.chainId),address:current.address||'',description:[current.openingHours,current.loading,current.status==='possibly-closed'?'Mogelijk gesloten':''].filter(Boolean).join(' · '),website:current.website||'https://www.openstreetmap.org/'+branch.sourceRef,
           save:async()=>{const complete=current.remote?await browse.detail(branch):current;const record=await saveBranchLocation(store,complete);events?.emit('location.created',{id:record.id});events?.emit('cards.context.check');}},
         onNext:navigation?navigation.onNext:available.length>1?()=>moveBranch(1):null,
         onPrevious:navigation?navigation.onPrevious:available.length>1?()=>moveBranch(-1):null});
@@ -172,7 +173,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
   return {getBoards,allowsLocation(item){return enabled?(!selected||selected==='@local'||item.data?.chainId===selected)&&filters.matches(item):!placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
-      closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,onLocation:place=>focus(place.data.coordinates)});
+      closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);
   },closeBoard(){alignment?.destroy();boardRevision++;closeDeck?.();closeDeck=null;activePlace();},handles(event){return enabled&&!disposed&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[points]}).length>0;},destroy(){filters.destroy();alignment?.destroy();disposed=true;revision++;queryRevision++;boardRevision++;request?.abort();clearTimeout(timer);popup?.remove();closeDeck?.();off?.();offCards?.();offPlaces.forEach(off=>off?.());listeners.forEach(off=>off());map.off('click',click);map.off('moveend',drawList);map.off('moveend',schedule);}};
 }

@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.34';
-import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.34';
-import { createBoardDeck } from './BoardChrome.js?v=0.4.34';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.35';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.35';
+import { createBoardDeck } from './BoardChrome.js?v=0.4.35';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -177,7 +177,6 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : ''; }
     catch { return ''; }
   };
-  let stopInformation = () => {};
   let closePolicyEditor = () => {};
   let closed = false, heading = null, gps = location?.latest || null;
   const coords = feature?.geometry?.coordinates;
@@ -318,6 +317,16 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     category.title = names.join(' · ') || 'Geen Wikipedia-categorie beschikbaar';
     attribution.append(category);
   }
+  if (isLocal || external) {
+    const label = isLocal ? (localBoard.category || localBoard.type || 'Locatie') : sourceBoard.category;
+    if (label) {
+      const category = document.createElement('small');
+      category.className = 'sh-board-category';
+      category.textContent = label;
+      category.title = label;
+      attribution.append(category);
+    }
+  }
   footer.append(attribution);
   const savedSections = new Set();
   let savingSection = null;
@@ -360,11 +369,6 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     const syncStatus = document.createElement('small');
     syncStatus.setAttribute('role','status');
     syncStatus.style.cssText = 'font-size:11px;line-height:1.3;max-width:150px';
-    const syncNotice = event => {
-      if (event?.detail?.error) { syncStatus.textContent = 'Waardering wacht op verbinding'; return; }
-      const summary = reference && information?.summary(reference);
-      syncStatus.textContent = summary ? summary.counts.liked + ' leuk' : '';
-    };
     let feedback = {read:false, liked:false, disliked:false, hidden:false, category:''};
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
     const actions = document.createElement('div');
@@ -431,12 +435,10 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
         feedback = {...feedback, ...row.state};
         try { localStorage.setItem(feedbackKey, JSON.stringify(feedback)); } catch {}
         window.dispatchEvent(new CustomEvent(feedbackEvent,{detail:{id:articleId,...feedback}}));
-        renderFeedback(); syncNotice();
+        renderFeedback();
       }).catch(() => { if (!closed) syncStatus.textContent = 'Bewaren mislukt. Probeer opnieuw.'; })
         .finally(() => buttons.forEach(button => { button.disabled = false; }));
-      window.addEventListener('sharon-information-changed',syncNotice);
-      stopInformation = () => window.removeEventListener('sharon-information-changed',syncNotice);
-      information.load([reference]).then(syncNotice).catch(() => { if (!closed) syncStatus.textContent = 'Waardering wacht op verbinding'; });
+      information.load([reference]).catch(() => {});
       information.canManage().then(owner => {
         if (!owner || closed) return;
         // Personal management action: keep the board itself focused on content.
@@ -883,7 +885,6 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     if (closed) return;
     closed = true;
     abort.abort();
-    stopInformation();
     closePolicyEditor();
     unsubscribe?.();
     window.removeEventListener('keydown', onKey);

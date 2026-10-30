@@ -1,4 +1,4 @@
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.34';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.35';
 
 // Every source supplies its currently enabled, filtered boards. New sources
 // join the same deck by registering this interface, without another navigator.
