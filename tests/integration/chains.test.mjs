@@ -194,6 +194,7 @@ test('branch points stay unclustered; board ratings persist, retract and hide/re
   const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
   const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,undefined);assert.equal(layers.length,1);assert.equal(layers[0].paint['circle-radius'],6);
   assert.equal(active.lat,52);
+  assert.equal(board.querySelector('.sh-board-category').textContent,'Boodschappen');
   const button=label=>board.querySelector('[aria-label="'+label+'"]');
   button('Vind ik leuk').click();assert.equal(button('Hartje verwijderen').getAttribute('aria-pressed'),'true');
   button('Niet leuk').click();assert.equal(button('Vind ik leuk').getAttribute('aria-pressed'),'false');

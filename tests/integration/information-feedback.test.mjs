@@ -104,3 +104,30 @@ test('non-owner has no relevance editor or owner gesture',async()=>{
     assert.equal(f.app.document.querySelector('.sh-board-owner-policy-overlay'),null);
   }finally{f.dispose();}
 });
+
+test('board footer shows category and personal feedback without community counts or connection notices',async()=>{
+  const app=await appHarness();let stop,close;
+  try{
+    const {InformationFeedbackService}=await app.load('./src/core/information/InformationFeedbackService.js?v='+version);
+    const {openBoardViewer}=await app.load('./src/ui/BoardViewer.js?v='+version);
+    const service=new InformationFeedbackService(app.store,{device:async()=>({personId:'abcdefghijkl',registered:false,self:{line:1}}),request:async()=>{throw Error('Offline');}});
+    stop=service.start(app.window);
+    for(const local of [false,true]){
+      const feature={id:'Q42',geometry:{coordinates:[5,52]},properties:{wikidata:'Q42',title:'Voorbeeld',categories:['Erfgoed'],url:'https://nl.wikipedia.org/?curid=42'}};
+      close=openBoardViewer(feature,local?{localBoard:{feedbackId:'node/1',feedbackReference:{source:'openstreetmap',id:'node/1',uri:'https://www.openstreetmap.org/node/1'},title:'Winkel',category:'Boodschappen',credit:'© OpenStreetMap'}}:{});
+      const like=await until(()=>app.document.querySelector('[aria-label="Vind ik leuk"]:not(:disabled)'));
+      const footer=app.document.querySelector('.sh-board-footer');
+      assert.equal(footer.querySelector('.sh-board-attribution .sh-board-category').textContent,local?'Boodschappen':'Erfgoed');
+      app.window.dispatchEvent(new app.window.CustomEvent('sharon-information-changed',{detail:{error:true}}));
+      assert.doesNotMatch(footer.textContent,/Waardering wacht op verbinding/);
+      const original=service.summary;service.summary=()=>({counts:{liked:321}});
+      app.window.dispatchEvent(new app.window.CustomEvent('sharon-information-changed'));
+      assert.doesNotMatch(footer.textContent,/321 leuk/);
+      service.summary=original;
+      like.click();assert.equal(like.getAttribute('aria-pressed'),'true');
+      await until(async()=>(await app.store.getAll('meta')).some(row=>row.value.state?.liked));
+      like.click();assert.equal(like.getAttribute('aria-pressed'),'false');
+      close();close=null;
+    }
+  }finally{close?.();stop?.();app.close();}
+});

@@ -1,11 +1,13 @@
-import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.34';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.34';
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.34';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.34';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.34';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.35';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.35';
+import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.35';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.35';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.35';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.35';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.35';
 
 const IMAGE_KEY = 'location.board.image.v1:';
-export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events, navigation=null}) {
+export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events, navigation=null, category=null}) {
   const orderCenter=map?.getCenter?.()||location?.latest;
   let places = sortBoards(objects.filter(item => item.type === 'location' && !item.deletedAt && item.data?.coordinates),orderCenter);
   let index = places.findIndex(item => String(item.id) === String(selected.properties?.id));
@@ -67,7 +69,7 @@ export function openLocationDeck({store, objects, selected, onClose, onLocation,
       localBoard:{
         feedbackId:placeKey(item),
         feedbackReference:data.sourceRef?{source:'openstreetmap',id:data.sourceRef,uri:'https://www.openstreetmap.org/'+data.sourceRef}:null,
-        title, type:source ? 'Webpagina' : String(data.locationType || data.type || 'Locatie'),
+        title, category:source?'Webpagina':category||SHOP_CATEGORIES[shopCategory(item,CHAIN_CATALOG)], type:source ? 'Webpagina' : String(data.locationType || data.type || 'Locatie'),
         address:source ? source.url : addressText(data),
         website:source?.url || '', image,
         toggle:()=>{complete('deck');expanded=!expanded;page=0;show();},

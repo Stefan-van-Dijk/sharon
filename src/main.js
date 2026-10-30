@@ -1,5 +1,5 @@
-import { createApp } from './app.js?v=0.4.34';
-import { syncViewportHeight } from './ui/Viewport.js?v=0.4.34';
+import { createApp } from './app.js?v=0.4.35';
+import { syncViewportHeight } from './ui/Viewport.js?v=0.4.35';
 if (document.documentElement) syncViewportHeight();
 if (document.documentElement) window.addEventListener('resize', syncViewportHeight, {passive:true});
 if (document.documentElement) window.addEventListener('orientationchange', syncViewportHeight, {passive:true});
@@ -17,7 +17,7 @@ const app = await createApp();
 
 // Register before the intro: app.start can finish after the window load event.
 if ('serviceWorker' in navigator) {
-  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.4.34', {
+  const register = () => navigator.serviceWorker.register('./service-worker.js?v=0.4.35', {
     updateViaCache: 'none'
   }).then(registration => {
     app.services.install.watchUpdates(registration);
