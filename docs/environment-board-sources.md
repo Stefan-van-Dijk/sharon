@@ -155,3 +155,12 @@ Een herladen app-pagina start een nieuwe ontdekkingssessie; dit is geen permanen
 opslag van alle bezochte gebieden. Hiervoor verandert chains.php niet.
 
 Bij wereldwijde bronuitval bevat de API nu per vaste bron een beperkte diagnose (timeout, TLS, verbinding, HTTP-status of ongeldig antwoord), zonder serverpaden of ruwe foutinhoud. De gewone appmelding blijft compact.
+
+## Zichtbaar kaartgebied als selectie
+
+De losse zoekgebiedinstelling (analysestraal, middelpunt en cirkel) is verwijderd.
+Oude opgeslagen straalvoorkeuren beperken de boardselectie niet meer. Het huidige
+kaartvenster bepaalt welke ontdekte boards beschikbaar zijn; een geopend deck houdt
+zijn bestaande momentopname. Bronverzoeken blijven begrensd om grote downloads te
+voorkomen. Ontdekte punten worden hergebruikt totdat hun bron wordt uitgeschakeld.
+De boardvoet toont bron en categorie links onder elkaar en beoordelingen rechts.

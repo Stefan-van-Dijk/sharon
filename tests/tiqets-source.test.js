@@ -85,7 +85,7 @@ test('failed live refresh removes previous map offers and cannot open an old mar
   binding.destroy();
 });
 
-test('Tiqets range changes redraw browser markers and destroy removes the range listener', async t => {
+test('Tiqets uses viewport bounds, ignores old radius preferences and removes its redraw listener', async t => {
   const events = new EventTarget();
   let stored = JSON.stringify({meters:100,unlimited:false});
   for (const [key,value] of Object.entries({window:events,localStorage:{getItem:key=>key===ANALYSIS_RANGE_KEY?stored:null}})) {
@@ -103,11 +103,15 @@ test('Tiqets range changes redraw browser markers and destroy removes the range 
   binding.setEnabled(true);
   await Promise.resolve(); await Promise.resolve();
   const source = map.getSource('sharon-tiqets');
-  assert.equal(source.data.features.length,1);
+  assert.equal(source.data.features.length,2,'the removed 100 m preference must not hide visible offers');
   stored = JSON.stringify({meters:100,unlimited:true});
   events.dispatchEvent(new Event(ANALYSIS_RANGE_EVENT));
   assert.equal(source.data.features.length,2);
   assert.equal(binding.getBoards().length,2);
+  map.getBounds=()=>({getWest:()=>5.09,getEast:()=>5.11,getSouth:()=>52.095,getNorth:()=>52.105});
+  events.dispatchEvent(new Event(ANALYSIS_RANGE_EVENT));
+  assert.equal(source.data.features.length,1,'only the offer inside the map viewport remains');
+  assert.equal(binding.getBoards().length,1);
   const listener = add.mock.calls.find(call=>call.arguments[0]===ANALYSIS_RANGE_EVENT).arguments[1];
   binding.destroy();
   assert.ok(remove.mock.calls.some(call=>call.arguments[0]===ANALYSIS_RANGE_EVENT&&call.arguments[1]===listener));

@@ -1,4 +1,4 @@
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.48';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.49';
 export const ANALYSIS_RANGE_KEY='sharon.boards.analysis-range.v1';
 export const ANALYSIS_PREVIEW_EVENT='sharon-analysis-preview-changed';
 export const ANALYSIS_VISIBILITY_EVENT='sharon-analysis-visibility-changed';
@@ -9,9 +9,7 @@ export function saveAnalysisRange(patch,preview=false){
   globalThis.window?.dispatchEvent(new CustomEvent(preview?ANALYSIS_PREVIEW_EVENT:ANALYSIS_RANGE_EVENT));
 }
 export function analysisRange(){
-  let saved;try{saved=JSON.parse(localStorage.getItem(ANALYSIS_RANGE_KEY)||'null');}catch{}
-  const meters=Number(saved?.meters);
-  return {meters:Number.isFinite(meters)&&meters>=0?Math.min(meters,200000):10000,unlimited:typeof saved?.unlimited==='boolean'?saved.unlimited:!(Number.isFinite(meters)&&meters>=0),visible:saved?.visible===true,center:validCenter(saved?.center)?{lat:saved.center.lat,lng:saved.center.lng}:null};
+  return {meters:10000,unlimited:true,visible:false,center:null};
 }
 export function inAnalysisRange(point,center){
   const range=analysisRange();center=range.center||center;
