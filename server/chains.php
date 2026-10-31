@@ -153,6 +153,24 @@ function world_shop_result(array $data,array $in):array {
     }
     return [...$base,'points'=>array_slice(array_values($points),0,2000),'kinds'=>$kinds,'truncated'=>count($data['elements'])>2000];
 }
+// GET works on shared hosting that restricts outbound POST; cURL does not
+// depend on allow_url_fopen. Both transports retain TLS checks and byte limits.
+function world_shop_download(string $query,string $endpoint):string {
+    $url=$endpoint.'?'.http_build_query(['data'=>$query]);
+    $headers=['Accept: application/json','User-Agent: Sharon/1.0 (+https://sharon.life)'];
+    if(function_exists('curl_init')){
+        $handle=curl_init($url);$raw='';
+        try{
+            curl_setopt_array($handle,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers,
+                CURLOPT_WRITEFUNCTION=>static function($handle,$chunk)use(&$raw){if(strlen($raw)+strlen($chunk)>5000000)return 0;$raw.=$chunk;return strlen($chunk);}]);
+            if(curl_exec($handle)===false||curl_getinfo($handle,CURLINFO_RESPONSE_CODE)!==200)throw new RuntimeException('Source unavailable');
+            return $raw;
+        }finally{curl_close($handle);}
+    }
+    $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'GET','timeout'=>10,'follow_location'=>0,'header'=>implode("\r\n",$headers)."\r\n"]]),0,5000001);
+    if(!is_string($raw)||strlen($raw)>5000000)throw new RuntimeException('Source unavailable');
+    return $raw;
+}
 function world_shop_fetch(array $in,string $directory,?callable $download=null):array {
     $query=world_shop_query($in);
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Cache unavailable');
@@ -168,11 +186,20 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
         if(($budget['count']??0)>=2000||(($in['action']??'')==='map'&&microtime(true)-($budget['last']??0)<1))throw new RuntimeException('Source busy');
         $budget['count']++;$budget['last']=microtime(true);file_put_contents($budgetPath,json_encode($budget),LOCK_EX);
         $data=null;
-        foreach(['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'] as $endpoint){
+        // Prefer the last successful worldwide provider, avoiding a slow failed
+        // provider on every map move. No user-supplied URL is ever requested.
+        $endpoints=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter'];
+        $sourcePath=$directory.'/source.state';
+        if(is_link($sourcePath))throw new RuntimeException('Invalid cache');
+        $preferred=is_file($sourcePath)?trim((string)file_get_contents($sourcePath)):'';
+        if(in_array($preferred,$endpoints,true))$endpoints=[$preferred,...array_values(array_diff($endpoints,[$preferred]))];
+        foreach($endpoints as $endpoint){
           try{
-            $raw=$download?$download($query):@file_get_contents($endpoint,false,stream_context_create(['http'=>['method'=>'POST','timeout'=>10,'follow_location'=>0,'header'=>"Content-Type: application/x-www-form-urlencoded\r\nUser-Agent: Sharon/1.0 (+https://sharon.life)\r\n",'content'=>http_build_query(['data'=>$query])]]),0,5000001);
-            if(!is_string($raw)||strlen($raw)>5000000)continue;$parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);break;
-          }catch(Throwable $e){if($download)throw $e;}
+            $raw=$download?$download($query,$endpoint):world_shop_download($query,$endpoint);
+            if(!is_string($raw)||strlen($raw)>5000000)continue;
+            $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);
+            file_put_contents($sourcePath,$endpoint,LOCK_EX);break;
+          }catch(Throwable $e){/* An unavailable or malformed provider must not suppress the next one. */}
         }
         if($data===null)throw new RuntimeException('Source unavailable');
         $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}

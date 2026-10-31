@@ -13,4 +13,18 @@ $detail=world_shop_result(['elements'=>[$elements[0]]],$detailInput);check($deta
 try{world_shop_query([...$detailInput,'id'=>'wrong0000000']);throw new LogicException('accepted invalid');}catch(InvalidArgumentException $e){$checks++;}
 $directory=sys_get_temp_dir().'/sharon-world-'.bin2hex(random_bytes(5));$calls=0;
 try{$download=function($query)use(&$calls,$elements){$calls++;return json_encode(['elements'=>$elements]);};world_shop_fetch($input,$directory,$download);world_shop_fetch($input,$directory,$download);check($calls===1);}finally{foreach(glob($directory.'/*')?:[] as $path)unlink($path);@rmdir($directory);}
+// A failed first provider must reach the second; later queries start with the
+// successful provider. Exercise a non-Dutch area and preserve its source IDs.
+$directory=sys_get_temp_dir().'/sharon-world-retry-'.bin2hex(random_bytes(5));$calls=[];
+try{
+    $download=function($query,$endpoint)use(&$calls,$elements){$calls[]=$endpoint;if(str_contains($endpoint,'private.coffee'))throw new RuntimeException('Transport blocked');return json_encode(['elements'=>$elements]);};
+    $result=world_shop_fetch($input,$directory,$download);check(count($result['points'])===2);check(count($calls)===2);check($result['coverage']==='WORLD');
+    $result=world_shop_fetch($detailInput,$directory,$download);check(count($calls)===3);check(str_contains($calls[2],'overpass-api.de'));check($result['detail']['sourceRef']==='node/123');
+}finally{foreach(glob($directory.'/*')?:[] as $path)unlink($path);@rmdir($directory);}
+$directory=sys_get_temp_dir().'/sharon-world-fail-'.bin2hex(random_bytes(5));$calls=0;
+try{
+    try{world_shop_fetch($input,$directory,function()use(&$calls){$calls++;return '{broken';});throw new LogicException('accepted corrupt source');}
+    catch(RuntimeException $e){check($e->getMessage()==='Source unavailable');check($calls===2);}
+    check(count(glob($directory.'/*.json'))===1); // budget only, no empty successful result cached
+}finally{foreach(glob($directory.'/*')?:[] as $path)unlink($path);@rmdir($directory);}
 echo json_encode(['checks'=>$checks]);

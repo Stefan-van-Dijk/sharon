@@ -127,7 +127,9 @@ lokale locaties. Het is een publieke bron met wisselende beschikbaarheid en dekk
 Bij storing van wereldwijde ontdekking valt de app binnen Nederland terug op het
 bestaande winkelregister. Een mislukte wereldvraag krijgt twee minuten rust voordat
 opnieuw wordt geprobeerd. Tijdens een geannuleerd gebiedsverzoek wordt geen nieuwe
-terugvalvraag gestart. Het wereldgebiedsverzoek wacht maximaal acht seconden; andere
+terugvalvraag gestart. Het wereldgebiedsverzoek wacht maximaal 25 seconden; andere
 verzoeken behouden hun eigen limiet. Buiten Nederland wordt een storing niet als een
 lege, succesvolle winkelinventaris gepresenteerd. De server onderscheidt wereldbron-
 drukte, cacheproblemen en onbereikbaarheid van de Nederlandse registerfout.
+
+De wereldwijde transportlaag gebruikt HTTPS GET met cURL waar beschikbaar en anders PHP-streams. Daarmee is uitgaand POST en `allow_url_fopen` bij beschikbare cURL niet vereist. Beide vaste bronnen krijgen maximaal 10 seconden; de app wacht maximaal 25 seconden zodat de tweede bron kan antwoorden. De laatst geslaagde bron wordt eerst geprobeerd. Bij twee bronfouten blijft wereldwijd een fout zichtbaar: publieke Overpass-beschikbaarheid kan niet worden gegarandeerd.

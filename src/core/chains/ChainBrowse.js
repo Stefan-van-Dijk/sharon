@@ -3,7 +3,7 @@ import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.46';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;}
  async request(input,signal){
-  const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,input.world&&input.action==='map'?8000:25000);
+  const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,25000);
   try{
   const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,...input}),signal:controller.signal});
   if(!response.ok)throw Error(response.status===503?'De winkelbron is tijdelijk niet beschikbaar.':'Winkelgegevens ophalen is niet gelukt.');
