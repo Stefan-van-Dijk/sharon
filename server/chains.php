@@ -117,7 +117,7 @@ function world_shop_query(array $in):string {
         if(array_diff(array_keys($in),['schema','action','world','id','sourceRef']))throw new InvalidArgumentException('unexpected_fields');
         $ref=$in['sourceRef']??'';
         if(!is_string($ref)||!preg_match('/\A(node|way|relation)\/([1-9][0-9]{0,15})\z/',$ref,$m)||($in['id']??'')!==substr(hash('sha256','osm:'.$ref),0,12))throw new InvalidArgumentException('invalid_branch');
-        return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out tags center 1;';
+        return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out body center 1;';
     }
     if(($in['action']??'')!=='map'||array_diff(array_keys($in),['schema','action','world','bounds','chainId']))throw new InvalidArgumentException('invalid_request');
     $b=$in['bounds']??null;$chain=$in['chainId']??'';
@@ -125,7 +125,7 @@ function world_shop_query(array $in):string {
     foreach($b as $v)if((!is_int($v)&&!is_float($v))||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
     [$w,$s,$e,$n]=$b;if($w < -180||$e>180||$s < -90||$n>90||$e<=$w||$n<=$s||$e-$w>1||$n-$s>1)throw new InvalidArgumentException('invalid_bounds');
     $box=implode(',',array_map(fn($v)=>sprintf('%.6F',$v),[$s,$w,$n,$e]));$brand=$chain===''?'':'["brand:wikidata"="'.$chain.'"]';
-    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out tags center 2001;';
+    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out body center 2001;';
 }
 function world_shop_result(array $data,array $in):array {
     if(!isset($data['elements'])||!is_array($data['elements'])||isset($data['remark']))throw new RuntimeException('Invalid source');
@@ -153,6 +153,24 @@ function world_shop_result(array $data,array $in):array {
     }
     return [...$base,'points'=>array_slice(array_values($points),0,2000),'kinds'=>$kinds,'truncated'=>count($data['elements'])>2000];
 }
+// GET works on shared hosting that restricts outbound POST; cURL does not
+// depend on allow_url_fopen. Both transports retain TLS checks and byte limits.
+function world_shop_download(string $query,string $endpoint):string {
+    $url=$endpoint.'?'.http_build_query(['data'=>$query]);
+    $headers=['Accept: application/json','User-Agent: Sharon/1.0 (+https://sharon.life)'];
+    if(function_exists('curl_init')){
+        $handle=curl_init($url);$raw='';
+        try{
+            curl_setopt_array($handle,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers,
+                CURLOPT_WRITEFUNCTION=>static function($handle,$chunk)use(&$raw){if(strlen($raw)+strlen($chunk)>5000000)return 0;$raw.=$chunk;return strlen($chunk);}]);
+            if(curl_exec($handle)===false||curl_getinfo($handle,CURLINFO_RESPONSE_CODE)!==200)throw new RuntimeException('Source unavailable');
+            return $raw;
+        }finally{curl_close($handle);}
+    }
+    $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'GET','timeout'=>10,'follow_location'=>0,'header'=>implode("\r\n",$headers)."\r\n"]]),0,5000001);
+    if(!is_string($raw)||strlen($raw)>5000000)throw new RuntimeException('Source unavailable');
+    return $raw;
+}
 function world_shop_fetch(array $in,string $directory,?callable $download=null):array {
     $query=world_shop_query($in);
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Cache unavailable');
@@ -168,11 +186,20 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
         if(($budget['count']??0)>=2000||(($in['action']??'')==='map'&&microtime(true)-($budget['last']??0)<1))throw new RuntimeException('Source busy');
         $budget['count']++;$budget['last']=microtime(true);file_put_contents($budgetPath,json_encode($budget),LOCK_EX);
         $data=null;
-        foreach(['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'] as $endpoint){
+        // Prefer the last successful worldwide provider, avoiding a slow failed
+        // provider on every map move. No user-supplied URL is ever requested.
+        $endpoints=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter'];
+        $sourcePath=$directory.'/source.state';
+        if(is_link($sourcePath))throw new RuntimeException('Invalid cache');
+        $preferred=is_file($sourcePath)?trim((string)file_get_contents($sourcePath)):'';
+        if(in_array($preferred,$endpoints,true))$endpoints=[$preferred,...array_values(array_diff($endpoints,[$preferred]))];
+        foreach($endpoints as $endpoint){
           try{
-            $raw=$download?$download($query):@file_get_contents($endpoint,false,stream_context_create(['http'=>['method'=>'POST','timeout'=>10,'follow_location'=>0,'header'=>"Content-Type: application/x-www-form-urlencoded\r\nUser-Agent: Sharon/1.0 (+https://sharon.life)\r\n",'content'=>http_build_query(['data'=>$query])]]),0,5000001);
-            if(!is_string($raw)||strlen($raw)>5000000)continue;$parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);break;
-          }catch(Throwable $e){if($download)throw $e;}
+            $raw=$download?$download($query,$endpoint):world_shop_download($query,$endpoint);
+            if(!is_string($raw)||strlen($raw)>5000000)continue;
+            $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);
+            file_put_contents($sourcePath,$endpoint,LOCK_EX);break;
+          }catch(Throwable $e){/* An unavailable or malformed provider must not suppress the next one. */}
         }
         if($data===null)throw new RuntimeException('Source unavailable');
         $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}
@@ -210,4 +237,7 @@ try{
     $register=chain_register($path);
     chain_out(200,chain_bundle($register,$input));
 }catch(InvalidArgumentException $e){chain_out(400,['error'=>$e->getMessage()]);}
-catch(Throwable $e){chain_out(503,['error'=>'register_unavailable']);}
+catch(Throwable $e){
+    if(($input['world']??false)===true){$code=match($e->getMessage()){'Source busy'=>'world_source_busy','Cache unavailable','Invalid cache'=>'world_cache_unavailable',default=>'world_source_unavailable'};chain_out(503,['error'=>$code]);}
+    chain_out(503,['error'=>'register_unavailable']);
+}
