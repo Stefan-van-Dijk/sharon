@@ -1,6 +1,6 @@
-import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.4.44';
-import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.4.44';
-import { openCardBoard } from './CardBoard.js?v=0.4.44';
+import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.4.45';
+import { suggestCards, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.4.45';
+import { openCardBoard } from './CardBoard.js?v=0.4.45';
 
 export function mountHomeCardContext(host, { store, location, events, trigger = null }) {
   let generation = 0, timer = null, closeBoard = null, openedId = null, disposed = false;

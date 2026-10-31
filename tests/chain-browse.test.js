@@ -16,7 +16,7 @@ test('browse catalog/points/details are separate bounded cached requests with no
  }});
  await browse.catalog();const {points}=await browse.area([4.9,51.9,5.1,52.1]);await browse.area([4.9,51.9,5.1,52.1]);assert.equal(calls.length,2);assert.equal(points[0].address,undefined);
  const detail=await browse.detail(points[0]);assert.equal(detail.address,'Straat 1');assert.equal(detail.website,'');assert.equal(calls.length,3);
- assert.deepEqual(Object.keys(calls[1]),['schema','action','bounds','chainId']);
+ assert.deepEqual(Object.keys(calls[1]),['schema','action','bounds','chainId','world']);
 });
 
 test('shop discovery bounds cover 10 km without following a world-sized viewport',async()=>{
@@ -28,4 +28,11 @@ test('shop discovery bounds cover 10 km without following a world-sized viewport
  assert.ok(east-west<1);assert.ok(north-south<.5);
  assert.equal(chainAreaBounds({lat:NaN,lng:5}),null);
  assert.equal(chainAreaBounds({lat:52,lng:180}),null);
+});
+
+test('worldwide points include independent store types and use source-bound detail requests',async()=>{
+ const calls=[],version='v1-'+'a'.repeat(24);
+ const browse=new ChainBrowse({fetcher:async(_,options)=>{const q=JSON.parse(options.body);calls.push(q);return {ok:true,json:async()=>q.action==='map'?{schema:1,version,coverage:'WORLD',points:[['abcdef123456','',139700000,35700000,'パン屋','node/123']],kinds:{abcdef123456:'bakery'}}:{schema:1,version,detail:{id:q.id,chainId:'',sourceRef:'node/123',kind:'bakery',address:'Tokyo',openingHours:'',website:'https://example.org'}}};}});
+ const {points}=await browse.area([139.6,35.6,139.8,35.8]);assert.equal(calls[0].world,true);assert.equal(points[0].kind,'bakery');assert.equal(points[0].world,true);
+ const detail=await browse.detail(points[0]);assert.equal(calls[1].sourceRef,'node/123');assert.equal(calls[1].world,true);assert.equal(detail.address,'Tokyo');
 });

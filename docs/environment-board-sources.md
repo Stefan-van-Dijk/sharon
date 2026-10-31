@@ -104,3 +104,22 @@ meer vooruit geladen. Ook een rechtstreeks geopend opgeslagen-locatiedeck gebrui
 deze gebiedsgrens. Wisselen tussen boardtypen behoudt dezelfde sessie. Na sluiten
 stopt een eventuele camera-animatie, wordt de blokkade opgeheven en kan een volgende
 kaartbeweging weer brongegevens ophalen. Sluiten alleen start geen zoekopdracht.
+
+## Wereldwijde winkels
+
+De winkelkaart gebruikt `world: true` op de bestaande chains.php API. Een begrensde
+Overpass-zoekopdracht haalt winkels en geselecteerde horeca/diensten op, ook zonder
+keten of merk. Wereldpunten hebben een stabiele 12-teken identifier op basis van hun
+OSM-bronverwijzing, plus naam, positie en winkeltype. Details volgen afzonderlijk
+bij openen. De bestaande Nederlandse ketensynchronisatie blijft ongewijzigd.
+
+Gebieden blijven maximaal 1 graad breed/hoog (de app vraagt maximaal 10 km rond
+het kaartmiddelpunt). Maximaal 2.000 punten, beperkte responsgrootte, time-outs,
+15 minuten gedeelde gebiedscache, één gelijktijdige bronquery en een dagbudget
+begrenzen de publieke dienst. Het bestaande vastgezette deck pauzeert ook deze
+wereldwijde gebiedsverzoeken. Zelfstandige opgeslagen winkels behouden hun type.
+
+Upload het bijgewerkte server/chains.php naar /log/api/chains.php. De server moet
+HTTPS-uitgaand naar de vaste Overpass-bronnen toestaan en schrijfrechten hebben
+in /log/private/chains/world-cache. Een mislukte bronvraag wist geen bestaande
+lokale locaties. Het is een publieke bron met wisselende beschikbaarheid en dekking.

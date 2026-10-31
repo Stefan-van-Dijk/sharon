@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-// Read-only public OSM bundles. Never query OSM or collect user positions here.
+// Public OSM bundles and bounded worldwide discovery. No user identities or GPS history.
 function chain_bundle(array $register,array $input):array {
     if(($register['schema']??null)!==1||($register['coverage']??'')!=='NL'||!is_array($register['chains']??null))throw new RuntimeException('Register unavailable');
     $requested=$input['chains']??null;
@@ -110,6 +110,77 @@ function chain_browse_detail(array $data,string $id,string $directory,?callable 
     if(!is_array($detail)||($detail['sourceRef']??null)!==$row[5]||($detail['chainId']??null)!==$row[1])throw new RuntimeException('Invalid detail');
     return ['schema'=>1,'version'=>$data['version'],'detail'=>$detail];
 }
+// Worldwide discovery uses bounded Overpass queries and a shared, non-personal cache.
+function world_shop_query(array $in):string {
+    if(($in['schema']??null)!==1||($in['world']??null)!==true)throw new InvalidArgumentException('invalid_request');
+    if(($in['action']??'')==='detail'){
+        if(array_diff(array_keys($in),['schema','action','world','id','sourceRef']))throw new InvalidArgumentException('unexpected_fields');
+        $ref=$in['sourceRef']??'';
+        if(!is_string($ref)||!preg_match('/\A(node|way|relation)\/([1-9][0-9]{0,15})\z/',$ref,$m)||($in['id']??'')!==substr(hash('sha256','osm:'.$ref),0,12))throw new InvalidArgumentException('invalid_branch');
+        return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out tags center 1;';
+    }
+    if(($in['action']??'')!=='map'||array_diff(array_keys($in),['schema','action','world','bounds','chainId']))throw new InvalidArgumentException('invalid_request');
+    $b=$in['bounds']??null;$chain=$in['chainId']??'';
+    if(!is_array($b)||!array_is_list($b)||count($b)!==4||!is_string($chain)||($chain!==''&&!preg_match('/\AQ[1-9][0-9]*\z/',$chain)))throw new InvalidArgumentException('invalid_bounds');
+    foreach($b as $v)if((!is_int($v)&&!is_float($v))||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
+    [$w,$s,$e,$n]=$b;if($w < -180||$e>180||$s < -90||$n>90||$e<=$w||$n<=$s||$e-$w>1||$n-$s>1)throw new InvalidArgumentException('invalid_bounds');
+    $box=implode(',',array_map(fn($v)=>sprintf('%.6F',$v),[$s,$w,$n,$e]));$brand=$chain===''?'':'["brand:wikidata"="'.$chain.'"]';
+    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out tags center 2001;';
+}
+function world_shop_result(array $data,array $in):array {
+    if(!isset($data['elements'])||!is_array($data['elements'])||isset($data['remark']))throw new RuntimeException('Invalid source');
+    $points=[];$kinds=[];$details=[];
+    foreach(array_slice($data['elements'],0,2001) as $el){
+        $t=$el['tags']??[];if(!is_array($t))continue;$kind=$t['shop']??$t['amenity']??'';
+        if(!is_array($t)||(!isset($t['shop'])&&!in_array($kind,['restaurant','cafe','fast_food','bar','pub','pharmacy','fuel','charging_station','bank','post_office'],true))||in_array($kind,['no','vacant'],true))continue;
+        if(!in_array($el['type']??'', ['node','way','relation'],true)||!is_int($el['id']??null)||$el['id']<1)continue;
+        $lat=$el['lat']??$el['center']['lat']??null;$lng=$el['lon']??$el['center']['lon']??null;
+        if(!is_numeric($lat)||!is_numeric($lng)||abs((float)$lat)>90||abs((float)$lng)>180)continue;
+        $ref=$el['type'].'/'.$el['id'];$id=substr(hash('sha256','osm:'.$ref),0,12);
+        $brand=(string)($t['brand:wikidata']??'');$chain=preg_match('/\AQ[1-9][0-9]*\z/',$brand)?$brand:'';
+        if(($in['chainId']??'')!==''&&$chain!==$in['chainId'])continue;
+        $name=substr((string)($t['name']??$t['brand']??$kind),0,300);
+        $points[$ref]=[$id,$chain,(int)round((float)$lng*1e6),(int)round((float)$lat*1e6),$name,$ref];$kinds[$id]=substr((string)$kind,0,100);
+        $website=(string)($t['website']??$t['contact:website']??'');
+        $details[$id]=['id'=>$id,'chainId'=>$chain,'sourceRef'=>$ref,'name'=>$name,'kind'=>$kinds[$id],
+          'address'=>substr(trim(implode(' ',array_filter([$t['addr:street']??'',$t['addr:housenumber']??'',$t['addr:postcode']??'',$t['addr:city']??'']))),0,500),
+          'openingHours'=>substr((string)($t['opening_hours']??''),0,300),'website'=>str_starts_with($website,'https://')?substr($website,0,2000):''];
+    }
+    $base=['schema'=>1,'coverage'=>'WORLD','version'=>'v1-'.substr(hash('sha256',json_encode([$points,$details])),0,24)];
+    if($in['action']==='detail'){
+        $detail=$details[$in['id']]??null;if(!$detail||$detail['sourceRef']!==$in['sourceRef'])throw new RuntimeException('Place unavailable');
+        return [...$base,'detail'=>$detail];
+    }
+    return [...$base,'points'=>array_slice(array_values($points),0,2000),'kinds'=>$kinds,'truncated'=>count($data['elements'])>2000];
+}
+function world_shop_fetch(array $in,string $directory,?callable $download=null):array {
+    $query=world_shop_query($in);
+    if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Cache unavailable');
+    if(is_link($directory))throw new RuntimeException('Invalid cache');
+    $path=$directory.'/'.hash('sha256',$query).'.json';
+    $read=static function()use($path){if(is_link($path))throw new RuntimeException('Invalid cache');return is_file($path)&&filemtime($path)>time()-900?json_decode((string)file_get_contents($path),true,32,JSON_THROW_ON_ERROR):null;};
+    if(($cached=$read())!==null)return $cached;
+    $lock=fopen($directory.'/requests.lock','c+');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB))throw new RuntimeException('Source busy');
+    try{
+        if(($cached=$read())!==null)return $cached;
+        $budgetPath=$directory.'/budget.json';$budget=is_file($budgetPath)?json_decode((string)file_get_contents($budgetPath),true):[];
+        if(($budget['day']??'')!==gmdate('Y-m-d'))$budget=['day'=>gmdate('Y-m-d'),'count'=>0,'last'=>0];
+        if(($budget['count']??0)>=2000||(($in['action']??'')==='map'&&microtime(true)-($budget['last']??0)<1))throw new RuntimeException('Source busy');
+        $budget['count']++;$budget['last']=microtime(true);file_put_contents($budgetPath,json_encode($budget),LOCK_EX);
+        $data=null;
+        foreach(['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'] as $endpoint){
+          try{
+            $raw=$download?$download($query):@file_get_contents($endpoint,false,stream_context_create(['http'=>['method'=>'POST','timeout'=>10,'follow_location'=>0,'header'=>"Content-Type: application/x-www-form-urlencoded\r\nUser-Agent: Sharon/1.0 (+https://sharon.life)\r\n",'content'=>http_build_query(['data'=>$query])]]),0,5000001);
+            if(!is_string($raw)||strlen($raw)>5000000)continue;$parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);break;
+          }catch(Throwable $e){if($download)throw $e;}
+        }
+        if($data===null)throw new RuntimeException('Source unavailable');
+        $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}
+        $files=glob($directory.'/*.json')?:[];if(count($files)>512){$files=array_values(array_filter($files,fn($f)=>$f!==$budgetPath&&$f!==$path));usort($files,fn($a,$b)=>filemtime($a)<=>filemtime($b));foreach(array_slice($files,0,count($files)-510) as $file)@unlink($file);}
+        return $data;
+    }finally{flock($lock,LOCK_UN);fclose($lock);}
+}
+
 if(defined('SHARON_CHAINS_LIBRARY_ONLY'))return;
 function chain_out(int $status,array $data):never{http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);exit;}
 ini_set('display_errors','0');
@@ -128,6 +199,7 @@ $path=dirname(__DIR__).'/private/chains/register-v1.json';
 try{
     if(isset($input['action'])){
         if(($input['schema']??null)!==1||!in_array($input['action'],['catalog','map','detail'],true))throw new InvalidArgumentException('invalid_request');
+        if(($input['world']??false)===true)chain_out(200,world_shop_fetch($input,dirname($path).'/world-cache'));
         $directory=dirname($path);$browse=chain_register($directory.'/browse-v1.json',null,null,'chain_validate_browse','browse-v1.json',16000000);
         if($input['action']==='detail'){
             if(array_diff(array_keys($input),['schema','action','id']))throw new InvalidArgumentException('unexpected_fields');

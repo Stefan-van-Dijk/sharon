@@ -1,7 +1,7 @@
-import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.4.44';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.44';
-import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.4.44';
-import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.4.44';
+import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.4.45';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.45';
+import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.4.45';
+import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.4.45';
 
 export function decodeBranch(row, chainId) {
   // Compact schema: stable Sharon ID, OSM type/id, cell, microdegrees or null,
@@ -59,7 +59,7 @@ export async function saveBranchLocation(store, branch, {point=null,radiusM=100,
   const make=old=>{
     const at=new Date().toISOString();
     return {...old,id:old?.id||IdentifierService.create(),type:'location',createdAt:old?.createdAt||at,updatedAt:at,
-      data:{...old?.data,title:old?.data?.title||branch.name||chainById(branch.chainId)?.name||'Winkel',kind:old?.data?.kind||chainById(branch.chainId)?.kind||'shop',
+      data:{...old?.data,title:old?.data?.title||branch.name||chainById(branch.chainId)?.name||'Winkel',kind:old?.data?.kind||branch.kind||chainById(branch.chainId)?.kind||'shop',
         address:old?.data?.address||branch.address,coordinates:old?.data?.coordinates || {...coordinates},radiusM:old?.data?.radiusM || radiusM,
         ...(personal?{coordinates:{...coordinates},radiusM,personalZone:true}:{}),chainId:branch.chainId,branchId:branch.id,
         source:'openstreetmap',sourceRef:branch.sourceRef}};

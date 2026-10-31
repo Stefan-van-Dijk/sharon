@@ -19,7 +19,7 @@ const byKind = new Map(Object.entries(kinds).flatMap(([category,values])=>values
 const offlineCategories = {Q903805:'home',Q2226366:'care',Q2609459:'care',Q2634111:'home',Q2294120:'home',Q2097480:'home',Q2741995:'home',Q54078:'home'};
 export function shopCategory(item, catalog = []) {
   const data=item.data||{},chainId=item.chainId||data.chainId;
-  if(item.type==='location'&&!chainId)return 'local';
+  if(item.type==='location'&&!chainId&&!data.sourceRef)return 'local';
   const chain=catalog.find(value=>value.id===chainId);
   const kind=[item.kind,data.kind,chain?.kind].find(value=>typeof value==='string'&&value.trim()&&value.trim().toLowerCase()!=='shop')?.toLowerCase().trim()||'shop';
   // Prefer the actual OSM type; never guess from an unknown brand name.
