@@ -56,80 +56,33 @@ test('changing the shared order also updates an open saved-location deck while r
  }finally{close?.();app.close();}
 });
 
-test('analysis radius can be changed and made unlimited, persists and filters future sources in the shared deck',async()=>{
+test('board settings omit search radius and circle controls even with a saved finite zone',async()=>{
  const app=await appHarness();let close;
  try{
+  app.window.localStorage.setItem('sharon.boards.analysis-range.v1',JSON.stringify({meters:0,unlimited:false,visible:true,center:{lat:52,lng:5}}));
   const {openEnvironmentView}=await app.load(spec('ui/EnvironmentMapLibre.js'));
   const root=app.document.createElement('div');app.document.body.append(root);
   const open=()=>openEnvironmentView(root,{store:app.store,events:{on:()=>()=>{}},location:{latest:{lat:52,lng:5}},loadRenderer:()=>new Promise(()=>{})});
   close=open();root.querySelector('[data-board-order-settings]').click();
-  const requests=app.requests.length;
-  const field=root.querySelector('[data-analysis-radius]');
-  assert.equal(field.value,'201');field.value='0.5';field.dispatchEvent(new app.window.Event('change'));
-  const {createEnvironmentBoardSources}=await app.load(spec('ui/EnvironmentBoardSources.js'));
-  let nav;const deck=createEnvironmentBoardSources({onOpen:(_,navigation)=>{nav=navigation;}});
-  const near={id:'near',coordinates:{lat:52,lng:5}},far={id:'far',coordinates:{lat:53,lng:5}};deck.register({getBoards:()=>[near,far]});
-  deck.show(near,{lat:52,lng:5});assert.equal(nav.onNext,null);
-  field.value='201';field.dispatchEvent(new app.window.Event('input'));assert.match(root.querySelector('[data-analysis-radius-value]').textContent,/∞/);
-  deck.show(near,{lat:52,lng:5});assert.equal(typeof nav.onNext,'function');
-  assert.equal(app.requests.length,requests,'range settings do not request source data before the map is ready');
-  close();close=open();assert.equal(root.querySelector('[data-analysis-radius]').value,'201');
+  assert.equal(root.querySelector('[data-board-order-sheet]').hidden,false);
+  assert.equal(root.querySelectorAll('[data-analysis-radius],[data-analysis-radius-value],[data-analysis-recenter],[data-analysis-fit]').length,0);
+  assert.equal(root.querySelectorAll('[data-board-order]').length,4);
+  assert.ok(!root.querySelector('[data-board-order-settings]').getAttribute('aria-label').includes('analysestraal'));
+  close();close=open();assert.equal(root.querySelector('[data-analysis-radius]'),null);
  }finally{close?.();app.close();}
 });
 
-test('analysis overlay anchors the current map center and slider updates its circle without following map movement',async()=>{
- const app=await appHarness();let stop;
+test('old saved radius cannot exclude boards supplied by current source viewport selection',async()=>{
+ const app=await appHarness();let deck;
  try{
-  const {mountAnalysisZone}=await app.load(spec('ui/AnalysisZone.js'));
-  const {mountAnalysisRange,inAnalysisRange,saveAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
-  const root=app.document.createElement('div');root.innerHTML='<input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output><button data-analysis-recenter></button><button data-analysis-fit></button>';app.document.body.append(root);
-  let center={lat:52,lng:5},data,fitted;const sources=new Map(),layers=new Map();
-  const map={fitBounds(bounds){fitted=bounds;},getCenter:()=>center,addSource(id){sources.set(id,{setData(value){data=value;}});},getSource:id=>sources.get(id),addLayer(layer){layers.set(layer.id,layer);},getLayer:id=>layers.get(id),removeLayer:id=>layers.delete(id),removeSource:id=>sources.delete(id)};
-  saveAnalysisRange({visible:true});
-  const stopControls=mountAnalysisRange(root);stop=()=>{stopControls();stopZone();};const stopZone=mountAnalysisZone(map,root);
-  const field=root.querySelector('input');field.value='100';field.dispatchEvent(new app.window.Event('input'));
-  assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[5,52]);
-  center={lat:55,lng:10};assert.equal(inAnalysisRange(center,center),false,'panning does not move the selected zone');
-  root.querySelector('button').click();assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[10,55]);
-  field.value='200';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,2);
-  const beforeToggle=fitted;
-  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,0);assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-pressed'),'false');
-  root.querySelector('[data-analysis-fit]').click();assert.equal(data.features.length,2);assert.equal(fitted,beforeToggle,'visibility toggle does not move the map');
-  field.value='201';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.match(root.querySelector('output').textContent,/∞/);
-  field.value='0';field.dispatchEvent(new app.window.Event('input'));assert.equal(data.features.length,1);assert.equal(root.querySelector('output').textContent,'0 km');
-  stop();stop=null;assert.equal(sources.size,0);assert.equal(layers.size,0);
- }finally{stop?.();app.close();}
-});
-
-test('slider previews the circle continuously but commits source updates only on release',async()=>{
- const app=await appHarness();let stop;
- try{
-  const {mountAnalysisRange,ANALYSIS_RANGE_EVENT,ANALYSIS_PREVIEW_EVENT}=await app.load(spec('ui/AnalysisRange.js'));
-  const root=app.document.createElement('div');root.innerHTML='<input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output>';
-  stop=mountAnalysisRange(root);let updates=0,previews=0;
-  app.window.addEventListener(ANALYSIS_RANGE_EVENT,()=>updates++);app.window.addEventListener(ANALYSIS_PREVIEW_EVENT,()=>previews++);
-  const field=root.querySelector('input');for(const value of [15,20,25]){field.value=value;field.dispatchEvent(new app.window.Event('input'));}
-  assert.equal(previews,3);assert.equal(updates,0);assert.equal(root.querySelector('output').textContent,'25 km');
-  field.dispatchEvent(new app.window.Event('change'));assert.equal(updates,1);
- }finally{stop?.();app.close();}
-});
-
-test('recenter uses the uncovered map midpoint and dragging fits the circle above the settings sheet',async()=>{
- const app=await appHarness();let stop;
- try{
-  const {mountAnalysisRange,saveAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
-  saveAnalysisRange({visible:true,unlimited:false,meters:10000});
-  const {mountAnalysisZone}=await app.load(spec('ui/AnalysisZone.js'));
-  const root=app.document.createElement('div');root.innerHTML='<section data-board-order-sheet><button data-analysis-recenter></button><button data-analysis-fit></button><input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output></section>';app.document.body.append(root);
-  root.querySelector('section').getBoundingClientRect=()=>({left:0,top:600,right:800,bottom:1000,width:800,height:400});
-  let data,pixel,options,fits=0;const sources=new Map();
-  const map={getContainer:()=>({getBoundingClientRect:()=>({left:0,top:0,right:800,bottom:1000,width:800,height:1000})}),getCenter:()=>({lat:52,lng:5}),unproject(value){pixel=value;return {lng:4,lat:53};},addSource(id){sources.set(id,{setData(value){data=value;}});},getSource:id=>sources.get(id),addLayer(){},fitBounds(_,value){options=value;fits++;},removeSource:id=>sources.delete(id)};
-  const stopControls=mountAnalysisRange(root),stopZone=mountAnalysisZone(map,root);stop=()=>{stopControls();stopZone();};
-  assert.deepEqual(Array.from(pixel),[400,300]);assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[4,53]);
-  const field=root.querySelector('input');const before=fits;field.value='50';field.dispatchEvent(new app.window.Event('input'));
-  assert.equal(fits,before+1);assert.equal(options.padding.bottom,420);assert.equal(options.duration,0);
-  assert.ok(root.querySelector('[data-analysis-fit] svg'));assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-label'),'Verberg analysecirkel');
- }finally{stop?.();app.close();}
+  app.window.localStorage.setItem('sharon.boards.analysis-range.v1',JSON.stringify({meters:0,unlimited:false,visible:true,center:{lat:52,lng:5}}));
+  const {createEnvironmentBoardSources}=await app.load(spec('ui/EnvironmentBoardSources.js'));
+  let nav,opened;deck=createEnvironmentBoardSources({onOpen:(item,navigation)=>{opened=item;nav=navigation;}});
+  const first={id:'first',coordinates:{lat:52,lng:5}},second={id:'second',coordinates:{lat:52.001,lng:5}};
+  deck.register({getBoards:()=>[first,second]});deck.show(first,{lat:52,lng:5});
+  assert.equal(typeof nav.onNext,'function');nav.onNext();assert.equal(opened.id,'second');
+  assert.equal(app.requests.length,0,'navigation uses the source selection without fetching');
+ }finally{deck?.destroy?.();app.close();}
 });
 
 for(const pointer of [false,true])test('source handle supports '+(pointer?'pointer':'touch')+' dragging, tap, cancellation and cleanup',async()=>{
