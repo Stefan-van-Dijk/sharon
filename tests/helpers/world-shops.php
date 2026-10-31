@@ -24,7 +24,7 @@ try{
 $directory=sys_get_temp_dir().'/sharon-world-fail-'.bin2hex(random_bytes(5));$calls=0;
 try{
     try{world_shop_fetch($input,$directory,function()use(&$calls){$calls++;return '{broken';});throw new LogicException('accepted corrupt source');}
-    catch(RuntimeException $e){check($e->getMessage()==='Source unavailable');check($calls===2);}
+    catch(RuntimeException $e){check($e->getMessage()==='Source unavailable');check($calls===2);check($e instanceof WorldShopSourceFailure);check(count($e->diagnostics)===2);check($e->diagnostics[0]['reason']==='invalid_response');}
     check(count(glob($directory.'/*.json'))===1); // budget only, no empty successful result cached
 }finally{foreach(glob($directory.'/*')?:[] as $path)unlink($path);@rmdir($directory);}
 echo json_encode(['checks'=>$checks]);

@@ -153,6 +153,9 @@ function world_shop_result(array $data,array $in):array {
     }
     return [...$base,'points'=>array_slice(array_values($points),0,2000),'kinds'=>$kinds,'truncated'=>count($data['elements'])>2000];
 }
+final class WorldShopSourceFailure extends RuntimeException {
+    public function __construct(public readonly array $diagnostics){parent::__construct('Source unavailable');}
+}
 // GET works on shared hosting that restricts outbound POST; cURL does not
 // depend on allow_url_fopen. Both transports retain TLS checks and byte limits.
 function world_shop_download(string $query,string $endpoint):string {
@@ -163,12 +166,18 @@ function world_shop_download(string $query,string $endpoint):string {
         try{
             curl_setopt_array($handle,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers,
                 CURLOPT_WRITEFUNCTION=>static function($handle,$chunk)use(&$raw){if(strlen($raw)+strlen($chunk)>5000000)return 0;$raw.=$chunk;return strlen($chunk);}]);
-            if(curl_exec($handle)===false||curl_getinfo($handle,CURLINFO_RESPONSE_CODE)!==200)throw new RuntimeException('Source unavailable');
+            if(curl_exec($handle)===false)throw new RuntimeException(match(curl_errno($handle)){CURLE_OPERATION_TIMEDOUT=>'timeout',CURLE_SSL_CONNECT_ERROR,CURLE_PEER_FAILED_VERIFICATION=>'tls',default=>'connection'});
+            $status=(int)curl_getinfo($handle,CURLINFO_RESPONSE_CODE);if($status!==200)throw new RuntimeException('http_'.$status);
             return $raw;
         }finally{curl_close($handle);}
     }
     $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'GET','timeout'=>10,'follow_location'=>0,'header'=>implode("\r\n",$headers)."\r\n"]]),0,5000001);
-    if(!is_string($raw)||strlen($raw)>5000000)throw new RuntimeException('Source unavailable');
+    if(!is_string($raw)){
+        $status=0;if(preg_match('/HTTP\/\S+ ([0-9]{3})/',$http_response_header[0]??'',$match))$status=(int)$match[1];
+        $warning=strtolower(error_get_last()['message']??'');
+        throw new RuntimeException($status>=400?'http_'.$status:(str_contains($warning,'timed out')?'timeout':((str_contains($warning,'ssl')||str_contains($warning,'certificate'))?'tls':'connection')));
+    }
+    if(strlen($raw)>5000000)throw new RuntimeException('response_too_large');
     return $raw;
 }
 function world_shop_fetch(array $in,string $directory,?callable $download=null):array {
@@ -185,7 +194,7 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
         if(($budget['day']??'')!==gmdate('Y-m-d'))$budget=['day'=>gmdate('Y-m-d'),'count'=>0,'last'=>0];
         if(($budget['count']??0)>=2000||(($in['action']??'')==='map'&&microtime(true)-($budget['last']??0)<1))throw new RuntimeException('Source busy');
         $budget['count']++;$budget['last']=microtime(true);file_put_contents($budgetPath,json_encode($budget),LOCK_EX);
-        $data=null;
+        $data=null;$diagnostics=[];
         // Prefer the last successful worldwide provider, avoiding a slow failed
         // provider on every map move. No user-supplied URL is ever requested.
         $endpoints=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter'];
@@ -199,9 +208,9 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
             if(!is_string($raw)||strlen($raw)>5000000)continue;
             $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);
             file_put_contents($sourcePath,$endpoint,LOCK_EX);break;
-          }catch(Throwable $e){/* An unavailable or malformed provider must not suppress the next one. */}
+          }catch(Throwable $e){$reason=$e->getMessage();$diagnostics[]=['source'=>parse_url($endpoint,PHP_URL_HOST),'reason'=>preg_match('/\A(timeout|tls|connection|response_too_large|http_[0-9]{3})\z/',$reason)?$reason:'invalid_response'];}
         }
-        if($data===null)throw new RuntimeException('Source unavailable');
+        if($data===null)throw new WorldShopSourceFailure($diagnostics);
         $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}
         $files=glob($directory.'/*.json')?:[];if(count($files)>512){$files=array_values(array_filter($files,fn($f)=>$f!==$budgetPath&&$f!==$path));usort($files,fn($a,$b)=>filemtime($a)<=>filemtime($b));foreach(array_slice($files,0,count($files)-510) as $file)@unlink($file);}
         return $data;
@@ -238,6 +247,6 @@ try{
     chain_out(200,chain_bundle($register,$input));
 }catch(InvalidArgumentException $e){chain_out(400,['error'=>$e->getMessage()]);}
 catch(Throwable $e){
-    if(($input['world']??false)===true){$code=match($e->getMessage()){'Source busy'=>'world_source_busy','Cache unavailable','Invalid cache'=>'world_cache_unavailable',default=>'world_source_unavailable'};chain_out(503,['error'=>$code]);}
+    if(($input['world']??false)===true){$code=match($e->getMessage()){'Source busy'=>'world_source_busy','Cache unavailable','Invalid cache'=>'world_cache_unavailable',default=>'world_source_unavailable'};chain_out(503,['error'=>$code,...($e instanceof WorldShopSourceFailure?['diagnostics'=>$e->diagnostics]:[])]);}
     chain_out(503,['error'=>'register_unavailable']);
 }
