@@ -129,3 +129,27 @@ test('recenter uses the uncovered map midpoint and dragging fits the circle abov
   assert.ok(root.querySelector('[data-analysis-fit] svg'));assert.equal(root.querySelector('[data-analysis-fit]').getAttribute('aria-label'),'Verberg analysecirkel');
  }finally{stop?.();app.close();}
 });
+
+for(const pointer of [false,true])test('source handle supports '+(pointer?'pointer':'touch')+' dragging, tap, cancellation and cleanup',async()=>{
+ const app=await appHarness();let stop;
+ try{
+  app.window.PointerEvent=pointer?function(){}:undefined;
+  const {mountSourceSheetHandle}=await app.load(spec('ui/SourceSheetHandle.js'));
+  const sheet=app.document.createElement('section');sheet.innerHTML='<button data-handle aria-label="Menu sluiten"></button><div data-content>Inhoud</div>';app.document.body.append(sheet);
+  let closed=0;stop=mountSourceSheetHandle(sheet,'[data-handle]',()=>closed++);
+  const handle=sheet.querySelector('button');
+  const fire=(phase,y,target=handle)=>{
+    const type=pointer?{start:'pointerdown',move:'pointermove',end:'pointerup',cancel:'pointercancel'}[phase]:{start:'touchstart',move:'touchmove',end:'touchend',cancel:'touchcancel'}[phase];
+    const event=new app.window.Event(type,{bubbles:true,cancelable:true});
+    if(pointer)Object.defineProperties(event,{button:{value:0},pointerId:{value:1},clientY:{value:y}});
+    else Object.defineProperties(event,{touches:{value:[{clientY:y}]},changedTouches:{value:[{clientY:y}]}});
+    target.dispatchEvent(event);
+  };
+  fire('start',100);fire('move',160);assert.equal(sheet.style.transform,'translateY(60px)');fire('end',160);assert.equal(closed,1);assert.equal(sheet.style.transform,'');
+  handle.click();assert.equal(closed,1,'synthetic click after dragging is suppressed');
+  fire('start',100);fire('move',110);fire('cancel',110);assert.equal(closed,1);assert.equal(sheet.style.transform,'');
+  fire('start',100);fire('end',100);handle.click();assert.equal(closed,2);
+  fire('start',100,sheet.querySelector('[data-content]'));fire('end',200,sheet.querySelector('[data-content]'));assert.equal(closed,2,'scrolling content cannot dismiss the sheet');
+  stop();stop=null;handle.click();assert.equal(closed,2);
+ }finally{stop?.();app.close();}
+});

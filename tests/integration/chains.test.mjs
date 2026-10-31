@@ -377,6 +377,6 @@ test('source menu keeps the chain dropdown hidden and opens search through its h
   const input=root.querySelector('[data-places-search]');input.value='geen resultaat';input.dispatchEvent(new app.window.Event('input'));assert.match(root.querySelector('[data-places-list]').textContent,/Geen locaties gevonden/);
   button.click();assert.equal(field.hidden,true);assert.equal(input.value,'');
   const status=root.querySelector('[data-chain-status-filter="read"]');assert.equal(status.getAttribute('aria-label'),'Gelezen');assert.ok(!status.textContent.includes('Gelezen'));
-  assert.ok(root.querySelector('[data-source-sheet] [data-wiki-close]'));
+  assert.equal(root.querySelector('[data-source-sheet] [data-wiki-close]'),null);assert.ok(root.querySelector('[data-source-sheet-handle]'));
  }finally{layer?.destroy();close?.();app.close();}
 });
