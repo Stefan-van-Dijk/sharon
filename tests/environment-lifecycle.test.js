@@ -16,6 +16,7 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     style: { setProperty: () => {} },
     dataset: {},
     parentElement: { hidden: false },
+    querySelector: () => null,
     querySelectorAll: () => []
   });
   const nodes = new Map(['[data-maplibre-map]', '[data-map-readout]', '[data-map-scale]',
@@ -69,6 +70,7 @@ test('shared map controls are mounted immediately and cleaned up before a late r
     style: { setProperty: () => {} },
     dataset: {},
     parentElement: { hidden: false },
+    querySelector: () => null,
     querySelectorAll: () => []
   });
   const nodes = new Map([
