@@ -5,7 +5,7 @@ import {chainAreaBounds} from '../src/core/chains/ChainBrowse.js';
 test('analysis radius defaults, custom limits and unlimited discovery keep source requests bounded',()=>{
  const old=globalThis.localStorage;let value=null;globalThis.localStorage={getItem:()=>value};
  try{
-  assert.equal(analysisRange().meters,10000);
+  assert.equal(analysisRange().meters,10000);assert.equal(analysisRange().unlimited,true);assert.equal(analysisRange().visible,false);
   value=JSON.stringify({meters:500,unlimited:false});
   assert.equal(inAnalysisRange({lat:52.001,lng:5},{lat:52,lng:5}),true);
   assert.equal(inAnalysisRange({lat:53,lng:5},{lat:52,lng:5}),false);

@@ -1,19 +1,20 @@
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.42';
-import { focusTextField } from './TextInputFocus.js?v=0.4.42';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.42';
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.42';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.42';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.42';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.42';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.42';
-import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.42';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.42';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.42';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.42';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.42';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.42';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.42';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.42';
+import { inBoardViewport } from './BoardViewport.js?v=0.4.43';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.43';
+import { focusTextField } from './TextInputFocus.js?v=0.4.43';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, analysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.43';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.43';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.43';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.43';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.43';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.43';
+import { ChainBrowse, chainAreaBounds } from '../core/chains/ChainBrowse.js?v=0.4.43';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.43';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.43';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.43';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.43';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.43';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.43';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.43';
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -21,10 +22,10 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const listeners=[];
   const browse=new ChainBrowse(),canBrowse=typeof map.getBounds==='function'&&typeof map.getZoom==='function';
   let alignment=null;
-  const inRange=branch=>{const center=map.getCenter?.()||location?.latest;return !center||inAnalysisRange(branch.coordinates,center);};
+  const inRange=branch=>{const center=map.getCenter?.()||location?.latest;return (!center||inAnalysisRange(branch.coordinates,center))&&inBoardViewport(map,branch.coordinates);};
   let catalog=CHAIN_CATALOG,remote=[],local=[],request=null,timer=null,queryRevision=0,boardRevision=0,loadMessage='';
   const candidates=()=>{
-    const own=places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected).filter(item=>inAnalysisRange(item.data?.coordinates,map.getCenter?.()||location?.latest));
+    const own=places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected).filter(item=>inAnalysisRange(item.data?.coordinates,map.getCenter?.()||location?.latest)&&inBoardViewport(map,item.data?.coordinates));
     const refs=new Set(own.map(item=>item.data?.branchId).filter(Boolean));
     return [...own,...(selected==='@local'?[]:branches.filter(item=>(!selected||item.chainId===selected)&&inRange(item)&&!refs.has(item.id)))];
   };
@@ -180,7 +181,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
-  return {getBoards,allowsLocation(item){return enabled?(!selected||selected==='@local'||item.data?.chainId===selected)&&filters.matches(item)&&inAnalysisRange(item.data?.coordinates,map.getCenter?.()||location?.latest):!placeHidden(item);},openBoard(item,navigation){
+  return {getBoards,allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
       closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);

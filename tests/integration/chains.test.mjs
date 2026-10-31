@@ -243,6 +243,7 @@ test('Omgeving browses an unlinked chain and loads details only when its board o
 test('shop discovery stays within 10 km, excludes distant cached shops and follows map movement',async()=>{
  const {app,events,point}=await setup();let layer;
  try{
+  app.window.localStorage.setItem('sharon.boards.analysis-range.v1',JSON.stringify({meters:10000,unlimited:false}));
   const cached=await app.store.get('meta','chains.local.v1');
   const far=[...cached.value.chains.Q1653985.rows[0]];far[0]='distant00001';far[1]='node/2';far[3]=53000000;far[5]='Verre winkel';
   cached.value.chains.Q1653985.rows.push(far);await app.store.put('meta',cached);
@@ -323,7 +324,7 @@ test('shop category panel filters markers, list and mixed deck, remembers multi-
   category('fashion').click();
   assert.equal(layer.getBoards().length,0);assert.equal(sources.get('sharon-chain-branches').data.features.length,0);
   assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Albert Heijn'));
-  assert.equal(layer.allowsLocation({type:'location',id:'ownplace0001',data:{}}),false);
+  assert.equal(layer.allowsLocation({type:'location',id:'ownplace0001',data:{}}),true,'saved markers are independent of board category filters');
   category('groceries').click();
   assert.equal(layer.getBoards().length,1);assert.equal(sources.get('sharon-chain-branches').data.features.length,1);
   assert.match(root.querySelector('[data-places-list]').textContent,/Albert Heijn/);
@@ -379,4 +380,22 @@ test('source menu keeps the chain dropdown hidden and opens search through its h
   const status=root.querySelector('[data-chain-status-filter="read"]');assert.equal(status.getAttribute('aria-label'),'Gelezen');assert.ok(!status.textContent.includes('Gelezen'));
   assert.equal(root.querySelector('[data-source-sheet] [data-wiki-close]'),null);assert.ok(root.querySelector('[data-source-sheet-handle]'));
  }finally{layer?.destroy();close?.();app.close();}
+});
+
+test('saved location markers ignore board filters while the deck is limited to the visible map area',async()=>{
+ const {app,events,point}=await setup();let layer;
+ try{
+  await app.store.put('objects',{id:'farplace0001',type:'location',data:{title:'Bekende verre plek',coordinates:{lat:53,lng:6}}});
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small><div data-chain-categories></div>';app.document.body.append(root);
+  let area={w:4.9,e:5.1,s:51.9,n:52.1};const sources=new Map();
+  const map={getCenter:()=>point,getBounds:()=>({getWest:()=>area.w,getEast:()=>area.e,getSouth:()=>area.s,getNorth:()=>area.n}),addSource(id){sources.set(id,{setData(){}});},getSource:id=>sources.get(id),addLayer(){},on(){},off(){},easeTo(){},queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});
+  await until(()=>root.querySelector('[data-chain-category="groceries"] b')?.textContent==='1');root.querySelector('[data-chain-toggle]').click();
+  const saved={id:'farplace0001',type:'location',data:{coordinates:{lat:53,lng:6}}};
+  assert.equal(layer.allowsLocation(saved),true);assert.equal(layer.getBoards().some(item=>item.id===saved.id),false);
+  area={w:5.9,e:6.1,s:52.9,n:53.1};assert.equal(layer.getBoards().some(item=>item.id===saved.id),true);
+  root.querySelector('[data-chain-category="fashion"]').click();assert.equal(layer.getBoards().length,0);assert.equal(layer.allowsLocation(saved),true);
+  app.window.localStorage.setItem('sharon.place.feedback.v1:location:farplace0001',JSON.stringify({hidden:true}));assert.equal(layer.allowsLocation(saved),false,'explicit personal hiding still applies');
+ }finally{layer?.destroy();app.close();}
 });

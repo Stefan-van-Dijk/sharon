@@ -1,32 +1,32 @@
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.42';
-import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.42';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.42';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.42';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.42';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.42';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.42';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.42';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.42';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.42';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.42';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.42';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.42';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.42';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.43';
+import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.43';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.43';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.43';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.43';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.43';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.43';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.43';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.43';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.43';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.43';
+import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.43';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.43';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.43';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.42';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.42';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.42';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.42';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.42';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.42';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.42';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.42';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.42';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.43';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.43';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.43';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.43';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.43';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.43';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.43';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.43';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.43';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.42';
+} from './EnvironmentScale.js?v=0.4.43';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';

@@ -65,7 +65,7 @@ test('analysis radius can be changed and made unlimited, persists and filters fu
   close=open();root.querySelector('[data-board-order-settings]').click();
   const requests=app.requests.length;
   const field=root.querySelector('[data-analysis-radius]');
-  assert.equal(field.value,'10');field.value='0.5';field.dispatchEvent(new app.window.Event('change'));
+  assert.equal(field.value,'201');field.value='0.5';field.dispatchEvent(new app.window.Event('change'));
   const {createEnvironmentBoardSources}=await app.load(spec('ui/EnvironmentBoardSources.js'));
   let nav;const deck=createEnvironmentBoardSources({onOpen:(_,navigation)=>{nav=navigation;}});
   const near={id:'near',coordinates:{lat:52,lng:5}},far={id:'far',coordinates:{lat:53,lng:5}};deck.register({getBoards:()=>[near,far]});
@@ -81,10 +81,11 @@ test('analysis overlay anchors the current map center and slider updates its cir
  const app=await appHarness();let stop;
  try{
   const {mountAnalysisZone}=await app.load(spec('ui/AnalysisZone.js'));
-  const {mountAnalysisRange,inAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
+  const {mountAnalysisRange,inAnalysisRange,saveAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
   const root=app.document.createElement('div');root.innerHTML='<input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output><button data-analysis-recenter></button><button data-analysis-fit></button>';app.document.body.append(root);
   let center={lat:52,lng:5},data,fitted;const sources=new Map(),layers=new Map();
   const map={fitBounds(bounds){fitted=bounds;},getCenter:()=>center,addSource(id){sources.set(id,{setData(value){data=value;}});},getSource:id=>sources.get(id),addLayer(layer){layers.set(layer.id,layer);},getLayer:id=>layers.get(id),removeLayer:id=>layers.delete(id),removeSource:id=>sources.delete(id)};
+  saveAnalysisRange({visible:true});
   const stopControls=mountAnalysisRange(root);stop=()=>{stopControls();stopZone();};const stopZone=mountAnalysisZone(map,root);
   const field=root.querySelector('input');field.value='100';field.dispatchEvent(new app.window.Event('input'));
   assert.deepEqual(Array.from(data.features[1].geometry.coordinates),[5,52]);
@@ -116,7 +117,8 @@ test('slider previews the circle continuously but commits source updates only on
 test('recenter uses the uncovered map midpoint and dragging fits the circle above the settings sheet',async()=>{
  const app=await appHarness();let stop;
  try{
-  const {mountAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
+  const {mountAnalysisRange,saveAnalysisRange}=await app.load(spec('ui/AnalysisRange.js'));
+  saveAnalysisRange({visible:true,unlimited:false,meters:10000});
   const {mountAnalysisZone}=await app.load(spec('ui/AnalysisZone.js'));
   const root=app.document.createElement('div');root.innerHTML='<section data-board-order-sheet><button data-analysis-recenter></button><button data-analysis-fit></button><input type="range" min="0" max="201" data-analysis-radius><output data-analysis-radius-value></output></section>';app.document.body.append(root);
   root.querySelector('section').getBoundingClientRect=()=>({left:0,top:600,right:800,bottom:1000,width:800,height:400});

@@ -39,8 +39,7 @@ selectie stuurt kaartpunten, de locatielijst en het gezamenlijke deck.
 
 ## Analysestraal
 
-Bij de gedeelde boardinstellingen staat een slider van 0 tot 200 kilometer (standaard
-10 km); de volgende stand is ∞ / Onbeperkt naar buiten. De voorkeur wordt lokaal
+Bij de gedeelde boardinstellingen staat een slider van 0 tot 200 kilometer (standaard ∞); de volgende stand is ∞ / Onbeperkt naar buiten. De voorkeur wordt lokaal
 bewaard. Bij openen van de boardinstellingen wordt het huidige kaartmiddelpunt vastgezet
 als analysecentrum. De selectie blijft op die plek staan tijdens kaartbewegingen
 en bladeren. De knop Gebruik huidig kaartmiddelpunt verplaatst de zone expliciet. Het gedeelde deck past
@@ -86,3 +85,12 @@ vanaf de handgreep. De handgreep heeft een eigen aanraakvlak en ondersteunt poin
 touch en toetsenbordbediening. Scrollen in de inhoud sluit het menu niet. De losse
 pijltjes rechtsboven zijn verwijderd. Het zoekveld gebruikt 16 px tekst en focus
 zonder pagina-scroll; een gekozen locatie behoudt het bestaande kaartzoomniveau.
+
+Zonder opgeslagen voorkeur is het boardbereik onbeperkt en de analysecirkel
+verborgen. Bestaande expliciete voorkeuren blijven bewaard. Onbeperkt heft alleen
+de aanvullende afstandsgrens op: bronpunten, categorie-aantallen en de boardlijst
+blijven beperkt tot het huidige kaartvenster. Dit geldt voor winkels, Wikipedia
+en het live Tiqets-aanbod, ook wanneer eerder andere gebieden zijn bezocht.
+Opgeslagen locaties op de basiskaart staan los van bronselectie, categorieën en
+analysestraal; alleen een expliciete persoonlijke verbergkeuze verbergt ze.
+In de boardlijst zelf vallen opgeslagen locaties wel onder de actieve selectie.
