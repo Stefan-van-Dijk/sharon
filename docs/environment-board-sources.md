@@ -133,3 +133,21 @@ lege, succesvolle winkelinventaris gepresenteerd. De server onderscheidt wereldb
 drukte, cacheproblemen en onbereikbaarheid van de Nederlandse registerfout.
 
 De wereldwijde transportlaag gebruikt HTTPS GET met cURL waar beschikbaar en anders PHP-streams. Daarmee is uitgaand POST en `allow_url_fopen` bij beschikbare cURL niet vereist. Beide vaste bronnen krijgen maximaal 10 seconden; de app wacht maximaal 25 seconden zodat de tweede bron kan antwoorden. De laatst geslaagde bron wordt eerst geprobeerd. Bij twee bronfouten blijft wereldwijd een fout zichtbaar: publieke Overpass-beschikbaarheid kan niet worden gegarandeerd.
+
+
+## Ontdekte punten in sessiegeheugen
+
+Winkel- en Wikipediapunten blijven in het geheugen zolang de app-pagina actief is,
+ook bij bron uit/aan of het opnieuw openen van Omgeving. Verlaten van het zichtbare
+kaartvenster verwijdert geen punten uit de tekenlaag; de kaart knipt deze zelf af.
+Categorieën, statusfilters en de ingestelde analysestraal blijven de zichtbaarheid
+bepalen. Boardlijsten en aantallen blijven binnen het huidige of vastgezette venster.
+
+Geslaagde ontdekkingsgebieden worden tijdens dezelfde sessie hergebruikt als het
+zichtbare gevraagde gebied al volledig gedekt is. Terugkeren vraagt die punten niet
+opnieuw. Een afgekapt resultaat wordt alleen voor exact dezelfde zoekvraag hergebruikt;
+een nieuwe ketenfilter mag daardoor geen nog niet opgehaalde winkels missen.
+Wikipediagebieden met de maximale 40 bronpagina's gelden ook niet als volledig gedekt.
+De bestaande requestcache voor details behoudt zijn eigen beperkte levensduur.
+Een herladen app-pagina start een nieuwe ontdekkingssessie; dit is geen permanente
+opslag van alle bezochte gebieden. Hiervoor verandert chains.php niet.

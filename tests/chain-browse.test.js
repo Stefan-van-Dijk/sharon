@@ -53,3 +53,23 @@ test('cancelling worldwide discovery never launches a fallback request',async()=
  const browse=new ChainBrowse({fetcher:async()=>{calls++;controller.abort();throw new DOMException('Aborted','AbortError');}});
  await assert.rejects(browse.area([4.9,51.9,5.1,52.1],'',controller.signal));assert.equal(calls,1);
 });
+
+
+test('visited shop areas stay in session memory after time and reuse covering all-shop queries for chain filters',async()=>{
+ let now=0,calls=0;const version='v1-'+'a'.repeat(24);
+ const browse=new ChainBrowse({clock:()=>now,fetcher:async()=>{calls++;return {ok:true,json:async()=>({schema:1,version,coverage:'WORLD',points:[['abcdef123456','Q1',2350000,48857000,'Paris','node/1']],truncated:false})};}});
+ const original=[2.3,48.8,2.4,48.9];await browse.area(original);
+ now=3600000;
+ const result=await browse.area([2.31,48.81,2.41,48.91],'Q1',undefined,[2.34,48.84,2.36,48.86]);
+ assert.equal(calls,1);assert.equal(result.points.length,1);assert.equal(result.points[0].world,true);
+ await browse.area([2.5,48.8,2.6,48.9]);assert.equal(calls,2);
+ await browse.area(original);assert.equal(calls,2);
+});
+
+test('truncated discovery is reusable only for the same query and cannot hide undiscovered nearby shops',async()=>{
+ let calls=0;const version='v1-'+'a'.repeat(24);
+ const browse=new ChainBrowse({fetcher:async()=>{calls++;return {ok:true,json:async()=>({schema:1,version,coverage:'WORLD',points:[],truncated:true})};}});
+ await browse.area([2.3,48.8,2.4,48.9]);await browse.area([2.3,48.8,2.4,48.9]);assert.equal(calls,1);
+ await browse.area([2.31,48.81,2.39,48.89]);assert.equal(calls,2);
+ await browse.area([2.3,48.8,2.4,48.9],'Q1');assert.equal(calls,3);
+});

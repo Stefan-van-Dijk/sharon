@@ -1,4 +1,4 @@
-import { saveTicketReference } from '../core/cards/TicketReferenceService.js?v=0.4.46';
+import { saveTicketReference } from '../core/cards/TicketReferenceService.js?v=0.4.47';
 
 // Live Tiqets source. No IndexedDB/localStorage, user identifiers or API tokens.
 export const TIQETS_ENDPOINT = 'https://sharon.life/sources/tiqets.php';

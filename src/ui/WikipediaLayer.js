@@ -1,10 +1,11 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.46';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.46';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.46';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.46';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.46';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.46';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.47';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.47';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.47';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.47';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.47';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.47';
 const EMPTY = { type: 'FeatureCollection', features: [] };
+const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
   const seen = new Set();
   return { type: 'FeatureCollection', features: pages.flatMap(page => {
@@ -28,13 +29,15 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const response = await fetcher('https://' + lang + '.wikipedia.org/w/api.php?' + params, { signal });
   if (!response.ok) throw new Error('Wikipedia is tijdelijk niet bereikbaar');
   const data = await response.json();
-  return wikiFeatures(Object.values(data?.query?.pages || {}).map(page => ({ ...page, language: lang })));
+  const pages=Object.values(data?.query?.pages || {});
+  return {...wikiFeatures(pages.map(page => ({ ...page, language: lang }))),truncated:pages.length>=40};
 }
 export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null, onLoadState = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
   let enabled = false, disposed = false, request = null, timeout = null, popup = null, lastCenter = null;
   let currentFeatures = [];
-  const knownFeatures = new Map();
+  if(!discoveryMemory.has(language))discoveryMemory.set(language,{features:new Map(),areas:[]});
+  const {features:knownFeatures,areas:discoveredAreas}=discoveryMemory.get(language);
   let activeId = null;
   let pulseFrame = null;
   const activeLayer = 'sharon-wikipedia-active-pulse';
@@ -72,7 +75,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const redraw = () => {
     let features = [...knownFeatures.values()].filter(feature => {
       const [lng,lat]=feature.geometry.coordinates;
-      if(!inAnalysisRange({lng,lat},map.getCenter())||!inBoardViewport(map,{lng,lat}))return false;
+      if(!enabled||!inAnalysisRange({lng,lat},map.getCenter()))return false;
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       if (!filters.length && !categoryFilters.length) return !state.hidden;
       const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : filter === 'disliked' ? !!state.disliked && !state.hidden : false);
@@ -90,7 +93,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     };
     if (sortMode === 'relevant' || sortMode === 'popular') features = features.filter(feature => score(feature) !== -Infinity);
     features = sortBoards(features, center, sortMode);
-    currentFeatures = features;
+    currentFeatures = features.filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inBoardViewport(map,{lng,lat});});
     const data={type:'FeatureCollection',features},serialized=JSON.stringify(data);
     if(serialized!==lastData){lastData=serialized;map.getSource(sourceId)?.setData(data);}
     reportCounts();
@@ -112,19 +115,24 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
       paint: { 'circle-radius': 7, 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
   };
-  const clear = () => { knownFeatures.clear(); currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
+  const clear = () => { currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
     if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
     // At low zoom retain previously discovered markers; avoid massive global requests.
     if (map.getZoom() < 11) { request?.abort(); request = null; reportLoad('idle'); ensure(); redraw(); return; }
     const center = map.getCenter();
+    const radius=analysisFetchRadius(),bounds=map.getBounds?.();
+    const covered=discoveredAreas.some(area=>area.radius>=radius&&(
+      (Math.abs(center.lat-area.center.lat)<0.000001&&Math.abs(center.lng-area.center.lng)<0.000001)||
+      (!area.truncated&&bounds&&[[bounds.getWest(),bounds.getSouth()],[bounds.getEast(),bounds.getSouth()],[bounds.getWest(),bounds.getNorth()],[bounds.getEast(),bounds.getNorth()]].every(([lng,lat])=>distanceMeters(area.center,{lng,lat})<=area.radius))));
+    if (covered) { ensure();redraw();reportLoad('idle');return; }
     if (lastCenter && Math.abs(center.lat - lastCenter.lat) < 0.005 && Math.abs(center.lng - lastCenter.lng) < 0.005) return;
     request?.abort(); const controller = new AbortController(); request = controller;
     reportLoad('loading');
     try {
       const data = await fetchWikipediaPlaces(center, { language, signal: controller.signal });
-      if (enabled && !disposed && request === controller) { ensure(); data.features.forEach(f => knownFeatures.set(String(f.id), f)); redraw(); lastCenter = center;
+      if (enabled && !disposed && request === controller) { ensure(); data.features.forEach(f => knownFeatures.set(String(f.id), f)); redraw(); lastCenter = {...center};discoveredAreas.push({center:{...center},radius,truncated:data.truncated===true});
         informationFeedback()?.load(data.features.map(wikipediaReference)).catch(() => {}); }
     } catch (error) { if (error.name !== 'AbortError') { console.warn('Wikipedia-laag:', error.message); if (request === controller) reportLoad('error'); } }
     finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
