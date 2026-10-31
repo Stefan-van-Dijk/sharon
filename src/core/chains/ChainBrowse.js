@@ -1,7 +1,7 @@
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.46';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.46';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.47';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.47';
 export class ChainBrowse {
- constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;}
+ constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){
   const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,25000);
   try{
@@ -18,10 +18,15 @@ export class ChainBrowse {
  async catalog(signal){let data;try{data=await this.cached('catalog',{action:'catalog'},signal);}catch(error){if(signal?.aborted)throw error;this.cache.set('catalog',{at:this.clock(),data:{chains:CHAIN_CATALOG}});return CHAIN_CATALOG;}
   if(!Array.isArray(data.chains)||data.chains.some(c=>!c||typeof c.id!=='string'||typeof c.name!=='string'))throw Error('Ongeldige ketencatalogus.');return data.chains;
  }
- async area(bounds,chainId='',signal){
-  let data,fallback=false;
+ async area(bounds,chainId='',signal,visibleBounds=bounds){
+  // Keep successful discovery for this session. Rendering and board selection
+  // remain independent of whether a point currently lies inside the viewport.
+  const needed=[Math.max(bounds[0],visibleBounds[0]),Math.max(bounds[1],visibleBounds[1]),Math.min(bounds[2],visibleBounds[2]),Math.min(bounds[3],visibleBounds[3])];
+  const known=this.areas.find(area=>(area.chainId===chainId||(area.chainId===''&&!area.data.truncated))&&
+    (area.bounds.every((v,i)=>v===bounds[i])||(!area.data.truncated&&needed[0]>=area.bounds[0]&&needed[1]>=area.bounds[1]&&needed[2]<=area.bounds[2]&&needed[3]<=area.bounds[3])));
+  let data=known?.data,fallback=known?.fallback||false;
   const inNetherlands=bounds[0]>=3&&bounds[2]<=8&&bounds[1]>=50&&bounds[3]<=54.5;
-  try{
+  if(!known)try{
     if(this.clock()<this.worldRetryAt)throw Error('De wereldwijde winkelbron is tijdelijk niet beschikbaar.');
     data=await this.cached('map:'+JSON.stringify([bounds,chainId]),{action:'map',bounds,chainId,world:true},signal);
   }catch(error){
@@ -34,7 +39,9 @@ export class ChainBrowse {
   const points=data.points.map(row=>{
    if(!Array.isArray(row)||row.length!==6||!/^[-_A-Za-z0-9]{12}$/.test(row[0])||typeof row[1]!=='string'||!Number.isInteger(row[2])||!Number.isInteger(row[3])||Math.abs(row[2])>180000000||Math.abs(row[3])>90000000||typeof row[4]!=='string'||! /^(node|way|relation)\/[1-9][0-9]*$/.test(row[5]))throw Error('Ongeldig kaartpunt.');
    return {id:row[0],chainId:row[1],coordinates:{lng:row[2]/1e6,lat:row[3]/1e6},name:row[4],sourceRef:row[5],status:'active',remote:true,world:data.coverage==='WORLD',kind:typeof data.kinds?.[row[0]]==='string'?data.kinds[row[0]]:undefined};
-  });return {points,truncated:data.truncated===true,message:fallback?'Nederlandse winkelgegevens · wereldwijde bron tijdelijk niet bereikbaar.':''};
+  }).filter(point=>!chainId||point.chainId===chainId);
+  if(!known)this.areas.push({bounds:[...bounds],chainId,data,fallback});
+  return {points,truncated:data.truncated===true,message:fallback?'Nederlandse winkelgegevens · wereldwijde bron tijdelijk niet bereikbaar.':''};
  }
  async detail(branch,signal){
   if(!signal){if(this.pending.has(branch.id))return this.pending.get(branch.id);const request=this.detail(branch,new AbortController().signal).finally(()=>this.pending.delete(branch.id));this.pending.set(branch.id,request);return request;}
