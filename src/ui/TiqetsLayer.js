@@ -1,7 +1,7 @@
-import { inBoardViewport } from './BoardViewport.js?v=0.4.43';
-import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.43';
-import { sortBoards } from './BoardOrder.js?v=0.4.43';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.43';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.44';
+import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.44';
+import { sortBoards } from './BoardOrder.js?v=0.4.44';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.44';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
@@ -20,7 +20,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   rangeEvents?.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   const clear = () => { features = []; map.getSource(source)?.setData(EMPTY); };
   const refresh = async () => {
-    if (!enabled || disposed || !map.isStyleLoaded()) return;
+    if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
     request?.abort();
     if (map.getZoom() < 11) { clear(); onState('zoom'); return; }
     const controller = new AbortController(); request = controller;
@@ -38,7 +38,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
     }
   };
   const schedule = () => {
-    clearTimeout(timer);
+    clearTimeout(timer);if(boardViewportLocked(map))return;
     // Remove old data immediately: a failed/moved live request must not leave
     // an earlier offer visible. Do not store a catalogue or persistent cache.
     request?.abort(); request = null; clear();
@@ -51,6 +51,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
     const chosen = hit && features.find(feature => String(feature.id) === String(hit.id));
     if (chosen) onOpen?.(chosen, sortBoards(features,map.getCenter()));
   };
+  const stopAreaLock=onBoardViewportLock(map,()=>{request?.abort();request=null;clearTimeout(timer);onState(features.length?'ready':'idle',features.length);});
   map.on('moveend', schedule); map.on('click', click);
   return {
     getBoards(){return enabled?visible():[];},
@@ -61,7 +62,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
     },
     destroy() {
       rangeEvents?.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
-      disposed = true; enabled = false; clearTimeout(timer); request?.abort(); request = null; clear();
+      stopAreaLock();disposed = true; enabled = false; clearTimeout(timer); request?.abort(); request = null; clear();
       map.off('moveend', schedule); map.off('click', click);
       if (map.getLayer(layer)) map.removeLayer(layer);
       if (map.getSource(source)) map.removeSource(source);

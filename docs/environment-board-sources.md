@@ -94,3 +94,13 @@ en het live Tiqets-aanbod, ook wanneer eerder andere gebieden zijn bezocht.
 Opgeslagen locaties op de basiskaart staan los van bronselectie, categorieën en
 analysestraal; alleen een expliciete persoonlijke verbergkeuze verbergt ze.
 In de boardlijst zelf vallen opgeslagen locaties wel onder de actieve selectie.
+
+Bij het openen van een Omgeving-board wordt het huidige kaartgebied automatisch
+vastgezet, zonder knop of melding. De gebiedsgrenzen zijn een momentopname en
+bewegen niet mee met de kaart tijdens bladeren. Winkel-, Wikipedia- en Tiqets-
+gebiedsverzoeken worden onderbroken en blijven gepauzeerd zolang het deck open is.
+Alleen details van het geopende board worden geladen; buurartikelen worden niet
+meer vooruit geladen. Ook een rechtstreeks geopend opgeslagen-locatiedeck gebruikt
+deze gebiedsgrens. Wisselen tussen boardtypen behoudt dezelfde sessie. Na sluiten
+stopt een eventuele camera-animatie, wordt de blokkade opgeheven en kan een volgende
+kaartbeweging weer brongegevens ophalen. Sluiten alleen start geen zoekopdracht.

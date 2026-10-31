@@ -1,32 +1,33 @@
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.43';
-import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.43';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.43';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.43';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.43';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.43';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.43';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.43';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.43';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.43';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.43';
-import { openBoardViewer, preloadWikipediaBoard } from './BoardViewer.js?v=0.4.43';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.43';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.43';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.44';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.44';
+import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.44';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.44';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.44';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.44';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.44';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.44';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.44';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.44';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.44';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.44';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.44';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.44';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.44';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.43';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.43';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.43';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.43';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.43';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.43';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.43';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.43';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.43';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.44';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.44';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.44';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.44';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.44';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.44';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.44';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.44';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.44';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.43';
+} from './EnvironmentScale.js?v=0.4.44';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -425,11 +426,15 @@ export function openEnvironmentView(root, {
   let tiqetsEnabled = false;
   let closeBoard = null;
   const boardSources = createEnvironmentBoardSources({onOpen:(feature,navigation)=>renderBoard(feature,navigation)});
-  const showBoard = feature => boardSources.show(feature,map?.getCenter());
+  let releaseBoardArea=null,switchingBoard=false;
+  const endBoardSession=()=>{if(switchingBoard)return;map?.stop?.();releaseBoardArea?.();releaseBoardArea=null;};
+  const showBoard = feature => {releaseBoardArea?.();releaseBoardArea=lockBoardViewport(map);boardSources.show(feature,map?.getCenter());};
   const renderBoard = (feature, {next, previous, onNext, onPrevious}) => {
+    switchingBoard=true;
     chainLayer?.closeBoard();
     closeLocationDeck?.();
     closeBoard?.();
+    switchingBoard=false;
     const isTiqets = feature.properties?.source === 'tiqets';
     wikipediaLayer?.setActive(feature.properties?.wikidata ? feature : null);
     if (isTiqets) markBoardOpened(feature);
@@ -440,20 +445,14 @@ export function openEnvironmentView(root, {
       cameraControls?.reset();
     }
     const alignment = createBoardMapAlignment(map, coords);
-    // Keep both neighboring stories warm; errors never block navigation.
-    const neighbors = new Map();
-    for (const neighbor of [previous, next]) {
-      if (neighbor?.properties?.wikidata && neighbor.properties?.url) neighbors.set(neighbor.properties.url, neighbor);
-    }
-    if (!isTiqets) for (const neighbor of neighbors.values()) preloadWikipediaBoard(neighbor).catch(() => {});
-    if (boardSources.openBoard(feature, {onNext,onPrevious})) {
+    if (boardSources.openBoard(feature, {onNext,onPrevious,onClose:endBoardSession})) {
       alignment.destroy();
       wikipediaLayer?.setActive(null);
       return;
     }
     closeBoard = openBoardViewer(feature, { location, events,
       sourceBoard: isTiqets ? tiqetsBoard(feature, {store, events}) : null,
-      onClose: () => { alignment.destroy(); closeBoard = null; wikipediaLayer?.setActive(null); },
+      onClose: () => { alignment.destroy(); closeBoard = null; wikipediaLayer?.setActive(null);endBoardSession(); },
       onLayout: alignment.onLayout,
       onNext, onPrevious });
   };
@@ -831,8 +830,9 @@ export function openEnvironmentView(root, {
         if(shared){showBoard(shared);return;}
         const objects = await store.getAll('objects');
         if (disposed) return;
-        closeLocationDeck = openLocationDeck({ store, objects, selected, map, location, events,
-          onClose: () => { closeLocationDeck = null; },
+        releaseBoardArea?.();releaseBoardArea=lockBoardViewport(map);
+        closeLocationDeck = openLocationDeck({ store, objects:objects.filter(item=>item.type!=='location'||inBoardViewport(map,item.data?.coordinates)), selected, map, location, events,
+          onClose: () => { closeLocationDeck = null;endBoardSession(); },
           onLocation: item => {
             followingPosition = false; awaitingFirstPosition = false; cameraControls?.reset();
             const point = item.data?.coordinates;
@@ -923,6 +923,7 @@ export function openEnvironmentView(root, {
     tiqetsSetup.abort();
     tiqetsLayer?.destroy();
     wikipediaLayer?.destroy();
+    endBoardSession();
     chainLayer?.destroy();
     closeBoard?.();
     gpsMarker?.remove();
