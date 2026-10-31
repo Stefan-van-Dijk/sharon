@@ -1,33 +1,32 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.48';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.48';
-import { mountAnalysisZone } from './AnalysisZone.js?v=0.4.48';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.48';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.48';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.48';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.48';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.48';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.48';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.48';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.48';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.48';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.48';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.48';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.48';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.49';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.49';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.49';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.49';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.49';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.49';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.49';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.49';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.49';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.49';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.49';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.49';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.49';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.49';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.48';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.48';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.48';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.48';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.48';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.48';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.48';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.48';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.48';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.49';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.49';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.49';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.49';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.49';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.49';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.49';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.49';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.49';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.48';
+} from './EnvironmentScale.js?v=0.4.49';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -240,13 +239,6 @@ export function openEnvironmentView(root, {
         </div>
         <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Boardinstellingen" aria-hidden="true" hidden>
           <header><strong>Boards</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
-          <div class="environment-analysis-heading">
-            <button type="button" data-analysis-recenter aria-label="Middelpunt hier" title="Middelpunt hier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></button>
-            <label for="analysis-radius">Analysestraal <output data-analysis-radius-value></output></label>
-            <button type="button" data-analysis-fit aria-label="Verberg analysecirkel" title="Verberg analysecirkel" aria-pressed="true"></button>
-          </div>
-          <input id="analysis-radius" type="range" data-analysis-radius min="0" max="201" step="1" aria-label="Analysestraal in kilometers">
-          <div style="display:flex;justify-content:space-between;font-size:12px"><span>0 km</span><span>200 km · ∞</span></div>
           <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
             <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
@@ -754,7 +746,7 @@ export function openEnvironmentView(root, {
     map.on('load', () => {
       if (disposed) return;
       mapReady = true;
-      unsubscribers.push(mountAnalysisZone(map,root));
+
       unsubscribers.push(mountPlacePulse(map));
       const refreshPlaces=event=>{updateObjects().catch(()=>{});if(event.detail?.hidden)window.dispatchEvent(new CustomEvent('sharon-place-board-active',{detail:{point:null}}));};
       window.addEventListener('sharon-place-feedback-changed',refreshPlaces);

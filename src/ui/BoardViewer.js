@@ -1,6 +1,6 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.48';
-import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.48';
-import { createBoardDeck } from './BoardChrome.js?v=0.4.48';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.49';
+import { informationReference, wikipediaReference } from '../core/information/InformationItem.js?v=0.4.49';
+import { createBoardDeck } from './BoardChrome.js?v=0.4.49';
 // Wikipedia articles are read into plain text/image data; never inject article HTML.
 const wikiHosts = /^[a-z-]+\.wikipedia\.org$/i;
 const imageHosts = /^(?:upload\.wikimedia\.org)$/i;
@@ -373,7 +373,7 @@ export function openBoardViewer(feature, { location, events, onNext, onPrevious,
     try { feedback = {...feedback, ...JSON.parse(localStorage.getItem(feedbackKey) || '{}')}; } catch {}
     const actions = document.createElement('div');
     actions.className = 'sh-board-feedback';
-    actions.style.cssText = 'display:flex;gap:16px;align-items:center;margin:0';
+    actions.style.cssText = 'display:flex;gap:2px;align-items:center;margin:0';
     const readButton = document.createElement('button');
     const likeButton = document.createElement('button');
     const hideButton = document.createElement('button');

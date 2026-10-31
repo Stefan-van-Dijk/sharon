@@ -1,9 +1,9 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.48';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.48';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.48';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.48';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.48';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.48';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.49';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.49';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.49';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.49';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.49';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.49';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
