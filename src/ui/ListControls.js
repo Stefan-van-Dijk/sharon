@@ -1,4 +1,4 @@
-import { bindDragOrder } from './DragOrder.js?v=0.4.43';
+import { bindDragOrder } from './DragOrder.js?v=0.4.44';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon = {
   logical:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9Z"/></svg>',

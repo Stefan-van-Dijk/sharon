@@ -399,3 +399,20 @@ test('saved location markers ignore board filters while the deck is limited to t
   app.window.localStorage.setItem('sharon.place.feedback.v1:location:farplace0001',JSON.stringify({hidden:true}));assert.equal(layer.allowsLocation(saved),false,'explicit personal hiding still applies');
  }finally{layer?.destroy();app.close();}
 });
+
+test('automatic board area locking stops pending and future shop area requests during camera movement',async()=>{
+ const {app,events,point}=await setup();let layer,unlock;
+ try{
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const {lockBoardViewport}=await app.load(spec('ui/BoardViewport.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small>';app.document.body.append(root);
+  let center=point;const sources=new Map(),handlers=new Map(),calls=[],version='v1-'+'a'.repeat(24);
+  app.window.fetch=async(_,options)=>{const q=JSON.parse(options.body);calls.push(q);return {ok:true,json:async()=>q.action==='catalog'?{schema:1,version,chains:[{id:'Q999999',name:'Winkel'}]}:{schema:1,version,points:[['remote000001','Q999999',5000000,52000000,'Winkel','node/99']]}};};
+  const map={getCenter:()=>center,getZoom:()=>15,getBounds:()=>({getWest:()=>center.lng-.1,getEast:()=>center.lng+.1,getSouth:()=>center.lat-.1,getNorth:()=>center.lat+.1}),addSource(id){sources.set(id,{setData(){}});},getSource:id=>sources.get(id),addLayer(){},on(name,fn){if(!handlers.has(name))handlers.set(name,[]);handlers.get(name).push(fn);},off(){},easeTo(){},queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q999999'});
+  await until(()=>calls.some(q=>q.action==='map'));const before=calls.length;
+  unlock=lockBoardViewport(map);center={lat:53,lng:6};for(const fn of handlers.get('moveend'))fn();
+  await new Promise(resolve=>setTimeout(resolve,30));assert.equal(calls.length,before);assert.equal(layer.getBoards().length,1,'the original area remains selected');
+  unlock();unlock=null;for(const fn of handlers.get('moveend'))fn();await until(()=>calls.length>before);
+ }finally{unlock?.();layer?.destroy();app.close();}
+});

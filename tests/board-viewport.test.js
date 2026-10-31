@@ -11,3 +11,15 @@ test('source viewport selects the visible area and supports wrapped map longitud
  assert.equal(inBoardViewport(map(170,-170),{lat:52,lng:0}),false);
  assert.equal(inBoardViewport({}, {lat:52,lng:5}),true);
 });
+
+test('a board session freezes map bounds and pauses sources until explicitly released',async()=>{
+ const {lockBoardViewport,boardViewportLocked,onBoardViewportLock}=await import('../src/ui/BoardViewport.js');
+ let west=4,east=6,notices=0;
+ const bounds={getWest:()=>west,getEast:()=>east,getSouth:()=>50,getNorth:()=>54},map={getBounds:()=>bounds};
+ const stop=onBoardViewportLock(map,()=>notices++),unlock=lockBoardViewport(map);
+ assert.equal(notices,1);assert.equal(boardViewportLocked(map),true);
+ west=10;east=12;
+ assert.equal(inBoardViewport(map,{lat:52,lng:5}),true);assert.equal(inBoardViewport(map,{lat:52,lng:11}),false);
+ unlock();assert.equal(boardViewportLocked(map),false);assert.equal(inBoardViewport(map,{lat:52,lng:11}),true);
+ stop();lockBoardViewport(map)();assert.equal(notices,1);
+});

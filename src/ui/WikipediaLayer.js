@@ -1,9 +1,9 @@
-import { inBoardViewport } from './BoardViewport.js?v=0.4.43';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.43';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.43';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.43';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.43';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.43';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.44';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.44';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.44';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.44';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.44';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.44';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -115,7 +115,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const clear = () => { knownFeatures.clear(); currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
-    if (!enabled || disposed || !map.isStyleLoaded()) return;
+    if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
     // At low zoom retain previously discovered markers; avoid massive global requests.
     if (map.getZoom() < 11) { request?.abort(); request = null; reportLoad('idle'); ensure(); redraw(); return; }
     const center = map.getCenter();
@@ -129,7 +129,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     } catch (error) { if (error.name !== 'AbortError') { console.warn('Wikipedia-laag:', error.message); if (request === controller) reportLoad('error'); } }
     finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
   };
-  const schedule = () => { clearTimeout(timeout); if (enabled) {redraw();timeout = setTimeout(refresh, 450);} };
+  const schedule = () => { clearTimeout(timeout); if (enabled&&!boardViewportLocked(map)) {redraw();timeout = setTimeout(refresh, 450);} };
   const click = event => {
     if (!enabled || !map.getLayer(layerId)) return;
     const point = event.point;
@@ -166,6 +166,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   };
   window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
   window.addEventListener('sharon-information-changed',onFeedbackChanged);
+  const stopAreaLock=onBoardViewportLock(map,()=>{request?.abort();request=null;clearTimeout(timeout);reportLoad('idle');});
   const rangeChanged=()=>{lastCenter=null;redraw();schedule();};
   window.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   map.on('moveend', schedule); map.on('click', click);
@@ -177,5 +178,5 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
   }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); lastCenter = null;
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged); window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { stopAreaLock();window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged); window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }
