@@ -123,3 +123,11 @@ Upload het bijgewerkte server/chains.php naar /log/api/chains.php. De server moe
 HTTPS-uitgaand naar de vaste Overpass-bronnen toestaan en schrijfrechten hebben
 in /log/private/chains/world-cache. Een mislukte bronvraag wist geen bestaande
 lokale locaties. Het is een publieke bron met wisselende beschikbaarheid en dekking.
+
+Bij storing van wereldwijde ontdekking valt de app binnen Nederland terug op het
+bestaande winkelregister. Een mislukte wereldvraag krijgt twee minuten rust voordat
+opnieuw wordt geprobeerd. Tijdens een geannuleerd gebiedsverzoek wordt geen nieuwe
+terugvalvraag gestart. Het wereldgebiedsverzoek wacht maximaal acht seconden; andere
+verzoeken behouden hun eigen limiet. Buiten Nederland wordt een storing niet als een
+lege, succesvolle winkelinventaris gepresenteerd. De server onderscheidt wereldbron-
+drukte, cacheproblemen en onbereikbaarheid van de Nederlandse registerfout.

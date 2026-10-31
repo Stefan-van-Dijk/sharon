@@ -117,7 +117,7 @@ function world_shop_query(array $in):string {
         if(array_diff(array_keys($in),['schema','action','world','id','sourceRef']))throw new InvalidArgumentException('unexpected_fields');
         $ref=$in['sourceRef']??'';
         if(!is_string($ref)||!preg_match('/\A(node|way|relation)\/([1-9][0-9]{0,15})\z/',$ref,$m)||($in['id']??'')!==substr(hash('sha256','osm:'.$ref),0,12))throw new InvalidArgumentException('invalid_branch');
-        return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out tags center 1;';
+        return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out body center 1;';
     }
     if(($in['action']??'')!=='map'||array_diff(array_keys($in),['schema','action','world','bounds','chainId']))throw new InvalidArgumentException('invalid_request');
     $b=$in['bounds']??null;$chain=$in['chainId']??'';
@@ -125,7 +125,7 @@ function world_shop_query(array $in):string {
     foreach($b as $v)if((!is_int($v)&&!is_float($v))||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
     [$w,$s,$e,$n]=$b;if($w < -180||$e>180||$s < -90||$n>90||$e<=$w||$n<=$s||$e-$w>1||$n-$s>1)throw new InvalidArgumentException('invalid_bounds');
     $box=implode(',',array_map(fn($v)=>sprintf('%.6F',$v),[$s,$w,$n,$e]));$brand=$chain===''?'':'["brand:wikidata"="'.$chain.'"]';
-    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out tags center 2001;';
+    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out body center 2001;';
 }
 function world_shop_result(array $data,array $in):array {
     if(!isset($data['elements'])||!is_array($data['elements'])||isset($data['remark']))throw new RuntimeException('Invalid source');
@@ -210,4 +210,7 @@ try{
     $register=chain_register($path);
     chain_out(200,chain_bundle($register,$input));
 }catch(InvalidArgumentException $e){chain_out(400,['error'=>$e->getMessage()]);}
-catch(Throwable $e){chain_out(503,['error'=>'register_unavailable']);}
+catch(Throwable $e){
+    if(($input['world']??false)===true){$code=match($e->getMessage()){'Source busy'=>'world_source_busy','Cache unavailable','Invalid cache'=>'world_cache_unavailable',default=>'world_source_unavailable'};chain_out(503,['error'=>$code]);}
+    chain_out(503,['error'=>'register_unavailable']);
+}

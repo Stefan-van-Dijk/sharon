@@ -1,2 +1,2 @@
 // Compatibility for callers of the original location-only adapter.
-export { createDemoWorkspaceStore as createDemoLocationStore } from './DemoWorkspaceStore.js?v=0.4.45';
+export { createDemoWorkspaceStore as createDemoLocationStore } from './DemoWorkspaceStore.js?v=0.4.46';

@@ -36,3 +36,20 @@ test('worldwide points include independent store types and use source-bound deta
  const {points}=await browse.area([139.6,35.6,139.8,35.8]);assert.equal(calls[0].world,true);assert.equal(points[0].kind,'bakery');assert.equal(points[0].world,true);
  const detail=await browse.detail(points[0]);assert.equal(calls[1].sourceRef,'node/123');assert.equal(calls[1].world,true);assert.equal(detail.address,'Tokyo');
 });
+
+test('an unavailable world service falls back to the working Dutch register and backs off retries',async()=>{
+ const calls=[],version='v1-'+'a'.repeat(24),browse=new ChainBrowse({fetcher:async(_,options)=>{
+  const q=JSON.parse(options.body);calls.push(q);
+  if(q.world)return {ok:false,status:503};
+  return {ok:true,json:async()=>({schema:1,version,coverage:'NL',points:[['branch000001','Q1653985',5000000,52000000,'Winkel','node/1']]})};
+ }});
+ const result=await browse.area([4.9,51.9,5.1,52.1]);assert.equal(result.points.length,1);assert.equal(result.points[0].world,false);assert.match(result.message,/Nederlandse/);
+ await browse.area([5,52,5.2,52.2]);assert.equal(calls.filter(q=>q.world).length,1);
+ await assert.rejects(browse.area([139.6,35.6,139.8,35.8]),/wereldwijde/);
+});
+
+test('cancelling worldwide discovery never launches a fallback request',async()=>{
+ const controller=new AbortController();let calls=0;
+ const browse=new ChainBrowse({fetcher:async()=>{calls++;controller.abort();throw new DOMException('Aborted','AbortError');}});
+ await assert.rejects(browse.area([4.9,51.9,5.1,52.1],'',controller.signal));assert.equal(calls,1);
+});
