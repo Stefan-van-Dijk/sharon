@@ -1,6 +1,7 @@
-import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.42';
-import { sortBoards } from './BoardOrder.js?v=0.4.42';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.42';
+import { inBoardViewport } from './BoardViewport.js?v=0.4.43';
+import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.43';
+import { sortBoards } from './BoardOrder.js?v=0.4.43';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.43';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
@@ -14,7 +15,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
       paint:{'circle-radius':7,'circle-color':'#fff','circle-stroke-color':'#008b88','circle-stroke-width':2.5}
     });
   };
-  const visible=()=>features.filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter());});
+  const visible=()=>features.filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter())&&inBoardViewport(map,{lng,lat});});
   const rangeChanged=()=>{if(enabled)map.getSource(source)?.setData({type:'FeatureCollection',features:visible()});};
   rangeEvents?.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   const clear = () => { features = []; map.getSource(source)?.setData(EMPTY); };

@@ -1,8 +1,9 @@
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.42';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.42';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.42';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.42';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.42';
+import { inBoardViewport } from './BoardViewport.js?v=0.4.43';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.43';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.43';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.43';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.43';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.43';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 export function wikiFeatures(pages = []) {
   const seen = new Set();
@@ -55,7 +56,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     catch { return {}; }
   };
   const reportCounts = () => {
-    const features = [...knownFeatures.values()].filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter());});
+    const features = [...knownFeatures.values()].filter(feature=>{const [lng,lat]=feature.geometry.coordinates;return inAnalysisRange({lng,lat},map.getCenter())&&inBoardViewport(map,{lng,lat});});
     const groups = Object.fromEntries(['erfgoed','bouw','natuur','cultuur','vervoer','overig'].map(key => [key,{total:0,read:0,liked:0,disliked:0,hidden:0}]));
     for (const feature of features) {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
@@ -71,7 +72,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const redraw = () => {
     let features = [...knownFeatures.values()].filter(feature => {
       const [lng,lat]=feature.geometry.coordinates;
-      if(!inAnalysisRange({lng,lat},map.getCenter()))return false;
+      if(!inAnalysisRange({lng,lat},map.getCenter())||!inBoardViewport(map,{lng,lat}))return false;
       const state = feedback(String(feature.properties?.wikidata || feature.id));
       if (!filters.length && !categoryFilters.length) return !state.hidden;
       const statusMatch = filters.some(filter => filter === 'hidden' ? !!state.hidden : filter === 'unread' ? !state.read && !state.hidden : filter === 'read' ? !!state.read && !state.hidden : filter === 'liked' ? !!state.liked && !state.hidden : filter === 'disliked' ? !!state.disliked && !state.hidden : false);
