@@ -138,7 +138,9 @@ De wereldwijde transportlaag gebruikt HTTPS GET met cURL waar beschikbaar en and
 ## Ontdekte punten in sessiegeheugen
 
 Winkel- en Wikipediapunten blijven in het geheugen zolang de app-pagina actief is,
-ook bij bron uit/aan of het opnieuw openen van Omgeving. Verlaten van het zichtbare
+ook bij het opnieuw openen van Omgeving. Het expliciet uitschakelen van een bron
+wist de ontdekte punten en gebieden van die bron. Opnieuw inschakelen start een
+nieuwe ontdekking; eigen opgeslagen locaties en waarderingen blijven bewaard. Verlaten van het zichtbare
 kaartvenster verwijdert geen punten uit de tekenlaag; de kaart knipt deze zelf af.
 Categorieën, statusfilters en de ingestelde analysestraal blijven de zichtbaarheid
 bepalen. Boardlijsten en aantallen blijven binnen het huidige of vastgezette venster.
@@ -151,3 +153,5 @@ Wikipediagebieden met de maximale 40 bronpagina's gelden ook niet als volledig g
 De bestaande requestcache voor details behoudt zijn eigen beperkte levensduur.
 Een herladen app-pagina start een nieuwe ontdekkingssessie; dit is geen permanente
 opslag van alle bezochte gebieden. Hiervoor verandert chains.php niet.
+
+Bij wereldwijde bronuitval bevat de API nu per vaste bron een beperkte diagnose (timeout, TLS, verbinding, HTTP-status of ongeldig antwoord), zonder serverpaden of ruwe foutinhoud. De gewone appmelding blijft compact.

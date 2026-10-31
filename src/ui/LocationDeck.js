@@ -1,10 +1,10 @@
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.47';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.47';
-import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.47';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.47';
-import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.47';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.47';
-import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.47';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.48';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.48';
+import { sortBoards, BOARD_ORDER_EVENT } from './BoardOrder.js?v=0.4.48';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.48';
+import { placeKey, activePlace } from './PlaceFeedback.js?v=0.4.48';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.48';
+import { getPrivateWebSources, addPrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.48';
 
 const IMAGE_KEY = 'location.board.image.v1:';
 export function openLocationDeck({store, objects, selected, onClose, onLocation, map, location, events, navigation=null, category=null}) {
