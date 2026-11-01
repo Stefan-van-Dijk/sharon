@@ -1,32 +1,32 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.54';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.54';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.54';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.54';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.54';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.54';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.54';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.54';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.54';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.54';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.54';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.54';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.54';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.54';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.55';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.55';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.55';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.55';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.55';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.55';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.55';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.55';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.55';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.55';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.55';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.55';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.55';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.55';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.54';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.54';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.54';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.54';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.54';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.54';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.54';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.54';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.54';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.55';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.55';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.55';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.55';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.55';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.55';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.55';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.55';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.55';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.54';
+} from './EnvironmentScale.js?v=0.4.55';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';

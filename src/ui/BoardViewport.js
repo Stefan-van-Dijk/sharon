@@ -14,7 +14,7 @@ export function lockBoardViewport(map){
   const values=bounds?[bounds.getWest(),bounds.getEast(),bounds.getSouth(),bounds.getNorth()]:null;
   const token={bounds:values?{getWest:()=>values[0],getEast:()=>values[1],getSouth:()=>values[2],getNorth:()=>values[3]}:null};
   locks.set(map,token);for(const listener of listeners.get(map)||[])listener();
-  return ()=>{if(locks.get(map)===token)locks.delete(map);};
+  return ()=>{if(locks.get(map)===token){locks.delete(map);for(const listener of listeners.get(map)||[])listener();}};
 }
 // Keep discovered source boards scoped to the currently visible map area.
 export function inBoardViewport(map,point){
