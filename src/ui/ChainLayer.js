@@ -186,7 +186,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
-  return {getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
+  return {resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
       closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);
