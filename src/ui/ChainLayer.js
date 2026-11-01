@@ -27,6 +27,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const inRange=branch=>{const center=map.getCenter?.()||location?.latest;return (!center||inAnalysisRange(branch.coordinates,center))&&inBoardViewport(map,branch.coordinates);};
   let catalog=CHAIN_CATALOG,remote=[...discoveredBranches.values()],local=[],request=null,timer=null,queryRevision=0,boardRevision=0,loadMessage='';
   const candidates=()=>{
+    if (!enabled) return [];
     // Boards and source statistics span all discoveries in this session, not just the viewport.
     const own=places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected);
     const refs=new Set(own.flatMap(item=>[item.data?.branchId,item.data?.sourceRef]).filter(Boolean));
