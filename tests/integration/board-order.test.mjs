@@ -108,3 +108,16 @@ for(const pointer of [false,true])test('source handle supports '+(pointer?'point
   stop();stop=null;handle.click();assert.equal(closed,2);
  }finally{stop?.();app.close();}
 });
+
+
+test('board discovery choice defaults to fixed, persists and applies on the next deck opening',async()=>{
+ const app=await appHarness();let close;
+ try{
+  const {openEnvironmentView}=await app.load(spec('ui/EnvironmentMapLibre.js'));
+  const root=app.document.createElement('div');app.document.body.append(root);
+  const open=()=>openEnvironmentView(root,{store:app.store,events:{on:()=>()=>{}},location:{latest:{lat:52,lng:5}},loadRenderer:()=>new Promise(()=>{})});
+  close=open();const fixed=()=>root.querySelector('[data-board-discovery="fixed"]'),expand=()=>root.querySelector('[data-board-discovery="expand"]');
+  assert.equal(fixed().getAttribute('aria-pressed'),'true');expand().click();assert.equal(expand().getAttribute('aria-pressed'),'true');
+  close();close=open();assert.equal(expand().getAttribute('aria-pressed'),'true');fixed().click();assert.equal(fixed().getAttribute('aria-pressed'),'true');
+ }finally{close?.();app.close();}
+});

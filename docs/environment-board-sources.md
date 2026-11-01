@@ -164,3 +164,7 @@ kaartvenster bepaalt welke ontdekte boards beschikbaar zijn; een geopend deck ho
 zijn bestaande momentopname. Bronverzoeken blijven begrensd om grote downloads te
 voorkomen. Ontdekte punten worden hergebruikt totdat hun bron wordt uitgeschakeld.
 De boardvoet toont bron en categorie links onder elkaar en beoordelingen rechts.
+
+## Keuze tijdens bladeren
+
+Zie `Boardlogica.md` voor de huidige gedragsafspraak. De eerder beschreven automatische bronpauze is standaard Vaste selectie. In de optionele stand Verder ontdekken blijven gebiedsvragen actief en neemt het gezamenlijke deck nieuwe bronresultaten bij een swipe over. De keuze wordt per deckopening vastgelegd.

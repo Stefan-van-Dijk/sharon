@@ -1,4 +1,5 @@
-import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.49';
+import { BOARD_DISCOVERY_KEY, boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.51';
+import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.51';
 export function mountBoardOrderControls(root) {
   const toggle=root.querySelector('[data-board-order-settings]'),panel=root.querySelector('[data-board-order-sheet]');
   // Preserve the previous Wikipedia preference before its filters are rewritten.
@@ -13,6 +14,7 @@ export function mountBoardOrderControls(root) {
   };
   const render=()=>{
     const mode=boardOrderMode();
+    for(const button of panel.querySelectorAll('[data-board-discovery]'))button.setAttribute('aria-pressed',String((button.dataset.boardDiscovery==='expand')===boardDiscoveryEnabled()));
     for(const button of buttons)button.setAttribute('aria-pressed',String(button.dataset.boardOrder===mode));
     toggle.title='Volgorde van boards: '+BOARD_ORDERS[mode];
     toggle.setAttribute('aria-label',toggle.title+'; instellen');
@@ -20,6 +22,8 @@ export function mountBoardOrderControls(root) {
   const click=event=>{
     if(event.target.closest('[data-board-order-settings]')){show(panel.hidden);return;}
     if(event.target.closest('[data-board-order-close]')){show(false);toggle.focus();return;}
+    const discovery=event.target.closest('[data-board-discovery]');
+    if(discovery&&panel.contains(discovery)){try{localStorage.setItem(BOARD_DISCOVERY_KEY,JSON.stringify(discovery.dataset.boardDiscovery==='expand'));}catch{}render();return;}
     const button=event.target.closest('[data-board-order]');
     if(!button||!panel.contains(button))return;
     try{localStorage.setItem(BOARD_ORDER_KEY,JSON.stringify(button.dataset.boardOrder));}catch{}

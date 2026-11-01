@@ -1,3 +1,5 @@
+export const BOARD_DISCOVERY_KEY='sharon.boards.discover-while-browsing.v1';
+export function boardDiscoveryEnabled(){try{return JSON.parse(localStorage.getItem(BOARD_DISCOVERY_KEY)||'false')===true;}catch{return false;}}
 const locks=new WeakMap(),listeners=new WeakMap();
 export const boardViewportLocked=map=>Boolean(locks.get(map));
 export function onBoardViewportLock(map,listener){
@@ -5,6 +7,7 @@ export function onBoardViewportLock(map,listener){
   return ()=>listeners.get(map)?.delete(listener);
 }
 export function lockBoardViewport(map){
+  if(boardDiscoveryEnabled())return ()=>{};
   const b=map.getBounds?.();
   const bounds=b?{getWest:()=>b.getWest(),getEast:()=>b.getEast(),getSouth:()=>b.getSouth(),getNorth:()=>b.getNorth()}:null;
   // Capture numbers: a renderer may mutate its bounds object on movement.
