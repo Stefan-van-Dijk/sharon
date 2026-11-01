@@ -244,6 +244,7 @@ export function openEnvironmentView(root, {
             <button type="button" data-board-discovery="expand" aria-pressed="false">Verder ontdekken</button>
           </div>
           <small>Geldt bij het openen van een deck.</small>
+           <button type="button" data-session-reset aria-label="Opgehaalde sessieresultaten wissen">Zoekresultaten van deze sessie wissen</button>
           <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
             <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
@@ -262,10 +263,12 @@ export function openEnvironmentView(root, {
           <div class="environment-source-filter-grid" data-chain-categories></div>
           <small data-chain-status role="status"></small>
           <div class="environment-places-list" data-places-list></div>
+           <button type="button" data-shop-session-reset>Opgehaalde winkels wissen</button>
         </section>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <button type="button" class="environment-source-sheet-handle" data-source-sheet-handle aria-label="Wikipediamenu sluiten"></button>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
+           <button type="button" data-wiki-session-reset>Opgehaalde Wikipedia-items wissen</button>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row">
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
@@ -518,6 +521,13 @@ export function openEnvironmentView(root, {
     tiqetsLayer?.setEnabled(tiqetsEnabled);
     if (!tiqetsEnabled && document.querySelector('.sh-board-source[rel~="sponsored"]')) closeBoard?.();
   });
+  const resetDiscoveries = source => {
+    if (source === 'wiki' || source === 'all') wikipediaLayer?.resetSession?.();
+    if (source === 'shop' || source === 'all') chainLayer?.resetSession?.();
+  };
+  listenEarly(root.querySelector('[data-session-reset]'),'click',()=>resetDiscoveries('all'));
+  listenEarly(root.querySelector('[data-wiki-session-reset]'),'click',()=>resetDiscoveries('wiki'));
+  listenEarly(root.querySelector('[data-shop-session-reset]'),'click',()=>resetDiscoveries('shop'));
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   const updateWikipediaZoomCue = () => {
     if (!map) return;
