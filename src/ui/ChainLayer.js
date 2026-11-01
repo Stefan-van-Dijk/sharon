@@ -1,20 +1,20 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.53';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.53';
-import { focusTextField } from './TextInputFocus.js?v=0.4.53';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.53';
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.53';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.53';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.53';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.53';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.53';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.53';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.53';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.53';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.53';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.53';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.53';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.53';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.53';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.54';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.54';
+import { focusTextField } from './TextInputFocus.js?v=0.4.54';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.54';
+import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.54';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.54';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.54';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.54';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.54';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.54';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.54';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.54';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.54';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.54';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.54';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.54';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.54';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
 export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
@@ -39,7 +39,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     draw();
     if(map.getZoom()<11){loadMessage='Zoom verder in om winkels '+analysisRangeLabel()+' op te halen.';draw();return;}
     const viewport=map.getBounds(),visibleBounds=[viewport.getWest(),viewport.getSouth(),viewport.getEast(),viewport.getNorth()];
-    const bounds=shopViewportBounds(map.getCenter?.()||location?.latest,visibleBounds);
+    const bounds=shopViewportBounds(map.getCenter?.()||location?.latest,visibleBounds,analysisFetchRadius());
     if(!bounds){loadMessage='Winkelbereik is hier niet beschikbaar.';draw();return;}
     request=new AbortController();const signal=request.signal;
     try{const value=await browse.catalog(signal);if(disposed||run!==queryRevision)return;catalog=value;paintOptions();}catch(error){if(disposed||signal.aborted)return;loadMessage=error.message+' Lokale gegevens blijven beschikbaar.';draw();return;}

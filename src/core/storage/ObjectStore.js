@@ -88,7 +88,7 @@ export class ObjectStore {
     });
   }
 
-  async upsertBranchLocation(branchId, update) {
+  async upsertBranchLocation(branchId, update, sourceRef='') {
     if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
     return new Promise((resolve,reject)=>{
       const tx=this.#db.transaction('objects','readwrite'), table=tx.objectStore('objects');
@@ -96,7 +96,7 @@ export class ObjectStore {
       request.onsuccess=()=>{
         try {
           const records=request.result;
-          const old=records.find(item=>item.type==='location'&&!item.deletedAt&&!item.archivedAt&&item.status!=='archived'&&item.data?.branchId===branchId);
+          const old=records.find(item=>item.type==='location'&&!item.deletedAt&&!item.archivedAt&&item.status!=='archived'&&(item.data?.branchId===branchId||Boolean(sourceRef&&item.data?.sourceRef===sourceRef)));
           record=update(old);
           if (records.some(item=>item.id===record.id&&item.id!==old?.id)) throw Error('Conflicterende locatie-identiteit.');
           table.put(record);

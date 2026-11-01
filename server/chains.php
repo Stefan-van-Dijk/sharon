@@ -76,7 +76,7 @@ function chain_validate_browse(array $data):void {
     if(($data['schema']??null)!==1||($data['coverage']??'')!=='NL'||!preg_match('/\Av1-[a-f0-9]{24}\z/',$data['version']??'')||!is_array($data['chains']??null)||!is_array($data['points']??null)||!is_array($data['detailFiles']??null)||count($data['points'])>500000)throw new RuntimeException('Invalid browse register');
     $chains=[];foreach($data['chains'] as $chain){if(!is_array($chain)||!is_string($chain['id']??null)||!preg_match('/\A(Q[1-9][0-9]*|b-[a-f0-9]{16})\z/',$chain['id'])||!is_string($chain['name']??null)||strlen($chain['name'])>2000)throw new RuntimeException('Invalid browse chain');$chains[$chain['id']]=true;}
     foreach($data['detailFiles'] as $prefix=>$hash)if(!preg_match('/\A[A-Za-z0-9_-]\z/',(string)$prefix)||!is_string($hash)||!preg_match('/\A[a-f0-9]{64}\z/',$hash))throw new RuntimeException('Invalid detail reference');
-    $seen=[];foreach($data['points'] as $row){if(!is_array($row)||count($row)!==6||!is_string($row[0])||!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$row[0])||isset($seen[$row[0]])||!isset($chains[$row[1]])||!is_int($row[2])||!is_int($row[3])||abs($row[2])>180000000||abs($row[3])>90000000||!is_string($row[4])||strlen($row[4])>2000||!preg_match('/\A(node|way|relation)\/[1-9][0-9]*\z/',$row[5])||!isset($data['detailFiles'][$row[0][0]]))throw new RuntimeException('Invalid browse point');$seen[$row[0]]=true;}
+    $seen=[];foreach($data['points'] as $row){if(!is_array($row)||count($row)!==6||!is_string($row[0])||!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$row[0])||isset($seen[$row[0]])||($row[1]!==''&&!isset($chains[$row[1]]))||!is_int($row[2])||!is_int($row[3])||abs($row[2])>180000000||abs($row[3])>90000000||!is_string($row[4])||strlen($row[4])>2000||!preg_match('/\A(node|way|relation)\/[1-9][0-9]*\z/',$row[5])||!isset($data['detailFiles'][$row[0][0]]))throw new RuntimeException('Invalid browse point');$seen[$row[0]]=true;}
 }
 function chain_browse_query(array $data,array $input):array {
     $action=$input['action']??'';
@@ -110,13 +110,63 @@ function chain_browse_detail(array $data,string $id,string $directory,?callable 
     if(!is_array($detail)||($detail['sourceRef']??null)!==$row[5]||($detail['chainId']??null)!==$row[1])throw new RuntimeException('Invalid detail');
     return ['schema'=>1,'version'=>$data['version'],'detail'=>$detail];
 }
+// Installed immutable geographic bundles reuse the existing API and board payload.
+// Four-character cells use the same 64x64 hierarchy as EnvironmentIdentifier.
+function shop_tile_read(string $directory,string $name):array {
+    if(!preg_match('/\A(tile|identity|detail)-[A-Za-z0-9_-]{2,4}-([a-f0-9]{64})\.json\z/',$name,$m))throw new RuntimeException('Invalid tile');
+    $path=$directory.'/'.$name;if(is_link($path)||!is_file($path)||filesize($path)>2000000)throw new RuntimeException('Tile unavailable');
+    $raw=file_get_contents($path);if(!hash_equals($m[2],hash('sha256',$raw)))throw new RuntimeException('Invalid tile hash');
+    return json_decode($raw,true,32,JSON_THROW_ON_ERROR);
+}
+function shop_manifest(string $directory):?array {
+    $path=$directory.'/manifest.json';if(!is_file($path))return null;
+    if(is_link($directory)||is_link($path)||filesize($path)>16000000)throw new RuntimeException('Invalid manifest');
+    $m=json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR);
+    if(($m['schema']??null)!==2||!preg_match('/\Av1-[a-f0-9]{24}\z/',$m['version']??'')||!is_array($m['tiles']??null)||!is_array($m['details']??null)||!is_array($m['identities']??null))throw new RuntimeException('Invalid manifest');
+    return $m;
+}
+function shop_identity(string $ref,string $directory,?array $manifest):?array {
+    $name=$manifest['identities'][substr(hash('sha256',$ref),0,2)]??null;
+    return $name?(shop_tile_read($directory,$name)[$ref]??null):null;
+}
+function shop_tile_query(array $m,array $input,string $directory):array {
+    $base=['schema'=>1,'coverage'=>$m['coverage'],'version'=>$m['version']];
+    if($input['action']==='catalog'){if(array_diff(array_keys($input),['schema','action']))throw new InvalidArgumentException('unexpected_fields');return [...$base,'chains'=>$m['chains']];}
+    if($input['action']==='detail'){
+        if(array_diff(array_keys($input),['schema','action','id']))throw new InvalidArgumentException('unexpected_fields');
+        $id=$input['id']??'';if(!is_string($id)||!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$id))throw new InvalidArgumentException('invalid_branch');
+        $name=$m['details'][substr($id,0,2)]??null;$detail=$name?(shop_tile_read($directory,$name)[$id]??null):null;
+        if(!$detail)throw new InvalidArgumentException('branch_unavailable');return [...$base,'detail'=>$detail];
+    }
+    // Reuse the strict existing bounds and field validation before enumerating cells.
+    chain_browse_query(['version'=>$m['version'],'points'=>[]],$input);
+    [$w,$s,$e,$n]=$input['bounds'];$alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';$rows=[];$kinds=[];
+    for($x=max(0,(int)floor(($w+180)/360*4096));$x<=min(4095,(int)floor(($e+180)/360*4096));$x++){
+      for($y=max(0,(int)floor(($s+90)/180*4096));$y<=min(4095,(int)floor(($n+90)/180*4096));$y++){
+        $key=$alphabet[intdiv($x,64)].$alphabet[intdiv($y,64)].$alphabet[$x%64].$alphabet[$y%64];
+        if(!isset($m['tiles'][$key]))continue;
+        foreach(shop_tile_read($directory,$m['tiles'][$key]) as $row){
+          if(($input['chainId']??'')!==''&&$row[1]!==$input['chainId'])continue;
+          if($row[2]<$w*1e6||$row[2]>$e*1e6||$row[3]<$s*1e6||$row[3]>$n*1e6)continue;
+          if(count($rows)===2000)return [...$base,'points'=>$rows,'kinds'=>$kinds,'truncated'=>true];
+          // Category is the seventh field on disk only. The wire format stays six fields.
+          if(isset($row[6]))$kinds[$row[0]]=$row[6];$rows[]=array_slice($row,0,6);
+        }
+      }
+    }
+    return [...$base,'points'=>$rows,'kinds'=>$kinds,'truncated'=>false];
+}
 // Worldwide discovery uses bounded Overpass queries and a shared, non-personal cache.
-function world_shop_query(array $in):string {
+function world_shop_allowed_ids(string $ref,?callable $identity):array {
+    $entry=$identity?$identity($ref):null;
+    return array_values(array_unique(array_filter([substr(hash('sha256','osm:'.$ref),0,12),$entry['id']??null,...($entry['aliases']??[])])));
+}
+function world_shop_query(array $in,?callable $identity=null):string {
     if(($in['schema']??null)!==1||($in['world']??null)!==true)throw new InvalidArgumentException('invalid_request');
     if(($in['action']??'')==='detail'){
         if(array_diff(array_keys($in),['schema','action','world','id','sourceRef']))throw new InvalidArgumentException('unexpected_fields');
         $ref=$in['sourceRef']??'';
-        if(!is_string($ref)||!preg_match('/\A(node|way|relation)\/([1-9][0-9]{0,15})\z/',$ref,$m)||($in['id']??'')!==substr(hash('sha256','osm:'.$ref),0,12))throw new InvalidArgumentException('invalid_branch');
+        if(!is_string($ref)||!preg_match('/\A(node|way|relation)\/([1-9][0-9]{0,15})\z/',$ref,$m)||!in_array($in['id']??'',world_shop_allowed_ids($ref,$identity),true))throw new InvalidArgumentException('invalid_branch');
         return '[out:json][timeout:8];'.$m[1].'('.$m[2].');out body center 1;';
     }
     if(($in['action']??'')!=='map'||array_diff(array_keys($in),['schema','action','world','bounds','chainId']))throw new InvalidArgumentException('invalid_request');
@@ -127,7 +177,10 @@ function world_shop_query(array $in):string {
     $box=implode(',',array_map(fn($v)=>sprintf('%.6F',$v),[$s,$w,$n,$e]));$brand=$chain===''?'':'["brand:wikidata"="'.$chain.'"]';
     return '[out:json][timeout:8][maxsize:67108864];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out body center 2001;';
 }
-function world_shop_result(array $data,array $in):array {
+function shop_text(string $value,int $limit):string {
+    return preg_match('/\A.{0,'.$limit.'}/us',$value,$match)?$match[0]:'';
+}
+function world_shop_result(array $data,array $in,?callable $identity=null):array {
     if(isset($data['remark'])){
         $remark=strtolower((string)$data['remark']);
         throw new RuntimeException(str_contains($remark,'memory')?'source_memory':((str_contains($remark,'timed out')||str_contains($remark,'timeout'))?'timeout':'source_query'));
@@ -141,14 +194,17 @@ function world_shop_result(array $data,array $in):array {
         $lat=$el['lat']??$el['center']['lat']??null;$lng=$el['lon']??$el['center']['lon']??null;
         if(!is_numeric($lat)||!is_numeric($lng)||abs((float)$lat)>90||abs((float)$lng)>180)continue;
         $ref=$el['type'].'/'.$el['id'];$id=substr(hash('sha256','osm:'.$ref),0,12);
+        $assigned=$identity?$identity($ref):null;if($assigned)$id=$assigned['id'];
         $brand=(string)($t['brand:wikidata']??'');$chain=preg_match('/\AQ[1-9][0-9]*\z/',$brand)?$brand:'';
+        if($assigned&&isset($assigned['chainId']))$chain=$assigned['chainId'];
+        if(($in['action']??'')==='detail'&&in_array($in['id'],world_shop_allowed_ids($ref,$identity),true))$id=$in['id'];
         if(($in['chainId']??'')!==''&&$chain!==$in['chainId'])continue;
-        $name=substr((string)($t['name']??$t['brand']??$kind),0,300);
-        $points[$ref]=[$id,$chain,(int)round((float)$lng*1e6),(int)round((float)$lat*1e6),$name,$ref];$kinds[$id]=substr((string)$kind,0,100);
+        $name=shop_text((string)($t['name']??$t['brand']??$kind),300);
+        $points[$ref]=[$id,$chain,(int)round((float)$lng*1e6),(int)round((float)$lat*1e6),$name,$ref];$kinds[$id]=shop_text((string)$kind,100);
         $website=(string)($t['website']??$t['contact:website']??'');
         $details[$id]=['id'=>$id,'chainId'=>$chain,'sourceRef'=>$ref,'name'=>$name,'kind'=>$kinds[$id],
-          'address'=>substr(trim(implode(' ',array_filter([$t['addr:street']??'',$t['addr:housenumber']??'',$t['addr:postcode']??'',$t['addr:city']??'']))),0,500),
-          'openingHours'=>substr((string)($t['opening_hours']??''),0,300),'website'=>str_starts_with($website,'https://')?substr($website,0,2000):''];
+          'address'=>shop_text(trim(implode(' ',array_filter([$t['addr:street']??'',$t['addr:housenumber']??'',$t['addr:postcode']??'',$t['addr:city']??'']))),500),
+          'organizationId'=>$assigned['organizationId']??null,'countryCode'=>strtoupper((string)($t['addr:country']??'')),'status'=>'active','sources'=>[['source'=>'openstreetmap','id'=>$ref,'license'=>'ODbL-1.0']],'openingHours'=>shop_text((string)($t['opening_hours']??''),300),'website'=>str_starts_with($website,'https://')?substr($website,0,2000):''];
     }
     $base=['schema'=>1,'coverage'=>'WORLD','version'=>'v1-'.substr(hash('sha256',json_encode([$points,$details])),0,24)];
     if($in['action']==='detail'){
@@ -184,11 +240,46 @@ function world_shop_download(string $query,string $endpoint):string {
     if(strlen($raw)>5000000)throw new RuntimeException('response_too_large');
     return $raw;
 }
+// Durable identity ledger is separate from the disposable response cache.
+// Source hashes address lookup files only; random Sharon IDs are never recomputed from a source.
+final class ShopIdentityLedger {
+    private array $buckets=[];
+    private array $dirty=[];
+    public function __construct(private readonly string $directory){}
+    public function get(string $ref,bool $allocate=false):?array {
+        $prefix=substr(hash('sha256',$ref),0,2);$path=$this->directory.'/'.$prefix.'.json';
+        if(is_link($this->directory)||is_link($path))throw new RuntimeException('Invalid identity storage');
+        if(!isset($this->buckets[$prefix])){
+            if(is_file($path)&&filesize($path)>16000000)throw new RuntimeException('Identity shard full');
+            $this->buckets[$prefix]=is_file($path)?json_decode(file_get_contents($path),true,8,JSON_THROW_ON_ERROR):[];
+        }
+        $entry=$this->buckets[$prefix][$ref]??null;
+        if($entry){if(!preg_match('/\A[A-Za-z0-9_-]{12}\z/',$entry['id']??''))throw new RuntimeException('Invalid identity');return $entry;}
+        if(!$allocate)return null;
+        $entry=['id'=>strtr(base64_encode(random_bytes(9)),'+/','-_'),'organizationId'=>strtr(base64_encode(random_bytes(9)),'+/','-_'),'aliases'=>[substr(hash('sha256','osm:'.$ref),0,12)]];
+        $this->buckets[$prefix][$ref]=$entry;$this->dirty[$prefix]=true;return $entry;
+    }
+    // Caller holds world-cache/requests.lock. Commit before exposing any new IDs.
+    public function commit():void {
+        if(!$this->dirty)return;
+        if(!is_dir($this->directory)&&!mkdir($this->directory,0700,true)&&!is_dir($this->directory))throw new RuntimeException('Identity storage unavailable');
+        foreach($this->dirty as $prefix=>$_){
+            $raw=json_encode($this->buckets[$prefix],JSON_THROW_ON_ERROR);if(strlen($raw)>16000000)throw new RuntimeException('Identity shard full');
+            $path=$this->directory.'/'.$prefix.'.json';$temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';
+            if(file_put_contents($temp,$raw,LOCK_EX)===false)throw new RuntimeException('Identity storage unavailable');
+            @chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Identity storage unavailable');}
+        }
+        $this->dirty=[];
+    }
+}
 function world_shop_fetch(array $in,string $directory,?callable $download=null):array {
-    $query=world_shop_query($in);
+    $tileDirectory=dirname($directory).'/shop-tiles';$manifest=shop_manifest($tileDirectory);$identityCache=[];
+    $allocate=false;$ledger=new ShopIdentityLedger(dirname($directory).'/world-identities');
+    $identity=function($ref)use($tileDirectory,$manifest,&$identityCache,$ledger,&$allocate){$name=$manifest['identities'][substr(hash('sha256',$ref),0,2)]??null;if(!$name)return $ledger->get($ref,$allocate);$identityCache[$name]??=shop_tile_read($tileDirectory,$name);$installed=$identityCache[$name][$ref]??null;if(!$installed)return $ledger->get($ref,$allocate);$prior=$ledger->get($ref);if($prior)$installed['aliases']=array_values(array_unique([...($installed['aliases']??[]),$prior['id'],...($prior['aliases']??[])]));return $installed;};
+    $query=world_shop_query($in,$identity);
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Cache unavailable');
     if(is_link($directory))throw new RuntimeException('Invalid cache');
-    $path=$directory.'/'.hash('sha256',$query).'.json';
+    $path=$directory.'/'.hash('sha256',$query.'identity-v2'.($manifest['version']??'')).'.json';
     $read=static function()use($path){if(is_link($path))throw new RuntimeException('Invalid cache');return is_file($path)&&filemtime($path)>time()-900?json_decode((string)file_get_contents($path),true,32,JSON_THROW_ON_ERROR):null;};
     if(($cached=$read())!==null)return $cached;
     $lock=fopen($directory.'/requests.lock','c+');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB))throw new RuntimeException('Source busy');
@@ -210,11 +301,12 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
           try{
             $raw=$download?$download($query,$endpoint):world_shop_download($query,$endpoint);
             if(!is_string($raw)||strlen($raw)>5000000)continue;
-            $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);
+            $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$allocate=true;$data=world_shop_result($parsed,$in,$identity);
             file_put_contents($sourcePath,$endpoint,LOCK_EX);break;
           }catch(Throwable $e){$reason=$e->getMessage();$diagnostics[]=['source'=>parse_url($endpoint,PHP_URL_HOST),'reason'=>preg_match('/\A(timeout|tls|connection|source_memory|source_query|response_too_large|http_[0-9]{3})\z/',$reason)?$reason:'invalid_response'];}
         }
         if($data===null)throw new WorldShopSourceFailure($diagnostics);
+        $ledger->commit();
         $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}
         $files=glob($directory.'/*.json')?:[];if(count($files)>512){$files=array_values(array_filter($files,fn($f)=>$f!==$budgetPath&&$f!==$path));usort($files,fn($a,$b)=>filemtime($a)<=>filemtime($b));foreach(array_slice($files,0,count($files)-510) as $file)@unlink($file);}
         return $data;
@@ -240,7 +332,9 @@ try{
     if(isset($input['action'])){
         if(($input['schema']??null)!==1||!in_array($input['action'],['catalog','map','detail'],true))throw new InvalidArgumentException('invalid_request');
         if(($input['world']??false)===true)chain_out(200,world_shop_fetch($input,dirname($path).'/world-cache'));
-        $directory=dirname($path);$browse=chain_register($directory.'/browse-v1.json',null,null,'chain_validate_browse','browse-v1.json',16000000);
+        $directory=dirname($path);$manifest=shop_manifest($directory.'/shop-tiles');
+        if($manifest)chain_out(200,shop_tile_query($manifest,$input,$directory.'/shop-tiles'));
+        $browse=chain_register($directory.'/browse-v1.json',null,null,'chain_validate_browse','browse-v1.json',16000000);
         if($input['action']==='detail'){
             if(array_diff(array_keys($input),['schema','action','id']))throw new InvalidArgumentException('unexpected_fields');
             chain_out(200,chain_browse_detail($browse,(string)($input['id']??''),$directory.'/browse-details'));
