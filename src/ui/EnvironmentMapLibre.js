@@ -226,12 +226,12 @@ export function openEnvironmentView(root, {
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
-              <button type="button" class="environment-source-circle" data-tiqets-toggle disabled aria-pressed="false" aria-label="Tiqets tonen of verbergen" title="Tiqets wordt voorbereid">T</button>
+              
               <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
               <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Volgorde van boards instellen" aria-expanded="false" aria-controls="environment-board-order">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
               </button>
-              <small data-tiqets-status role="status" aria-live="polite"></small>
+              
               <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
 
@@ -500,6 +500,7 @@ export function openEnvironmentView(root, {
   const tiqetsSetup = new AbortController();
   const setTiqetsState = (state, count = 0) => {
     if (disposed) return;
+    if (!tiqetsToggle) return;
     tiqetsToggle.classList.toggle('is-fetching', state === 'loading');
     tiqetsToggle.setAttribute('aria-busy', String(state === 'loading'));
     const messages = {loading:'Tiqets laden…', empty:'Geen Tiqets-locaties in dit gebied.',
@@ -509,6 +510,7 @@ export function openEnvironmentView(root, {
   };
   // Status contains no credentials. Only an explicit source selection requests
   // the map centre; no personal store or invitation-network data is used.
+  /* Tiqets temporarily disabled. Preserve source integration for reactivation.
   tiqetsStatus({signal:tiqetsSetup.signal}).then(configured => {
     if (disposed) return;
     tiqetsToggle.disabled = !configured;
@@ -529,6 +531,7 @@ export function openEnvironmentView(root, {
   listenEarly(root.querySelector('[data-session-reset]'),'click',()=>resetDiscoveries('all'));
   listenEarly(root.querySelector('[data-wiki-session-reset]'),'click',()=>resetDiscoveries('wiki'));
   listenEarly(root.querySelector('[data-shop-session-reset]'),'click',()=>resetDiscoveries('shop'));
+  */
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   const updateWikipediaZoomCue = () => {
     if (!map) return;
@@ -777,7 +780,7 @@ export function openEnvironmentView(root, {
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
-      if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
+      // Tiqets temporarily excluded from discovery.
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
