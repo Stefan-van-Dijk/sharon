@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {inBoardViewport} from '../src/ui/BoardViewport.js';
+import {inBoardViewport,lockBoardViewport,boardViewportLocked} from '../src/ui/BoardViewport.js';
 test('source viewport selects the visible area and supports wrapped map longitudes',()=>{
  const map=(w,e,s=50,n=54)=>({getBounds:()=>({getWest:()=>w,getEast:()=>e,getSouth:()=>s,getNorth:()=>n})});
  assert.equal(inBoardViewport(map(4,6),{lat:52,lng:5}),true);
@@ -22,4 +22,12 @@ test('a board session freezes map bounds and pauses sources until explicitly rel
  assert.equal(inBoardViewport(map,{lat:52,lng:5}),true);assert.equal(inBoardViewport(map,{lat:52,lng:11}),false);
  unlock();assert.equal(boardViewportLocked(map),false);assert.equal(inBoardViewport(map,{lat:52,lng:11}),true);
  stop();lockBoardViewport(map)();assert.equal(notices,1);
+});
+
+test('discovery mode leaves source requests and viewport movement unlocked',()=>{
+ const old=globalThis.localStorage;globalThis.localStorage={getItem:key=>key==='sharon.boards.discover-while-browsing.v1'?'true':null};
+ try{
+  const map={getBounds:()=>({getWest:()=>4,getEast:()=>6,getSouth:()=>51,getNorth:()=>53})};
+  const release=lockBoardViewport(map);assert.equal(boardViewportLocked(map),false);release();assert.equal(boardViewportLocked(map),false);
+ }finally{globalThis.localStorage=old;}
 });

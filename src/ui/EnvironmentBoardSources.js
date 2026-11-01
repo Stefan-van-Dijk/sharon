@@ -1,13 +1,15 @@
-import { inAnalysisRange } from './AnalysisRange.js?v=0.4.49';
-import { boardPoint } from './BoardOrder.js?v=0.4.49';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.49';
+import { boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.51';
+import { inAnalysisRange } from './AnalysisRange.js?v=0.4.51';
+import { boardPoint } from './BoardOrder.js?v=0.4.51';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.51';
 
 // Every source supplies its currently enabled, filtered boards. New sources
 // join the same deck by registering this interface, without another navigator.
 export function createEnvironmentBoardSources({onOpen = () => {}} = {}) {
-  const sources = new Set(), owners = new WeakMap();
+  const sources = new Set(), owners = new WeakMap(),sourceIds=new WeakMap();let sourceId=0;
+  const key=board=>String(sourceIds.get(owners.get(board)))+':'+String(board.id??board.properties?.wikidata??board.properties?.id??board.sourceRef??JSON.stringify(boardPoint(board)));
   const registry = {
-    register(source) { sources.add(source); return () => sources.delete(source); },
+    register(source) { sourceIds.set(source,++sourceId);sources.add(source); return () => sources.delete(source); },
     getBoards() {
       return [...sources].flatMap(source => (source.getBoards?.() || []).map(board => {
         owners.set(board, source);
@@ -17,17 +19,24 @@ export function createEnvironmentBoardSources({onOpen = () => {}} = {}) {
     show(board, center) {
       let items = registry.getBoards().filter(item=>inAnalysisRange(boardPoint(item),center));
       if (!items.includes(board)) items.push(board);
+      const explore=boardDiscoveryEnabled();
+      const seen=new Set(items.map(key));
       let mode = null;
+      const extend=()=>{
+        if(!explore)return;
+        for(const item of registry.getBoards())if(!seen.has(key(item))){seen.add(key(item));items.push(item);mode=null;}
+      };
       const show = current => {
         if (mode !== boardOrderMode()) { items = sortBoards(items, center); mode = boardOrderMode(); }
         const index = items.indexOf(current);
         const next = items.length > 1 ? items[(index + 1) % items.length] : null;
         const previous = items.length > 1 ? items[(index - 1 + items.length) % items.length] : null;
         const move = step => {
+          extend();
           if (mode !== boardOrderMode()) { items = sortBoards(items, center); mode = boardOrderMode(); }
           show(items[(items.indexOf(current) + step + items.length) % items.length]);
         };
-        onOpen(current, {next, previous, onNext:next ? () => move(1) : null, onPrevious:previous ? () => move(-1) : null});
+        onOpen(current, {next, previous, onNext:(next||explore) ? () => move(1) : null, onPrevious:(previous||explore) ? () => move(-1) : null});
       };
       show(board);
     },

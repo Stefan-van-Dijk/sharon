@@ -53,3 +53,17 @@ test('an open mixed deck reorders on the next swipe without changing its origina
     nav.onNext();assert.equal(active,shop);
   }finally{globalThis.localStorage=oldStorage;}
 });
+
+test('discovery mode appends refreshed source boards without duplicates and remains fixed for the session',()=>{
+ const old=globalThis.localStorage;let explore=true;
+ globalThis.localStorage={getItem:key=>key==='sharon.boards.discover-while-browsing.v1'?JSON.stringify(explore):null};
+ try{
+  let active,nav;const first={id:'first',coordinates:{lat:52,lng:5}},second={id:'second',coordinates:{lat:52.001,lng:5}};let selected=[first];
+  const deck=createEnvironmentBoardSources({onOpen:(item,navigation)=>{active=item;nav=navigation;}});
+  deck.register({getBoards:()=>selected});deck.show(first,{lat:52,lng:5});assert.equal(typeof nav.onNext,'function');
+  selected=[{...first},second];nav.onNext();assert.equal(active.id,'second');nav.onNext();assert.equal(active.id,'first');
+  explore=false;selected=[second,{id:'third',coordinates:{lat:52.002,lng:5}}];nav.onPrevious();assert.equal(active.id,'third','existing session retains its discovery choice');
+  deck.show(first,{lat:52,lng:5});selected.push({id:'fourth',coordinates:{lat:52.003,lng:5}});
+  for(let i=0;i<6;i++){nav.onNext();assert.notEqual(active.id,'fourth','new fixed session excludes later results');}
+ }finally{globalThis.localStorage=old;}
+});
