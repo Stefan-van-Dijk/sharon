@@ -1,5 +1,5 @@
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.49';
-import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.49';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.50';
+import { MAPLIBRE_JS, loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.50';
 export const AREA_RADIUS_PX = 72;
 
 const radiusMeters = value => Math.max(20, Math.min(2000, Number(value) || 100));

@@ -1,5 +1,5 @@
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.49';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.49';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.50';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.50';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){
@@ -62,4 +62,12 @@ export function chainAreaBounds(center,radius=CHAIN_RADIUS_METERS) {
  const bounds=[lng-lngDelta,lat-latDelta,lng+lngDelta,lat+latDelta];
  // The current API accepts a single, non-wrapping box up to one degree wide.
  return bounds[0]>=-180&&bounds[2]<=180&&bounds[1]>=-90&&bounds[3]<=90&&2*lngDelta<=1?bounds:null;
+}
+
+// Limit discovery to the visible map; the 10 km box remains an upper bound.
+export function shopViewportBounds(center,viewport){
+ const limit=chainAreaBounds(center);if(!limit||!viewport)return limit;
+ const [w,s,e,n]=viewport;if(![w,s,e,n].every(Number.isFinite)||w>=e||s>=n)return limit;
+ const bounds=[Math.max(w,limit[0]),Math.max(s,limit[1]),Math.min(e,limit[2]),Math.min(n,limit[3])];
+ return bounds[0]<bounds[2]&&bounds[1]<bounds[3]?bounds:limit;
 }

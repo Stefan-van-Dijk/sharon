@@ -125,10 +125,14 @@ function world_shop_query(array $in):string {
     foreach($b as $v)if((!is_int($v)&&!is_float($v))||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
     [$w,$s,$e,$n]=$b;if($w < -180||$e>180||$s < -90||$n>90||$e<=$w||$n<=$s||$e-$w>1||$n-$s>1)throw new InvalidArgumentException('invalid_bounds');
     $box=implode(',',array_map(fn($v)=>sprintf('%.6F',$v),[$s,$w,$n,$e]));$brand=$chain===''?'':'["brand:wikidata"="'.$chain.'"]';
-    return '[out:json][timeout:8][maxsize:8388608];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out body center 2001;';
+    return '[out:json][timeout:8][maxsize:67108864];(nwr["shop"]["shop"!~"^(no|vacant)$"]'.$brand.'('.$box.');nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'.$brand.'('.$box.'););out body center 2001;';
 }
 function world_shop_result(array $data,array $in):array {
-    if(!isset($data['elements'])||!is_array($data['elements'])||isset($data['remark']))throw new RuntimeException('Invalid source');
+    if(isset($data['remark'])){
+        $remark=strtolower((string)$data['remark']);
+        throw new RuntimeException(str_contains($remark,'memory')?'source_memory':((str_contains($remark,'timed out')||str_contains($remark,'timeout'))?'timeout':'source_query'));
+    }
+    if(!isset($data['elements'])||!is_array($data['elements']))throw new RuntimeException('Invalid source');
     $points=[];$kinds=[];$details=[];
     foreach(array_slice($data['elements'],0,2001) as $el){
         $t=$el['tags']??[];if(!is_array($t))continue;$kind=$t['shop']??$t['amenity']??'';
@@ -208,7 +212,7 @@ function world_shop_fetch(array $in,string $directory,?callable $download=null):
             if(!is_string($raw)||strlen($raw)>5000000)continue;
             $parsed=json_decode($raw,true,32,JSON_THROW_ON_ERROR);$data=world_shop_result($parsed,$in);
             file_put_contents($sourcePath,$endpoint,LOCK_EX);break;
-          }catch(Throwable $e){$reason=$e->getMessage();$diagnostics[]=['source'=>parse_url($endpoint,PHP_URL_HOST),'reason'=>preg_match('/\A(timeout|tls|connection|response_too_large|http_[0-9]{3})\z/',$reason)?$reason:'invalid_response'];}
+          }catch(Throwable $e){$reason=$e->getMessage();$diagnostics[]=['source'=>parse_url($endpoint,PHP_URL_HOST),'reason'=>preg_match('/\A(timeout|tls|connection|source_memory|source_query|response_too_large|http_[0-9]{3})\z/',$reason)?$reason:'invalid_response'];}
         }
         if($data===null)throw new WorldShopSourceFailure($diagnostics);
         $temp=$path.'.'.bin2hex(random_bytes(4)).'.tmp';if(file_put_contents($temp,json_encode($data),LOCK_EX)===false)throw new RuntimeException('Cache unavailable');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Cache unavailable');}

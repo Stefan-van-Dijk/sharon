@@ -164,3 +164,10 @@ kaartvenster bepaalt welke ontdekte boards beschikbaar zijn; een geopend deck ho
 zijn bestaande momentopname. Bronverzoeken blijven begrensd om grote downloads te
 voorkomen. Ontdekte punten worden hergebruikt totdat hun bron wordt uitgeschakeld.
 De boardvoet toont bron en categorie links onder elkaar en beoordelingen rechts.
+
+Winkelontdekking vraagt nu het zichtbare kaartvenster op, begrensd door de bestaande
+10 km bovengrens. Bij detailzoom wordt dus geen volledige 10 km omgeving meer
+bevraagd. Het Overpass-werkgeheugen is 64 MiB in plaats van 8 MiB; dit is niet de
+downloadgrootte. De 5 MB responslimiet en maximaal 2.000 punten blijven behouden.
+Bronmeldingen over werkgeheugen en querytime-outs krijgen een specifieke diagnose;
+een gedeeltelijk antwoord wordt niet als compleet winkelgebied opgeslagen.

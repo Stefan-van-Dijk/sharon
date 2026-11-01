@@ -1,6 +1,6 @@
-import { inAnalysisRange } from './AnalysisRange.js?v=0.4.49';
-import { boardPoint } from './BoardOrder.js?v=0.4.49';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.49';
+import { inAnalysisRange } from './AnalysisRange.js?v=0.4.50';
+import { boardPoint } from './BoardOrder.js?v=0.4.50';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.50';
 
 // Every source supplies its currently enabled, filtered boards. New sources
 // join the same deck by registering this interface, without another navigator.
