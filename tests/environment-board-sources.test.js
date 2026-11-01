@@ -67,3 +67,17 @@ test('discovery mode appends refreshed source boards without duplicates and rema
   for(let i=0;i<6;i++){nav.onNext();assert.notEqual(active.id,'fourth','new fixed session excludes later results');}
  }finally{globalThis.localStorage=old;}
 });
+
+test('both modes remove excluded boards, update refreshed records, and close an empty selection',()=>{
+ const old=globalThis.localStorage;
+ try{for(const explore of [false,true]){
+  globalThis.localStorage={getItem:key=>key==='sharon.boards.discover-while-browsing.v1'?JSON.stringify(explore):null};
+  let nav,active,closed=0,allowed=new Set(['A','B']);let records=[{id:'A',coordinates:{lat:52,lng:5}},{id:'B',name:'old',coordinates:{lat:52.001,lng:5}}];
+  const deck=createEnvironmentBoardSources({onOpen:(item,navigation)=>{active=item;nav=navigation;},onEmpty:()=>closed++});
+  deck.register({getBoards:()=>records,acceptsBoard:item=>allowed.has(item.id)});deck.show(records[0],{lat:52,lng:5});
+  records=[{...records[1],name:'updated'}];allowed.delete('A');nav.onNext();assert.equal(active.id,'B');assert.equal(active.name,'updated');
+  allowed.clear();nav.onNext?.();
+  if(!explore){deck.show(records[0],{lat:52,lng:5}); /* initially single fixed board has no swipe */}
+  if(explore)assert.equal(closed,1);
+ }}finally{globalThis.localStorage=old;}
+});

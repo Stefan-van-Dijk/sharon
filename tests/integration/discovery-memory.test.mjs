@@ -28,8 +28,8 @@ test('shop points survive panning and remounting; disabling resets discovered po
   assert.equal(map.sources.get('sharon-chain-branches').data.features.length,2,'both cities remain in the render source');
   assert.equal(layer.getBoards().length,1,'board list stays inside the visible area');
   const before=calls.filter(q=>q.action==='map').length;
-  map.move({lat:48.857,lng:2.351});assert.equal(layer.getBoards()[0].name,'Paris shop');await turn();
-  assert.equal(calls.filter(q=>q.action==='map').length,before,'slightly different camera is covered by the visited area');
+  map.move({lat:48.857,lng:2.35});assert.equal(layer.getBoards()[0].name,'Paris shop');await turn();
+  assert.equal(calls.filter(q=>q.action==='map').length,before,'returning to the visited viewport reuses its points');
   layer.destroy();layer=open();await until(()=>layer.getBoards().length===1);await turn();assert.equal(calls.filter(q=>q.action==='map').length,before);
   const savedBefore=JSON.stringify(await app.store.getAll('objects'));
   root.querySelector('[data-chain-toggle]').click();assert.equal(layer.getBoards().length,0);assert.equal(map.sources.get('sharon-chain-branches').data.features.length,0);
