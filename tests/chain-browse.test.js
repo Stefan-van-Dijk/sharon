@@ -73,3 +73,11 @@ test('truncated discovery is reusable only for the same query and cannot hide un
  await browse.area([2.31,48.81,2.39,48.89]);assert.equal(calls,2);
  await browse.area([2.3,48.8,2.4,48.9],'Q1');assert.equal(calls,3);
 });
+
+
+test('shop discovery requests the actual narrow viewport and caps wide views at 10 km',async()=>{
+ const {shopViewportBounds,chainAreaBounds}=await import('../src/core/chains/ChainBrowse.js');
+ const center={lat:52,lng:5},small=[4.999,51.999,5.001,52.001];
+ assert.deepEqual(shopViewportBounds(center,small),small);
+ assert.deepEqual(shopViewportBounds(center,[-180,-85,180,85]),chainAreaBounds(center));
+});

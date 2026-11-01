@@ -1,7 +1,7 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.51';
-import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.51';
-import { sortBoards } from './BoardOrder.js?v=0.4.51';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.51';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.52';
+import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.52';
+import { sortBoards } from './BoardOrder.js?v=0.4.52';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.52';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {
@@ -54,6 +54,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   const stopAreaLock=onBoardViewportLock(map,()=>{request?.abort();request=null;clearTimeout(timer);onState(features.length?'ready':'idle',features.length);});
   map.on('moveend', schedule); map.on('click', click);
   return {
+    acceptsBoard(board){return enabled&&features.some(item=>String(item.id)===String(board.id));},
     getBoards(){return enabled?visible():[];},
     handles(event){return enabled&&!disposed&&!!map.getLayer(layer)&&map.queryRenderedFeatures([[event.point.x-12,event.point.y-12],[event.point.x+12,event.point.y+12]],{layers:[layer]}).length>0;},
     setEnabled(value) {

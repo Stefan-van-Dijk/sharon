@@ -1,32 +1,32 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.51';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.51';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.51';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.51';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.51';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.51';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.51';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.51';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.51';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.51';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.51';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.51';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.51';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.51';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.52';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.52';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.52';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.52';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.52';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.52';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.52';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.52';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.52';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.52';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.52';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.52';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.52';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.52';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.51';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.51';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.51';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.51';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.51';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.51';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.51';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.51';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.51';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.52';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.52';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.52';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.52';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.52';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.52';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.52';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.52';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.52';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.51';
+} from './EnvironmentScale.js?v=0.4.52';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -422,9 +422,9 @@ export function openEnvironmentView(root, {
   let tiqetsLayer = null;
   let tiqetsEnabled = false;
   let closeBoard = null;
-  const boardSources = createEnvironmentBoardSources({onOpen:(feature,navigation)=>renderBoard(feature,navigation)});
-  let releaseBoardArea=null,switchingBoard=false;
-  const endBoardSession=()=>{if(switchingBoard)return;map?.stop?.();releaseBoardArea?.();releaseBoardArea=null;};
+  const boardSources = createEnvironmentBoardSources({onOpen:(feature,navigation)=>renderBoard(feature,navigation),onEmpty:()=>{chainLayer?.closeBoard();closeBoard?.();closeLocationDeck?.();endBoardSession();}});
+  let releaseBoardArea=null,switchingBoard=false,removeLocationSource=null;
+  const endBoardSession=()=>{if(switchingBoard)return;map?.stop?.();releaseBoardArea?.();releaseBoardArea=null;removeLocationSource?.();removeLocationSource=null;};
   const showBoard = feature => {releaseBoardArea?.();releaseBoardArea=lockBoardViewport(map);boardSources.show(feature,map?.getCenter());};
   const renderBoard = (feature, {next, previous, onNext, onPrevious}) => {
     switchingBoard=true;
@@ -827,17 +827,14 @@ export function openEnvironmentView(root, {
         if(shared){showBoard(shared);return;}
         const objects = await store.getAll('objects');
         if (disposed) return;
-        releaseBoardArea?.();releaseBoardArea=lockBoardViewport(map);
-        closeLocationDeck = openLocationDeck({ store, objects:objects.filter(item=>item.type!=='location'||inBoardViewport(map,item.data?.coordinates)), selected, map, location, events,
-          onClose: () => { closeLocationDeck = null;endBoardSession(); },
-          onLocation: item => {
-            followingPosition = false; awaitingFirstPosition = false; cameraControls?.reset();
-            const point = item.data?.coordinates;
-            if (point && Number.isFinite(Number(point.lng)) && Number.isFinite(Number(point.lat))) {
-              map.easeTo({center:[Number(point.lng),Number(point.lat)],offset:[0,-map.getContainer().clientHeight*0.27],duration:650,essential:true});
-            }
-          }
+        const places=objects.filter(item=>item.type==='location'&&!item.deletedAt&&!item.archivedAt&&!placeHidden(item)&&isCoordinate(item.data?.coordinates));
+        const chosen=places.find(item=>String(item.id)===String(selected.properties.id));if(!chosen)return;
+        removeLocationSource?.();removeLocationSource=boardSources.register({
+          getBoards:()=>places.filter(item=>inBoardViewport(map,item.data.coordinates)&&!placeHidden(item)),
+          acceptsBoard:item=>!placeHidden(item),
+          openBoard:(item,navigation)=>chainLayer.openBoard(item,navigation)
         });
+        showBoard(chosen);
       } else {
         const element = document.createElement('div');
         const heading = document.createElement('strong');
