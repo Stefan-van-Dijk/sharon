@@ -7,10 +7,13 @@ Een uitgeschakelde bron wordt verborgen en pauzeert nieuwe verzoeken; opnieuw
 inschakelen behoudt de bestaande ontdekkingen. De kaart mag resultaten geografisch
 beperken voor de weergave, maar niet de verzameling voor boards/statistieken.
 
-Nog niet geïmplementeerd in deze eerste stap: een zichtbare, expliciete
-resetknop per bron of voor de sessie; volledige gedeelde zoekgebiedcoördinatie
-voor alle bronnen; volledigheidsregistratie bij bronaantallimieten en
-sessiebrede Tiqets-resultaten. Deze mogen niet als voltooid worden beschouwd.
+Er zijn resetknoppen voor Wikipedia, winkels en de hele sessie. Tiqets-resultaten
+worden eveneens in de sessie verzameld en door de volledige reset gewist.
+Nog niet afgerond: een centrale identieke geografische zoekdekking voor alle
+bronnen, geautomatiseerde vervolgvragen bij afgekapt resultaat, Tiqets-reset per
+bron in de UI, en definitieve regressie- en CI-controles. De Tiqets-API heeft
+momenteel geen expliciete pagineringscontracten of zoekvlakparameters; de app
+kan dus nog geen volledig aanbod voor een groot zoekgebied garanderen.
 
 # Gezamenlijk Omgeving-deck
 
