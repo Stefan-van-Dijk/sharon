@@ -53,3 +53,17 @@ test('Wikipedia retains visited areas while enabled and resets discovery when di
   layer.destroy();layer=mountWikipediaLayer(map,{});layer.setEnabled(true);await turn();assert.equal(calls,3);assert.equal(layer.getBoards()[0].properties.title,'Paris tower');
  }finally{layer?.destroy();app.close();}
 });
+
+test('Wikipedia refreshes a limited result set after a small map move and still pauses a fixed deck',async()=>{
+ const app=await appHarness();let layer,unlock;
+ try{
+  const map=fakeMap();let calls=0;
+  app.window.fetch=async()=>{calls++;return {ok:true,json:async()=>({query:{pages:Object.fromEntries(Array.from({length:40},(_,i)=>[i,{pageid:i+1,title:'Plek '+i,pageprops:{wikibase_item:'Q'+(i+1)},coordinates:[{lat:48.857,lon:2.35}]}]))}})};};
+  const {mountWikipediaLayer}=await app.load(spec('ui/WikipediaLayer.js'));
+  const {lockBoardViewport}=await app.load(spec('ui/BoardViewport.js'));
+  layer=mountWikipediaLayer(map,{});layer.setEnabled(true);await until(()=>layer.getBoards().length===40);
+  map.move({lat:48.858,lng:2.35});await until(()=>calls===2);
+  unlock=lockBoardViewport(map);map.move({lat:52.5,lng:13.4});await turn();assert.equal(calls,2,'fixed deck pauses discovery');
+  unlock();unlock=null;map.move({lat:52.5,lng:13.4});await until(()=>calls===3);
+ }finally{unlock?.();layer?.destroy();app.close();}
+});

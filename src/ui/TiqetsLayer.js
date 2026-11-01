@@ -1,7 +1,7 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.52';
-import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.52';
-import { sortBoards } from './BoardOrder.js?v=0.4.52';
-import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.52';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.53';
+import { inAnalysisRange, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.53';
+import { sortBoards } from './BoardOrder.js?v=0.4.53';
+import { fetchTiqetsPlaces } from './TiqetsSource.js?v=0.4.53';
 
 const EMPTY = {type:'FeatureCollection',features:[]};
 export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces = fetchTiqetsPlaces} = {}) {

@@ -51,3 +51,9 @@ blijven onderdeel van CI; een fysieke iPhone-check is niet uitgevoerd.
 Geen implementatie van PostGIS, woordenboeken, gebiedsgeometrie of maximaal 100
 winkelpunten: dat zijn afzonderlijke ontwerpvoorstellen. De audit garandeert geen
 bereikbaarheid van publieke externe bronnen.
+
+Wikipedia start een benodigde gebiedsverversing 120 ms na het einde van een
+kaartbeweging (voorheen 450 ms). De oude drempel van 0,005 graad is verwijderd:
+ook kleine verplaatsingen mogen ontbrekende resultaten ophalen. Volledig gedekte
+bezochte gebieden blijven uit het geheugen komen. Vaste selectie pauzeert ook deze
+snellere verversing zolang het deck open is.
