@@ -524,6 +524,7 @@ export function openEnvironmentView(root, {
   const resetDiscoveries = source => {
     if (source === 'wiki' || source === 'all') wikipediaLayer?.resetSession?.();
     if (source === 'shop' || source === 'all') chainLayer?.resetSession?.();
+    if (source === 'tiqets' || source === 'all') tiqetsLayer?.resetSession?.();
   };
   listenEarly(root.querySelector('[data-session-reset]'),'click',()=>resetDiscoveries('all'));
   listenEarly(root.querySelector('[data-wiki-session-reset]'),'click',()=>resetDiscoveries('wiki'));
