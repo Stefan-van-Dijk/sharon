@@ -1,3 +1,17 @@
+## Sessieverzameling (november 2026 — eerste implementatiestap)
+
+Kaartbewegingen voegen ontdekte Wikipedia-artikelen en winkelvestigingen toe aan de
+huidige sessieverzameling. De gezamenlijke boards en de Wikipediastatistieken
+gebruiken ontdekte items van de sessie, onafhankelijk van de zichtbare kaartuitsnede.
+Een uitgeschakelde bron wordt verborgen en pauzeert nieuwe verzoeken; opnieuw
+inschakelen behoudt de bestaande ontdekkingen. De kaart mag resultaten geografisch
+beperken voor de weergave, maar niet de verzameling voor boards/statistieken.
+
+Nog niet geïmplementeerd in deze eerste stap: een zichtbare, expliciete
+resetknop per bron of voor de sessie; volledige gedeelde zoekgebiedcoördinatie
+voor alle bronnen; volledigheidsregistratie bij bronaantallimieten en
+sessiebrede Tiqets-resultaten. Deze mogen niet als voltooid worden beschouwd.
+
 # Gezamenlijk Omgeving-deck
 
 Alle ingeschakelde bronnen leveren hun gefilterde boards aan `EnvironmentBoardSources`.
