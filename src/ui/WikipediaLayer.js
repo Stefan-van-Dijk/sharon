@@ -60,7 +60,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     catch { return {}; }
   };
   const reportCounts = () => {
-    const features = [...knownFeatures.values()];
+    const features = enabled ? [...knownFeatures.values()] : [];
     const groups = Object.fromEntries(['erfgoed','bouw','natuur','cultuur','vervoer','overig'].map(key => [key,{total:0,read:0,liked:0,disliked:0,hidden:0}]));
     for (const feature of features) {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
