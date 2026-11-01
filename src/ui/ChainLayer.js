@@ -27,9 +27,10 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
   const inRange=branch=>{const center=map.getCenter?.()||location?.latest;return (!center||inAnalysisRange(branch.coordinates,center))&&inBoardViewport(map,branch.coordinates);};
   let catalog=CHAIN_CATALOG,remote=[...discoveredBranches.values()],local=[],request=null,timer=null,queryRevision=0,boardRevision=0,loadMessage='';
   const candidates=()=>{
-    const own=places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected).filter(item=>inAnalysisRange(item.data?.coordinates,map.getCenter?.()||location?.latest)&&inBoardViewport(map,item.data?.coordinates));
+    // Boards and source statistics span all discoveries in this session, not just the viewport.
+    const own=places.filter(item=>!selected||selected==='@local'||item.data?.chainId===selected);
     const refs=new Set(own.flatMap(item=>[item.data?.branchId,item.data?.sourceRef]).filter(Boolean));
-    return [...own,...(selected==='@local'?[]:branches.filter(item=>(!selected||item.chainId===selected)&&inRange(item)&&!refs.has(item.id)&&!refs.has(item.sourceRef)))];
+    return [...own,...(selected==='@local'?[]:branches.filter(item=>(!selected||item.chainId===selected)&&!refs.has(item.id)&&!refs.has(item.sourceRef)))];
   };
   const filters=mountChainFilters(root,{getItems:candidates,getCatalog:()=>catalog,onChange:()=>{draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));}});
   const paintOptions=()=>{select.replaceChildren(new Option('Alle bekende locaties',''));select.append(new Option('Opgeslagen locaties','@local'));for(const chain of catalog)select.append(new Option(chain.name,chain.id));select.value=selected;};
@@ -135,7 +136,7 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     loadBoardSummaries([...local.filter(inRange),...places]);
     paintOptions();draw();schedule();
   };
-  const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();if(!enabled){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];branches=local;browse=discoveryBrowse=new ChainBrowse();loadMessage='';}draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
+  const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();if(!enabled){queryRevision++;request?.abort();request=null;clearTimeout(timer);loadMessage='';}draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
   listen(toggle,'click',onToggle);listen(select,'change',onSelect);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
