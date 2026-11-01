@@ -1,5 +1,5 @@
-import { BOARD_DISCOVERY_KEY, boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.54';
-import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.54';
+import { BOARD_DISCOVERY_KEY, boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.55';
+import { BOARD_ORDERS, BOARD_ORDER_KEY, BOARD_ORDER_EVENT, boardOrderMode } from './BoardOrder.js?v=0.4.55';
 export function mountBoardOrderControls(root) {
   const toggle=root.querySelector('[data-board-order-settings]'),panel=root.querySelector('[data-board-order-sheet]');
   // Preserve the previous Wikipedia preference before its filters are rewritten.

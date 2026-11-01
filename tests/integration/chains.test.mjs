@@ -264,7 +264,8 @@ test('shop discovery stays within 10 km, excludes distant cached shops and follo
   await until(()=>!root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
   zoom=5;for(const fn of handlers.get('moveend'))fn();
-  await until(()=>root.querySelector('[data-chain-status]').textContent.includes('Zoom verder'));
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.ok(!root.querySelector('[data-chain-status]').textContent.includes('Zoom verder'));
   assert.equal(calls.filter(q=>q.action==='map').length,2);
  }finally{layer?.destroy();app.close();}
 });

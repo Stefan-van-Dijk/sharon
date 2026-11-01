@@ -21,7 +21,8 @@ test('a board session freezes map bounds and pauses sources until explicitly rel
  west=10;east=12;
  assert.equal(inBoardViewport(map,{lat:52,lng:5}),true);assert.equal(inBoardViewport(map,{lat:52,lng:11}),false);
  unlock();assert.equal(boardViewportLocked(map),false);assert.equal(inBoardViewport(map,{lat:52,lng:11}),true);
- stop();lockBoardViewport(map)();assert.equal(notices,1);
+ assert.equal(notices,2);unlock();assert.equal(notices,2);
+ stop();lockBoardViewport(map)();assert.equal(notices,2);
 });
 
 test('discovery mode leaves source requests and viewport movement unlocked',()=>{

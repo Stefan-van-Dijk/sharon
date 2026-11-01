@@ -7,7 +7,7 @@ const spec=path=>'./src/'+path+'?v='+version;
 function fakeMap(){
  let center={lat:48.857,lng:2.35};const sources=new Map(),layers=new Map(),handlers=new Map();
  return {sources,move(point){center=point;for(const fn of handlers.get('moveend')||[])fn();},
-  getCenter:()=>({...center}),getZoom:()=>15,isStyleLoaded:()=>true,
+  getCenter:()=>({...center}),getZoom:()=>8,isStyleLoaded:()=>true,
   getBounds:()=>({getWest:()=>center.lng-.005,getEast:()=>center.lng+.005,getSouth:()=>center.lat-.005,getNorth:()=>center.lat+.005}),
   addSource(id,options){sources.set(id,{data:options.data,setData(data){this.data=data;}});},getSource:id=>sources.get(id),
   addLayer(layer){layers.set(layer.id,layer);},getLayer:id=>layers.get(id),setFilter(){},setPaintProperty(){},getCanvas:()=>({style:{}}),

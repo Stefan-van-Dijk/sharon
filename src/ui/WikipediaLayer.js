@@ -1,9 +1,9 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.54';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.54';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.54';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.54';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.54';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.54';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.55';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.55';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.55';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.55';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.55';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.55';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
@@ -29,8 +29,9 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const response = await fetcher('https://' + lang + '.wikipedia.org/w/api.php?' + params, { signal });
   if (!response.ok) throw new Error('Wikipedia is tijdelijk niet bereikbaar');
   const data = await response.json();
-  const pages=Object.values(data?.query?.pages || {});
-  return {...wikiFeatures(pages.map(page => ({ ...page, language: lang }))),truncated:pages.length>=40};
+  if(data?.error||!data?.query)throw new Error('Wikipedia gaf geen geldig zoekresultaat');
+  const pages=Object.values(data.query.pages || {});
+  return {...wikiFeatures(pages.map(page => ({ ...page, language: lang }))),truncated:pages.length>=40||Boolean(data.continue)};
 }
 export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null, onLoadState = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
@@ -123,8 +124,6 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
     if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
-    // At low zoom retain previously discovered markers; avoid massive global requests.
-    if (map.getZoom() < 11) { request?.abort(); request = null; reportLoad('idle'); ensure(); redraw(); return; }
     const center = map.getCenter();
     const radius=analysisFetchRadius(),bounds=map.getBounds?.();
     const covered=discoveredAreas.some(area=>area.radius>=radius&&(
@@ -177,7 +176,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
   };
   window.addEventListener('sharon-wiki-feedback-changed',onFeedbackChanged);
   window.addEventListener('sharon-information-changed',onFeedbackChanged);
-  const stopAreaLock=onBoardViewportLock(map,()=>{request?.abort();request=null;clearTimeout(timeout);reportLoad('idle');});
+  const stopAreaLock=onBoardViewportLock(map,()=>{if(!boardViewportLocked(map)){schedule();return;}request?.abort();request=null;clearTimeout(timeout);reportLoad('idle');});
   const rangeChanged=()=>{redraw();schedule();};
   window.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   map.on('moveend', schedule); map.on('click', click);
