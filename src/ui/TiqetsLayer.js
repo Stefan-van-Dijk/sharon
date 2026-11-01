@@ -8,6 +8,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   const source = 'sharon-tiqets', layer = 'sharon-tiqets-points';
   const rangeEvents = globalThis.window;
   let enabled = false, disposed = false, timer, request, features = [];
+  const discovered = new Map(); // session only, never persisted: offers may change
   const ensure = () => {
     if (!map.getSource(source)) map.addSource(source, {type:'geojson',data:EMPTY});
     if (!map.getLayer(layer)) map.addLayer({
@@ -19,20 +20,22 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   const rangeChanged=()=>{if(enabled)map.getSource(source)?.setData({type:'FeatureCollection',features:visible()});};
   rangeEvents?.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
   const clear = () => { features = []; map.getSource(source)?.setData(EMPTY); };
+  const recount = () => onState(discovered.size ? 'ready' : 'empty', enabled ? discovered.size : 0);
+  const render = () => { features = [...discovered.values()]; map.getSource(source)?.setData({type:'FeatureCollection',features:enabled ? visible() : []}); };
   const refresh = async () => {
     if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
     request?.abort();
-    if (map.getZoom() < 11) { clear(); onState('zoom'); return; }
+    if (map.getZoom() < 11) { render(); onState('zoom'); return; }
     const controller = new AbortController(); request = controller;
     onState('loading');
     try {
       const data = await fetchPlaces(map.getCenter(), {signal:controller.signal});
       if (disposed || !enabled || request !== controller || controller.signal.aborted) return;
-      ensure(); features = data.features; map.getSource(source).setData({type:'FeatureCollection',features:visible()});
-      onState(features.length ? 'ready' : 'empty', features.length);
+      ensure(); for (const item of data.features) discovered.set(String(item.id),item);
+      render(); recount();
     } catch (error) {
       if (disposed || !enabled || request !== controller || controller.signal.aborted) return;
-      clear(); onState(error.code === 503 ? 'unconfigured' : 'error');
+      render(); onState(error.code === 503 ? 'unconfigured' : 'error');
     } finally {
       if (request === controller) request = null;
     }
@@ -41,7 +44,7 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
     clearTimeout(timer);if(boardViewportLocked(map))return;
     // Remove old data immediately: a failed/moved live request must not leave
     // an earlier offer visible. Do not store a catalogue or persistent cache.
-    request?.abort(); request = null; clear();
+    request?.abort(); request = null;
     if (enabled && !disposed) timer = setTimeout(refresh, 450);
   };
   const click = event => {
@@ -55,12 +58,13 @@ export function mountTiqetsLayer(map, {onOpen, onState = () => {}, fetchPlaces =
   map.on('moveend', schedule); map.on('click', click);
   return {
     acceptsBoard(board){return enabled&&features.some(item=>String(item.id)===String(board.id));},
-    getBoards(){return enabled?visible():[];},
+    getBoards(){return enabled?[...discovered.values()]:[];},
     handles(event){return enabled&&!disposed&&!!map.getLayer(layer)&&map.queryRenderedFeatures([[event.point.x-12,event.point.y-12],[event.point.x+12,event.point.y+12]],{layers:[layer]}).length>0;},
     setEnabled(value) {
-      enabled = Boolean(value); clearTimeout(timer); request?.abort(); request = null; clear();
-      if (enabled) { ensure(); refresh(); } else onState('idle');
+      enabled = Boolean(value); clearTimeout(timer); request?.abort(); request = null;
+      if (enabled) { ensure(); render(); recount(); refresh(); } else { clear(); onState('idle',0); }
     },
+    resetSession() { request?.abort(); request=null; clearTimeout(timer); discovered.clear(); clear(); if (enabled) { recount(); schedule(); } else onState('idle',0); },
     destroy() {
       rangeEvents?.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
       stopAreaLock();disposed = true; enabled = false; clearTimeout(timer); request?.abort(); request = null; clear();
