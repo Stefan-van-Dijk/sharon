@@ -1,32 +1,32 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.55';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.55';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.55';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.55';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.55';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.55';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.55';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.55';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.55';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.55';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.55';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.55';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.55';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.55';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.56';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.56';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.56';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.56';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.56';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.56';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.56';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.56';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.56';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.56';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.56';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.56';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.56';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.56';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.55';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.55';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.55';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.55';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.55';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.55';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.55';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.55';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.55';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.56';
+import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.56';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.56';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.56';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.56';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.56';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.56';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.56';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.56';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.55';
+} from './EnvironmentScale.js?v=0.4.56';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -226,12 +226,12 @@ export function openEnvironmentView(root, {
             <button type="button" data-filter-return class="environment-filter-back" aria-label="Terug naar positie">‹</button>
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
-              <button type="button" class="environment-source-circle" data-tiqets-toggle disabled aria-pressed="false" aria-label="Tiqets tonen of verbergen" title="Tiqets wordt voorbereid">T</button>
+              
               <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
               <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Volgorde van boards instellen" aria-expanded="false" aria-controls="environment-board-order">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
               </button>
-              <small data-tiqets-status role="status" aria-live="polite"></small>
+              
               <button type="button" class="environment-source-settings" data-wiki-settings aria-label="Wikipedia categorieën en statussen instellen" aria-expanded="false" title="Bron omhoog openen"><span aria-hidden="true"></span></button>
             </div>
 
@@ -244,6 +244,7 @@ export function openEnvironmentView(root, {
             <button type="button" data-board-discovery="expand" aria-pressed="false">Verder ontdekken</button>
           </div>
           <small>Geldt bij het openen van een deck.</small>
+           <button type="button" data-session-reset aria-label="Opgehaalde sessieresultaten wissen">Zoekresultaten van deze sessie wissen</button>
           <div class="environment-board-order-options" role="group" aria-label="Volgorde voor alle bronnen">
             <button type="button" data-board-order="discover" aria-pressed="false">Nog te ontdekken</button>
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
@@ -262,10 +263,12 @@ export function openEnvironmentView(root, {
           <div class="environment-source-filter-grid" data-chain-categories></div>
           <small data-chain-status role="status"></small>
           <div class="environment-places-list" data-places-list></div>
+           <button type="button" data-shop-session-reset>Opgehaalde winkels wissen</button>
         </section>
         <section class="environment-source-sheet" data-source-sheet aria-label="Wikipedia filters" aria-hidden="true">
           <button type="button" class="environment-source-sheet-handle" data-source-sheet-handle aria-label="Wikipediamenu sluiten"></button>
           <header><strong>Wikipedia</strong><small data-wiki-available>0 beschikbaar</small></header>
+           <button type="button" data-wiki-session-reset>Opgehaalde Wikipedia-items wissen</button>
           <strong>Status</strong>
           <div class="environment-source-filter-grid environment-source-status-row">
             <button type="button" data-wiki-filter="read" aria-pressed="false">☑ <small data-wiki-global="read"></small></button>
@@ -497,6 +500,7 @@ export function openEnvironmentView(root, {
   const tiqetsSetup = new AbortController();
   const setTiqetsState = (state, count = 0) => {
     if (disposed) return;
+    if (!tiqetsToggle) return;
     tiqetsToggle.classList.toggle('is-fetching', state === 'loading');
     tiqetsToggle.setAttribute('aria-busy', String(state === 'loading'));
     const messages = {loading:'Tiqets laden…', empty:'Geen Tiqets-locaties in dit gebied.',
@@ -506,6 +510,7 @@ export function openEnvironmentView(root, {
   };
   // Status contains no credentials. Only an explicit source selection requests
   // the map centre; no personal store or invitation-network data is used.
+  /* Tiqets temporarily disabled. Preserve source integration for reactivation.
   tiqetsStatus({signal:tiqetsSetup.signal}).then(configured => {
     if (disposed) return;
     tiqetsToggle.disabled = !configured;
@@ -518,6 +523,15 @@ export function openEnvironmentView(root, {
     tiqetsLayer?.setEnabled(tiqetsEnabled);
     if (!tiqetsEnabled && document.querySelector('.sh-board-source[rel~="sponsored"]')) closeBoard?.();
   });
+  const resetDiscoveries = source => {
+    if (source === 'wiki' || source === 'all') wikipediaLayer?.resetSession?.();
+    if (source === 'shop' || source === 'all') chainLayer?.resetSession?.();
+    if (source === 'tiqets' || source === 'all') tiqetsLayer?.resetSession?.();
+  };
+  listenEarly(root.querySelector('[data-session-reset]'),'click',()=>resetDiscoveries('all'));
+  listenEarly(root.querySelector('[data-wiki-session-reset]'),'click',()=>resetDiscoveries('wiki'));
+  listenEarly(root.querySelector('[data-shop-session-reset]'),'click',()=>resetDiscoveries('shop'));
+  */
   const wikipediaToggle = root.querySelector("[data-wikipedia-toggle]");
   const updateWikipediaZoomCue = () => {
     if (!map) return;
@@ -766,7 +780,7 @@ export function openEnvironmentView(root, {
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
-      if (tiqetsEnabled) tiqetsLayer.setEnabled(true);
+      // Tiqets temporarily excluded from discovery.
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
       appearanceBinding = bindEnvironmentAppearance(map, store);
