@@ -1,5 +1,5 @@
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.53';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.53';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.54';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.54';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){
@@ -12,17 +12,34 @@ export class ChainBrowse {
  }
  async cached(key,input,signal){
   const old=this.cache.get(key);if(old&&this.clock()-old.at<300000)return old.data;
-  const data=await this.request(input,signal);if(signal?.aborted)throw new DOMException('Aborted','AbortError');
+  let data;try{data=await this.request(input,signal);}catch(error){if(old&&!signal?.aborted)return old.data;throw error;}if(signal?.aborted)throw new DOMException('Aborted','AbortError');
   this.cache.delete(key);this.cache.set(key,{at:this.clock(),data});while(this.cache.size>16)this.cache.delete(this.cache.keys().next().value);return data;
  }
  async catalog(signal){let data;try{data=await this.cached('catalog',{action:'catalog'},signal);}catch(error){if(signal?.aborted)throw error;this.cache.set('catalog',{at:this.clock(),data:{chains:CHAIN_CATALOG}});return CHAIN_CATALOG;}
   if(!Array.isArray(data.chains)||data.chains.some(c=>!c||typeof c.id!=='string'||typeof c.name!=='string'))throw Error('Ongeldige ketencatalogus.');return data.chains;
  }
  async area(bounds,chainId='',signal,visibleBounds=bounds){
+  const needed=[Math.max(bounds[0],visibleBounds[0]),Math.max(bounds[1],visibleBounds[1]),Math.min(bounds[2],visibleBounds[2]),Math.min(bounds[3],visibleBounds[3])];
+  if(this.areas.some(a=>!a.fallback&&!a.data.truncated&&(a.chainId===chainId||a.chainId==='')&&needed[0]>=a.bounds[0]&&needed[1]>=a.bounds[1]&&needed[2]<=a.bounds[2]&&needed[3]<=a.bounds[3]))return this.loadArea(bounds,chainId,signal,visibleBounds);
+  const complete=this.areas.filter(a=>!a.data.truncated&&!a.fallback&&(a.chainId===chainId||a.chainId===''));
+  let missing=[bounds],used=[];
+  for(const area of complete){
+   const next=[];for(const box of missing){const parts=subtractShopBounds(box,area.bounds);if(parts.length!==1||parts[0]!==box)used.push(area);next.push(...parts);}missing=next;
+   if(!missing.length)break;
+  }
+  // Avoid a request fan-out when many old narrow viewports overlap.
+  if(!used.length||missing.length>4)return this.loadArea(bounds,chainId,signal,visibleBounds);
+  const points=new Map();let truncated=false,message='';
+  for(const area of new Set(used)){const result=await this.loadArea(area.bounds,chainId,signal);for(const p of result.points)points.set(p.sourceRef,p);}
+  for(const box of missing){if(signal?.aborted)throw new DOMException('Aborted','AbortError');const result=await this.loadArea(box,chainId,signal);for(const p of result.points)points.set(p.sourceRef,p);truncated||=result.truncated;message=result.message||message;}
+  const visible=[...points.values()].filter(p=>p.coordinates.lng>=bounds[0]&&p.coordinates.lng<=bounds[2]&&p.coordinates.lat>=bounds[1]&&p.coordinates.lat<=bounds[3]);
+  return {points:visible.slice(0,2000),truncated:truncated||visible.length>2000,message};
+ }
+ async loadArea(bounds,chainId='',signal,visibleBounds=bounds){
   // Keep successful discovery for this session. Rendering and board selection
   // remain independent of whether a point currently lies inside the viewport.
   const needed=[Math.max(bounds[0],visibleBounds[0]),Math.max(bounds[1],visibleBounds[1]),Math.min(bounds[2],visibleBounds[2]),Math.min(bounds[3],visibleBounds[3])];
-  const known=this.areas.find(area=>(area.chainId===chainId||(area.chainId===''&&!area.data.truncated))&&
+  const known=this.areas.find(area=>(!area.fallback||this.clock()-area.at<120000)&&(area.chainId===chainId||(area.chainId===''&&!area.data.truncated))&&
     (area.bounds.every((v,i)=>v===bounds[i])||(!area.data.truncated&&needed[0]>=area.bounds[0]&&needed[1]>=area.bounds[1]&&needed[2]<=area.bounds[2]&&needed[3]<=area.bounds[3])));
   let data=known?.data,fallback=known?.fallback||false;
   const inNetherlands=bounds[0]>=3&&bounds[2]<=8&&bounds[1]>=50&&bounds[3]<=54.5;
@@ -40,7 +57,7 @@ export class ChainBrowse {
    if(!Array.isArray(row)||row.length!==6||!/^[-_A-Za-z0-9]{12}$/.test(row[0])||typeof row[1]!=='string'||!Number.isInteger(row[2])||!Number.isInteger(row[3])||Math.abs(row[2])>180000000||Math.abs(row[3])>90000000||typeof row[4]!=='string'||! /^(node|way|relation)\/[1-9][0-9]*$/.test(row[5]))throw Error('Ongeldig kaartpunt.');
    return {id:row[0],chainId:row[1],coordinates:{lng:row[2]/1e6,lat:row[3]/1e6},name:row[4],sourceRef:row[5],status:'active',remote:true,world:data.coverage==='WORLD',kind:typeof data.kinds?.[row[0]]==='string'?data.kinds[row[0]]:undefined};
   }).filter(point=>!chainId||point.chainId===chainId);
-  if(!known)this.areas.push({bounds:[...bounds],chainId,data,fallback});
+  if(!known){this.areas.push({bounds:[...bounds],chainId,data,fallback,at:this.clock()});while(this.areas.length>32)this.areas.shift();}
   return {points,truncated:data.truncated===true,message:fallback?'Nederlandse winkelgegevens · wereldwijde bron tijdelijk niet bereikbaar.':''};
  }
  async detail(branch,signal){
@@ -48,7 +65,7 @@ export class ChainBrowse {
   const data=await this.cached('detail:'+branch.id,{action:'detail',id:branch.id,...(branch.world?{world:true,sourceRef:branch.sourceRef}:{})},signal),d=data.detail;
   if(!d||d.id!==branch.id||d.chainId!==branch.chainId||d.sourceRef!==branch.sourceRef||typeof d.address!=='string'||typeof d.openingHours!=='string')throw Error('Ongeldige vestigingsdetails.');
   let website='';try{const url=new URL(d.website);if(url.protocol==='https:'&&!url.username&&!url.password)website=url.href;}catch{}
-  return {...branch,kind:d.kind||branch.kind,address:d.address,openingHours:d.openingHours,website,remote:false};
+  return {...branch,organizationId:d.organizationId,countryCode:d.countryCode,sources:d.sources,kind:d.kind||branch.kind,address:d.address,openingHours:d.openingHours,website,remote:false};
  }
 }
 
@@ -65,9 +82,16 @@ export function chainAreaBounds(center,radius=CHAIN_RADIUS_METERS) {
 }
 
 // Limit discovery to the visible map; the 10 km box remains an upper bound.
-export function shopViewportBounds(center,viewport){
- const limit=chainAreaBounds(center);if(!limit||!viewport)return limit;
+export function shopViewportBounds(center,viewport,radius=CHAIN_RADIUS_METERS){
+ const limit=chainAreaBounds(center,radius);if(!limit||!viewport)return limit;
  const [w,s,e,n]=viewport;if(![w,s,e,n].every(Number.isFinite)||w>=e||s>=n)return limit;
  const bounds=[Math.max(w,limit[0]),Math.max(s,limit[1]),Math.min(e,limit[2]),Math.min(n,limit[3])];
  return bounds[0]<bounds[2]&&bounds[1]<bounds[3]?bounds:limit;
+}
+
+// Rectangle difference: disjoint strips, with no duplicate interior coverage.
+export function subtractShopBounds(box,covered){
+ const [w,s,e,n]=box,[a,b,c,d]=covered,x=Math.max(w,a),y=Math.max(s,b),u=Math.min(e,c),v=Math.min(n,d);
+ if(x>=u||y>=v)return [box];
+ return [[w,s,x,n],[u,s,e,n],[x,s,u,y],[x,v,u,n]].filter(r=>r[0]<r[2]&&r[1]<r[3]);
 }

@@ -1,6 +1,6 @@
-import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.4.53';
-import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.4.53';
-import { openCardBoard } from './CardBoard.js?v=0.4.53';
+import { cardContextObjects } from '../core/chains/ChainModel.js?v=0.4.54';
+import { suggestCards, hasLeftCardLocation, CARD_CONTEXT_MAX_AGE_MS } from '../core/location/CardContext.js?v=0.4.54';
+import { openCardBoard } from './CardBoard.js?v=0.4.54';
 
 const VISIT_KEY = 'cards.context.visit';
 

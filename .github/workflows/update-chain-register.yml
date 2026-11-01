@@ -2,11 +2,17 @@ name: OSM winkelregister bijwerken
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publiceer na afzonderlijke controle en toestemming het NL-register'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - '.github/workflows/update-chain-register.yml'
       - 'scripts/update-chain-register.mjs'
       - 'scripts/build-chain-browse.mjs'
+      - 'scripts/shop-register.mjs'
       - 'src/core/chains/ChainCatalog.js'
   schedule:
     - cron: '20 3 1 * *'
@@ -16,10 +22,12 @@ on:
       - '.github/workflows/update-chain-register.yml'
       - 'scripts/update-chain-register.mjs'
       - 'scripts/build-chain-browse.mjs'
+      - 'scripts/shop-register.mjs'
       - 'src/core/chains/ChainCatalog.js'
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: osm-chain-register-${{ github.event_name == 'pull_request' && github.ref || 'nl' }}
@@ -37,12 +45,20 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Bestaande vestigingsidentiteiten behouden
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if git ls-remote --exit-code --heads origin refs/heads/data/osm-chains-nl; then
             git fetch origin refs/heads/data/osm-chains-nl
             git show FETCH_HEAD:register-v1.json > "$RUNNER_TEMP/register-v1.json"
-            git show FETCH_HEAD:browse-v1.json > "$RUNNER_TEMP/browse-v1.json" || rm -f "$RUNNER_TEMP/browse-v1.json"
+            if ! git show FETCH_HEAD:browse-v1.json > "$RUNNER_TEMP/browse-v1.json"; then
+              # Recover the previously issued 0.3.97 IDs; never silently reseed.
+              gh api repos/Stefan-van-Dijk/sharon/actions/artifacts/12552754064/zip > "$RUNNER_TEMP/legacy.zip"
+              unzip -p "$RUNNER_TEMP/legacy.zip" browse-v1.json > "$RUNNER_TEMP/browse-v1.json"
+              node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1]));if(d.points.length!==50155)throw Error("Controleer migratiebron");' "$RUNNER_TEMP/browse-v1.json"
+            fi
+            git show FETCH_HEAD:browse-v1.json.identities.json > "$RUNNER_TEMP/browse-v1.json.identities.json" || rm -f "$RUNNER_TEMP/browse-v1.json.identities.json"
             echo 'CHAIN_DATA_EXISTS=true' >> "$GITHUB_ENV"
           else
             echo 'CHAIN_DATA_EXISTS=false' >> "$GITHUB_ENV"
@@ -59,13 +75,13 @@ jobs:
       - name: Winkelmerken lokaal uit compleet landbestand selecteren
         shell: bash
         run: |
-          osmium tags-filter "$RUNNER_TEMP/netherlands-latest.osm.pbf" "nwr/brand:wikidata" "nwr/brand" -o "$RUNNER_TEMP/shops.osm.pbf"
+          osmium tags-filter "$RUNNER_TEMP/netherlands-latest.osm.pbf" "nwr/shop" "nwr/brand:wikidata" "nwr/brand" -o "$RUNNER_TEMP/shops.osm.pbf"
           osmium export "$RUNNER_TEMP/shops.osm.pbf" --attributes=type,id,version,timestamp -o "$RUNNER_TEMP/shops.geojson"
           SOURCE_TIMESTAMP=$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$RUNNER_TEMP/netherlands-latest.osm.pbf")
           node scripts/update-chain-register.mjs "$RUNNER_TEMP/register-v1.json" "$RUNNER_TEMP/shops.geojson" "$SOURCE_TIMESTAMP"
           node scripts/build-chain-browse.mjs "$RUNNER_TEMP/shops.geojson" "$RUNNER_TEMP/register-v1.json" "$RUNNER_TEMP/browse-v1.json"
       - name: Alleen brongegevens publiceren
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           if [ "$CHAIN_DATA_EXISTS" = 'true' ]; then
@@ -74,7 +90,9 @@ jobs:
             git worktree add --detach "$RUNNER_TEMP/chain-data" HEAD
             git -C "$RUNNER_TEMP/chain-data" switch --orphan osm-chain-data
           fi
-          mkdir -p "$RUNNER_TEMP/chain-data/browse-details"
+          mkdir -p "$RUNNER_TEMP/chain-data/browse-details" "$RUNNER_TEMP/chain-data/shop-tiles"
+          cp "$RUNNER_TEMP"/shop-tiles/*.json "$RUNNER_TEMP/chain-data/shop-tiles/"
+          cp "$RUNNER_TEMP/browse-v1.json.identities.json" "$RUNNER_TEMP/chain-data/"
           cp "$RUNNER_TEMP"/browse-details/*.json "$RUNNER_TEMP/chain-data/browse-details/"
           cp "$RUNNER_TEMP/browse-v1.json" "$RUNNER_TEMP/chain-data/browse-v1.json"
           cp "$RUNNER_TEMP/register-v1.json" "$RUNNER_TEMP/chain-data/register-v1.json"
@@ -82,7 +100,7 @@ jobs:
           printf '%s\n' '# Sharon OSM winkelregister — Nederland' '' 'Bron: © OpenStreetMap contributors — https://www.openstreetmap.org/copyright' '' 'Database: Open Database License (ODbL) 1.0 — https://opendatacommons.org/licenses/odbl/1-0/' '' 'Dit register bevat uitsluitend openbare brongegevens, geen passen, GPS-metingen of persoonlijke zones.' > README.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add register-v1.json browse-v1.json browse-details README.md
+          git add register-v1.json browse-v1.json browse-v1.json.identities.json browse-details shop-tiles README.md
           if ! git diff --cached --quiet; then
             git commit -m 'Werk Nederlandse winkelvestigingen bij vanuit OpenStreetMap'
             git push origin HEAD:refs/heads/data/osm-chains-nl
@@ -94,3 +112,5 @@ jobs:
             ${{ runner.temp }}/register-v1.json
             ${{ runner.temp }}/browse-v1.json
             ${{ runner.temp }}/browse-details/
+            ${{ runner.temp }}/browse-v1.json.identities.json
+            ${{ runner.temp }}/shop-tiles/

@@ -1,7 +1,7 @@
-import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.4.53';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.53';
-import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.4.53';
-import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.4.53';
+import { chainById, CHAIN_CACHE_KEY } from './ChainCatalog.js?v=0.4.54';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.54';
+import { environmentBoundsForId, isEnvironmentId } from '../location/EnvironmentIdentifier.js?v=0.4.54';
+import { createBranchIndex, nearbyBranches, distanceMeters } from '../location/GeographicBranchIndex.js?v=0.4.54';
 
 export function decodeBranch(row, chainId) {
   // Compact schema: stable Sharon ID, OSM type/id, cell, microdegrees or null,
@@ -61,10 +61,10 @@ export async function saveBranchLocation(store, branch, {point=null,radiusM=100,
     return {...old,id:old?.id||IdentifierService.create(),type:'location',createdAt:old?.createdAt||at,updatedAt:at,
       data:{...old?.data,title:old?.data?.title||branch.name||chainById(branch.chainId)?.name||'Winkel',kind:old?.data?.kind||branch.kind||chainById(branch.chainId)?.kind||'shop',
         address:old?.data?.address||branch.address,coordinates:old?.data?.coordinates || {...coordinates},radiusM:old?.data?.radiusM || radiusM,
-        ...(personal?{coordinates:{...coordinates},radiusM,personalZone:true}:{}),chainId:branch.chainId,branchId:branch.id,
+        ...(personal?{coordinates:{...coordinates},radiusM,personalZone:true}:{}),chainId:branch.chainId,branchId:old?.data?.branchId||branch.id,canonicalBranchId:branch.id,
         source:'openstreetmap',sourceRef:branch.sourceRef}};
   };
-  if (store.upsertBranchLocation) return store.upsertBranchLocation(branch.id,make);
-  const old=(await store.getAll('objects')).find(item=>item.type==='location'&&!item.deletedAt&&item.data?.branchId===branch.id);
+  if (store.upsertBranchLocation) return store.upsertBranchLocation(branch.id,make,branch.sourceRef);
+  const old=(await store.getAll('objects')).find(item=>item.type==='location'&&!item.deletedAt&&(item.data?.branchId===branch.id||Boolean(branch.sourceRef&&item.data?.sourceRef===branch.sourceRef)));
   const record=make(old);await store.put('objects',record);return record;
 }
