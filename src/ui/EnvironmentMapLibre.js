@@ -112,6 +112,7 @@ export function installSharonLayers(map, display = {}) {
       'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.9]]
     }
   });
+  if(display.showNames!==false)map.addLayer({id:'sharon-object-labels',type:'symbol',source:'sharon-objects',minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-optional':true,'text-max-width':12},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
   map.addLayer({
     id: 'sharon-points',
     type: 'circle',
