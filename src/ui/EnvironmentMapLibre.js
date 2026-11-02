@@ -76,7 +76,7 @@ export function createEnvironmentGpsMarker(library, map, element, point) {
     .addTo(map);
 }
 
-export function installSharonLayers(map) {
+export function installSharonLayers(map, display = {}) {
   if (map.getSource('sharon-objects')) return;
   map.addSource('sharon-objects', {
     type: 'geojson',
@@ -121,7 +121,7 @@ export function installSharonLayers(map) {
       'circle-color': '#fff',
       'circle-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
       'circle-stroke-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
-      'circle-radius': 6,
+      'circle-radius': Math.max(2, Math.min(12, Number(display.pointSize) || 5)),
       'circle-stroke-color': ['get', 'color'],
       'circle-stroke-width': 2
     }
@@ -170,7 +170,7 @@ export function createMapLibreInstance(library, options) {
 
 export function openEnvironmentView(root, {
   store, location, events, setTitle = () => {}, headerActions = null, initialChainId = '',
-  loadRenderer = () => import(MAPLIBRE_JS)
+  settings = null, loadRenderer = () => import(MAPLIBRE_JS)
 }) {
   setTitle('Omgeving');
   root.innerHTML = `
@@ -775,7 +775,7 @@ export function openEnvironmentView(root, {
       updateWikipediaZoomCue();
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
-      installSharonLayers(map);
+      installSharonLayers(map, settings?.get().mapDisplay);
       chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
