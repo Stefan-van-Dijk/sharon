@@ -52,6 +52,18 @@ export function openSettings(root, {
         </button>
       </section>`:''}
 
+      <section class="settings-section" data-map-display-settings>
+        <span class="settings-kicker">Omgeving · kaartweergave</span>
+        <p class="privacy-note">Persoonlijke voorkeuren voor de kaart. Je kunt deze altijd wijzigen.</p>
+        <label class="settings-row"><span><strong>Categorie-iconen</strong><small>Toon iconen wanneer er voldoende ruimte is.</small></span><input type="checkbox" data-map-display="showIcons" ${state.mapDisplay?.showIcons !== false ? 'checked' : ''}></label>
+        <label class="settings-row"><span><strong>Namen en titels</strong><small>Gebruik leesbare labels in de richting van de geometrie.</small></span><input type="checkbox" data-map-display="showNames" ${state.mapDisplay?.showNames !== false ? 'checked' : ''}></label>
+        <label class="settings-row"><span><strong>Punten bundelen</strong><small>Toon het aantal bij dicht bij elkaar gelegen punten.</small></span><input type="checkbox" data-map-display="clusterPoints" ${state.mapDisplay?.clusterPoints !== false ? 'checked' : ''}></label>
+        <label class="settings-row"><span><strong>Grootte locatiepunten</strong><small><output data-map-point-size-label>${Number(state.mapDisplay?.pointSize ?? 5)} px</output></small></span><input type="range" min="2" max="12" step="1" value="${Number(state.mapDisplay?.pointSize ?? 5)}" data-map-display="pointSize" aria-label="Grootte locatiepunten"></label>
+        <label class="settings-row"><span><strong>Gelezen</strong><small>Uitstraling van gelezen informatie.</small></span><select data-map-display="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>
+        <label class="settings-row"><span><strong>Leuk gevonden</strong><small>Uitstraling van favoriete informatie.</small></span><select data-map-display="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label>
+        <p class="privacy-note" data-map-display-status role="status" aria-live="polite"></p>
+      </section>
+
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
 
@@ -112,6 +124,37 @@ export function openSettings(root, {
       </section>
     </section>
   `;
+
+  const mapPreferences = root.querySelector('[data-map-display-settings]');
+  if (mapPreferences) {
+    for (const key of ['readStyle', 'likedStyle']) {
+      const selector = mapPreferences.querySelector('[data-map-display="' + key + '"]');
+      if (selector) selector.value = state.mapDisplay?.[key] || (key === 'readStyle' ? 'subtle' : 'heart');
+    }
+    mapPreferences.addEventListener('change', async event => {
+      const input = event.target.closest('[data-map-display]');
+      if (!input) return;
+      const key = input.dataset.mapDisplay;
+      const permitted = {
+        showIcons: ['true','false'], showNames:['true','false'], clusterPoints:['true','false'],
+        pointSize:null, readStyle:['subtle','ring','check','none'],
+        likedStyle:['heart','accent','ring','none']
+      };
+      if (!Object.hasOwn(permitted,key)) return;
+      const value = input.type === 'checkbox' ? input.checked :
+        key === 'pointSize' ? Math.max(2,Math.min(12,Math.round(Number(input.value)||5))) :
+        permitted[key].includes(input.value) ? input.value : null;
+      if (value === null) return;
+      const status = mapPreferences.querySelector('[data-map-display-status]');
+      try {
+        await settings.update({mapDisplay:{[key]:value}});
+        if (key === 'pointSize') mapPreferences.querySelector('[data-map-point-size-label]').textContent = value + ' px';
+        status.textContent = 'Kaartvoorkeur bewaard op dit apparaat.';
+      } catch {
+        status.textContent = 'Bewaren is niet gelukt. Probeer het opnieuw.';
+      }
+    });
+  }
 
   let disposed=false;
   const roleService=store?new ConnectionService(store):null;
