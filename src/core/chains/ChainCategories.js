@@ -25,3 +25,24 @@ export function shopCategory(item, catalog = []) {
   // Prefer the actual OSM type; never guess from an unknown brand name.
   return byKind.get(kind)||offlineCategories[chainId]||'other';
 }
+
+/** Shared visual vocabulary: source filters and map markers use the same icons. */
+export const MAP_CATEGORY_SYMBOLS=Object.freeze({
+  groceries:'🛒',fashion:'👕',care:'✚',home:'⌂',electronics:'⚡',
+  leisure:'★',food:'☕',mobility:'➜',services:'●',local:'⌖',
+  erfgoed:'♜',bouw:'▣',natuur:'♣',cultuur:'♫',vervoer:'↗',overig:'•',other:'•'
+});
+export function registerMapCategoryIcons(map){
+  if(typeof document==='undefined')return;
+  for(const [key,glyph] of Object.entries(MAP_CATEGORY_SYMBOLS)){
+    const name='sharon-category-'+key;
+    if(map.hasImage?.(name))continue;
+    const canvas=document.createElement('canvas');canvas.width=40;canvas.height=40;
+    const ctx=canvas.getContext('2d');if(!ctx)continue;
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(20,20,18,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#56677c';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='bold 23px system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#324c64';
+    ctx.fillText(glyph,20,21,29);
+    map.addImage(name,ctx.getImageData(0,0,40,40),{pixelRatio:2});
+  }
+}

@@ -1,23 +1,23 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.56';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.56';
-import { focusTextField } from './TextInputFocus.js?v=0.4.56';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.56';
-import { SHOP_CATEGORIES, shopCategory } from '../core/chains/ChainCategories.js?v=0.4.56';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.56';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.56';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.56';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.56';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.56';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.56';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.56';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.56';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.56';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.56';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.56';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.56';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.57';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.57';
+import { focusTextField } from './TextInputFocus.js?v=0.4.57';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.57';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.57';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.57';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.57';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.57';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.57';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.57';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.57';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.57';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.57';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.57';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.57';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.57';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.57';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
-export function mountChainLayer(map,library,{store,events,location,root,initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
+export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
   const sheet=root.querySelector('[data-places-sheet]'),list=root.querySelector('[data-places-list]'),search=root.querySelector('[data-places-search]');
@@ -108,13 +108,20 @@ export function mountChainLayer(map,library,{store,events,location,root,initialC
     if(matches.length>30){const more=document.createElement('small');more.textContent='30 van '+matches.length+' · zoek op naam of adres voor andere locaties.';list.append(more);}
   };
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
-  map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},attribution:OSM_MAP_CREDIT});
-  map.addLayer({id:points,type:'circle',source,paint:{'circle-radius':6,'circle-color':'#fff','circle-stroke-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
+  if(mapDisplay.showIcons)registerMapCategoryIcons(map);
+  map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:Boolean(mapDisplay.clusterPoints),clusterRadius:38,clusterMaxZoom:15,attribution:OSM_MAP_CREDIT});
+  map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':'#fff','circle-stroke-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
+  if(mapDisplay.clusterPoints){
+    map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],paint:{'circle-radius':18,'circle-color':'#486c65','circle-opacity':0.8}});
+    map.addLayer({id:clusters+'-count',type:'symbol',source,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
+  }
+  if(mapDisplay.showNames)map.addLayer({id:points+'-names',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#26392f','text-halo-color':'#fff','text-halo-width':1}});
+  if(mapDisplay.showIcons)map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{'icon-image':['concat','sharon-category-',['get','category']],'icon-size':1,'icon-allow-overlap':false,'icon-ignore-placement':false}});
   let lastPoints='';
   const draw=()=>{
     const visible=enabled?branches.filter(branch=>(!selected||branch.chainId===selected)&&inAnalysisRange(branch.coordinates,map.getCenter?.()||location?.latest)&&filters.matches(branch)):[];
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
-      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status}}]:[])};
+      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog)}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
     toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');

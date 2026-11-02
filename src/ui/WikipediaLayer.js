@@ -1,9 +1,10 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.56';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.56';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.56';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.56';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.56';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.56';
+import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.57';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.57';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.57';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.57';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.57';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.57';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.57';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
@@ -33,7 +34,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
   const pages=Object.values(data.query.pages || {});
   return {...wikiFeatures(pages.map(page => ({ ...page, language: lang }))),truncated:pages.length>=40||Boolean(data.continue)};
 }
-export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = null, onLoadState = null } = {}) {
+export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay = {}, onOpen = null, onLoadState = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
   let enabled = false, disposed = false, request = null, timeout = null, popup = null;
   let currentFeatures = [];
@@ -88,7 +89,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
       return acceptsBoard(feature);
     }).map(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
-      return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
+      return {...feature, properties:{...feature.properties, category:categoriesFor(feature)[0], read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
     });
     const center = map.getCenter();
     const information = informationFeedback();
@@ -113,12 +114,21 @@ export function mountWikipediaLayer(map, library, { language = 'nl', onOpen = nu
     pulseFrame = requestAnimationFrame(pulse);
   };
   const ensure = () => {
-    if (!map.getSource(sourceId)) map.addSource(sourceId, { type: 'geojson', data: EMPTY });
+    if (!map.getSource(sourceId)) map.addSource(sourceId, { type: 'geojson', data: EMPTY, cluster:Boolean(mapDisplay.clusterPoints), clusterRadius:38, clusterMaxZoom:15 });
     if (!map.getLayer(activeLayer)) map.addLayer({ id:activeLayer, type:'circle', source:sourceId,
       filter:['==',['get','wikidata'],'__none__'],
       paint:{'circle-radius':9,'circle-color':'#547da0','circle-opacity':0.18,'circle-stroke-width':0} });
-    if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId,
-      paint: { 'circle-radius': 7, 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
+    if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId, filter:['!', ['has','point_count']],
+      paint: { 'circle-radius': Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)), 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
+    if(mapDisplay.showIcons){
+      registerMapCategoryIcons(map);
+      if(!map.getLayer(sourceId+'-icons'))map.addLayer({id:sourceId+'-icons',type:'symbol',source:sourceId,minzoom:15,filter:['!', ['has','point_count']],layout:{'icon-image':['concat','sharon-category-',['get','category']],'icon-size':1}});
+    }
+    if(mapDisplay.clusterPoints && !map.getLayer(sourceId+'-clusters')){
+      map.addLayer({id:sourceId+'-clusters',type:'circle',source:sourceId,filter:['has','point_count'],paint:{'circle-radius':18,'circle-color':'#344d6b'}});
+      map.addLayer({id:sourceId+'-cluster-count',type:'symbol',source:sourceId,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
+    }
+    if(mapDisplay.showNames && !map.getLayer(sourceId+'-names'))map.addLayer({id:sourceId+'-names',type:'symbol',source:sourceId,filter:['!', ['has','point_count']],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#263c56','text-halo-color':'#fff','text-halo-width':1}});
   };
   const clear = () => { currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };

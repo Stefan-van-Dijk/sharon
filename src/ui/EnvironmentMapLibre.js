@@ -1,32 +1,32 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.56';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.56';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.56';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.56';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.56';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.56';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.56';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.56';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.56';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.56';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.56';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.56';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.56';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.56';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.57';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.57';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.57';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.57';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.57';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.57';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.57';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.57';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.57';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.57';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.57';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.57';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.57';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.57';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.56';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.56';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.56';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.56';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.56';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.56';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.56';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.56';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.56';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.57';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.57';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.57';
+import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.57';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.57';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.57';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.57';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.57';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.57';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.56';
+} from './EnvironmentScale.js?v=0.4.57';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -76,7 +76,7 @@ export function createEnvironmentGpsMarker(library, map, element, point) {
     .addTo(map);
 }
 
-export function installSharonLayers(map) {
+export function installSharonLayers(map, display = {}) {
   if (map.getSource('sharon-objects')) return;
   map.addSource('sharon-objects', {
     type: 'geojson',
@@ -112,6 +112,11 @@ export function installSharonLayers(map) {
       'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.9]]
     }
   });
+  if(display.showNames!==false){
+    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+    map.addSource('sharon-shape-labels',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{'symbol-placement':'line','text-field':['get','title'],'text-size':12,'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+  }
   map.addLayer({
     id: 'sharon-points',
     type: 'circle',
@@ -121,7 +126,7 @@ export function installSharonLayers(map) {
       'circle-color': '#fff',
       'circle-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
       'circle-stroke-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
-      'circle-radius': 6,
+      'circle-radius': Math.max(2, Math.min(12, Number(display.pointSize) || 5)),
       'circle-stroke-color': ['get', 'color'],
       'circle-stroke-width': 2
     }
@@ -170,7 +175,7 @@ export function createMapLibreInstance(library, options) {
 
 export function openEnvironmentView(root, {
   store, location, events, setTitle = () => {}, headerActions = null, initialChainId = '',
-  loadRenderer = () => import(MAPLIBRE_JS)
+  settings = null, loadRenderer = () => import(MAPLIBRE_JS)
 }) {
   setTitle('Omgeving');
   root.innerHTML = `
@@ -759,7 +764,12 @@ export function openEnvironmentView(root, {
       const revision = ++objectsRevision;
       const objects = await store.getAll('objects');
       if (disposed || revision !== objectsRevision || !mapReady) return;
-      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects.filter(item=>item.type==='location'?(chainLayer?.allowsLocation(item)??!placeHidden(item)):!placeHidden(item))));
+      const data=environmentGeoJSON(objects.filter(item=>item.type==='location'?(chainLayer?.allowsLocation(item)??!placeHidden(item)):!placeHidden(item)));
+      map.getSource('sharon-objects')?.setData(data);
+      if(map.getSource('sharon-shape-labels')){
+        const project=pair=>map.project(pair),unproject=point=>{const pos=map.unproject(point);return [pos.lng,pos.lat]};
+        map.getSource('sharon-shape-labels').setData({type:'FeatureCollection',features:environmentShapeLabels(data.features,project,unproject)});
+      }
     };
 
     map.on('load', () => {
@@ -775,9 +785,9 @@ export function openEnvironmentView(root, {
       updateWikipediaZoomCue();
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
-      installSharonLayers(map);
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
-      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
+      installSharonLayers(map, settings?.get().mapDisplay);
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      wikipediaLayer = mountWikipediaLayer(map, lib, { mapDisplay:settings?.get().mapDisplay||{}, language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
       // Tiqets temporarily excluded from discovery.

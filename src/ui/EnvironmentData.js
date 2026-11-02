@@ -81,3 +81,59 @@ export function environmentGeoJSON(objects) {
       .filter(Boolean)
   };
 }
+
+
+// Project a label chord through the polygon's centroid, parallel to its longest
+// boundary edge. A polygon title is only shown when the chord fits on screen.
+export function environmentShapeLabels(features, project, unproject, minimumFontPx = 12) {
+  const labels=[];
+  for(const feature of features || []) {
+    const g=feature.geometry, title=String(feature.properties?.title || '').trim();
+    if(!title || !['Polygon','MultiPolygon'].includes(g?.type)) continue;
+    const polygons=g.type==='Polygon'?[g.coordinates]:g.coordinates;
+    for(const rings of polygons){
+      const ring=rings?.[0];
+      if(!ring || ring.length<4)continue;
+      const points=ring.map(pair=>project(pair));
+      if(points.some(p=>!Number.isFinite(p?.x)||!Number.isFinite(p?.y)))continue;
+      let edge=null;
+      for(let i=0;i<points.length-1;i++){
+        const a=points[i],b=points[i+1],length=Math.hypot(b.x-a.x,b.y-a.y);
+        if(!edge||length>edge.length)edge={a,b,length};
+      }
+      if(!edge||edge.length<minimumFontPx*3)continue;
+      const cx=points.slice(0,-1).reduce((n,p)=>n+p.x,0)/(points.length-1);
+      const cy=points.slice(0,-1).reduce((n,p)=>n+p.y,0)/(points.length-1);
+      const dx=(edge.b.x-edge.a.x)/edge.length,dy=(edge.b.y-edge.a.y)/edge.length;
+      const intersections=[];
+      for(let i=0;i<points.length-1;i++){
+        const a=points[i],b=points[i+1];
+        const ax=a.x-cx,ay=a.y-cy,bx=b.x-a.x,by=b.y-a.y;
+        const det=dx*by-dy*bx;
+        if(Math.abs(det)<0.00001)continue;
+        const t=(ax*by-ay*bx)/det;
+        const u=(ax*dy-ay*dx)/det;
+        if(u>=0&&u<=1)intersections.push(t);
+      }
+      intersections.sort((a,b)=>a-b);
+      let best=null;
+      for(let i=0;i<intersections.length-1;i++){
+        const a=intersections[i],b=intersections[i+1],distance=b-a;
+        if(distance<minimumFontPx*3)continue;
+        const mx=cx+(a+b)/2*dx,my=cy+(a+b)/2*dy;
+        let inside=false;
+        for(let j=0,k=points.length-2;j<points.length-1;k=j++){
+          const p=points[j],q=points[k];
+          if((p.y>my)!==(q.y>my)&&mx<(q.x-p.x)*(my-p.y)/(q.y-p.y)+p.x)inside=!inside;
+        }
+        if(inside&&(!best||distance>best.distance))best={a,b,distance};
+      }
+      // Conservative width estimate avoids small unreadable or overflowing text.
+      if(!best||best.distance<title.length*minimumFontPx*0.64+minimumFontPx*2)continue;
+      const a={x:cx+best.a*dx,y:cy+best.a*dy},b={x:cx+best.b*dx,y:cy+best.b*dy};
+      labels.push({type:'Feature',geometry:{type:'LineString',coordinates:[a,b].map(p=>unproject(p))},properties:{title}});
+      break;
+    }
+  }
+  return labels;
+}
