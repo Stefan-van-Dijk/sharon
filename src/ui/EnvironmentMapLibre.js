@@ -16,7 +16,7 @@ import {
   environmentIdForPoint,
   environmentPointId
 } from '../core/location/EnvironmentIdentifier.js?v=0.4.57';
-import { environmentGeoJSON } from './EnvironmentData.js?v=0.4.57';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.57';
 import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.57';
 import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.57';
 import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.57';
@@ -112,7 +112,11 @@ export function installSharonLayers(map, display = {}) {
       'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.9]]
     }
   });
-  if(display.showNames!==false)map.addLayer({id:'sharon-object-labels',type:'symbol',source:'sharon-objects',minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-optional':true,'text-max-width':12},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+  if(display.showNames!==false){
+    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+    map.addSource('sharon-shape-labels',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{'symbol-placement':'line','text-field':['get','title'],'text-size':12,'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+  }
   map.addLayer({
     id: 'sharon-points',
     type: 'circle',
@@ -760,7 +764,12 @@ export function openEnvironmentView(root, {
       const revision = ++objectsRevision;
       const objects = await store.getAll('objects');
       if (disposed || revision !== objectsRevision || !mapReady) return;
-      map.getSource('sharon-objects')?.setData(environmentGeoJSON(objects.filter(item=>item.type==='location'?(chainLayer?.allowsLocation(item)??!placeHidden(item)):!placeHidden(item))));
+      const data=environmentGeoJSON(objects.filter(item=>item.type==='location'?(chainLayer?.allowsLocation(item)??!placeHidden(item)):!placeHidden(item)));
+      map.getSource('sharon-objects')?.setData(data);
+      if(map.getSource('sharon-shape-labels')){
+        const project=pair=>map.project(pair),unproject=point=>{const pos=map.unproject(point);return [pos.lng,pos.lat]};
+        map.getSource('sharon-shape-labels').setData({type:'FeatureCollection',features:environmentShapeLabels(data.features,project,unproject)});
+      }
     };
 
     map.on('load', () => {
