@@ -85,7 +85,7 @@ export function environmentGeoJSON(objects) {
 
 // Project a label chord through the polygon's centroid, parallel to its longest
 // boundary edge. A polygon title is only shown when the chord fits on screen.
-export function environmentShapeLabels(features, project, minimumFontPx = 12) {
+export function environmentShapeLabels(features, project, unproject, minimumFontPx = 12) {
   const labels=[];
   for(const feature of features || []) {
     const g=feature.geometry, title=String(feature.properties?.title || '').trim();
@@ -131,7 +131,7 @@ export function environmentShapeLabels(features, project, minimumFontPx = 12) {
       // Conservative width estimate avoids small unreadable or overflowing text.
       if(!best||best.distance<title.length*minimumFontPx*0.64+minimumFontPx*2)continue;
       const a={x:cx+best.a*dx,y:cy+best.a*dy},b={x:cx+best.b*dx,y:cy+best.b*dy};
-      labels.push({type:'Feature',geometry:{type:'LineString',coordinates:[a,b].map(p=>[p.x,p.y])},properties:{title}});
+      labels.push({type:'Feature',geometry:{type:'LineString',coordinates:[a,b].map(p=>unproject(p))},properties:{title}});
       break;
     }
   }
