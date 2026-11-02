@@ -1,3 +1,4 @@
+import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.57';
 import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.57';
 import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.57';
 import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.57';
@@ -88,7 +89,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
       return acceptsBoard(feature);
     }).map(feature => {
       const state = feedback(String(feature.properties?.wikidata || feature.id));
-      return {...feature, properties:{...feature.properties, read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
+      return {...feature, properties:{...feature.properties, category:categoriesFor(feature)[0], read:state.read ? 1 : 0, liked:state.liked ? 1 : 0}};
     });
     const center = map.getCenter();
     const information = informationFeedback();
@@ -119,6 +120,10 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
       paint:{'circle-radius':9,'circle-color':'#547da0','circle-opacity':0.18,'circle-stroke-width':0} });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId, filter:['!', ['has','point_count']],
       paint: { 'circle-radius': Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)), 'circle-color': ['case',['==',['get','read'],1],'#c6cdd1','#ffffff'], 'circle-opacity':['case',['==',['get','read'],1],0.42,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#b75b68',['==',['get','read'],1],'#9aa6af','#344d6b'], 'circle-stroke-opacity':['case',['==',['get','read'],1],0.5,1], 'circle-stroke-width':['case',['==',['get','liked'],1],2.5,['==',['get','read'],1],1.25,2] } });
+    if(mapDisplay.showIcons){
+      registerMapCategoryIcons(map);
+      if(!map.getLayer(sourceId+'-icons'))map.addLayer({id:sourceId+'-icons',type:'symbol',source:sourceId,minzoom:15,filter:['!', ['has','point_count']],layout:{'icon-image':['concat','sharon-category-',['get','category']],'icon-size':1}});
+    }
     if(mapDisplay.clusterPoints && !map.getLayer(sourceId+'-clusters')){
       map.addLayer({id:sourceId+'-clusters',type:'circle',source:sourceId,filter:['has','point_count'],paint:{'circle-radius':18,'circle-color':'#344d6b'}});
       map.addLayer({id:sourceId+'-cluster-count',type:'symbol',source:sourceId,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
