@@ -52,6 +52,18 @@ export function openSettings(root, {
         </button>
       </section>`:''}
 
+      <section class="settings-section" data-map-preferences>
+        <span class="settings-kicker">Omgeving · kaart</span>
+        <p class="privacy-note">Bepaal zelf hoe punten, iconen en titels op jouw kaart worden getoond.</p>
+        <label class="settings-row"><span><strong>Iconen tonen</strong></span><input type="checkbox" data-map-option="showIcons" ${state.mapDisplay.showIcons?'checked':''}></label>
+        <label class="settings-row"><span><strong>Namen tonen</strong></span><input type="checkbox" data-map-option="showNames" ${state.mapDisplay.showNames?'checked':''}></label>
+        <label class="settings-row"><span><strong>Punten bundelen met aantal</strong></span><input type="checkbox" data-map-option="clusterPoints" ${state.mapDisplay.clusterPoints?'checked':''}></label>
+        <label class="settings-row"><span><strong>Grootte van punten</strong><small><output data-map-point-output>${state.mapDisplay.pointSize} px</output></small></span><input type="range" min="2" max="12" step="1" data-map-option="pointSize" value="${state.mapDisplay.pointSize}"></label>
+        <label class="settings-row"><span><strong>Gelezen</strong></span><select data-map-option="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>
+        <label class="settings-row"><span><strong>Leuk gevonden</strong></span><select data-map-option="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label>
+        <small role="status" data-map-preferences-message></small>
+      </section>
+
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
 
@@ -113,6 +125,22 @@ export function openSettings(root, {
     </section>
   `;
 
+  const mapControls=root.querySelector('[data-map-preferences]');
+  for (const name of ['readStyle','likedStyle']) mapControls.querySelector('[data-map-option="'+name+'"]').value=state.mapDisplay[name];
+  mapControls.addEventListener('change', async event => {
+    const control=event.target.closest('[data-map-option]');
+    if (!control) return;
+    const key=control.dataset.mapOption;
+    const options={readStyle:['subtle','ring','check','none'],likedStyle:['heart','accent','ring','none']};
+    const value=control.type==='checkbox'?control.checked:key==='pointSize'?Math.max(2,Math.min(12,Number(control.value)||5)):options[key]?.includes(control.value)?control.value:null;
+    if(value===null)return;
+    const message=mapControls.querySelector('[data-map-preferences-message]');
+    try{
+      await settings.update({mapDisplay:{[key]:value}});
+      if(key==='pointSize')mapControls.querySelector('[data-map-point-output]').textContent=value+' px';
+      message.textContent='Opgeslagen op dit apparaat';
+    }catch{message.textContent='Opslaan mislukt';}
+  });
   let disposed=false;
   const roleService=store?new ConnectionService(store):null;
   async function renderRole(verified=false){
