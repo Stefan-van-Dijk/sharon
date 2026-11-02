@@ -127,7 +127,7 @@ export function openSettings(root, {
   `;
 
   const mapControls=root.querySelector('[data-map-preferences]');
-  for (const name of ['readStyle','likedStyle']) mapControls.querySelector('[data-map-option="'+name+'"]').value=state.mapDisplay[name];
+  for (const name of ['readStyle','likedStyle']) mapControls.querySelector('[data-map-option="'+name+'"]').value=mapDisplay[name];
   mapControls.addEventListener('change', async event => {
     const control=event.target.closest('[data-map-option]');
     if (!control) return;
