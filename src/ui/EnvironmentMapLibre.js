@@ -776,8 +776,8 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map, settings?.get().mapDisplay);
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
-      wikipediaLayer = mountWikipediaLayer(map, lib, { language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      wikipediaLayer = mountWikipediaLayer(map, lib, { mapDisplay:settings?.get().mapDisplay||{}, language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
       // Tiqets temporarily excluded from discovery.
