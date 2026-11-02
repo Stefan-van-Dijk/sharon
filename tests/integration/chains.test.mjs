@@ -189,10 +189,10 @@ test('branch points respect personal clustering and feedback persists, retracts 
   const sources=new Map(),layers=[];let active;
   app.window.addEventListener('sharon-place-board-active',e=>{active=e.detail.point;});
   const map={addSource(id,o){sources.set(id,{options:o,setData(data){this.data=data;}});},addLayer(o){layers.push(o);},getSource:id=>sources.get(id),on(){},off(){},easeTo(){},getCenter:()=>point,queryRenderedFeatures:()=>[]};
-  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985',mapDisplay:{clusterPoints:true,pointSize:5,showNames:true}});
   (await until(()=>root.querySelector('[data-places-list] button'))).click();
   const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
-  const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,false);assert.equal(layers[0].paint['circle-radius'],5);
+  const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,true);assert.equal(layers[0].paint['circle-radius'],5);
   assert.equal(active.lat,52);
   assert.equal(board.querySelector('.sh-board-category').textContent,'Boodschappen');
   const button=label=>board.querySelector('[aria-label="'+label+'"]');
