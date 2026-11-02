@@ -181,7 +181,7 @@ test('editing preserves an explicit chain despite a conflicting nickname and rem
  }finally{close?.();app.close();}
 });
 
-test('branch points stay unclustered; board ratings persist, retract and hide/restore the map point',async()=>{
+test('branch points respect disabled clustering; board ratings persist, retract and hide/restore the map point',async()=>{
  const {app,events,point}=await setup();let layer;
  try{
   const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
@@ -192,7 +192,7 @@ test('branch points stay unclustered; board ratings persist, retract and hide/re
   layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},initialChainId:'Q1653985'});
   (await until(()=>root.querySelector('[data-places-list] button'))).click();
   const board=await until(()=>app.document.querySelector('.sh-board-overlay'));
-  const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,undefined);assert.equal(layers.length,1);assert.equal(layers[0].paint['circle-radius'],6);
+  const source=sources.get('sharon-chain-branches');assert.equal(source.options.cluster,false);assert.equal(layers[0].paint['circle-radius'],5);
   assert.equal(active.lat,52);
   assert.equal(board.querySelector('.sh-board-category').textContent,'Boodschappen');
   const button=label=>board.querySelector('[aria-label="'+label+'"]');
