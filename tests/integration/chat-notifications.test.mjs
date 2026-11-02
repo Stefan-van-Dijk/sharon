@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {appHarness,until} from '../helpers/app-harness.mjs';
+const version=JSON.parse(readFileSync('package.json')).version;
+const path='./src/core/connection/ConnectionService.js?v='+version;
+test('a minute outside Chat discovers unread messages, People and contact dots clear when shown, and own messages stay read',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ let now=0,heartbeat;
+ app.window.Date.now=()=>now;
+ const interval=app.window.setInterval.bind(app.window);
+ app.window.setInterval=(fn,ms,...args)=>ms===1000?(heartbeat=fn,777):interval(fn,ms,...args);
+ const {ConnectionService}=await app.load(path),service=new ConnectionService(app.store),device=await service.device();
+ await service.rememberSelf({personId:device.personId,networkId:'Network00001',line:0,name:'Zelf'});
+ const peer={personId:'Peer00000001',chatId:'Chat00000001',name:'Contact'};
+ const messages=[{id:'Message00001',chatId:peer.chatId,senderId:peer.personId,seq:1,at:1000,text:'Nieuw bericht'}];
+ let messageRequests=0;
+ app.window.fetch=async(_,options)=>{
+  const input=JSON.parse(options.body);let data;
+  if(input.action==='contacts')data={contacts:[peer]};
+  else if(input.action==='messages'){messageRequests++;data={messages:messages.filter(m=>m.seq>input.after)};}
+  else if(input.action==='send'){
+   const message={id:input.id,chatId:input.chatId,senderId:device.personId,text:input.text,seq:messages.length+1,at:2000};
+   messages.push(message);data={message};
+  } else throw Error(input.action);
+  return {ok:true,json:async()=>data};
+ };
+ app.window.TextEncoder=TextEncoder;
+ await app.boot();
+ await until(()=>app.document.querySelector('[data-module="people"]'));
+ assert.equal(app.document.querySelector('[data-people-unread]').hidden,true);
+ now=59999;heartbeat();assert.equal(messageRequests,0);
+ now=60000;heartbeat();
+ await until(()=>app.document.querySelector('[data-people-unread]')?.hidden===false);
+ assert.equal(messageRequests,1);
+ app.document.querySelector('[data-module="people"]').click();
+ const plus=await until(()=>app.document.querySelector('[data-invite]'));
+ assert.equal(plus.textContent,'+');assert.equal(plus.getAttribute('aria-label'),'Verbinding maken');
+ await until(()=>app.document.querySelector('[data-contact-unread]')?.hidden===false);
+ assert.equal(app.document.querySelector('[data-status]').hidden,true);
+ const contact=await until(()=>{const b=app.document.querySelector('[data-swipe-surface]');return b&&!b.disabled&&b;});contact.click();
+ const form=await until(()=>app.document.querySelector('[data-message-form]'));
+ await until(()=>!form.querySelector('button').disabled);
+ assert.equal(app.document.querySelector('[data-refresh-chat]'),null);
+ assert.equal((await service.unreadState()).total,0);
+ form.elements.message.value='Eigen antwoord';
+ form.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
+ await until(()=>messages.length===2);
+ await until(()=>app.document.querySelector('[data-messages]')?.textContent.includes('Eigen antwoord'));
+ assert.equal((await service.unreadState()).total,0);
+ app.document.querySelector('[data-brand-control]').click();
+ await until(()=>app.document.querySelector('[data-people-unread]'));
+ assert.equal(app.document.querySelector('[data-people-unread]').hidden,true);
+ const before=messageRequests;now=119999;heartbeat();assert.equal(messageRequests,before);
+ assert.deepEqual(app.errors,[]);
+});
+
+test('read position persists and can only advance, with other chats and unsent messages remaining unread correctly',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ const {ConnectionService}=await app.load(path),service=new ConnectionService(app.store),d=await service.device();
+ await app.store.setMeta('connection.contacts.log-json.v1',[{personId:'Peer00000001',chatId:'Chat00000001',name:'A'},{personId:'Peer00000002',chatId:'Chat00000002',name:'B'}]);
+ const a={id:'Message00001',type:'chat-message',chatId:'Chat00000001',senderId:'Peer00000001',seq:5,delivery:'sent'};
+ const b={...a,id:'Message00002',chatId:'Chat00000002',senderId:'Peer00000002',seq:6};
+ await app.store.put('objects',a);await app.store.put('objects',b);
+ await app.store.put('objects',{...a,id:'Message00003',seq:10,senderId:d.personId});
+ await app.store.put('objects',{...a,id:'Message00004',seq:11,delivery:'pending'});
+ assert.equal((await service.unreadState()).total,2);
+ await Promise.all([service.markRead(a.chatId,[a]),service.markRead(a.chatId,[{...a,seq:3}])]);
+ const reloaded=new ConnectionService(app.store);
+ assert.equal((await reloaded.unreadState()).total,1);
+ assert.equal((await app.store.get('meta','connection.read.'+a.chatId)).value,5);
+ await app.store.put('objects',{...a,id:'Message00005',seq:7});
+ assert.equal((await reloaded.unreadState()).total,2);
+});

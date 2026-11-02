@@ -19,14 +19,6 @@ const DEFAULTS = Object.freeze({
   },
   sharing: {
     updateMode: 'auto'
-  },
-  mapDisplay: {
-    showIcons: true,
-    showNames: true,
-    clusterPoints: true,
-    pointSize: 5,
-    readStyle: 'subtle',
-    likedStyle: 'heart'
   }
 });
 
