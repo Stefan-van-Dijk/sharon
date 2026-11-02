@@ -3,7 +3,7 @@ import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.57';
 import { focusTextField } from './TextInputFocus.js?v=0.4.57';
 import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.57';
 import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.57';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.57';
+import { mountChainFilters, shopFeedback } from './ChainFilters.js?v=0.4.57';
 import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.57';
 import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.57';
 import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.57';
@@ -110,18 +110,19 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
   if(mapDisplay.showIcons)registerMapCategoryIcons(map);
   map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:Boolean(mapDisplay.clusterPoints),clusterRadius:38,clusterMaxZoom:15,attribution:OSM_MAP_CREDIT});
-  map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':'#fff','circle-stroke-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
+  map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':mapDisplay.readStyle==='none'?'#fff':['case',['==',['get','read'],1],'#c6cdd1','#fff'],'circle-opacity':mapDisplay.readStyle==='subtle'?['case',['==',['get','read'],1],0.5,1]:1,'circle-stroke-color':['case',['==',['get','liked'],1],mapDisplay.likedStyle==='none'?'#486c65':'#b75b68',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
   if(mapDisplay.clusterPoints){
     map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],paint:{'circle-radius':18,'circle-color':'#486c65','circle-opacity':0.8}});
     map.addLayer({id:clusters+'-count',type:'symbol',source,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
   }
   if(mapDisplay.showNames)map.addLayer({id:points+'-names',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#26392f','text-halo-color':'#fff','text-halo-width':1}});
+  if(mapDisplay.likedStyle==='heart')map.addLayer({id:points+'-hearts',type:'symbol',source,filter:['all',['!', ['has','point_count']],['==',['get','liked'],1]],layout:{'text-field':'♥','text-size':13,'text-offset':[0.7,-0.7]},paint:{'text-color':'#b75b68'}});
   if(mapDisplay.showIcons)map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{'icon-image':['concat','sharon-category-',['get','category']],'icon-size':1,'icon-allow-overlap':false,'icon-ignore-placement':false}});
   let lastPoints='';
   const draw=()=>{
     const visible=enabled?branches.filter(branch=>(!selected||branch.chainId===selected)&&inAnalysisRange(branch.coordinates,map.getCenter?.()||location?.latest)&&filters.matches(branch)):[];
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
-      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog)}}]:[])};
+      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:shopFeedback(branch).read?1:0,liked:shopFeedback(branch).liked?1:0}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
     toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
