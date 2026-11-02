@@ -475,6 +475,7 @@ export function createShell(root, {
       store: activeStore(),
       location,
       events,
+      settings,
       setTitle: setDetailTitle,
       headerActions
     }), { animate });
