@@ -12,6 +12,7 @@ export function openSettings(root, {
   onNetworkStart=()=>{}
 }) {
   const state = settings.get();
+  const mapDisplay = {showIcons:true,showNames:true,clusterPoints:true,pointSize:5,readStyle:'subtle',likedStyle:'heart',...(state.mapDisplay || {})};
   const installState = install.getState();
 
   root.innerHTML = `
