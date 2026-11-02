@@ -1,3 +1,20 @@
+## Sessieverzameling (november 2026 — eerste implementatiestap)
+
+Kaartbewegingen voegen ontdekte Wikipedia-artikelen en winkelvestigingen toe aan de
+huidige sessieverzameling. De gezamenlijke boards en de Wikipediastatistieken
+gebruiken ontdekte items van de sessie, onafhankelijk van de zichtbare kaartuitsnede.
+Een uitgeschakelde bron wordt verborgen en pauzeert nieuwe verzoeken; opnieuw
+inschakelen behoudt de bestaande ontdekkingen. De kaart mag resultaten geografisch
+beperken voor de weergave, maar niet de verzameling voor boards/statistieken.
+
+Er zijn resetknoppen voor Wikipedia, winkels en de hele sessie. Tiqets-resultaten
+worden eveneens in de sessie verzameld en door de volledige reset gewist.
+Nog niet afgerond: een centrale identieke geografische zoekdekking voor alle
+bronnen, geautomatiseerde vervolgvragen bij afgekapt resultaat, Tiqets-reset per
+bron in de UI, en definitieve regressie- en CI-controles. De Tiqets-API heeft
+momenteel geen expliciete pagineringscontracten of zoekvlakparameters; de app
+kan dus nog geen volledig aanbod voor een groot zoekgebied garanderen.
+
 # Gezamenlijk Omgeving-deck
 
 Alle ingeschakelde bronnen leveren hun gefilterde boards aan `EnvironmentBoardSources`.

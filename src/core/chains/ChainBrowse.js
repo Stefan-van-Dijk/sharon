@@ -1,6 +1,6 @@
-import {fetchShopSource} from './ShopSource.js?v=0.4.55';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.55';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.55';
+import {fetchShopSource} from './ShopSource.js?v=0.4.56';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.56';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.56';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){

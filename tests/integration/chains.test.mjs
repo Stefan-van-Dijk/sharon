@@ -240,7 +240,7 @@ test('Omgeving browses an unlinked chain and loads details only when its board o
  }finally{stop?.();app.close();}
 });
 
-test('shop discovery stays within 10 km, excludes distant cached shops and follows map movement',async()=>{
+test('shop discovery stays within 10 km while the session remembers distant discovered shops',async()=>{
  const {app,events,point}=await setup();let layer;
  try{
   app.window.localStorage.setItem('sharon.boards.analysis-range.v1',JSON.stringify({meters:10000,unlimited:false}));
@@ -254,14 +254,14 @@ test('shop discovery stays within 10 km, excludes distant cached shops and follo
   const map={addSource(id){sources.set(id,{setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){if(!handlers.has(n))handlers.set(n,new Set());handlers.get(n).add(f);},off(n,f){handlers.get(n)?.delete(f);},easeTo(value){camera.push(value);},getCenter:()=>center,getZoom:()=>zoom,getBounds:()=>({getWest:()=>center.lng-.1,getSouth:()=>center.lat-.1,getEast:()=>center.lng+.1,getNorth:()=>center.lat+.1}),queryRenderedFeatures:()=>[]};
   layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point},onFocus:()=>focused++});root.querySelector('[data-chain-toggle]').click();
   await until(()=>root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
-  assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
-  assert.ok(!root.querySelector('[data-places-list]').textContent.includes('Buiten de straal'));
+  assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'),'session list retains distant cached locations');
+  assert.ok(root.querySelector('[data-places-list]').textContent.includes('Buiten de straal'),'session list is not cropped to the active map');
   const first=calls.find(q=>q.action==='map');assert.ok(first.bounds[2]-first.bounds[0]<.3);assert.ok(first.bounds[3]-first.bounds[1]<.2);
   [...root.querySelectorAll('[data-places-list] button')].find(b=>b.textContent.includes('Albert Heijn')).click();
   assert.equal(focused,1);assert.deepEqual(Array.from(camera.at(-1).center),[5,52]);layer.closeBoard();
   center={lat:53,lng:5};for(const fn of handlers.get('moveend'))fn();
   await until(()=>calls.filter(q=>q.action==='map').length===2);
-  await until(()=>!root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
+  assert.ok(root.querySelector('[data-places-list]').textContent.includes('Dichtbij'),'previously discovered shop stays in session');
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
   zoom=5;for(const fn of handlers.get('moveend'))fn();
   await new Promise(resolve=>setTimeout(resolve,500));
@@ -383,7 +383,7 @@ test('source menu keeps the chain dropdown hidden and opens search through its h
  }finally{layer?.destroy();close?.();app.close();}
 });
 
-test('saved location markers ignore board filters while the deck is limited to the visible map area',async()=>{
+test('saved location markers ignore board filters while session boards retain discovered locations',async()=>{
  const {app,events,point}=await setup();let layer;
  try{
   await app.store.put('objects',{id:'farplace0001',type:'location',data:{title:'Bekende verre plek',coordinates:{lat:53,lng:6}}});
@@ -394,7 +394,7 @@ test('saved location markers ignore board filters while the deck is limited to t
   layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});
   await until(()=>root.querySelector('[data-chain-category="groceries"] b')?.textContent==='1');root.querySelector('[data-chain-toggle]').click();
   const saved={id:'farplace0001',type:'location',data:{coordinates:{lat:53,lng:6}}};
-  assert.equal(layer.allowsLocation(saved),true);assert.equal(layer.getBoards().some(item=>item.id===saved.id),false);
+  assert.equal(layer.allowsLocation(saved),true);assert.equal(layer.getBoards().some(item=>item.id===saved.id),true);
   area={w:5.9,e:6.1,s:52.9,n:53.1};assert.equal(layer.getBoards().some(item=>item.id===saved.id),true);
   root.querySelector('[data-chain-category="fashion"]').click();assert.equal(layer.getBoards().length,0);assert.equal(layer.allowsLocation(saved),true);
   app.window.localStorage.setItem('sharon.place.feedback.v1:location:farplace0001',JSON.stringify({hidden:true}));assert.equal(layer.allowsLocation(saved),false,'explicit personal hiding still applies');
