@@ -1,7 +1,7 @@
-import { boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.57';
-import { inAnalysisRange } from './AnalysisRange.js?v=0.4.57';
-import { boardPoint } from './BoardOrder.js?v=0.4.57';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.57';
+import { boardDiscoveryEnabled } from './BoardViewport.js?v=0.4.58';
+import { inAnalysisRange } from './AnalysisRange.js?v=0.4.58';
+import { boardPoint } from './BoardOrder.js?v=0.4.58';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.58';
 
 // Every source supplies its currently enabled, filtered boards. New sources
 // join the same deck by registering this interface, without another navigator.
