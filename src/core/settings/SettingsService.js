@@ -22,6 +22,7 @@ const DEFAULTS = Object.freeze({
   },
   mapDisplay: {
     showIcons: true, showNames: true, clusterPoints: true, pointSize: 5,
+    iconSize: 20, nameSize: 12, showPoints: true,
     readStyle: 'subtle', likedStyle: 'heart'
   }
 });
