@@ -28,6 +28,7 @@ export function updateSourceClustering(map, sourceId, enabled){
   const source=map.getSource?.(sourceId);
   if(!source)return false;
   const requested={cluster:enabled,clusterRadius:38,clusterMaxZoom:15};
+  if(source.serialize?.()?.cluster===enabled)return true;
   if(typeof source.setClusterOptions==='function'){
     source.setClusterOptions(requested);
     return true;
@@ -37,8 +38,8 @@ export function updateSourceClustering(map, sourceId, enabled){
   if(config?.type!=='geojson'||!config.data||!Array.isArray(map.getStyle()?.layers))return false;
   const ordered=map.getStyle().layers;
   const saved=ordered.filter(layer=>layer.source===sourceId);
-  const last=ordered.findIndex(layer=>layer.source===sourceId);
-  const after=ordered.slice(last+saved.length).find(layer=>layer.source!==sourceId)?.id;
+  const last=ordered.reduce((index,layer,i)=>layer.source===sourceId?i:index,-1);
+  const after=ordered.slice(last+1).find(layer=>layer.source!==sourceId)?.id;
   try{
     for(const layer of [...saved].reverse())map.removeLayer(layer.id);
     map.removeSource(sourceId);
