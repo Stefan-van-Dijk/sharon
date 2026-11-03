@@ -114,10 +114,10 @@ export function installSharonLayers(map, display = {}) {
       'line-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 0.9]]
     }
   });
-  if(display.showNames!==false){
-    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{'text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+  {
+    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{visibility:display.showNames===false?'none':'visible','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
     map.addSource('sharon-shape-labels',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{'symbol-placement':'line','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{visibility:display.showNames===false?'none':'visible','symbol-placement':'line','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
   }
   map.addLayer({
     id: 'sharon-points',
