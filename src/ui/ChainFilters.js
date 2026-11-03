@@ -1,5 +1,5 @@
-import { SHOP_CATEGORIES, shopCategory, MAP_CATEGORY_SYMBOLS } from '../core/chains/ChainCategories.js?v=0.4.57';
-import { placeKey } from './PlaceFeedback.js?v=0.4.57';
+import { SHOP_CATEGORIES, shopCategory, MAP_CATEGORY_SYMBOLS } from '../core/chains/ChainCategories.js?v=0.4.58';
+import { placeKey } from './PlaceFeedback.js?v=0.4.58';
 export const CHAIN_FILTER_KEY='sharon.source.chains.filters.v1';
 export const SHOP_STATUSES={read:['☑','Gelezen'],liked:['♡','Leuk'],hidden:['◌','Verborgen'],disliked:['♧','Niet leuk']};
 const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};

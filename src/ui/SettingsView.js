@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.57';
-import {mountGraphInspector} from './GraphInspector.js?v=0.4.57';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.4.57';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.58';
+import {mountGraphInspector} from './GraphInspector.js?v=0.4.58';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.4.58';
 export function openSettings(root, {
   settings,
   install,
@@ -12,6 +12,7 @@ export function openSettings(root, {
   onNetworkStart=()=>{}
 }) {
   const state = settings.get();
+  const mapDisplay = {showIcons:true,showNames:true,clusterPoints:true,pointSize:5,readStyle:'subtle',likedStyle:'heart',...(state.mapDisplay || {})};
   const installState = install.getState();
 
   root.innerHTML = `
@@ -55,10 +56,10 @@ export function openSettings(root, {
       <section class="settings-section" data-map-preferences>
         <span class="settings-kicker">Omgeving · kaart</span>
         <p class="privacy-note">Bepaal zelf hoe punten, iconen en titels op jouw kaart worden getoond.</p>
-        <label class="settings-row"><span><strong>Iconen tonen</strong></span><input type="checkbox" data-map-option="showIcons" ${state.mapDisplay.showIcons?'checked':''}></label>
-        <label class="settings-row"><span><strong>Namen tonen</strong></span><input type="checkbox" data-map-option="showNames" ${state.mapDisplay.showNames?'checked':''}></label>
-        <label class="settings-row"><span><strong>Punten bundelen met aantal</strong></span><input type="checkbox" data-map-option="clusterPoints" ${state.mapDisplay.clusterPoints?'checked':''}></label>
-        <label class="settings-row"><span><strong>Grootte van punten</strong><small><output data-map-point-output>${state.mapDisplay.pointSize} px</output></small></span><input type="range" min="2" max="12" step="1" data-map-option="pointSize" value="${state.mapDisplay.pointSize}"></label>
+        <label class="settings-row"><span><strong>Iconen tonen</strong></span><input type="checkbox" data-map-option="showIcons" ${mapDisplay.showIcons?'checked':''}></label>
+        <label class="settings-row"><span><strong>Namen tonen</strong></span><input type="checkbox" data-map-option="showNames" ${mapDisplay.showNames?'checked':''}></label>
+        <label class="settings-row"><span><strong>Punten bundelen met aantal</strong></span><input type="checkbox" data-map-option="clusterPoints" ${mapDisplay.clusterPoints?'checked':''}></label>
+        <label class="settings-row"><span><strong>Grootte van punten</strong><small><output data-map-point-output>${mapDisplay.pointSize} px</output></small></span><input type="range" min="2" max="12" step="1" data-map-option="pointSize" value="${mapDisplay.pointSize}"></label>
         <label class="settings-row"><span><strong>Gelezen</strong></span><select data-map-option="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>
         <label class="settings-row"><span><strong>Leuk gevonden</strong></span><select data-map-option="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label>
         <small role="status" data-map-preferences-message></small>
@@ -126,7 +127,7 @@ export function openSettings(root, {
   `;
 
   const mapControls=root.querySelector('[data-map-preferences]');
-  for (const name of ['readStyle','likedStyle']) mapControls.querySelector('[data-map-option="'+name+'"]').value=state.mapDisplay[name];
+  for (const name of ['readStyle','likedStyle']) mapControls.querySelector('[data-map-option="'+name+'"]').value=mapDisplay[name];
   mapControls.addEventListener('change', async event => {
     const control=event.target.closest('[data-map-option]');
     if (!control) return;
