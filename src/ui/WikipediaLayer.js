@@ -57,7 +57,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
     return groups.length ? groups : ['overig'];
   };
   const feedback = id => {
-    try { return JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
+    try { const current=informationFeedback()?.summary({source:'wikipedia',id})?.own;return current||JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
     catch { return {}; }
   };
   const reportCounts = () => {
@@ -119,7 +119,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
       filter:['==',['get','wikidata'],'__none__'],
       paint:{'circle-radius':9,'circle-color':'#547da0','circle-opacity':0.18,'circle-stroke-width':0} });
     if (!map.getLayer(layerId)) map.addLayer({ id: layerId, type: 'circle', source: sourceId, filter:['!', ['has','point_count']],
-      paint: { 'circle-radius': Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)), 'circle-color':'#ffffff', 'circle-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','read'],1],0.3,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#d43e54','#547da0'], 'circle-stroke-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','read'],1],0.3,1], 'circle-stroke-width':2.5 } });
+      paint: { 'circle-radius': Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)), 'circle-color':'#ffffff', 'circle-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','read'],1],0.3,1], 'circle-stroke-color':['case',['==',['get','liked'],1],'#d43e54','#547da0'], 'circle-stroke-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1], 'circle-stroke-width':2.5 } });
     {
       registerMapCategoryIcons(map);
       if(!map.getLayer(sourceId+'-icons'))map.addLayer({id:sourceId+'-icons',type:'symbol',source:sourceId,minzoom:15,filter:['!', ['has','point_count']],layout:{visibility:mapDisplay.showIcons?'visible':'none','icon-image':['concat','sharon-category-',['get','category']],'icon-size':Math.max(14,Math.min(32,Number(mapDisplay.iconSize)||20))/24},paint:{'icon-opacity':['case',['==',['get','read'],1],0.3,1]}});
