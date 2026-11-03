@@ -108,6 +108,12 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     if(!matches.length){const empty=document.createElement('p');empty.textContent=term?'Geen locaties gevonden.':'Nog geen locaties in deze selectie. Bewaar een locatie of koppel een keten aan een kaart.';list.append(empty);}
     if(matches.length>30){const more=document.createElement('small');more.textContent='30 van '+matches.length+' · zoek op naam of adres voor andere locaties.';list.append(more);}
   };
+  // Board feedback is written to localStorage immediately; remote summaries may lag.
+  const feedbackForBranch=branch=>{
+    const remote=informationFeedback()?.summary({source:'openstreetmap',id:branch.sourceRef})?.own||{};
+    try {return {...remote,...JSON.parse(localStorage.getItem('sharon.place.feedback.v1:'+branch.sourceRef)||'{}')};}
+    catch {return remote;}
+  };
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
   registerMapCategoryIcons(map);
   map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:Boolean(mapDisplay.clusterPoints),clusterRadius:38,clusterMaxZoom:15,attribution:OSM_MAP_CREDIT});
@@ -122,7 +128,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   const draw=()=>{
     const visible=enabled?branches.filter(branch=>(!selected||branch.chainId===selected)&&inAnalysisRange(branch.coordinates,map.getCenter?.()||location?.latest)&&filters.matches(branch)):[];
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
-      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:informationFeedback()?.summary({source:'openstreetmap',id:branch.sourceRef})?.own?.read?1:0,liked:informationFeedback()?.summary({source:'openstreetmap',id:branch.sourceRef})?.own?.liked?1:0}}]:[])};
+      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:feedbackForBranch(branch).read?1:0,liked:feedbackForBranch(branch).liked?1:0}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
     toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
