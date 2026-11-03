@@ -1,11 +1,11 @@
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.61';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.62';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
-  pointSize:5,iconSize:20,nameSize:12,readStyle:'subtle',likedStyle:'heart'
+  pointSize:5,iconSize:20,nameSize:12,readStyle:'transparent',likedStyle:'red-border'
 });
 const RANGES={pointSize:[2,12],iconSize:[14,32],nameSize:[10,20]};
-const CHOICES={readStyle:['subtle','ring','check','none'],likedStyle:['heart','accent','ring','none']};
+const CHOICES={readStyle:['transparent'],likedStyle:['red-border']};
 const LIMIT=(n,low,high)=>Math.max(low,Math.min(high,n));
 
 export function normalizeMapDisplay(value={}){
@@ -16,9 +16,8 @@ export function normalizeMapDisplay(value={}){
   for(const [key,[low,high]] of Object.entries(RANGES)){
     if(Number.isFinite(Number(value[key])))result[key]=LIMIT(Number(value[key]),low,high);
   }
-  for(const [key,allowed] of Object.entries(CHOICES)){
-    if(allowed.includes(value[key]))result[key]=value[key];
-  }
+  // Status display is fixed; older saved choices are migrated automatically.
+  for(const [key,allowed] of Object.entries(CHOICES))result[key]=allowed[0];
   return result;
 }
 
@@ -62,6 +61,7 @@ export function applyMapDisplay(map, value){
   for(const id of ['sharon-chain-points-icons','sharon-wikipedia-icons']){
     setLayout(id,'visibility',state.showIcons?'visible':'none');
     setLayout(id,'icon-size',state.iconSize/24);
+    setPaint(id,'icon-opacity',['case',['==',['get','read'],1],0.3,1]);
   }
   for(const id of ['sharon-chain-points-names','sharon-wikipedia-names','sharon-object-point-labels','sharon-shape-label-text']){
     setLayout(id,'visibility',state.showNames?'visible':'none');
@@ -70,8 +70,9 @@ export function applyMapDisplay(map, value){
   for(const id of ['sharon-chain-points','sharon-wikipedia-points','sharon-points']){
     setPaint(id,'circle-radius',state.pointSize);
     if(id!=='sharon-points'){
-      setPaint(id,'circle-opacity',state.showPoints?1:0);
-      setPaint(id,'circle-stroke-opacity',state.showPoints?1:0);
+      const opacity=['case',['==',['get','read'],1],0.3,1];
+      setPaint(id,'circle-opacity',state.showPoints?opacity:0);
+      setPaint(id,'circle-stroke-opacity',state.showPoints?['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1]:0);
     }else{
       setPaint(id,'circle-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
       setPaint(id,'circle-stroke-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
@@ -84,9 +85,13 @@ export function applyMapDisplay(map, value){
     setLayout(id,'visibility',state.clusterPoints?'visible':'none');
   }
   if(map.getLayer?.('sharon-wikipedia-points')){
-    setPaint('sharon-wikipedia-points','circle-color',['case',['==',['get','read'],1],'#c6cdd1','#ffffff']);
-    setPaint('sharon-wikipedia-points','circle-stroke-color',['case',['==',['get','liked'],1],state.likedStyle==='none'?'#547da0':'#b75b68','#547da0']);
-    setPaint('sharon-wikipedia-points','circle-opacity',state.showPoints?(state.readStyle==='subtle'?['case',['==',['get','read'],1],0.42,1]:1):0);
+    setPaint('sharon-wikipedia-points','circle-color','#ffffff');
+    setPaint('sharon-wikipedia-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54','#547da0']);
+    setPaint('sharon-wikipedia-points','circle-opacity',state.showPoints?['case',['==',['get','read'],1],0.3,1]:0);
+    setPaint('sharon-wikipedia-points','circle-stroke-opacity',state.showPoints?['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1]:0);
+  }
+  if(map.getLayer?.('sharon-chain-points')){
+    setPaint('sharon-chain-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65']);
   }
 }
 
@@ -98,8 +103,6 @@ const toggles=[
 ];
 const slider=(key,label,mark,min,max)=>
   '<label class="sh-map-display-size"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span><input type="range" data-map-display="'+key+'" min="'+min+'" max="'+max+'" step="1"><output data-map-display-value="'+key+'"></output></label>';
-const choiceRow=(key,label,items)=>'<div class="sh-map-display-choice-row" role="group" aria-label="'+label+'"><span class="sh-map-display-choice-title">'+label+'</span><div class="sh-map-display-choices">'+items.map(([value,icon,title])=>
-  '<button type="button" class="sh-map-display-choice" data-map-choice="'+key+'" data-map-choice-value="'+value+'" title="'+title+'" aria-label="'+label+': '+title+'" aria-pressed="false"><span aria-hidden="true">'+icon+'</span></button>').join('')+'</div></div>';
 
 export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
   const panel=root.querySelector('[data-board-order-sheet]');
@@ -112,14 +115,9 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
     '<button type="button" class="sh-map-display-toggle" data-map-toggle="'+key+'" aria-pressed="false"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span></button>').join('');
   controls.innerHTML='<div class="sh-map-display-toggles">'+buttons+'</div>'+
     '<div class="sh-map-display-size-group">'+
-      slider('iconSize','Iconen + punten','⌾',14,32)+
+      slider('iconSize','Markers','⌾',14,32)+
       slider('nameSize','Tekst','Aa',10,20)+'</div>'+
-    '<div class="sh-map-display-sample"><span data-map-display-sample-icon>'+categoryIconSvg('natuur',20)+'</span><span data-map-display-sample-point>●</span><span data-map-display-sample-name>Voorbeeldlocatie</span></div>'+
-    '<div class="sh-map-display-states">'+
-      choiceRow('readStyle','Gelezen',[['subtle','◌','Subtiel'],['ring','◎','Ring'],['check','✓','Vinkje'],['none','—','Geen onderscheid']])+
-      choiceRow('likedStyle','Leuk',[['heart','♡','Hartje'],['accent','●','Accent'],['ring','◎','Ring'],['none','—','Geen onderscheid']])+
-    '</div>'+
-    '<span class="sh-map-display-feedback" role="status" data-map-display-status aria-live="polite"></span>';
+    '<div class="sh-map-display-sample" aria-label="Voorbeeldmarker"><span data-map-display-sample-marker><span data-map-display-sample-icon>'+categoryIconSvg('natuur',20)+'</span></span><span data-map-display-sample-name>Voorbeeldlocatie</span></div>';
   let state=normalizeMapDisplay(settings.get().mapDisplay);
   let active=true, sequence=0, saving=Promise.resolve();
   const render=()=>{
@@ -132,15 +130,12 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
       input.disabled=input.dataset.mapDisplay==='nameSize'&&!state.showNames;
     }
     for(const output of controls.querySelectorAll('[data-map-display-value]'))output.textContent=state[output.dataset.mapDisplayValue]+' px';
-    for(const btn of controls.querySelectorAll('[data-map-choice]')){
-      btn.setAttribute('aria-pressed',String(state[btn.dataset.mapChoice]===btn.dataset.mapChoiceValue));
-    }
     const icon=controls.querySelector('[data-map-display-sample-icon]');
     const name=controls.querySelector('[data-map-display-sample-name]');
-    const point=controls.querySelector('[data-map-display-sample-point]');
+    const marker=controls.querySelector('[data-map-display-sample-marker]');
     if(icon){icon.hidden=!state.showIcons;icon.style.width=state.iconSize+'px';icon.style.height=state.iconSize+'px';}
     if(name){name.hidden=!state.showNames;name.style.fontSize=state.nameSize+'px';}
-    if(point){point.hidden=!state.showPoints;point.style.fontSize=state.pointSize*2+'px';}
+    if(marker){marker.hidden=!state.showPoints&&!state.showIcons;marker.style.display='inline-flex';marker.style.alignItems='center';marker.style.justifyContent='center';marker.style.border='2px solid #547da0';marker.style.borderRadius='50%';marker.style.background='#fff';marker.style.width=state.iconSize+'px';marker.style.height=state.iconSize+'px';}
   };
   const showTab=which=>{
     const display=which==='display';
@@ -151,14 +146,9 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
     state=normalizeMapDisplay({...state,...patch});
     render();applyMapDisplay(getMap(),state);
     const index=++sequence;
-    const status=controls.querySelector('[data-map-display-status]');
-    if(status)status.textContent='Opslaan…';
+    const status=null;
     saving=saving.catch(()=>{}).then(()=>settings.update({mapDisplay:patch}));
-    saving.then(()=>{
-      if(active&&index===sequence&&status)status.textContent='✓';
-    }).catch(()=>{
-      if(active&&index===sequence&&status)status.textContent='Opslaan mislukt';
-    });
+    saving.catch(()=>{ /* Failure is handled by settings service; no status label on map. */ });
   };
   const onClick=event=>{
     const tab=event.target.closest?.('[data-map-tab]');
@@ -169,10 +159,7 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
       save({[key]:!state[key]});
       return;
     }
-    const choice=event.target.closest?.('[data-map-choice]');
-    if(choice&&controls.contains(choice)){
-      save({[choice.dataset.mapChoice]:choice.dataset.mapChoiceValue});
-    }
+
   };
   const onInput=event=>{
     const input=event.target.closest?.('input[data-map-display]');

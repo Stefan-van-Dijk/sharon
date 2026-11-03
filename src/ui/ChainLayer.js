@@ -1,20 +1,21 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.61';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.61';
-import { focusTextField } from './TextInputFocus.js?v=0.4.61';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.61';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.61';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.61';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.61';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.61';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.61';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.61';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.61';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.61';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.61';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.61';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.61';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.61';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.61';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.62';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.62';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.62';
+import { focusTextField } from './TextInputFocus.js?v=0.4.62';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.62';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.62';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.62';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.62';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.62';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.62';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.62';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.62';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.62';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.62';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.62';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.62';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.62';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.62';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
 export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
@@ -107,21 +108,27 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     if(!matches.length){const empty=document.createElement('p');empty.textContent=term?'Geen locaties gevonden.':'Nog geen locaties in deze selectie. Bewaar een locatie of koppel een keten aan een kaart.';list.append(empty);}
     if(matches.length>30){const more=document.createElement('small');more.textContent='30 van '+matches.length+' · zoek op naam of adres voor andere locaties.';list.append(more);}
   };
+  // Board feedback is written to localStorage immediately; remote summaries may lag.
+  const feedbackForBranch=branch=>{
+    const remote=informationFeedback()?.summary({source:'openstreetmap',id:branch.sourceRef})?.own||{};
+    try {return {...remote,...JSON.parse(localStorage.getItem('sharon.place.feedback.v1:'+branch.sourceRef)||'{}')};}
+    catch {return remote;}
+  };
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
   registerMapCategoryIcons(map);
   map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:Boolean(mapDisplay.clusterPoints),clusterRadius:38,clusterMaxZoom:15,attribution:OSM_MAP_CREDIT});
-  map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':'#fff','circle-opacity':mapDisplay.showPoints===false?0:1,'circle-stroke-opacity':mapDisplay.showPoints===false?0:1,'circle-stroke-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
+  map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':'#fff','circle-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','read'],1],0.3,1],'circle-stroke-opacity':mapDisplay.showPoints===false?0:['case',['==',['get','read'],1],0.3,1],'circle-stroke-color':['case',['==',['get','liked'],1],'#d43e54',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
   {
     map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],layout:{visibility:mapDisplay.clusterPoints?'visible':'none'},paint:{'circle-radius':18,'circle-color':'#486c65','circle-opacity':0.8}});
     map.addLayer({id:clusters+'-count',type:'symbol',source,filter:['has','point_count'],layout:{visibility:mapDisplay.clusterPoints?'visible':'none','text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
   }
   map.addLayer({id:points+'-names',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:16,layout:{visibility:mapDisplay.showNames?'visible':'none','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(mapDisplay.nameSize)||12)),'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#26392f','text-halo-color':'#fff','text-halo-width':1}});
-  map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{visibility:mapDisplay.showIcons?'visible':'none','icon-image':['concat','sharon-category-',['get','category']],'icon-size':Math.max(14,Math.min(32,Number(mapDisplay.iconSize)||20))/24,'icon-allow-overlap':false,'icon-ignore-placement':false}});
+  map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{visibility:mapDisplay.showIcons?'visible':'none','icon-image':['concat','sharon-category-',['get','category']],'icon-size':Math.max(14,Math.min(32,Number(mapDisplay.iconSize)||20))/24,'icon-allow-overlap':false,'icon-ignore-placement':false},paint:{'icon-opacity':['case',['==',['get','read'],1],0.3,1]}});
   let lastPoints='';
   const draw=()=>{
     const visible=enabled?branches.filter(branch=>(!selected||branch.chainId===selected)&&inAnalysisRange(branch.coordinates,map.getCenter?.()||location?.latest)&&filters.matches(branch)):[];
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
-      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog)}}]:[])};
+      geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:feedbackForBranch(branch).read?1:0,liked:feedbackForBranch(branch).liked?1:0}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
     toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
