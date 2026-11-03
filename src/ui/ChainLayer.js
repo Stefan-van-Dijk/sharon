@@ -1,20 +1,20 @@
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.59';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.59';
-import { focusTextField } from './TextInputFocus.js?v=0.4.59';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.59';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.59';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.59';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.59';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.59';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.59';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.59';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.59';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.59';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.59';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.59';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.59';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.59';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.59';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.60';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.60';
+import { focusTextField } from './TextInputFocus.js?v=0.4.60';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.60';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.60';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.60';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.60';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.60';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.60';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.60';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.60';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.60';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.60';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.60';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.60';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.60';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.60';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
 export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
@@ -108,15 +108,15 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     if(matches.length>30){const more=document.createElement('small');more.textContent='30 van '+matches.length+' · zoek op naam of adres voor andere locaties.';list.append(more);}
   };
   const source='sharon-chain-branches',points='sharon-chain-points',clusters='sharon-chain-clusters';
-  if(mapDisplay.showIcons)registerMapCategoryIcons(map);
+  registerMapCategoryIcons(map);
   map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]},cluster:Boolean(mapDisplay.clusterPoints),clusterRadius:38,clusterMaxZoom:15,attribution:OSM_MAP_CREDIT});
   map.addLayer({id:points,type:'circle',source,filter:['!', ['has','point_count']],paint:{'circle-radius':Math.max(2,Math.min(12,Number(mapDisplay.pointSize)||5)),'circle-color':'#fff','circle-opacity':mapDisplay.showPoints===false?0:1,'circle-stroke-opacity':mapDisplay.showPoints===false?0:1,'circle-stroke-color':['case',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65'],'circle-stroke-width':2}});
-  if(mapDisplay.clusterPoints){
-    map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],paint:{'circle-radius':18,'circle-color':'#486c65','circle-opacity':0.8}});
-    map.addLayer({id:clusters+'-count',type:'symbol',source,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
+  {
+    map.addLayer({id:clusters,type:'circle',source,filter:['has','point_count'],layout:{visibility:mapDisplay.clusterPoints?'visible':'none'},paint:{'circle-radius':18,'circle-color':'#486c65','circle-opacity':0.8}});
+    map.addLayer({id:clusters+'-count',type:'symbol',source,filter:['has','point_count'],layout:{visibility:mapDisplay.clusterPoints?'visible':'none','text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
   }
-  if(mapDisplay.showNames)map.addLayer({id:points+'-names',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:16,layout:{'text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(mapDisplay.nameSize)||12)),'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#26392f','text-halo-color':'#fff','text-halo-width':1}});
-  if(mapDisplay.showIcons)map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{'icon-image':['concat','sharon-category-',['get','category']],'icon-size':Math.max(14,Math.min(32,Number(mapDisplay.iconSize)||20))/24,'icon-allow-overlap':false,'icon-ignore-placement':false}});
+  map.addLayer({id:points+'-names',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:16,layout:{visibility:mapDisplay.showNames?'visible':'none','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(mapDisplay.nameSize)||12)),'text-offset':[0,1.2],'text-optional':true},paint:{'text-color':'#26392f','text-halo-color':'#fff','text-halo-width':1}});
+  map.addLayer({id:points+'-icons',type:'symbol',source,filter:['!', ['has','point_count']],minzoom:15,layout:{visibility:mapDisplay.showIcons?'visible':'none','icon-image':['concat','sharon-category-',['get','category']],'icon-size':Math.max(14,Math.min(32,Number(mapDisplay.iconSize)||20))/24,'icon-allow-overlap':false,'icon-ignore-placement':false}});
   let lastPoints='';
   const draw=()=>{
     const visible=enabled?branches.filter(branch=>(!selected||branch.chainId===selected)&&inAnalysisRange(branch.coordinates,map.getCenter?.()||location?.latest)&&filters.matches(branch)):[];
