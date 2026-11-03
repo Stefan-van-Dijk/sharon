@@ -61,7 +61,7 @@ export function applyMapDisplay(map, value){
   for(const id of ['sharon-chain-points-icons','sharon-wikipedia-icons']){
     setLayout(id,'visibility',state.showIcons?'visible':'none');
     setLayout(id,'icon-size',state.iconSize/24);
-    if(id==='sharon-wikipedia-icons')setPaint(id,'icon-opacity',['case',['==',['get','read'],1],0.3,1]);
+    setPaint(id,'icon-opacity',['case',['==',['get','read'],1],0.3,1]);
   }
   for(const id of ['sharon-chain-points-names','sharon-wikipedia-names','sharon-object-point-labels','sharon-shape-label-text']){
     setLayout(id,'visibility',state.showNames?'visible':'none');
@@ -70,9 +70,9 @@ export function applyMapDisplay(map, value){
   for(const id of ['sharon-chain-points','sharon-wikipedia-points','sharon-points']){
     setPaint(id,'circle-radius',state.pointSize);
     if(id!=='sharon-points'){
-      const opacity=id==='sharon-wikipedia-points'?['case',['==',['get','read'],1],0.3,1]:1;
+      const opacity=['case',['==',['get','read'],1],0.3,1];
       setPaint(id,'circle-opacity',state.showPoints?opacity:0);
-      setPaint(id,'circle-stroke-opacity',state.showPoints?opacity:0);
+      setPaint(id,'circle-stroke-opacity',state.showPoints?['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1]:0);
     }else{
       setPaint(id,'circle-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
       setPaint(id,'circle-stroke-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
@@ -88,7 +88,10 @@ export function applyMapDisplay(map, value){
     setPaint('sharon-wikipedia-points','circle-color','#ffffff');
     setPaint('sharon-wikipedia-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54','#547da0']);
     setPaint('sharon-wikipedia-points','circle-opacity',state.showPoints?['case',['==',['get','read'],1],0.3,1]:0);
-    setPaint('sharon-wikipedia-points','circle-stroke-opacity',state.showPoints?['case',['==',['get','read'],1],0.3,1]:0);
+    setPaint('sharon-wikipedia-points','circle-stroke-opacity',state.showPoints?['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1]:0);
+  }
+  if(map.getLayer?.('sharon-chain-points')){
+    setPaint('sharon-chain-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65']);
   }
 }
 
