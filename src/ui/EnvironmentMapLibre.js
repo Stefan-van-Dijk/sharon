@@ -6,6 +6,7 @@ import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.j
 import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.58';
 import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.58';
 import { mountChainLayer } from './ChainLayer.js?v=0.4.58';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.58';
 import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.58';
 import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.58';
 import { openLocationDeck } from './LocationDeck.js?v=0.4.58';
@@ -113,9 +114,9 @@ export function installSharonLayers(map, display = {}) {
     }
   });
   if(display.showNames!==false){
-    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{'text-field':['get','title'],'text-size':12,'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+    map.addLayer({id:'sharon-object-point-labels',type:'symbol',source:'sharon-objects',filter:['==',['geometry-type'],'Point'],minzoom:16,layout:{'text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-offset':[0,1.25],'text-optional':true},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
     map.addSource('sharon-shape-labels',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{'symbol-placement':'line','text-field':['get','title'],'text-size':12,'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
+    map.addLayer({id:'sharon-shape-label-text',type:'symbol',source:'sharon-shape-labels',minzoom:16,layout:{'symbol-placement':'line','text-field':['get','title'],'text-size':Math.max(10,Math.min(20,Number(display.nameSize)||12)),'text-keep-upright':true,'text-rotation-alignment':'map','text-padding':2},paint:{'text-color':'#222','text-halo-color':'#fff','text-halo-width':1}});
   }
   map.addLayer({
     id: 'sharon-points',
@@ -124,8 +125,8 @@ export function installSharonLayers(map, display = {}) {
     filter: ['==', ['geometry-type'], 'Point'],
     paint: {
       'circle-color': '#fff',
-      'circle-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
-      'circle-stroke-opacity': ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
+      'circle-opacity': display.showPoints===false?0: ['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
+      'circle-stroke-opacity': display.showPoints===false?0:['*', ['get', 'opacity'], ['case', ['get', 'seen'], 0.2, 1]],
       'circle-radius': Math.max(2, Math.min(12, Number(display.pointSize) || 5)),
       'circle-stroke-color': ['get', 'color'],
       'circle-stroke-width': 2
@@ -175,7 +176,7 @@ export function createMapLibreInstance(library, options) {
 
 export function openEnvironmentView(root, {
   store, location, events, setTitle = () => {}, headerActions = null, initialChainId = '',
-  settings = null, loadRenderer = () => import(MAPLIBRE_JS)
+  settings = null, onSettings = null, loadRenderer = () => import(MAPLIBRE_JS)
 }) {
   setTitle('Omgeving');
   root.innerHTML = `
@@ -192,6 +193,7 @@ export function openEnvironmentView(root, {
               <circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
             </svg>
           </button>
+          <button type="button" class="environment-map-display-shortcut" data-map-display-settings aria-label="Kaartweergave instellen" title="Iconen, labels en kaartpunten instellen">Weergave</button>
           <button type="button" class="environment-scale-chip" data-map-scale
                   aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
         </div>
@@ -422,7 +424,11 @@ export function openEnvironmentView(root, {
   let resizeObserver = null;
   const onViewportResize = () => { if (!disposed && map) map.resize(); };
   root.querySelector('[data-maplibre-map]')?.addEventListener('sharon:viewport-resize',onViewportResize);
-  const unsubscribers = [];
+  const displayShortcut=root.querySelector('[data-map-display-settings]');
+  const openMapPreferences=()=>onSettings?.();
+  displayShortcut?.addEventListener('click',openMapPreferences);
+  for(const button of root.querySelectorAll('[data-wiki-category]'))button.insertAdjacentHTML('afterbegin',categoryIconSvg(button.dataset.wikiCategory,18));
+  const unsubscribers = [()=>displayShortcut?.removeEventListener('click',openMapPreferences)];
   let popup = null;
   let closeLocationDeck = null;
   let wikipediaLayer = null;
