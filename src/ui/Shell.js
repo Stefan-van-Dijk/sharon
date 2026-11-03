@@ -476,6 +476,7 @@ export function createShell(root, {
       location,
       events,
       settings,
+      onSettings: () => openSettingsView(),
       setTitle: setDetailTitle,
       headerActions
     }), { animate });
