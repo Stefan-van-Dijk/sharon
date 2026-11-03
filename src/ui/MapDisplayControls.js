@@ -92,7 +92,7 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
       '<label>Leuk gevonden <select data-map-display="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label></div>'+
     '<small class="sh-map-display-feedback" role="status" data-map-display-status>Alleen op dit apparaat opgeslagen</small>';
   let state=normalizeMapDisplay(settings.get().mapDisplay);
-  let active=true, sequence=0;
+  let active=true, sequence=0, saving=Promise.resolve();
   const render=()=>{
     for(const input of controls.querySelectorAll('[data-map-display]')){
       const value=state[input.dataset.mapDisplay];
@@ -121,7 +121,11 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
     state=normalizeMapDisplay({...state,[key]:raw});
     render();applyMapDisplay(getMap(),state);
     const index=++sequence;
-    settings.update({mapDisplay:{[key]:state[key]}}).then(()=>{
+    const status=controls.querySelector('[data-map-display-status]');
+    if(status)status.textContent='Direct toegepast · opslaan…';
+    const savedValue=state[key];
+    saving=saving.catch(()=>{}).then(()=>settings.update({mapDisplay:{[key]:savedValue}}));
+    saving.then(()=>{
       if(active&&index===sequence)controls.querySelector('[data-map-display-status]').textContent='Opgeslagen · meteen zichtbaar';
     }).catch(()=>{
       if(active&&index===sequence)controls.querySelector('[data-map-display-status]').textContent='Opslaan mislukt';
@@ -129,7 +133,6 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
   };
   panel.addEventListener('click',onClick);
   controls.addEventListener('input',onInput);
-  controls.addEventListener('change',onInput);
   showTab('display');render();
-  return ()=>{active=false;panel.removeEventListener('click',onClick);controls.removeEventListener('input',onInput);controls.removeEventListener('change',onInput);};
+  return ()=>{active=false;panel.removeEventListener('click',onClick);controls.removeEventListener('input',onInput);};
 }
