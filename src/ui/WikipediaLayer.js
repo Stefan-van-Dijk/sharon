@@ -57,7 +57,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
     return groups.length ? groups : ['overig'];
   };
   const feedback = id => {
-    try { const current=informationFeedback()?.summary({source:'wikipedia',id})?.own;return current||JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}'); }
+    try { const current=informationFeedback()?.summary({source:'wikipedia',id})?.own||{};return {...current,...JSON.parse(localStorage.getItem('sharon.wiki.feedback.v1:' + id) || '{}')}; }
     catch { return {}; }
   };
   const reportCounts = () => {
