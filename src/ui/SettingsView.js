@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.58';
-import {mountGraphInspector} from './GraphInspector.js?v=0.4.58';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.4.58';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.59';
+import {mountGraphInspector} from './GraphInspector.js?v=0.4.59';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.4.59';
 export function openSettings(root, {
   settings,
   install,
@@ -12,11 +12,26 @@ export function openSettings(root, {
   onNetworkStart=()=>{}
 }) {
   const state = settings.get();
-  const mapDisplay = {showIcons:true,showNames:true,clusterPoints:true,pointSize:5,readStyle:'subtle',likedStyle:'heart',...(state.mapDisplay || {})};
+  const mapDisplay = {showIcons:true,showNames:true,clusterPoints:true,pointSize:5,iconSize:20,nameSize:12,showPoints:true,readStyle:'subtle',likedStyle:'heart',...(state.mapDisplay || {})};
   const installState = install.getState();
 
   root.innerHTML = `
     <section class="module-view settings-page">
+      <section class="settings-section" data-map-preferences>
+        <span class="settings-kicker">Kaartweergave</span>
+        <p class="privacy-note">Voor winkels, Wikipedia en je eigen locaties. Deze keuzes zijn alleen van jou en blijven op dit apparaat.</p>
+        <label class="settings-row"><span><strong>Iconen tonen</strong></span><input type="checkbox" data-map-option="showIcons" ${mapDisplay.showIcons?'checked':''}></label>
+        <label class="settings-row"><span><strong>Namen tonen</strong></span><input type="checkbox" data-map-option="showNames" ${mapDisplay.showNames?'checked':''}></label>
+        <label class="settings-row"><span><strong>Punten tonen</strong><small>Los van de categorie-iconen</small></span><input type="checkbox" data-map-option="showPoints" ${mapDisplay.showPoints?'checked':''}></label>
+        <label class="settings-row"><span><strong>Icoongrootte</strong><small><output data-map-icon-output>${mapDisplay.iconSize} px</output></small></span><input type="range" min="14" max="32" step="2" data-map-option="iconSize" value="${mapDisplay.iconSize}"></label>
+        <label class="settings-row"><span><strong>Grootte van namen</strong><small><output data-map-name-output>${mapDisplay.nameSize} px</output></small></span><input type="range" min="10" max="20" step="1" data-map-option="nameSize" value="${mapDisplay.nameSize}"></label>
+        <label class="settings-row"><span><strong>Punten bundelen met aantal</strong></span><input type="checkbox" data-map-option="clusterPoints" ${mapDisplay.clusterPoints?'checked':''}></label>
+        <label class="settings-row"><span><strong>Grootte van punten</strong><small><output data-map-point-output>${mapDisplay.pointSize} px</output></small></span><input type="range" min="2" max="12" step="1" data-map-option="pointSize" value="${mapDisplay.pointSize}"></label>
+        <label class="settings-row"><span><strong>Gelezen</strong></span><select data-map-option="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>
+        <label class="settings-row"><span><strong>Leuk gevonden</strong></span><select data-map-option="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label>
+        <small role="status" data-map-preferences-message></small>
+      </section>
+
       <section class="settings-section">
         <span class="settings-kicker">Gegevens</span>
 
@@ -52,18 +67,6 @@ export function openSettings(root, {
           <span><strong>Eigen netwerk starten</strong><small>Alleen voor de eerste installatie. Andere deelnemers scannen jouw QR.</small></span><span class="settings-arrow">›</span>
         </button>
       </section>`:''}
-
-      <section class="settings-section" data-map-preferences>
-        <span class="settings-kicker">Omgeving · kaart</span>
-        <p class="privacy-note">Bepaal zelf hoe punten, iconen en titels op jouw kaart worden getoond.</p>
-        <label class="settings-row"><span><strong>Iconen tonen</strong></span><input type="checkbox" data-map-option="showIcons" ${mapDisplay.showIcons?'checked':''}></label>
-        <label class="settings-row"><span><strong>Namen tonen</strong></span><input type="checkbox" data-map-option="showNames" ${mapDisplay.showNames?'checked':''}></label>
-        <label class="settings-row"><span><strong>Punten bundelen met aantal</strong></span><input type="checkbox" data-map-option="clusterPoints" ${mapDisplay.clusterPoints?'checked':''}></label>
-        <label class="settings-row"><span><strong>Grootte van punten</strong><small><output data-map-point-output>${mapDisplay.pointSize} px</output></small></span><input type="range" min="2" max="12" step="1" data-map-option="pointSize" value="${mapDisplay.pointSize}"></label>
-        <label class="settings-row"><span><strong>Gelezen</strong></span><select data-map-option="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>
-        <label class="settings-row"><span><strong>Leuk gevonden</strong></span><select data-map-option="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label>
-        <small role="status" data-map-preferences-message></small>
-      </section>
 
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
@@ -133,13 +136,13 @@ export function openSettings(root, {
     if (!control) return;
     const key=control.dataset.mapOption;
     const options={readStyle:['subtle','ring','check','none'],likedStyle:['heart','accent','ring','none']};
-    const value=control.type==='checkbox'?control.checked:key==='pointSize'?Math.max(2,Math.min(12,Number(control.value)||5)):options[key]?.includes(control.value)?control.value:null;
+    const value=control.type==='checkbox'?control.checked:['pointSize','iconSize','nameSize'].includes(key)?Math.max(key==='pointSize'?2:key==='iconSize'?14:10,Math.min(key==='pointSize'?12:key==='iconSize'?32:20,Number(control.value)||5)):options[key]?.includes(control.value)?control.value:null;
     if(value===null)return;
     const message=mapControls.querySelector('[data-map-preferences-message]');
     try{
       await settings.update({mapDisplay:{[key]:value}});
-      if(key==='pointSize')mapControls.querySelector('[data-map-point-output]').textContent=value+' px';
-      message.textContent='Opgeslagen op dit apparaat';
+      if(['pointSize','iconSize','nameSize'].includes(key))mapControls.querySelector('[data-map-'+(key==='pointSize'?'point':key==='iconSize'?'icon':'name')+'-output]').textContent=value+' px';
+      message.textContent='Persoonlijk opgeslagen. Open Omgeving opnieuw om alle wijzigingen te zien.';
     }catch{message.textContent='Opslaan mislukt';}
   });
   let disposed=false;

@@ -1,5 +1,5 @@
-import { SHOP_CATEGORIES, shopCategory, MAP_CATEGORY_SYMBOLS } from '../core/chains/ChainCategories.js?v=0.4.58';
-import { placeKey } from './PlaceFeedback.js?v=0.4.58';
+import { SHOP_CATEGORIES, shopCategory, categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.59';
+import { placeKey } from './PlaceFeedback.js?v=0.4.59';
 export const CHAIN_FILTER_KEY='sharon.source.chains.filters.v1';
 export const SHOP_STATUSES={read:['☑','Gelezen'],liked:['♡','Leuk'],hidden:['◌','Verborgen'],disliked:['♧','Niet leuk']};
 const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{return {};}};
@@ -22,12 +22,13 @@ export function mountChainFilters(root,{getItems,getCatalog,onChange}){
     const button=document.createElement('button');button.type='button';button.setAttribute(attribute,key);
     const name=document.createElement('span');name.className='environment-category-name';name.textContent=label;
     const count=document.createElement('b');name.append(' ',count);const detail=document.createElement('small');
+    if(attribute==='data-chain-category')button.insertAdjacentHTML('beforeend',categoryIconSvg(key,18));
     button.append(name,detail);container.append(button);
     const selected=attribute==='data-chain-category'?categories:statuses;
     const click=()=>{selected.has(key)?selected.delete(key):selected.add(key);try{localStorage.setItem(CHAIN_FILTER_KEY,JSON.stringify({categories:[...categories],statuses:[...statuses]}));}catch{}onChange();};
     button.addEventListener('click',click);listeners.push(()=>button.removeEventListener('click',click));
   };
-  for(const [key,label] of Object.entries(SHOP_CATEGORIES))add(panel,key,(MAP_CATEGORY_SYMBOLS[key]||'•')+' '+label,'data-chain-category');
+  for(const [key,label] of Object.entries(SHOP_CATEGORIES))add(panel,key,label,'data-chain-category');
   for(const [key,[icon,label]] of Object.entries(SHOP_STATUSES)){add(statusPanel,key,icon,'data-chain-status-filter');const button=statusPanel?.querySelector('[data-chain-status-filter="'+key+'"]');if(button){button.setAttribute('aria-label',label);button.title=label;}}
   const update=()=>{
     const items=getItems(),catalog=getCatalog();
