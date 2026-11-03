@@ -22,6 +22,36 @@ export function normalizeMapDisplay(value={}){
   return result;
 }
 
+// Retain the loaded GeoJSON and every existing layer when MapLibre cannot update
+// clustering in place. This avoids losing the user's current discovery session.
+export function updateSourceClustering(map, sourceId, enabled){
+  const source=map.getSource?.(sourceId);
+  if(!source)return false;
+  const requested={cluster:enabled,clusterRadius:38,clusterMaxZoom:15};
+  if(typeof source.setClusterOptions==='function'){
+    source.setClusterOptions(requested);
+    return true;
+  }
+  if(typeof source.serialize!=='function'||typeof map.getStyle!=='function')return false;
+  const config=source.serialize();
+  if(config?.type!=='geojson'||!config.data||!Array.isArray(map.getStyle()?.layers))return false;
+  const ordered=map.getStyle().layers;
+  const saved=ordered.filter(layer=>layer.source===sourceId);
+  const last=ordered.findIndex(layer=>layer.source===sourceId);
+  const after=ordered.slice(last+saved.length).find(layer=>layer.source!==sourceId)?.id;
+  try{
+    for(const layer of [...saved].reverse())map.removeLayer(layer.id);
+    map.removeSource(sourceId);
+    map.addSource(sourceId,{...config,...requested});
+    for(const layer of saved)map.addLayer(layer,after);
+    return true;
+  }catch{
+    // Never silently pretend that the source changed; the live preview still
+    // reflects the user's preference and it is persisted for a fresh map load.
+    return false;
+  }
+}
+
 // Update existing source styling without reopening Omgeving or re-fetching boards.
 export function applyMapDisplay(map, value){
   if(!map)return;
@@ -47,9 +77,7 @@ export function applyMapDisplay(map, value){
     }
   }
   for(const sourceId of ['sharon-chain-branches','sharon-wikipedia']){
-    const source=map.getSource?.(sourceId);
-    // Modern MapLibre can change cluster options without destroying loaded session data.
-    source?.setClusterOptions?.({cluster:state.clusterPoints,clusterRadius:38,clusterMaxZoom:15});
+    updateSourceClustering(map,sourceId,state.clusterPoints);
   }
   for(const id of ['sharon-chain-clusters','sharon-chain-clusters-count','sharon-wikipedia-clusters','sharon-wikipedia-cluster-count']){
     setLayout(id,'visibility',state.clusterPoints?'visible':'none');
