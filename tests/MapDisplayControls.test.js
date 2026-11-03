@@ -26,3 +26,13 @@ test('de kaart gebruikt wijzigingen meteen zonder bron opnieuw te laden',()=>{
   assert.ok(actions.some(a=>a[0]==='paint'&&a[1]==='sharon-points'&&a[2]==='circle-radius'&&a[3]===8));
   assert.ok(actions.some(a=>a[0]==='cluster'&&a[2].cluster===false));
 });
+
+test('compacte weergave bewaart vier onafhankelijke schakelaars en de gezamenlijke grootte',()=>{
+  const state=normalizeMapDisplay({showIcons:false,showNames:true,showPoints:false,clusterPoints:true,iconSize:28,pointSize:7,nameSize:16});
+  assert.equal(state.showIcons,false);
+  assert.equal(state.showPoints,false);
+  assert.equal(state.showNames,true);
+  assert.equal(state.clusterPoints,true);
+  assert.equal(state.iconSize/4,state.pointSize);
+  assert.equal(state.nameSize,16);
+});

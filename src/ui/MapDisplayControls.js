@@ -1,4 +1,4 @@
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.60';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.61';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
@@ -98,6 +98,8 @@ const toggles=[
 ];
 const slider=(key,label,mark,min,max)=>
   '<label class="sh-map-display-size"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span><input type="range" data-map-display="'+key+'" min="'+min+'" max="'+max+'" step="1"><output data-map-display-value="'+key+'"></output></label>';
+const choiceRow=(key,label,items)=>'<div class="sh-map-display-choice-row" role="group" aria-label="'+label+'"><span class="sh-map-display-choice-title">'+label+'</span><div class="sh-map-display-choices">'+items.map(([value,icon,title])=>
+  '<button type="button" class="sh-map-display-choice" data-map-choice="'+key+'" data-map-choice-value="'+value+'" title="'+title+'" aria-label="'+label+': '+title+'" aria-pressed="false"><span aria-hidden="true">'+icon+'</span></button>').join('')+'</div></div>';
 
 export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
   const panel=root.querySelector('[data-board-order-sheet]');
@@ -107,32 +109,36 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
   const tabs=[...panel.querySelectorAll('[data-map-tab]')];
   if(!controls||!orderPanel)return ()=>{};
   const buttons=toggles.map(([key,label,mark])=>
-    '<label class="sh-map-display-toggle"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span><input type="checkbox" data-map-display="'+key+'"></label>').join('');
-  controls.innerHTML='<p class="sh-map-display-hint">Bekijk het effect direct op de kaart.</p>'+
-    '<div class="sh-map-display-toggles">'+buttons+'</div>'+
-    '<div class="sh-map-display-size-group"><small>Grootte</small>'+
-      slider('iconSize','Iconen','⌾',14,32)+
-      slider('nameSize','Namen','Aa',10,20)+
-      slider('pointSize','Punten','○',2,12)+'</div>'+
-    '<div class="sh-map-display-preview"><small>Categorieën · voorbeeld</small><div class="sh-map-display-icons">'+
-      ['food','erfgoed','cultuur','home','groceries','natuur'].map(key=>'<span>'+categoryIconSvg(key,20)+'</span>').join('')+
-    '</div><div class="sh-map-display-sample"><span data-map-display-sample-icon>'+categoryIconSvg('natuur',20)+'</span><span data-map-display-sample-name>Voorbeeldlocatie</span><span data-map-display-sample-point>●</span></div></div>'+
-    '<div class="sh-map-display-states"><label>Gelezen <select data-map-display="readStyle"><option value="subtle">Subtiel</option><option value="ring">Open cirkel</option><option value="check">Vinkje</option><option value="none">Geen onderscheid</option></select></label>'+
-      '<label>Leuk gevonden <select data-map-display="likedStyle"><option value="heart">Hartje</option><option value="accent">Accentkleur</option><option value="ring">Buitenring</option><option value="none">Geen onderscheid</option></select></label></div>'+
-    '<small class="sh-map-display-feedback" role="status" data-map-display-status>Alleen op dit apparaat opgeslagen</small>';
+    '<button type="button" class="sh-map-display-toggle" data-map-toggle="'+key+'" aria-pressed="false"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span></button>').join('');
+  controls.innerHTML='<div class="sh-map-display-toggles">'+buttons+'</div>'+
+    '<div class="sh-map-display-size-group">'+
+      slider('iconSize','Iconen + punten','⌾',14,32)+
+      slider('nameSize','Tekst','Aa',10,20)+'</div>'+
+    '<div class="sh-map-display-sample"><span data-map-display-sample-icon>'+categoryIconSvg('natuur',20)+'</span><span data-map-display-sample-point>●</span><span data-map-display-sample-name>Voorbeeldlocatie</span></div>'+
+    '<div class="sh-map-display-states">'+
+      choiceRow('readStyle','Gelezen',[['subtle','◌','Subtiel'],['ring','◎','Ring'],['check','✓','Vinkje'],['none','—','Geen onderscheid']])+
+      choiceRow('likedStyle','Leuk',[['heart','♡','Hartje'],['accent','●','Accent'],['ring','◎','Ring'],['none','—','Geen onderscheid']])+
+    '</div>'+
+    '<span class="sh-map-display-feedback" role="status" data-map-display-status aria-live="polite"></span>';
   let state=normalizeMapDisplay(settings.get().mapDisplay);
   let active=true, sequence=0, saving=Promise.resolve();
   const render=()=>{
-    for(const input of controls.querySelectorAll('[data-map-display]')){
-      const value=state[input.dataset.mapDisplay];
-      if(input.type==='checkbox')input.checked=value;
-      else input.value=String(value);
+    for(const btn of controls.querySelectorAll('[data-map-toggle]')){
+      const on=state[btn.dataset.mapToggle];
+      btn.setAttribute('aria-pressed',String(on));
+    }
+    for(const input of controls.querySelectorAll('input[data-map-display]')){
+      input.value=String(state[input.dataset.mapDisplay]);
+      input.disabled=input.dataset.mapDisplay==='nameSize'&&!state.showNames;
     }
     for(const output of controls.querySelectorAll('[data-map-display-value]'))output.textContent=state[output.dataset.mapDisplayValue]+' px';
+    for(const btn of controls.querySelectorAll('[data-map-choice]')){
+      btn.setAttribute('aria-pressed',String(state[btn.dataset.mapChoice]===btn.dataset.mapChoiceValue));
+    }
     const icon=controls.querySelector('[data-map-display-sample-icon]');
     const name=controls.querySelector('[data-map-display-sample-name]');
     const point=controls.querySelector('[data-map-display-sample-point]');
-    if(icon){icon.hidden=!state.showIcons;icon.style.width=state.iconSize+'px';}
+    if(icon){icon.hidden=!state.showIcons;icon.style.width=state.iconSize+'px';icon.style.height=state.iconSize+'px';}
     if(name){name.hidden=!state.showNames;name.style.fontSize=state.nameSize+'px';}
     if(point){point.hidden=!state.showPoints;point.style.fontSize=state.pointSize*2+'px';}
   };
@@ -141,24 +147,41 @@ export function mountMapDisplayControls(root, {settings,getMap=()=>null}={}){
     controls.hidden=!display;orderPanel.hidden=display;
     for(const tab of tabs)tab.setAttribute('aria-pressed',String((tab.dataset.mapTab==='display')===display));
   };
-  const onClick=event=>{const tab=event.target.closest?.('[data-map-tab]');if(tab&&panel.contains(tab))showTab(tab.dataset.mapTab);};
-  const onInput=event=>{
-    const input=event.target.closest?.('[data-map-display]');
-    if(!input||!controls.contains(input))return;
-    const key=input.dataset.mapDisplay;
-    const raw=input.type==='checkbox'?input.checked:input.type==='range'?Number(input.value):input.value;
-    state=normalizeMapDisplay({...state,[key]:raw});
+  const save=(patch)=>{
+    state=normalizeMapDisplay({...state,...patch});
     render();applyMapDisplay(getMap(),state);
     const index=++sequence;
     const status=controls.querySelector('[data-map-display-status]');
-    if(status)status.textContent='Direct toegepast · opslaan…';
-    const savedValue=state[key];
-    saving=saving.catch(()=>{}).then(()=>settings.update({mapDisplay:{[key]:savedValue}}));
+    if(status)status.textContent='Opslaan…';
+    saving=saving.catch(()=>{}).then(()=>settings.update({mapDisplay:patch}));
     saving.then(()=>{
-      if(active&&index===sequence)controls.querySelector('[data-map-display-status]').textContent='Opgeslagen · meteen zichtbaar';
+      if(active&&index===sequence&&status)status.textContent='✓';
     }).catch(()=>{
-      if(active&&index===sequence)controls.querySelector('[data-map-display-status]').textContent='Opslaan mislukt';
+      if(active&&index===sequence&&status)status.textContent='Opslaan mislukt';
     });
+  };
+  const onClick=event=>{
+    const tab=event.target.closest?.('[data-map-tab]');
+    if(tab&&panel.contains(tab)){showTab(tab.dataset.mapTab);return;}
+    const toggle=event.target.closest?.('[data-map-toggle]');
+    if(toggle&&controls.contains(toggle)){
+      const key=toggle.dataset.mapToggle;
+      save({[key]:!state[key]});
+      return;
+    }
+    const choice=event.target.closest?.('[data-map-choice]');
+    if(choice&&controls.contains(choice)){
+      save({[choice.dataset.mapChoice]:choice.dataset.mapChoiceValue});
+    }
+  };
+  const onInput=event=>{
+    const input=event.target.closest?.('input[data-map-display]');
+    if(!input||!controls.contains(input))return;
+    const key=input.dataset.mapDisplay;
+    const value=Number(input.value);
+    if(key==='iconSize'){
+      save({iconSize:value,pointSize:Math.max(2,Math.min(12,Math.round(value/4)))});
+    }else save({[key]:value});
   };
   panel.addEventListener('click',onClick);
   controls.addEventListener('input',onInput);
