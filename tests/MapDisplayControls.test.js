@@ -9,7 +9,8 @@ test('kaartinstellingen hebben veilige standaardwaarden en begrensde formaten',(
   assert.equal(x.iconSize,32);
   assert.equal(x.pointSize,2);
   assert.equal(x.nameSize,14);
-  assert.equal(x.likedStyle,'heart');
+  assert.equal(x.likedStyle,'red-border');
+  assert.equal(x.readStyle,'transparent');
 });
 test('de kaart gebruikt wijzigingen meteen zonder bron opnieuw te laden',()=>{
   const visible=new Set(['sharon-chain-points','sharon-chain-points-icons','sharon-chain-points-names','sharon-wikipedia-points','sharon-wikipedia-icons','sharon-wikipedia-names','sharon-object-point-labels','sharon-points']);
@@ -35,4 +36,10 @@ test('compacte weergave bewaart vier onafhankelijke schakelaars en de gezamenlij
   assert.equal(state.clusterPoints,true);
   assert.equal(state.iconSize/4,state.pointSize);
   assert.equal(state.nameSize,16);
+});
+
+test('oude statuskeuzes migreren naar transparant gelezen en rode rand',()=>{
+  const state=normalizeMapDisplay({readStyle:'check',likedStyle:'heart'});
+  assert.equal(state.readStyle,'transparent');
+  assert.equal(state.likedStyle,'red-border');
 });
