@@ -3,6 +3,7 @@ import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.59';
 import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.59';
 import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.59';
 import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.59';
+import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.59';
 import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.59';
 import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.59';
 import { mountChainLayer } from './ChainLayer.js?v=0.4.59';
@@ -193,7 +194,7 @@ export function openEnvironmentView(root, {
               <circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
             </svg>
           </button>
-          <button type="button" class="environment-map-display-shortcut" data-map-display-settings aria-label="Kaartweergave instellen" title="Iconen, labels en kaartpunten instellen">Weergave</button>
+          
           <button type="button" class="environment-scale-chip" data-map-scale
                   aria-label="Schaal wijzigen" disabled>Kaart laden…</button>
         </div>
@@ -235,7 +236,7 @@ export function openEnvironmentView(root, {
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
               
               <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
-              <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Volgorde van boards instellen" aria-expanded="false" aria-controls="environment-board-order">
+              <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Kaartweergave en boards instellen" aria-expanded="false" aria-controls="environment-board-order">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
               </button>
               
@@ -245,7 +246,13 @@ export function openEnvironmentView(root, {
           </div>
         </div>
         <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Boardinstellingen" aria-hidden="true" hidden>
-          <header><strong>Boards</strong><button type="button" data-board-order-close aria-label="Volgorde sluiten">⌄</button></header>
+          <header><strong>Kaartinstellingen</strong><button type="button" data-board-order-close aria-label="Instellingen sluiten">⌄</button></header>
+          <div class="sh-map-settings-tabs" role="group" aria-label="Kaartinstellingen">
+            <button type="button" data-map-tab="display" aria-pressed="true">Weergave</button>
+            <button type="button" data-map-tab="boards" aria-pressed="false">Boards</button>
+          </div>
+          <div data-map-display-controls class="sh-map-display-controls"></div>
+          <div data-map-order-content hidden>
           <div class="environment-board-order-options" role="group" aria-label="Zoeken tijdens bladeren">
             <button type="button" data-board-discovery="fixed" aria-pressed="true">Vaste selectie</button>
             <button type="button" data-board-discovery="expand" aria-pressed="false">Verder ontdekken</button>
@@ -257,6 +264,7 @@ export function openEnvironmentView(root, {
             <button type="button" data-board-order="nearby" aria-pressed="false">Dichtbij</button>
             <button type="button" data-board-order="relevant" aria-pressed="false">Relevant</button>
             <button type="button" data-board-order="popular" aria-pressed="false">Populair</button>
+          </div>
           </div>
         </section>
         <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
@@ -424,11 +432,8 @@ export function openEnvironmentView(root, {
   let resizeObserver = null;
   const onViewportResize = () => { if (!disposed && map) map.resize(); };
   root.querySelector('[data-maplibre-map]')?.addEventListener('sharon:viewport-resize',onViewportResize);
-  const displayShortcut=topActions?.querySelector?.('[data-map-display-settings]') || root.querySelector('[data-map-display-settings]');
-  const openMapPreferences=()=>onSettings?.();
-  displayShortcut?.addEventListener('click',openMapPreferences);
   for(const button of root.querySelectorAll('[data-wiki-category]'))button.insertAdjacentHTML('afterbegin',categoryIconSvg(button.dataset.wikiCategory,18));
-  const unsubscribers = [()=>displayShortcut?.removeEventListener('click',openMapPreferences)];
+  const unsubscribers = [];
   let popup = null;
   let closeLocationDeck = null;
   let wikipediaLayer = null;
@@ -616,6 +621,7 @@ export function openEnvironmentView(root, {
   })();
   const syncBoardOrder = () => wikipediaLayer?.setSort(boardOrderMode());
   unsubscribers.push(mountBoardOrderControls(root));
+  unsubscribers.push(mountMapDisplayControls(root,{settings,getMap:()=>mapReady?map:null}));
   listenEarly(window,BOARD_ORDER_EVENT,syncBoardOrder);
   const activeWikiFilters = new Set((Array.isArray(savedSourceFilters.statuses) ? savedSourceFilters.statuses : []).filter(value=>value!=='unread'));
   const activeWikiCategories = new Set(Array.isArray(savedSourceFilters.categories) ? savedSourceFilters.categories : []);
