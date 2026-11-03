@@ -424,7 +424,7 @@ export function openEnvironmentView(root, {
   let resizeObserver = null;
   const onViewportResize = () => { if (!disposed && map) map.resize(); };
   root.querySelector('[data-maplibre-map]')?.addEventListener('sharon:viewport-resize',onViewportResize);
-  const displayShortcut=root.querySelector('[data-map-display-settings]');
+  const displayShortcut=topActions?.querySelector('[data-map-display-settings]') || root.querySelector('[data-map-display-settings]');
   const openMapPreferences=()=>onSettings?.();
   displayShortcut?.addEventListener('click',openMapPreferences);
   for(const button of root.querySelectorAll('[data-wiki-category]'))button.insertAdjacentHTML('afterbegin',categoryIconSvg(button.dataset.wikiCategory,18));
