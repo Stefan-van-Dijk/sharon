@@ -1,5 +1,5 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.63';
-import { informationReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.63';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.64';
+import { informationReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.64';
 
 export const BOARD_ORDER_KEY = 'sharon.boards.order.v1';
 export const BOARD_ORDERS = {discover:'Nog te ontdekken', nearby:'Dichtbij', relevant:'Relevant', popular:'Populair'};

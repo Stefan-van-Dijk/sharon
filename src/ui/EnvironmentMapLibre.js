@@ -1,34 +1,34 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.63';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.63';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.63';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.63';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.63';
-import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.63';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.63';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.63';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.63';
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.63';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.63';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.63';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.63';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.63';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.63';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.63';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.64';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.64';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.64';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.64';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.64';
+import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.64';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.64';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.64';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.64';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.64';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.64';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.64';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.64';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.64';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.64';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.64';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.63';
-import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.63';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.63';
-import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.63';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.63';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.63';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.63';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.63';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.63';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.64';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.64';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.64';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.64';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.64';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.64';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.64';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.64';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.64';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.63';
+} from './EnvironmentScale.js?v=0.4.64';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -235,7 +235,7 @@ export function openEnvironmentView(root, {
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
               
-              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-label="Locaties tonen of verbergen; sleep omhoog voor locaties en ketens" title="Locaties en ketens · omhoog slepen">⌂</button>
+              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-expanded="false" aria-label="Winkels aan of uit; swipe omhoog voor categorieën" title="Tik: winkels aan/uit · omhoog vegen: categorieën">⌂</button>
               <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Kaartweergave en boards instellen" aria-expanded="false" aria-controls="environment-board-order">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
               </button>
@@ -269,7 +269,7 @@ export function openEnvironmentView(root, {
         </section>
         <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
           <button type="button" class="environment-source-sheet-handle" data-places-handle aria-label="Locatiemenu sluiten"></button>
-          <header><strong>Locaties en ketens</strong><small data-chain-available></small><button type="button" class="environment-source-search-toggle" data-places-search-toggle aria-label="Locaties zoeken" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button></header>
+          <header><strong>Winkels en locaties</strong><small data-chain-available></small><button type="button" class="environment-source-search-toggle" data-places-search-toggle aria-label="Locaties zoeken" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button></header>
           <select hidden data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select>
           <label hidden data-places-search-field><input type="search" data-places-search placeholder="Naam of keten" aria-label="Locatie of keten zoeken"></label>
           <strong>Status</strong>
@@ -487,6 +487,53 @@ export function openEnvironmentView(root, {
     element.addEventListener(name, handler, options);
     earlyListeners.push(() => element.removeEventListener(name, handler, options));
   };
+  // A short tap only toggles the source. An upward swipe only opens the
+  // categories. Bind before map initialization, so a failed source cannot
+  // leave the controls without touch/click feedback.
+  const shopToggle=root.querySelector('[data-chain-toggle]');
+  let shopGesture=null, suppressShopClickUntil=0, pendingShopEnabled=false;
+  const openShopMenu=()=>{
+    setFilterMode(true);
+    closeBoardOrder(root);
+    if(chainLayer){chainLayer.openMenu();return;}
+    const panel=root.querySelector('[data-places-sheet]');
+    panel?.classList.add('is-open');
+    panel?.setAttribute('aria-hidden','false');
+    shopToggle?.setAttribute('aria-expanded','true');
+    const status=root.querySelector('[data-chain-status]');
+    if(status)status.textContent='Winkelcategorieën worden geladen. Als dit blijft staan, is de winkelbron niet gestart.';
+  };
+  listenEarly(shopToggle,'touchstart',event=>{
+    if(event.touches.length!==1){shopGesture=null;return;}
+    const touch=event.touches[0];
+    shopGesture={x:touch.clientX,y:touch.clientY};
+  },{passive:true});
+  listenEarly(shopToggle,'touchend',event=>{
+    if(!shopGesture)return;
+    const touch=event.changedTouches?.[0];
+    const dx=(touch?.clientX??shopGesture.x)-shopGesture.x;
+    const dy=(touch?.clientY??shopGesture.y)-shopGesture.y;
+    shopGesture=null;
+    if(dy < -35 && Math.abs(dx) < -dy && !chainLayer){
+      suppressShopClickUntil=performance.now()+650;
+      if(event.cancelable)event.preventDefault();
+      openShopMenu();
+    }
+  },{passive:false});
+  listenEarly(shopToggle,'touchcancel',()=>{shopGesture=null;},{passive:true});
+  listenEarly(shopToggle,'click',event=>{
+    if(performance.now()<suppressShopClickUntil){
+      event.preventDefault();return;
+    }
+    if(chainLayer)return; // ChainLayer owns the tap once mounted.
+    pendingShopEnabled=!pendingShopEnabled;
+    shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
+    const status=root.querySelector('[data-chain-status]');
+    if(status)status.textContent='Winkelbron wordt gestart…';
+  });
+  listenEarly(shopToggle,'keydown',event=>{
+    if(event.key==='ArrowUp'&&!chainLayer){event.preventDefault();openShopMenu();}
+  });
   let filterSwipe = null;
   const onFilterStart = event => {
     if (event.touches.length !== 1 || readoutBar.classList.contains('is-style-active')) return;
@@ -798,7 +845,14 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map, settings?.get().mapDisplay);
+      try {
       chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      if(pendingShopEnabled){chainLayer.toggleSource();pendingShopEnabled=false;}
+      } catch(error) {
+        const status=root.querySelector('[data-chain-status]');
+        if(status)status.textContent='Winkels konden niet gestart worden. '+String(error?.message||'Onbekende fout');
+        console.error('Sharon shops initialization failed',error);
+      }
       wikipediaLayer = mountWikipediaLayer(map, lib, { mapDisplay:settings?.get().mapDisplay||{}, language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));

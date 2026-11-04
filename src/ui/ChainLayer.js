@@ -1,21 +1,21 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.63';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.63';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.63';
-import { focusTextField } from './TextInputFocus.js?v=0.4.63';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.63';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.63';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.63';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.63';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.63';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.63';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.63';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.63';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.63';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.63';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.63';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.63';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.63';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.63';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.64';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.64';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.64';
+import { focusTextField } from './TextInputFocus.js?v=0.4.64';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.64';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.64';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.64';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.64';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.64';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.64';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.64';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.64';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.64';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.64';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.64';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.64';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.64';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.64';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
 export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
@@ -55,6 +55,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   const showSheet=value=>{
     sheet?.classList.toggle('is-open',value);sheet?.setAttribute('aria-hidden',String(!value));toggle.setAttribute('aria-expanded',String(value));
     if(value){closeBoardOrder(root);const wiki=root.querySelector('[data-source-sheet]');wiki?.classList.remove('is-open');wiki?.setAttribute('aria-hidden','true');root.querySelector('[data-wiki-settings]')?.setAttribute('aria-expanded','false');}
+    toggle.setAttribute('aria-label',value?'Winkelmenu sluiten':'Winkelmenu met categorieën openen');
   };
   const ownTitle=item=>String(item.data?.title||item.data?.name||'Locatie');
   const ownAddress=item=>typeof item.data?.address==='string'?item.data.address:[item.data?.address?.street,item.data?.address?.houseNumber,item.data?.address?.city].filter(Boolean).join(' ');
@@ -130,7 +131,11 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
       geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:feedbackForBranch(branch).read?1:0,liked:feedbackForBranch(branch).liked?1:0}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
-    toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
+    toggle.setAttribute('aria-pressed',String(enabled));
+    toggle.setAttribute('aria-expanded',String(sheet?.classList.contains('is-open')));
+    const sourceButton=root.querySelector('[data-shop-source-toggle]');
+    if(sourceButton){sourceButton.setAttribute('aria-pressed',String(enabled));sourceButton.textContent=enabled?'Winkels verbergen':'Winkels tonen';}
+    select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
     filters.update();drawList();
     const nearby=branches.filter(branch=>(!selected||branch.chainId===selected)&&inRange(branch)&&filters.matches(branch));
@@ -150,21 +155,53 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     loadBoardSummaries([...local.filter(inRange),...places]);
     paintOptions();draw();schedule();
   };
-  const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();if(!enabled){queryRevision++;request?.abort();request=null;clearTimeout(timer);loadMessage='';}draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
+  // A tap toggles shop visibility; only an upward swipe opens categories.
+  const toggleSource=()=>{
+    closeBoardOrder(root);
+    enabled=!enabled;
+    popup?.remove();
+    if(!enabled){
+      queryRevision++;request?.abort();request=null;clearTimeout(timer);loadMessage='';
+    }
+    draw();
+    window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));
+    schedule();
+  };
+  const openMenu=()=>{
+    if(!enabled)enabled=true;
+    draw();
+    window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));
+    showSheet(true);
+    schedule();
+  };
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
-  listen(toggle,'click',onToggle);listen(select,'change',onSelect);
+  listen(toggle,'click',toggleSource);listen(select,'change',onSelect);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
     if(!field.hidden)focusTextField(search);else{search.value='';drawList();}
   });
   listen(search,'input',drawList);listen(root.querySelector('[data-places-close]'),'click',()=>showSheet(false));
+  // Preserve source controls when mounted outside the full environment view,
+  // too. A completed upward swipe must not synthesize a source-toggle tap.
   let start=null,suppressClick=false;
-  listen(toggle,'touchstart',event=>{const touch=event.touches[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});
-  listen(toggle,'touchend',event=>{const touch=event.changedTouches[0];if(start&&touch&&start.y-touch.clientY>35&&Math.abs(touch.clientX-start.x)<start.y-touch.clientY){suppressClick=true;enabled=true;draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));showSheet(true);schedule();}start=null;},{passive:true});
+  listen(toggle,'touchstart',event=>{const touch=event.touches?.[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});
+  listen(toggle,'touchend',event=>{
+    const touch=event.changedTouches?.[0];
+    if(start&&touch&&start.y-touch.clientY>35&&Math.abs(touch.clientX-start.x)<start.y-touch.clientY){
+      suppressClick=true;
+      openMenu();
+    }
+    start=null;
+  },{passive:true});
   listen(toggle,'touchcancel',()=>{start=null;suppressClick=false;},{passive:true});
-  listen(toggle,'click',event=>{if(suppressClick){suppressClick=false;event.stopImmediatePropagation();event.preventDefault();}},true);
-  listen(toggle,'keydown',event=>{if(event.key==='ArrowUp'){event.preventDefault();enabled=true;draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));showSheet(true);schedule();}});
+  listen(toggle,'click',event=>{
+    if(!suppressClick)return;
+    suppressClick=false;event.stopImmediatePropagation();event.preventDefault();
+  },true);
+  listen(toggle,'keydown',event=>{
+    if(event.key==='ArrowUp'){event.preventDefault();openMenu();}
+  });
   listeners.push(mountSourceSheetHandle(sheet,'[data-places-handle]',()=>showSheet(false)));
   const click=event=>{
     if(!enabled||disposed)return;
@@ -200,7 +237,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
-  return {resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
+  return {openMenu,toggleSource,resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
       closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);
