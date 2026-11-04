@@ -8,7 +8,7 @@ const store=()=>{
 test('default map display belongs to user settings and is mutable',async()=>{
   const db=store(),bus={emit(){}};
   const a=new SettingsService(db,bus);await a.load();
-  assert.deepEqual(a.get().mapDisplay,{showIcons:true,showNames:true,clusterPoints:true,pointSize:5,iconSize:20,nameSize:12,showPoints:true,readStyle:'transparent',likedStyle:'red-border'});
+  assert.deepEqual(a.get().mapDisplay,{showIcons:true,showNames:true,clusterPoints:true,allowRotation:false,pointSize:5,iconSize:20,nameSize:12,showPoints:true,readStyle:'transparent',likedStyle:'red-border'});
   await a.update({mapDisplay:{showIcons:false,pointSize:8,iconSize:26,nameSize:16,showPoints:false}});
   const b=new SettingsService(db,bus);await b.load();
   assert.equal(b.get().mapDisplay.showIcons,false);
