@@ -1,8 +1,8 @@
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.64';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.65';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
-  pointSize:5,iconSize:20,nameSize:12,readStyle:'transparent',likedStyle:'red-border'
+  allowRotation:false,pointSize:5,iconSize:20,nameSize:12,readStyle:'transparent',likedStyle:'red-border'
 });
 const RANGES={pointSize:[2,12],iconSize:[14,32],nameSize:[10,20]};
 const CHOICES={readStyle:['transparent'],likedStyle:['red-border']};
@@ -10,7 +10,7 @@ const LIMIT=(n,low,high)=>Math.max(low,Math.min(high,n));
 
 export function normalizeMapDisplay(value={}){
   const result={...MAP_DISPLAY_DEFAULTS};
-  for(const key of ['showIcons','showNames','showPoints','clusterPoints']){
+  for(const key of ['showIcons','showNames','showPoints','clusterPoints','allowRotation']){
     if(typeof value[key]==='boolean')result[key]=value[key];
   }
   for(const [key,[low,high]] of Object.entries(RANGES)){
@@ -65,9 +65,22 @@ export function updateSourceClustering(map,sourceId,enabled){
 }
 
 // Update existing source styling without reopening Omgeving or re-fetching boards.
+export function applyMapRotation(map, allowRotation=false){
+  if(!map)return;
+  if(allowRotation){
+    map.dragRotate?.enable?.();
+    map.touchZoomRotate?.enableRotation?.();
+  }else{
+    map.dragRotate?.disable?.();
+    map.touchZoomRotate?.disableRotation?.();
+    if(Math.abs(map.getBearing?.()||0)>0.01)map.setBearing?.(0);
+  }
+}
+
 export function applyMapDisplay(map, value){
   if(!map)return;
   const state=normalizeMapDisplay(value);
+  applyMapRotation(map,state.allowRotation);
   const setLayout=(id,key,v)=>{if(map.getLayer?.(id))map.setLayoutProperty?.(id,key,v);};
   const setPaint=(id,key,v)=>{if(map.getLayer?.(id))map.setPaintProperty?.(id,key,v);};
   for(const id of ['sharon-chain-points-icons','sharon-wikipedia-icons']){
@@ -111,7 +124,8 @@ const toggles=[
   ['showIcons','Iconen','⌾'],
   ['showNames','Namen','Aa'],
   ['showPoints','Punten','○'],
-  ['clusterPoints','Bundelen','⁙']
+  ['clusterPoints','Bundelen','⁙'],
+  ['allowRotation','Draaien','↻']
 ];
 const slider=(key,label,mark,min,max)=>
   '<label class="sh-map-display-size"><span class="sh-map-display-symbol" aria-hidden="true">'+mark+'</span><span>'+label+'</span><input type="range" data-map-display="'+key+'" min="'+min+'" max="'+max+'" step="1"><output data-map-display-value="'+key+'"></output></label>';

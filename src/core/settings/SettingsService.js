@@ -21,7 +21,7 @@ const DEFAULTS = Object.freeze({
     updateMode: 'auto'
   },
   mapDisplay: {
-    showIcons: true, showNames: true, clusterPoints: true, pointSize: 5,
+    showIcons: true, showNames: true, clusterPoints: true, allowRotation: false, pointSize: 5,
     iconSize: 20, nameSize: 12, showPoints: true,
     readStyle: 'transparent', likedStyle: 'red-border'
   }

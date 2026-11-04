@@ -71,3 +71,17 @@ test('snelle wijzigingen in bundelen worden in volgorde uitgevoerd',async()=>{
   assert.deepEqual(changes,[false,true]);
   assert.equal(cluster,true);
 });
+
+test('rotation toggles independently of pinch zoom and resets north',()=>{
+  let bearing=37, drag=true, rotation=true;
+  const map={getBearing:()=>bearing,setBearing:value=>bearing=value,
+    dragRotate:{enable(){drag=true;},disable(){drag=false;}},
+    touchZoomRotate:{enableRotation(){rotation=true;},disableRotation(){rotation=false;},
+      disable(){assert.fail('Pinch zoom must remain enabled');}},getLayer:()=>null,getSource:()=>null};
+  applyMapDisplay(map,{});
+  assert.deepEqual([bearing,drag,rotation],[0,false,false]);
+  applyMapDisplay(map,{allowRotation:true});
+  assert.deepEqual([drag,rotation],[true,true]);
+  bearing=90;applyMapDisplay(map,{allowRotation:false});
+  assert.deepEqual([bearing,drag,rotation],[0,false,false]);
+});

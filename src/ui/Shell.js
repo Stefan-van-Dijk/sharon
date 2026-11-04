@@ -1,19 +1,19 @@
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.64';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.64';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.64';
-import { mountCardArrival } from './CardArrival.js?v=0.4.64';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.64';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.64';
-import { syncViewportHeight } from './Viewport.js?v=0.4.64';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.64';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.64';
-import { openPeopleView } from './PeopleView.js?v=0.4.64';
-import { openCardsView } from './CardsView.js?v=0.4.64';
-import { openLocationsView } from './LocationsView.js?v=0.4.64';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.64';
-import { openSettings } from './SettingsView.js?v=0.4.64';
-import { sharonWordmark } from './Brand.js?v=0.4.64';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.64';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.65';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.65';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.65';
+import { mountCardArrival } from './CardArrival.js?v=0.4.65';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.65';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.65';
+import { syncViewportHeight } from './Viewport.js?v=0.4.65';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.65';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.65';
+import { openPeopleView } from './PeopleView.js?v=0.4.65';
+import { openCardsView } from './CardsView.js?v=0.4.65';
+import { openLocationsView } from './LocationsView.js?v=0.4.65';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.65';
+import { openSettings } from './SettingsView.js?v=0.4.65';
+import { sharonWordmark } from './Brand.js?v=0.4.65';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.65';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -35,7 +35,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.64';
+const APP_VERSION = '0.4.65';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -68,10 +68,9 @@ export function createShell(root, {
   let demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
   const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
-  const updateMessage = 'Update gereed. Sluit alle Sharon-vensters en open de app opnieuw.';
   events.on('app.update.ready', () => {
     const notice = root.querySelector('[data-update-notice]');
-    if (notice) { notice.hidden = false; notice.textContent = updateMessage; }
+    if (notice) { notice.hidden = false; notice.textContent = 'Nieuwe versie installeren'; }
   });
 
   document.body.classList.add('sharon-shell-active');
@@ -275,7 +274,7 @@ export function createShell(root, {
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
         <footer class="shell-footer">
-          <span data-update-notice role="status" ${install.getState().updateReady ? '' : 'hidden'}>${install.getState().updateReady ? updateMessage : ''}</span>
+          <button type="button" data-update-notice ${install.getState().updateReady ? '' : 'hidden'}>Nieuwe versie installeren</button>
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
           <span class="shell-footer-meta">
             <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
@@ -284,6 +283,8 @@ export function createShell(root, {
         </footer>
       </div>
     `;
+
+    outlet.querySelector('[data-update-notice]').addEventListener('click', () => install.activateUpdate());
 
     headerActions.innerHTML = '<button type="button" class="sh-home-board-stack" data-home-board-stack disabled aria-label="Geen relevante boards" title="Relevante boards"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>';
     const cleanupContext = mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store: activeStore(), location, events, trigger: headerActions.querySelector('[data-home-board-stack]')});

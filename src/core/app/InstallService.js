@@ -2,6 +2,8 @@ export class InstallService {
   #events;
   #deferredPrompt = null;
   #updateReady = false;
+  #registration = null;
+  #activating = false;
 
   constructor({ events }) {
     this.#events = events;
@@ -29,6 +31,7 @@ export class InstallService {
   }
 
   watchUpdates(registration) {
+    this.#registration = registration;
     const notify = () => {
       if (!registration.waiting || !navigator.serviceWorker.controller) return;
       this.#updateReady = true;
@@ -38,12 +41,20 @@ export class InstallService {
     registration.addEventListener('updatefound', installing);
     installing();
     notify();
-    let checkedAt = Date.now();
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden || Date.now() - checkedAt < 5 * 60_000) return;
-      checkedAt = Date.now();
-      registration.update().catch(() => {});
+      if (!document.hidden) registration.update().catch(() => {});
     });
+  }
+
+  async activateUpdate() {
+    const waiting = this.#registration?.waiting;
+    if (!waiting) return false;
+    if (this.#activating) return true;
+    this.#activating = true;
+    // Only the tab that requested installation reloads; other editors stay open.
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+    waiting.postMessage({ type: 'SHARON_ACTIVATE_UPDATE' });
+    return true;
   }
 
   isInstalled() {

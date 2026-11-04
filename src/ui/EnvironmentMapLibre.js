@@ -1,34 +1,34 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.64';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.64';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.64';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.64';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.64';
-import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.64';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.64';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.64';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.64';
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.64';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.64';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.64';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.64';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.64';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.64';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.64';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.65';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.65';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.65';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.65';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.65';
+import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.65';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.65';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.65';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.65';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.65';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.65';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.65';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.65';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.65';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.65';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.65';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.64';
-import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.64';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.64';
-import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.64';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.64';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.64';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.64';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.64';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.64';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.65';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.65';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.65';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.65';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.65';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.65';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.65';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.65';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.65';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.64';
+} from './EnvironmentScale.js?v=0.4.65';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -496,6 +496,8 @@ export function openEnvironmentView(root, {
     setFilterMode(true);
     closeBoardOrder(root);
     if(chainLayer){chainLayer.openMenu();return;}
+    pendingShopEnabled=true;
+    shopToggle?.setAttribute('aria-pressed','true');
     const panel=root.querySelector('[data-places-sheet]');
     panel?.classList.add('is-open');
     panel?.setAttribute('aria-hidden','false');
@@ -788,7 +790,7 @@ export function openEnvironmentView(root, {
       maxZoom: 22,
       refreshExpiredTiles: true,
       fadeDuration: 100,
-      dragRotate: false,
+      dragRotate: settings?.get().mapDisplay?.allowRotation === true,
       doubleClickZoom: false,
       touchPitch: false,
       maxPitch: 0,
@@ -796,6 +798,11 @@ export function openEnvironmentView(root, {
        attributionControl: { compact: false },
       renderWorldCopies: true
     });
+    // Lock touch rotation independently of pinch zoom, and normalize old camera bearing.
+    if(settings?.get().mapDisplay?.allowRotation !== true){
+      map.touchZoomRotate?.disableRotation?.();
+      map.setBearing?.(0);
+    }
     registerCameraDiagnostics(map);
     // A small independent MapLibre control shares the attribution rail.
     // Only the shell's visible chrome changes, never the map or its sources.
@@ -847,7 +854,9 @@ export function openEnvironmentView(root, {
       installSharonLayers(map, settings?.get().mapDisplay);
       try {
       chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
-      if(pendingShopEnabled){chainLayer.toggleSource();pendingShopEnabled=false;}
+      if(root.querySelector('[data-places-sheet]')?.getAttribute('aria-hidden')==='false')chainLayer.openMenu();
+      else if(pendingShopEnabled&&!initialChainId)chainLayer.toggleSource();
+      pendingShopEnabled=false;
       } catch(error) {
         const status=root.querySelector('[data-chain-status]');
         if(status)status.textContent='Winkels konden niet gestart worden. '+String(error?.message||'Onbekende fout');

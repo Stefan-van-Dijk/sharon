@@ -274,3 +274,44 @@ test('card barcode stays clear of footer controls and empty code opens editing',
   expect(await page.evaluate(()=>window.editedCard)).toBe('empty');
   await expect(page.locator('.sh-card-board-overlay')).toHaveCount(0);
 });
+
+// Browser-engine comparison; standalone flag emulation is not a physical iOS install.
+for(const standalone of [false,true])test(`shop discovery and category gestures with standalone=${standalone}`,async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(value=>Object.defineProperty(navigator,'standalone',{value,configurable:true}),standalone);
+  await page.route('https://sharon.life/log/api/chains.php',async route=>{
+    const {action}=route.request().postDataJSON();
+    await route.fulfill({json:{schema:1,version:'v1-'+'a'.repeat(24),coverage:'WORLD',
+      ...(action==='map'?{points:[['ShopTest0001','',5000000,52000000,'Testwinkel','node/1']],kinds:{ShopTest0001:'supermarket'}}:{chains:[]})}});
+  });
+  await page.goto(base+'/fixture.html');
+  await page.evaluate(async version=>{
+    const {mountChainLayer}=await import('/src/ui/ChainLayer.js?v='+version);
+    const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);
+    const store=await new ObjectStore().open();
+    document.body.innerHTML='<button data-chain-toggle>Winkels</button><section data-places-sheet aria-hidden="true"><select data-chain-filter></select><small data-chain-status></small><div data-chain-categories></div><div data-chain-statuses></div><div data-places-list></div></section>';
+    const sources=new Map();window.shopFeatures=()=>sources.get('sharon-chain-branches')?.data.features||[];
+    const map={addImage(){},addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(){},off(){},getCenter:()=>({lng:5,lat:52}),getZoom:()=>16,getBounds:()=>({getWest:()=>4.99,getEast:()=>5.01,getSouth:()=>51.99,getNorth:()=>52.01})};
+    window.shopLayer=mountChainLayer(map,{}, {store,root:document.body,events:{on:()=>()=>{}},location:{latest:{lat:52,lng:5}}});
+  },version);
+  await page.locator('[data-chain-toggle]').tap();
+  await expect(page.locator('[data-chain-toggle]')).toHaveAttribute('aria-pressed','true');
+  await expect.poll(()=>page.evaluate(()=>window.shopFeatures().length)).toBe(1);
+  await page.locator('[data-chain-toggle]').tap();
+  await expect.poll(()=>page.evaluate(()=>window.shopFeatures().length)).toBe(0);
+  await page.locator('[data-chain-toggle]').tap();
+  await expect.poll(()=>page.evaluate(()=>window.shopFeatures().length)).toBe(1);
+  await page.locator('[data-chain-toggle]').evaluate(target=>{
+    for(const [type,y] of [['touchstart',200],['touchend',130]]){
+      const event=new Event(type,{bubbles:true,cancelable:true});const touch={clientX:20,clientY:y,target};
+      Object.defineProperties(event,{touches:{value:type==='touchend'?[]:[touch]},changedTouches:{value:[touch]}});target.dispatchEvent(event);
+    }
+    target.click();
+  });
+  await expect(page.locator('[data-places-sheet]')).toHaveAttribute('aria-hidden','false');
+  await expect(page.locator('[data-chain-toggle]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('[data-places-list]')).toContainText('Testwinkel');
+  expect(await page.locator('[data-chain-category]').count()).toBeGreaterThan(5);
+  await page.evaluate(()=>window.shopLayer.destroy());
+  expect(errors).toEqual([]);
+});
