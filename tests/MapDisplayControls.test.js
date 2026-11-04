@@ -54,7 +54,7 @@ test('bundelen schakelt uit en weer aan, met dezelfde GeoJSON-objecten',async()=
     setClusterOptions:async({cluster:enabled})=>{cluster=enabled;actions.push(['toggle',enabled]);},
     setData:async value=>{assert.equal(value,data);actions.push(['reload',cluster]);}
   };
-  const map={getSource:()=>source,getLayer:()=>null};
+  const map={getSource:id=>id==='sharon-chain-branches'?source:null,getLayer:()=>null};
   await applyMapDisplay(map,{clusterPoints:false});
   await applyMapDisplay(map,{clusterPoints:true});
   assert.deepEqual(actions,[['toggle',false],['reload',false],['toggle',true],['reload',true]]);
@@ -66,7 +66,7 @@ test('snelle wijzigingen in bundelen worden in volgorde uitgevoerd',async()=>{
   const changes=[];
   const source={getClusterOptions:()=>({cluster}),getData:async()=>data,
     setClusterOptions:async({cluster:v})=>{cluster=v;changes.push(v);},setData:async()=>{}};
-  const map={getSource:()=>source,getLayer:()=>null};
+  const map={getSource:id=>id==='sharon-chain-branches'?source:null,getLayer:()=>null};
   await Promise.all([applyMapDisplay(map,{clusterPoints:false}),applyMapDisplay(map,{clusterPoints:true})]);
   assert.deepEqual(changes,[false,true]);
   assert.equal(cluster,true);
