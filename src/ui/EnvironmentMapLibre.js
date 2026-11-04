@@ -235,7 +235,7 @@ export function openEnvironmentView(root, {
             <div class="environment-filter-options environment-source-options" role="group" aria-label="Informatiebronnen">
               <button type="button" class="environment-source-circle" data-wikipedia-toggle aria-pressed="false" aria-label="Wikipedia tonen of verbergen; sleep omhoog voor filters" title="Wikipedia · omhoog slepen voor filters">W</button>
               
-              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-expanded="false" aria-label="Winkelmenu met categorieën openen" title="Winkels en categorieën openen">⌂</button>
+              <button type="button" class="environment-source-circle" data-chain-toggle aria-pressed="false" aria-expanded="false" aria-label="Winkels aan of uit; swipe omhoog voor categorieën" title="Tik: winkels aan/uit · omhoog vegen: categorieën">⌂</button>
               <button type="button" class="environment-board-order-settings" data-board-order-settings aria-label="Kaartweergave en boards instellen" aria-expanded="false" aria-controls="environment-board-order">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.5 1.5v2.4L3.4 14l2 3.4 2-.5 2 .9.6 2.2h4l.6-2.2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4l1.5-1.5-2-3.4-2 .6-2-.9L14 3Z"/><circle cx="12" cy="11.5" r="3"/></svg>
               </button>
@@ -270,7 +270,6 @@ export function openEnvironmentView(root, {
         <section class="environment-source-sheet" data-places-sheet aria-label="Locaties en ketens" aria-hidden="true">
           <button type="button" class="environment-source-sheet-handle" data-places-handle aria-label="Locatiemenu sluiten"></button>
           <header><strong>Winkels en locaties</strong><small data-chain-available></small><button type="button" class="environment-source-search-toggle" data-places-search-toggle aria-label="Locaties zoeken" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button></header>
-          <button type="button" data-shop-source-toggle aria-pressed="false" class="environment-shop-source-toggle">Winkels tonen</button>
           <select hidden data-chain-filter aria-label="Locaties en ketens filteren"><option value="">Alle bekende locaties</option></select>
           <label hidden data-places-search-field><input type="search" data-places-search placeholder="Naam of keten" aria-label="Locatie of keten zoeken"></label>
           <strong>Status</strong>
