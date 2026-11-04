@@ -55,6 +55,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   const showSheet=value=>{
     sheet?.classList.toggle('is-open',value);sheet?.setAttribute('aria-hidden',String(!value));toggle.setAttribute('aria-expanded',String(value));
     if(value){closeBoardOrder(root);const wiki=root.querySelector('[data-source-sheet]');wiki?.classList.remove('is-open');wiki?.setAttribute('aria-hidden','true');root.querySelector('[data-wiki-settings]')?.setAttribute('aria-expanded','false');}
+    toggle.setAttribute('aria-label',value?'Winkelmenu sluiten':'Winkelmenu met categorieën openen');
   };
   const ownTitle=item=>String(item.data?.title||item.data?.name||'Locatie');
   const ownAddress=item=>typeof item.data?.address==='string'?item.data.address:[item.data?.address?.street,item.data?.address?.houseNumber,item.data?.address?.city].filter(Boolean).join(' ');
@@ -130,7 +131,11 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     const data={type:'FeatureCollection',features:visible.flatMap(branch=>branch.coordinates?[{type:'Feature',id:branch.id,
       geometry:{type:'Point',coordinates:[branch.coordinates.lng,branch.coordinates.lat]},properties:{id:branch.id,chainId:branch.chainId,title:branch.name,status:branch.status,category:shopCategory(branch,catalog),read:feedbackForBranch(branch).read?1:0,liked:feedbackForBranch(branch).liked?1:0}}]:[])};
     const serialized=JSON.stringify(data);if(serialized!==lastPoints){lastPoints=serialized;map.getSource(source)?.setData(data);}
-    toggle.setAttribute('aria-pressed',String(enabled));select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
+    toggle.setAttribute('aria-pressed',String(enabled));
+    toggle.setAttribute('aria-expanded',String(sheet?.classList.contains('is-open')));
+    const sourceButton=root.querySelector('[data-shop-source-toggle]');
+    if(sourceButton){sourceButton.setAttribute('aria-pressed',String(enabled));sourceButton.textContent=enabled?'Winkels verbergen':'Winkels tonen';}
+    select.hidden=Boolean(sheet)||!enabled;status.hidden=sheet?false:!enabled;
     status.textContent=loadMessage||places.length+' opgeslagen locaties · '+visible.filter(inRange).length+' vestigingen '+analysisRangeLabel()+''+(branches.length?'':'. Vestigingen worden beschikbaar na de eerste geslaagde import.');
     filters.update();drawList();
     const nearby=branches.filter(branch=>(!selected||branch.chainId===selected)&&inRange(branch)&&filters.matches(branch));
@@ -150,9 +155,30 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     loadBoardSummaries([...local.filter(inRange),...places]);
     paintOptions();draw();schedule();
   };
-  const onToggle=()=>{closeBoardOrder(root);if(sheet?.classList.contains('is-open')){showSheet(false);return;}enabled=!enabled;popup?.remove();if(!enabled){queryRevision++;request?.abort();request=null;clearTimeout(timer);loadMessage='';}draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
+  // A tap opens the shop categories. The source itself is enabled separately
+  // from closing the menu, so switching between boards and settings is stable.
+  const onToggle=()=>{
+    closeBoardOrder(root);
+    if(sheet?.classList.contains('is-open')){showSheet(false);return;}
+    if(!enabled)enabled=true;
+    popup?.remove();
+    draw();
+    window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));
+    showSheet(true);
+    schedule();
+  };
+  const onSourceToggle=()=>{
+    enabled=!enabled;
+    if(!enabled){
+      queryRevision++;request?.abort();request=null;clearTimeout(timer);loadMessage='';
+    }
+    draw();
+    window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));
+    schedule();
+  };
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
   listen(toggle,'click',onToggle);listen(select,'change',onSelect);
+  listen(root.querySelector('[data-shop-source-toggle]'),'click',onSourceToggle);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
