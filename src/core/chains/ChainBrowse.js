@@ -1,16 +1,22 @@
-import {fetchShopSource} from './ShopSource.js?v=0.4.62';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.62';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.62';
+import {fetchShopSource} from './ShopSource.js?v=0.4.63';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.63';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.63';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){
   const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,25000);
   try{
   const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,...input}),signal:controller.signal});
-  if(!response.ok&&input.world)return await fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});
   if(!response.ok)throw Error(response.status===503?'De winkelbron is tijdelijk niet beschikbaar.':'Winkelgegevens ophalen is niet gelukt.');
-  const data=await response.json();if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||''))throw Error('Ongeldige winkelgegevens.');return data;
-  }catch(error){if(input.world&&!controller.signal.aborted&&error instanceof TypeError)return await fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});throw error;}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+  const data=await response.json();
+  if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||'')||(input.action==='map'&&!Array.isArray(data.points)))throw Error('Ongeldige winkelgegevens.');
+  return data;
+  }catch(error){
+    // HTTP, network and invalid world payloads all trigger bounded OSM fallback.
+    if(input.world&&!controller.signal.aborted&&error?.name!=='AbortError')
+      return fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});
+    throw error;
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  }
  async cached(key,input,signal){
   const old=this.cache.get(key);if(old&&this.clock()-old.at<300000)return old.data;

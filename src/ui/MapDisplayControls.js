@@ -1,4 +1,4 @@
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.62';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.63';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
@@ -21,35 +21,47 @@ export function normalizeMapDisplay(value={}){
   return result;
 }
 
-// Retain the loaded GeoJSON and every existing layer when MapLibre cannot update
-// clustering in place. This avoids losing the user's current discovery session.
-export function updateSourceClustering(map, sourceId, enabled){
+// MapLibre's setClusterOptions can acknowledge a toggle without rebuilding
+// clustered tiles. Re-submit the already loaded GeoJSON to force a refresh.
+// Serialize the work per source so rapid on/off/on taps finish in the right order.
+const clusterUpdates=new WeakMap();
+export function updateSourceClustering(map,sourceId,enabled){
   const source=map.getSource?.(sourceId);
-  if(!source)return false;
-  const requested={cluster:enabled,clusterRadius:38,clusterMaxZoom:15};
-  if(source.serialize?.()?.cluster===enabled)return true;
-  if(typeof source.setClusterOptions==='function'){
-    source.setClusterOptions(requested);
-    return true;
-  }
-  if(typeof source.serialize!=='function'||typeof map.getStyle!=='function')return false;
-  const config=source.serialize();
-  if(config?.type!=='geojson'||!config.data||!Array.isArray(map.getStyle()?.layers))return false;
-  const ordered=map.getStyle().layers;
-  const saved=ordered.filter(layer=>layer.source===sourceId);
-  const last=ordered.reduce((index,layer,i)=>layer.source===sourceId?i:index,-1);
-  const after=ordered.slice(last+1).find(layer=>layer.source!==sourceId)?.id;
-  try{
+  if(!source)return Promise.resolve(false);
+  let updates=clusterUpdates.get(map);
+  if(!updates){updates=new Map();clusterUpdates.set(map,updates);}
+  const previous=updates.get(sourceId)||Promise.resolve();
+  const task=previous.catch(()=>{}).then(async()=>{
+    const current=map.getSource?.(sourceId);
+    if(!current)return false;
+    const requested={cluster:enabled,clusterRadius:38,clusterMaxZoom:15};
+    const currentCluster=current.getClusterOptions?.().cluster;
+    if(currentCluster===enabled)return true;
+    if(typeof current.setClusterOptions==='function'&&typeof current.getData==='function'&&typeof current.setData==='function'){
+      // getData keeps the entire active discovery session, including all
+      // feedback states. setData forces reclustering after updating options.
+      const data=await current.getData();
+      await current.setClusterOptions(requested);
+      await current.setData(data);
+      return true;
+    }
+    // Compatibility for MapLibre versions without dynamic cluster options.
+    if(typeof current.serialize!=='function'||typeof map.getStyle!=='function')return false;
+    const config=current.serialize();
+    if(config?.type!=='geojson'||!config.data)return false;
+    const layers=map.getStyle()?.layers;
+    if(!Array.isArray(layers))return false;
+    const saved=layers.filter(layer=>layer.source===sourceId);
+    const last=layers.reduce((i,layer,j)=>layer.source===sourceId?j:i,-1);
+    const after=layers.slice(last+1).find(layer=>layer.source!==sourceId)?.id;
     for(const layer of [...saved].reverse())map.removeLayer(layer.id);
     map.removeSource(sourceId);
     map.addSource(sourceId,{...config,...requested});
     for(const layer of saved)map.addLayer(layer,after);
     return true;
-  }catch{
-    // Never silently pretend that the source changed; the live preview still
-    // reflects the user's preference and it is persisted for a fresh map load.
-    return false;
-  }
+  });
+  updates.set(sourceId,task);
+  return task;
 }
 
 // Update existing source styling without reopening Omgeving or re-fetching boards.
@@ -78,9 +90,8 @@ export function applyMapDisplay(map, value){
       setPaint(id,'circle-stroke-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
     }
   }
-  for(const sourceId of ['sharon-chain-branches','sharon-wikipedia']){
-    updateSourceClustering(map,sourceId,state.clusterPoints);
-  }
+  const clustering=['sharon-chain-branches','sharon-wikipedia'].map(sourceId=>
+    updateSourceClustering(map,sourceId,state.clusterPoints));
   for(const id of ['sharon-chain-clusters','sharon-chain-clusters-count','sharon-wikipedia-clusters','sharon-wikipedia-cluster-count']){
     setLayout(id,'visibility',state.clusterPoints?'visible':'none');
   }
@@ -93,6 +104,7 @@ export function applyMapDisplay(map, value){
   if(map.getLayer?.('sharon-chain-points')){
     setPaint('sharon-chain-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65']);
   }
+  return Promise.all(clustering);
 }
 
 const toggles=[

@@ -32,9 +32,10 @@ export function environmentZoomForSpan(spanM, lat, container) {
 }
 
 export function configureEnvironmentGestures(map) {
-  // Disable the composite handler, which also enables one-finger tap-drag zoom.
-  map.touchZoomRotate.disable();
-  map.dragPan.disable();
+  // MapLibre handles one-finger drag and two-finger pinch directly, keeping
+  // the map anchored to the fingers without repeated jumpTo camera updates.
+  map.touchZoomRotate.enable();
+  map.dragPan.enable();
   map.doubleClickZoom.disable();
   map.scrollZoom.setZoomRate(1 / 300);
   map.scrollZoom.setWheelZoomRate(1 / 1400);

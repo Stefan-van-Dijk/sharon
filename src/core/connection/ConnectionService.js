@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.62';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.62';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.63';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.63';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
