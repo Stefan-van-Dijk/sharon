@@ -169,7 +169,8 @@ self.addEventListener('activate', event => {
     const names = (await caches.keys()).filter(name => name.startsWith(PREFIX) || /^sharon-shell-\d+\.\d+\.\d+$/.test(name));
     const previous = names.filter(name => name !== CACHE).at(-1);
     await Promise.all(names.filter(name => name !== CACHE && name !== previous).map(name => caches.delete(name)));
-    // Do not claim an already-open, uncontrolled page or reload an editor.
+    // A waiting update is activated only after the user explicitly requests it.
+    await self.clients.claim();
   })());
 });
 
