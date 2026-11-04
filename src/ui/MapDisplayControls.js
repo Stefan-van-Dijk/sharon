@@ -90,9 +90,8 @@ export function applyMapDisplay(map, value){
       setPaint(id,'circle-stroke-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
     }
   }
-  for(const sourceId of ['sharon-chain-branches','sharon-wikipedia']){
-    updateSourceClustering(map,sourceId,state.clusterPoints);
-  }
+  const clustering=['sharon-chain-branches','sharon-wikipedia'].map(sourceId=>
+    updateSourceClustering(map,sourceId,state.clusterPoints));
   for(const id of ['sharon-chain-clusters','sharon-chain-clusters-count','sharon-wikipedia-clusters','sharon-wikipedia-cluster-count']){
     setLayout(id,'visibility',state.clusterPoints?'visible':'none');
   }
@@ -105,6 +104,7 @@ export function applyMapDisplay(map, value){
   if(map.getLayer?.('sharon-chain-points')){
     setPaint('sharon-chain-points','circle-stroke-color',['case',['==',['get','liked'],1],'#d43e54',['==',['get','status'],'possibly-closed'],'#a2aaa8','#486c65']);
   }
+  return Promise.all(clustering);
 }
 
 const toggles=[
