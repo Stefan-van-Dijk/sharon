@@ -175,13 +175,33 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     schedule();
   };
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
-  listen(select,'change',onSelect);
+  listen(toggle,'click',toggleSource);listen(select,'change',onSelect);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
     if(!field.hidden)focusTextField(search);else{search.value='';drawList();}
   });
   listen(search,'input',drawList);listen(root.querySelector('[data-places-close]'),'click',()=>showSheet(false));
+  // Preserve source controls when mounted outside the full environment view,
+  // too. A completed upward swipe must not synthesize a source-toggle tap.
+  let start=null,suppressClick=false;
+  listen(toggle,'touchstart',event=>{const touch=event.touches?.[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});
+  listen(toggle,'touchend',event=>{
+    const touch=event.changedTouches?.[0];
+    if(start&&touch&&start.y-touch.clientY>35&&Math.abs(touch.clientX-start.x)<start.y-touch.clientY){
+      suppressClick=true;
+      openMenu();
+    }
+    start=null;
+  },{passive:true});
+  listen(toggle,'touchcancel',()=>{start=null;suppressClick=false;},{passive:true});
+  listen(toggle,'click',event=>{
+    if(!suppressClick)return;
+    suppressClick=false;event.stopImmediatePropagation();event.preventDefault();
+  },true);
+  listen(toggle,'keydown',event=>{
+    if(event.key==='ArrowUp'){event.preventDefault();openMenu();}
+  });
   listeners.push(mountSourceSheetHandle(sheet,'[data-places-handle]',()=>showSheet(false)));
   const click=event=>{
     if(!enabled||disposed)return;
