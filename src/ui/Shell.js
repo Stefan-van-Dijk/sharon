@@ -68,7 +68,8 @@ export function createShell(root, {
   let demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
   const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
-  const updateMessage = 'Update gereed. Sluit alle Sharon-vensters en open de app opnieuw.';
+  const updateMessage = 'Nieuwe versie beschikbaar.';
+  navigator.serviceWorker?.addEventListener('controllerchange', () => window.location.reload(), { once: true });
   events.on('app.update.ready', () => {
     const notice = root.querySelector('[data-update-notice]');
     if (notice) { notice.hidden = false; notice.textContent = updateMessage; }
@@ -106,6 +107,7 @@ export function createShell(root, {
     </main>
     </div>
   `;
+  root.querySelector('[data-update-notice]')?.addEventListener('click', () => install.activateUpdate());
 
   const stage = root.querySelector('[data-app-stage]');
   const frame = root.querySelector('[data-app-frame]');
@@ -275,7 +277,7 @@ export function createShell(root, {
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
         <footer class="shell-footer">
-          <span data-update-notice role="status" ${install.getState().updateReady ? '' : 'hidden'}>${install.getState().updateReady ? updateMessage : ''}</span>
+          <button type="button" data-update-notice ${install.getState().updateReady ? '' : 'hidden'}>${install.getState().updateReady ? 'Nieuwe versie installeren' : 'Nieuwe versie installeren'}</button>
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
           <span class="shell-footer-meta">
             <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
