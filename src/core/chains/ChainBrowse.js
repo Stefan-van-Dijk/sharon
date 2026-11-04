@@ -7,10 +7,16 @@ export class ChainBrowse {
   const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,25000);
   try{
   const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,...input}),signal:controller.signal});
-  if(!response.ok&&input.world)return await fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});
   if(!response.ok)throw Error(response.status===503?'De winkelbron is tijdelijk niet beschikbaar.':'Winkelgegevens ophalen is niet gelukt.');
-  const data=await response.json();if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||''))throw Error('Ongeldige winkelgegevens.');return data;
-  }catch(error){if(input.world&&!controller.signal.aborted&&error instanceof TypeError)return await fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});throw error;}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+  const data=await response.json();
+  if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||'')||!Array.isArray(data.points))throw Error('Ongeldige winkelgegevens.');
+  return data;
+  }catch(error){
+    // HTTP, network and invalid world payloads all trigger bounded OSM fallback.
+    if(input.world&&!controller.signal.aborted&&error?.name!=='AbortError')
+      return fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});
+    throw error;
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  }
  async cached(key,input,signal){
   const old=this.cache.get(key);if(old&&this.clock()-old.at<300000)return old.data;
