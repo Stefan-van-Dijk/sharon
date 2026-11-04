@@ -788,7 +788,7 @@ export function openEnvironmentView(root, {
       maxZoom: 22,
       refreshExpiredTiles: true,
       fadeDuration: 100,
-      dragRotate: false,
+      dragRotate: settings?.get().mapDisplay?.allowRotation === true,
       doubleClickZoom: false,
       touchPitch: false,
       maxPitch: 0,
@@ -796,6 +796,11 @@ export function openEnvironmentView(root, {
        attributionControl: { compact: false },
       renderWorldCopies: true
     });
+    // Lock touch rotation independently of pinch zoom, and normalize old camera bearing.
+    if(settings?.get().mapDisplay?.allowRotation !== true){
+      map.touchZoomRotate?.disableRotation?.();
+      map.setBearing?.(0);
+    }
     registerCameraDiagnostics(map);
     // A small independent MapLibre control shares the attribution rail.
     // Only the shell's visible chrome changes, never the map or its sources.
