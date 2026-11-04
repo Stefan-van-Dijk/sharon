@@ -20,7 +20,7 @@ import {
 } from '../core/location/EnvironmentIdentifier.js?v=0.4.62';
 import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.62';
 import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.62';
-import { bindEnvironmentTouchGestures, bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.62';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.62';
 import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.62';
 import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.62';
 import { environmentStyle } from './EnvironmentStyle.js?v=0.4.62';
@@ -770,7 +770,7 @@ export function openEnvironmentView(root, {
       awaitingFirstPosition = false;
     }, reportCameraRequest);
     configureEnvironmentGestures(map);
-    unsubscribers.push(bindEnvironmentTouchGestures(map, stopFollowing));
+    // Native MapLibre gestures replace the old per-touch jumpTo handler.
 
     const updateObjects = async () => {
       const revision = ++objectsRevision;
