@@ -9,7 +9,7 @@ export class ChainBrowse {
   const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,...input}),signal:controller.signal});
   if(!response.ok)throw Error(response.status===503?'De winkelbron is tijdelijk niet beschikbaar.':'Winkelgegevens ophalen is niet gelukt.');
   const data=await response.json();
-  if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||'')||!Array.isArray(data.points))throw Error('Ongeldige winkelgegevens.');
+  if(data.schema!==1||!/^v1-[a-f0-9]{24}$/.test(data.version||'')||(input.action==='map'&&!Array.isArray(data.points)))throw Error('Ongeldige winkelgegevens.');
   return data;
   }catch(error){
     // HTTP, network and invalid world payloads all trigger bounded OSM fallback.
