@@ -488,6 +488,23 @@ export function openEnvironmentView(root, {
     element.addEventListener(name, handler, options);
     earlyListeners.push(() => element.removeEventListener(name, handler, options));
   };
+  // The category-menu trigger is bound before MapLibre starts. Source or
+  // network errors must never leave a visible shop button without a response.
+  listenEarly(root.querySelector('[data-chain-toggle]'),'click',()=>{
+    setFilterMode(true);
+    if(chainLayer){chainLayer.openMenu();return;}
+    const panel=root.querySelector('[data-places-sheet]');
+    const open=!panel?.classList.contains('is-open');
+    closeBoardOrder(root);
+    root.querySelector('[data-source-sheet]')?.classList.remove('is-open');
+    panel?.classList.toggle('is-open',open);
+    panel?.setAttribute('aria-hidden',String(!open));
+    root.querySelector('[data-chain-toggle]')?.setAttribute('aria-expanded',String(open));
+    if(open){
+      const status=root.querySelector('[data-chain-status]');
+      if(status)status.textContent='Winkelcategorieën worden voorbereid. Probeer de kaart opnieuw te openen als dit blijft staan.';
+    }
+  });
   let filterSwipe = null;
   const onFilterStart = event => {
     if (event.touches.length !== 1 || readoutBar.classList.contains('is-style-active')) return;
@@ -799,7 +816,13 @@ export function openEnvironmentView(root, {
       reportDiagnosticStatus('kaartstijl geladen');
       errorBanner.hidden = true;
       installSharonLayers(map, settings?.get().mapDisplay);
+      try {
       chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      } catch(error) {
+        const status=root.querySelector('[data-chain-status]');
+        if(status)status.textContent='Winkels konden niet gestart worden. '+String(error?.message||'Onbekende fout');
+        console.error('Sharon shops initialization failed',error);
+      }
       wikipediaLayer = mountWikipediaLayer(map, lib, { mapDisplay:settings?.get().mapDisplay||{}, language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
       for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
