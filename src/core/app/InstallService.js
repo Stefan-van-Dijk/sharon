@@ -2,6 +2,7 @@ export class InstallService {
   #events;
   #deferredPrompt = null;
   #updateReady = false;
+  #registration = null;
 
   constructor({ events }) {
     this.#events = events;
@@ -29,6 +30,7 @@ export class InstallService {
   }
 
   watchUpdates(registration) {
+    this.#registration = registration;
     const notify = () => {
       if (!registration.waiting || !navigator.serviceWorker.controller) return;
       this.#updateReady = true;
@@ -38,12 +40,16 @@ export class InstallService {
     registration.addEventListener('updatefound', installing);
     installing();
     notify();
-    let checkedAt = Date.now();
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden || Date.now() - checkedAt < 5 * 60_000) return;
-      checkedAt = Date.now();
-      registration.update().catch(() => {});
+      if (!document.hidden) registration.update().catch(() => {});
     });
+  }
+
+  async activateUpdate() {
+    const waiting = this.#registration?.waiting;
+    if (!waiting) return false;
+    waiting.postMessage({ type: 'SHARON_ACTIVATE_UPDATE' });
+    return true;
   }
 
   isInstalled() {
