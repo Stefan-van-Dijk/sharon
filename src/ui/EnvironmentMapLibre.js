@@ -514,7 +514,7 @@ export function openEnvironmentView(root, {
     const dx=(touch?.clientX??shopGesture.x)-shopGesture.x;
     const dy=(touch?.clientY??shopGesture.y)-shopGesture.y;
     shopGesture=null;
-    if(dy < -35 && Math.abs(dx) < -dy){
+    if(dy < -35 && Math.abs(dx) < -dy && !chainLayer){
       suppressShopClickUntil=performance.now()+650;
       if(event.cancelable)event.preventDefault();
       openShopMenu();
@@ -525,14 +525,14 @@ export function openEnvironmentView(root, {
     if(performance.now()<suppressShopClickUntil){
       event.preventDefault();return;
     }
-    if(chainLayer){chainLayer.toggleSource();return;}
+    if(chainLayer)return; // ChainLayer owns the tap once mounted.
     pendingShopEnabled=!pendingShopEnabled;
     shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
     const status=root.querySelector('[data-chain-status]');
     if(status)status.textContent='Winkelbron wordt gestart…';
   });
   listenEarly(shopToggle,'keydown',event=>{
-    if(event.key==='ArrowUp'){event.preventDefault();openShopMenu();}
+    if(event.key==='ArrowUp'&&!chainLayer){event.preventDefault();openShopMenu();}
   });
   let filterSwipe = null;
   const onFilterStart = event => {
