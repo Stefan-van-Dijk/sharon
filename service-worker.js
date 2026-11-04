@@ -198,3 +198,10 @@ self.addEventListener('fetch', event => {
     });
   })());
 });
+
+// Activation is explicitly requested by the user; never replace an open session silently.
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SHARON_ACTIVATE_UPDATE') {
+    event.waitUntil(self.skipWaiting());
+  }
+});
