@@ -72,7 +72,7 @@ export function createShell(root, {
   navigator.serviceWorker?.addEventListener('controllerchange', () => window.location.reload(), { once: true });
   events.on('app.update.ready', () => {
     const notice = root.querySelector('[data-update-notice]');
-    if (notice) { notice.hidden = false; notice.textContent = updateMessage; }
+    if (notice) { notice.hidden = false; notice.textContent = 'Nieuwe versie installeren'; }
   });
 
   document.body.classList.add('sharon-shell-active');
@@ -277,7 +277,7 @@ export function createShell(root, {
 
         ${demoMode ? '<p class="sh-skeleton-home-label">Testomgeving · fictieve gegevens</p>' : ''}
         <footer class="shell-footer">
-          <button type="button" data-update-notice ${install.getState().updateReady ? '' : 'hidden'}>${install.getState().updateReady ? 'Nieuwe versie installeren' : 'Nieuwe versie installeren'}</button>
+          <button type="button" data-update-notice ${install.getState().updateReady ? '' : 'hidden'}>Nieuwe versie installeren</button>
           <span class="location-state" data-message>Locatie wordt bij openen gecontroleerd.</span>
           <span class="shell-footer-meta">
             <button type="button" class="quiet-action" data-location-check>Ververs locatie</button>
