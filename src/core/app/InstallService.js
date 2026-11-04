@@ -3,6 +3,7 @@ export class InstallService {
   #deferredPrompt = null;
   #updateReady = false;
   #registration = null;
+  #activating = false;
 
   constructor({ events }) {
     this.#events = events;
@@ -48,6 +49,10 @@ export class InstallService {
   async activateUpdate() {
     const waiting = this.#registration?.waiting;
     if (!waiting) return false;
+    if (this.#activating) return true;
+    this.#activating = true;
+    // Only the tab that requested installation reloads; other editors stay open.
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
     waiting.postMessage({ type: 'SHARON_ACTIVATE_UPDATE' });
     return true;
   }

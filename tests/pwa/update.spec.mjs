@@ -8,7 +8,7 @@ import { buildSite } from '../../scripts/build-site.mjs';
 const currentVersion = JSON.parse(readFileSync('package.json')).version;
 const nextVersion = currentVersion.replace(/\d+$/, value => Number(value) + 1);
 
-let server, base, root, current, next, legacy, serving, fault = '';
+let server, base, root, current, next, legacy, previous, serving, fault = '';
 test.beforeAll(async () => {
   root = mkdtempSync(resolve('.pwa-test-'));
   current = resolve('_site');
@@ -21,6 +21,9 @@ test.beforeAll(async () => {
   legacy = join(root,'legacy'); mkdirSync(legacy);
   const archive = execFileSync('git',['archive','fb9761ab6b22bb803c24da46131751868cd8d8cf','src','assets','vendor','index.html','manifest.webmanifest','service-worker.js'], {maxBuffer:16*1024*1024});
   execFileSync('tar',['-x','-C',legacy],{input:archive});
+  previous = join(root,'previous');mkdirSync(previous);
+  execFileSync('tar',['-x','-C',previous],{input:execFileSync('git',['archive','f1a3236b3d633ec908ca550f59f3f580069ac3a9'],{maxBuffer:32*1024*1024})});
+  buildSite(previous);previous=join(previous,'_site');
   server = createServer((req,res) => {
     const url = new URL(req.url,'http://local');
     let path = decodeURIComponent(url.pathname).replace(/^\/sharon\//,'');
@@ -94,7 +97,7 @@ test('complete update waits for both tabs, preserves a draft and data, then boot
   await page.getByRole('combobox',{name:'Naam van de kaart',exact:true}).fill('Niet verliezen');
   serving=next;
   expect(await update(page)).toBe('installed');
-  await expect(second.locator('[data-update-notice]')).toContainText('Sluit alle Sharon-vensters');
+  await expect(second.locator('[data-update-notice]')).toContainText('Nieuwe versie installeren');
   await expect(page.getByRole('combobox',{name:'Naam van de kaart',exact:true})).toHaveValue('Niet verliezen');
   await second.reload();await expect(second.locator('.app-version')).toHaveText('v'+currentVersion);
   await second.close();
@@ -110,6 +113,29 @@ test('complete update waits for both tabs, preserves a draft and data, then boot
   },nextVersion)).toBe(true);
   expect(errors).toEqual([]);
 });
+test('update button survives home remount, reloads only requesting tab and preserves storage', async ({page,context}) => {
+  await install(page);
+  await page.evaluate(() => localStorage.setItem('sharon.release-test', 'behouden'));
+  const editor=await context.newPage();await editor.goto(base);
+  await editor.locator('[data-module="cards"]').click();
+  await editor.getByRole('button',{name:'Kaart toevoegen',exact:true}).click();
+  await editor.getByRole('combobox',{name:'Naam van de kaart',exact:true}).fill('Concept behouden');
+  // Remount home to catch listeners attached before or only at the initial render.
+  await page.locator('[data-module="cards"]').click();
+  await page.locator('[data-brand-control]').click();
+  serving=next;expect(await update(page)).toBe('installed');
+  await page.getByRole('button',{name:'Nieuwe versie installeren',exact:true}).click();
+  await expect(page.locator('.app-version')).toHaveText('v'+nextVersion);
+  expect((await storedCard(page)).name).toBe('Behouden pas');
+  expect(await page.evaluate(()=>localStorage.getItem('sharon.release-test'))).toBe('behouden');
+  await expect(editor.getByRole('combobox',{name:'Naam van de kaart',exact:true})).toHaveValue('Concept behouden');
+  await context.setOffline(true);
+  expect(await editor.evaluate(async version=>(await fetch('./src/ui/Brand.js?v='+version)).ok,currentVersion)).toBe(true);
+  await editor.close();await page.reload();
+  await expect(page.locator('.app-version')).toHaveText('v'+nextVersion);
+  expect((await storedCard(page)).name).toBe('Behouden pas');
+});
+
 for (const failure of ['missing','interrupted','hash']) test(`failed ${failure} update retains the old offline release`, async ({page,context}) => {
   await install(page);
   const names=await page.evaluate(()=>caches.keys());
@@ -129,6 +155,16 @@ test('migration from the published 0.3.55 retains private data on offline restar
   await expect(reopened.locator('.app-version')).toHaveText('v'+currentVersion);
   expect((await storedCard(reopened)).name).toBe('Behouden pas');
 });
+test('installed 0.4.64 upgrades to this release after all old clients close, preserving data',async({page,context})=>{
+  serving=previous;await install(page,'0.4.64');
+  serving=current;expect(await update(page)).toBe('installed');
+  await expect(page.locator('.app-version')).toHaveText('v0.4.64');
+  await page.close();await context.setOffline(true);
+  const reopened=await context.newPage();await reopened.goto(base);
+  await expect(reopened.locator('.app-version')).toHaveText('v'+currentVersion);
+  expect((await storedCard(reopened)).name).toBe('Behouden pas');
+});
+
 test('an explicit server rollback is staged and preserves data', async ({page,context}) => {
   serving=next;await install(page,nextVersion);
   serving=current;expect(await update(page)).toBe('installed');
