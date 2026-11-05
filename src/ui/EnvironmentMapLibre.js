@@ -7,6 +7,7 @@ import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.j
 import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.65';
 import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.65';
 import { mountChainLayer } from './ChainLayer.js?v=0.4.65';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.65';
 import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.65';
 import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.65';
 import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.65';
@@ -438,6 +439,8 @@ export function openEnvironmentView(root, {
   let closeLocationDeck = null;
   let wikipediaLayer = null;
   let chainLayer = null;
+  const shopFilters=mountChainFilters(root,{getItems:()=>chainLayer?.filterItems()||[],getCatalog:()=>chainLayer?.filterCatalog()||[],onChange:()=>{if(chainLayer)chainLayer.refreshFilters();else shopFilters.update();}});
+  shopFilters.update();
   let tiqetsLayer = null;
   let tiqetsEnabled = false;
   let closeBoard = null;
@@ -491,7 +494,7 @@ export function openEnvironmentView(root, {
   // categories. Bind before map initialization, so a failed source cannot
   // leave the controls without touch/click feedback.
   const shopToggle=root.querySelector('[data-chain-toggle]');
-  let shopGesture=null, suppressShopClickUntil=0, pendingShopEnabled=false;
+  let shopGesture=null, suppressShopClickUntil=0, pendingShopEnabled=false, shopStartupFailed=false;
   const openShopMenu=()=>{
     setFilterMode(true);
     closeBoardOrder(root);
@@ -503,7 +506,7 @@ export function openEnvironmentView(root, {
     panel?.setAttribute('aria-hidden','false');
     shopToggle?.setAttribute('aria-expanded','true');
     const status=root.querySelector('[data-chain-status]');
-    if(status)status.textContent='Winkelcategorieën worden geladen. Als dit blijft staan, is de winkelbron niet gestart.';
+    if(status)status.textContent=shopStartupFailed?'Winkels zijn niet beschikbaar doordat de kaart niet kon starten.':'Winkelbron wordt gestart…';
   };
   listenEarly(shopToggle,'touchstart',event=>{
     if(event.touches.length!==1){shopGesture=null;return;}
@@ -532,7 +535,7 @@ export function openEnvironmentView(root, {
     pendingShopEnabled=!pendingShopEnabled;
     shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
     const status=root.querySelector('[data-chain-status]');
-    if(status)status.textContent='Winkelbron wordt gestart…';
+    if(status)status.textContent=shopStartupFailed?'Winkels zijn niet beschikbaar doordat de kaart niet kon starten.':'Winkelbron wordt gestart…';
   };
   listenEarly(shopToggle,'click',event=>{
     if(event.detail!==0 && performance.now()<suppressShopClickUntil){event.preventDefault();return;}
@@ -858,7 +861,7 @@ export function openEnvironmentView(root, {
       errorBanner.hidden = true;
       installSharonLayers(map, settings?.get().mapDisplay);
       try {
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,manageToggle:false,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,manageToggle:false,externalFilters:shopFilters,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       if(root.querySelector('[data-places-sheet]')?.getAttribute('aria-hidden')==='false')chainLayer.openMenu();
       else if(pendingShopEnabled&&!initialChainId)chainLayer.toggleSource();
       pendingShopEnabled=false;
@@ -992,6 +995,9 @@ export function openEnvironmentView(root, {
       resizeObserver.observe(mapElement);
     }
   } catch (error) {
+    shopStartupFailed=true;
+    const shopStatus=root.querySelector('[data-chain-status]');
+    if(shopStatus)shopStatus.textContent='Winkels zijn niet beschikbaar doordat de kaart niet kon starten.';
     reportControl('kaart starten mislukt');
     reportDiagnosticError(error);
     reportDiagnosticStatus('kaart starten mislukt');
@@ -1023,6 +1029,7 @@ export function openEnvironmentView(root, {
     wikipediaLayer?.destroy();
     endBoardSession();
     chainLayer?.destroy();
+    shopFilters.destroy();
     closeBoard?.();
     gpsMarker?.remove();
     map?.remove();
