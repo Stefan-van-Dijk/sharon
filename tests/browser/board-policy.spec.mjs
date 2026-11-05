@@ -66,9 +66,16 @@ test('full environment loads real map renderer and discovers shops after a mobil
   await page.addStyleTag({path:resolve('node_modules/maplibre-gl/dist/maplibre-gl.css')});
   await page.evaluate(async version=>{
     document.body.innerHTML='<div class="app-stage is-environment" data-view="detail"><div class="app-frame"><div class="app-view"><main id="host"></main></div></div></div>';
-    const [{openEnvironmentView},{ObjectStore},lib]=await Promise.all([
-      import('/src/ui/EnvironmentMapLibre.js?v='+version),import('/src/core/storage/ObjectStore.js?v='+version),import('/maplibre-test.mjs')]);
+    const [{openEnvironmentView},{ObjectStore},{InformationFeedbackService},{environmentIdForPoint},lib]=await Promise.all([
+      import('/src/ui/EnvironmentMapLibre.js?v='+version),import('/src/core/storage/ObjectStore.js?v='+version),
+      import('/src/core/information/InformationFeedbackService.js?v='+version),import('/src/core/location/EnvironmentIdentifier.js?v='+version),import('/maplibre-test.mjs')]);
     const store=await new ObjectStore().open();
+    const point={lat:52.373,lng:4.892};
+    const row=['branch000001','node/1',environmentIdForPoint(point,6),52373000,4892000,'Bestaande winkel','Voorbeeldstraat','active',1,'2026-11-05T00:00:00Z',''];
+    await store.setMeta('chains.local.v1',{schema:1,chains:{Q1653985:{version:'v1-'+'a'.repeat(24),rows:[row],lastCheckedAt:Date.now(),coverage:'NL'}}});
+    await store.put('objects',{id:'card00000001',type:'card',name:'Testpas',chainId:'Q1653985',cardKind:'loyalty'});
+    const feedback=new InformationFeedbackService(store,{device:async()=>({personId:'person000001',registered:false}),request:async()=>{throw Error('Offline');}});
+    window.stopFeedback=feedback.start(window);await feedback.ready;
     const renderer={...lib,Map:class extends lib.Map{constructor(options){super(options);window.testMap=this;}},setWorkerUrl:()=>lib.setWorkerUrl(location.origin+'/maplibre-test-worker.mjs')};
     const root=document.querySelector('#host');
     window.stopEnvironment=openEnvironmentView(root,{store,events:{on:()=>()=>{},emit(){}},location:{latest:{lat:52.373,lng:4.892}},loadRenderer:async()=>renderer});
@@ -80,10 +87,11 @@ test('full environment loads real map renderer and discovers shops after a mobil
     }
   },version);
   await expect.poll(()=>page.evaluate(()=>Boolean(window.testMap?.getSource('sharon-chain-branches'))),{timeout:20000}).toBe(true);
+  await expect.poll(()=>page.locator('[data-chain-filter] option').count()).toBeGreaterThan(1);
   const button=page.locator('[data-chain-toggle]');
   for(const pressed of ['true','false','true']){await button.tap();await expect(button).toHaveAttribute('aria-pressed',pressed);}
   await expect(page.locator('[data-places-list]')).toContainText('Testwinkel',{timeout:15000});
-  await page.evaluate(()=>window.stopEnvironment());
+  await page.evaluate(()=>{window.stopEnvironment();window.stopFeedback();});
 });
 async function open(page,owner=true){
   await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
