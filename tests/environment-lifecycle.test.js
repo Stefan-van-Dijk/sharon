@@ -16,6 +16,8 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     style: { setProperty: () => {} },
     dataset: {},
     parentElement: { hidden: false },
+    append: () => {},
+    insertAdjacentHTML: () => {},
     querySelector: () => null,
     querySelectorAll: () => []
   });
@@ -24,7 +26,8 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     .map(key => [key, fake(key)]));
   globalThis.cancelAnimationFrame = () => {};
   globalThis.window = { ...fake('window'), location: { search: '' } };
-  globalThis.document = { querySelector: () => ({} ) };
+  let elementId = 0;
+  globalThis.document = { querySelector: () => ({}), createElement: () => fake(`created-${elementId++}`) };
   try {
     const cleanup = openEnvironmentView({ ...fake('root'), innerHTML: '', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
       location: { latest: null }, events: {}, store: { get: async () => null },
@@ -32,6 +35,8 @@ test('closing a loading map immediately cleans up and prevents a late renderer f
     });
     assert.equal(typeof cleanup, 'function', 'shell must receive cleanup before CDN finishes');
     assert.ok(listeners.size >= 1, 'view registers controls while loading');
+    assert.ok([...listeners.keys()].some(key => key.startsWith('created-') && key.endsWith('click')),
+      'shop category controls register listeners before the renderer resolves');
     cleanup(); assert.equal(listeners.size, 0);
     resolveRenderer({ Map: class { constructor() { constructed++; } } });
     await renderer; await Promise.resolve(); await Promise.resolve();
@@ -70,6 +75,8 @@ test('shared map controls are mounted immediately and cleaned up before a late r
     style: { setProperty: () => {} },
     dataset: {},
     parentElement: { hidden: false },
+    append: () => {},
+    insertAdjacentHTML: () => {},
     querySelector: () => null,
     querySelectorAll: () => []
   });
@@ -84,7 +91,8 @@ test('shared map controls are mounted immediately and cleaned up before a late r
     ['.environment-map-top-actions', mapActions]
   ]);
   globalThis.window = { ...fake('window'), location: { search: '' } };
-  globalThis.document = { querySelector: () => ({}) };
+  let elementId = 0;
+  globalThis.document = { querySelector: () => ({}), createElement: () => fake(`created-${elementId++}`) };
   globalThis.cancelAnimationFrame = () => {};
   try {
     const cleanup = openEnvironmentView({ ...fake('root'), innerHTML:'', querySelector: key => key === '[data-map-controls]' ? null : (nodes.get(key) || fake(key)), querySelectorAll: () => [] }, {
