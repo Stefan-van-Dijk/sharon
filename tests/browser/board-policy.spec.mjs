@@ -3,6 +3,7 @@ import {createServer} from 'node:http';
 import {readFileSync,existsSync} from 'node:fs';
 import {resolve,sep} from 'node:path';
 const version=JSON.parse(readFileSync('package.json')).version;
+const appStyles=readFileSync('index.html','utf8').match(/<style>([\s\S]*?)<\/style>/)[1];
 let server,base;
 test.beforeAll(async()=>{
   const root=resolve('_site');
@@ -17,6 +18,29 @@ test.beforeAll(async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
 });
 test.afterAll(async()=>{if(server)await new Promise(r=>server.close(r));});
+
+test('full environment rail exposes a physically tappable shop control while the map is starting',async({page})=>{
+  await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+  await page.goto(base+'/fixture.html');
+  await page.addStyleTag({content:appStyles});
+  await page.evaluate(async version=>{
+    document.body.innerHTML='<div class="app-stage is-environment" data-view="detail"><div class="app-frame"><div class="app-view"><main id="host"></main></div></div></div>';
+    const {openEnvironmentView}=await import('/src/ui/EnvironmentMapLibre.js?v='+version);
+    const root=document.querySelector('#host');
+    window.stopEnvironment=openEnvironmentView(root,{store:{get:async()=>null},events:{on:()=>()=>{}},location:{latest:null},loadRenderer:()=>new Promise(()=>{})});
+    const position=root.querySelector('[data-readout-position]');
+    for(const [type,x] of [['touchstart',240],['touchend',140]]){
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperties(event,{touches:{value:type==='touchstart'?[{clientX:x,clientY:100}]:[]},changedTouches:{value:[{clientX:x,clientY:100}]}});
+      position.dispatchEvent(event);
+    }
+  },version);
+  const button=page.locator('[data-chain-toggle]');
+  await expect(button).toBeVisible();
+  await expect.poll(()=>button.evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===el;})).toBe(true);
+  for(const pressed of ['true','false','true']){await button.tap();await expect(button).toHaveAttribute('aria-pressed',pressed);}
+  await page.evaluate(()=>window.stopEnvironment());
+});
 async function open(page,owner=true){
   await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
   await page.goto(base+'/fixture.html');

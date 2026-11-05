@@ -5,9 +5,10 @@ import {appHarness,until} from '../helpers/app-harness.mjs';
 const version=JSON.parse(readFileSync('package.json')).version;
 const spec=path=>'./src/'+path+'?v='+version;
 function fakeMap(){
- let center={lat:48.857,lng:2.35};const sources=new Map(),layers=new Map(),handlers=new Map();
+ let center={lat:48.857,lng:2.35},styleLoaded=true;const sources=new Map(),layers=new Map(),handlers=new Map();
  return {sources,move(point){center=point;for(const fn of handlers.get('moveend')||[])fn();},
-  getCenter:()=>({...center}),getZoom:()=>8,isStyleLoaded:()=>true,
+  emit(name){for(const fn of handlers.get(name)||[])fn();},setStyleLoaded(value){styleLoaded=value;},
+  getCenter:()=>({...center}),getZoom:()=>8,isStyleLoaded:()=>styleLoaded,
   getBounds:()=>({getWest:()=>center.lng-.005,getEast:()=>center.lng+.005,getSouth:()=>center.lat-.005,getNorth:()=>center.lat+.005}),
   addSource(id,options){sources.set(id,{data:options.data,setData(data){this.data=data;}});},getSource:id=>sources.get(id),
   addLayer(layer){layers.set(layer.id,layer);},getLayer:id=>layers.get(id),setFilter(){},setPaintProperty(){},getCanvas:()=>({style:{}}),
@@ -15,6 +16,23 @@ function fakeMap(){
   off(name,...args){handlers.get(name)?.delete(args.at(-1));},easeTo(){},queryRenderedFeatures:()=>[]};
 }
 const turn=()=>new Promise(resolve=>setTimeout(resolve,40));
+test('Wikipedia retries the latest location when map style loading finishes',async()=>{
+ const app=await appHarness();let layer;
+ try{
+  const map=fakeMap(),calls=[];
+  app.window.fetch=async url=>{const coord=new URL(url).searchParams.get('ggscoord');calls.push(coord);return {ok:true,json:async()=>({query:{pages:{1:{pageid:1,title:'Nieuwe plek',pageprops:{wikibase_item:'Q1987'},coordinates:[{lat:52.5,lon:13.4}]}}}})};};
+  const {mountWikipediaLayer}=await app.load(spec('ui/WikipediaLayer.js'));
+  layer=mountWikipediaLayer(map,{});layer.setEnabled(true);await until(()=>calls.length===1);
+  map.setStyleLoaded(false);map.move({lat:52.5,lng:13.4});await turn();
+  assert.equal(calls.length,1,'no request starts while style is still loading');
+  map.setStyleLoaded(true);map.emit('idle');
+  await until(()=>calls.length===2,'the latest location must load after the style becomes ready');
+  assert.equal(calls[1],'52.5|13.4');
+  map.setStyleLoaded(false);map.move({lat:53,lng:14});await turn();
+  layer.setEnabled(false);map.setStyleLoaded(true);map.emit('idle');await turn();
+  assert.equal(calls.length,2,'turning Wikipedia off cancels the deferred search');
+ }finally{layer?.destroy();app.close();}
+});
 test('shop points survive panning and remounting; source toggles preserve session discoveries and explicit reset clears them',async()=>{
  const app=await appHarness();let layer;
  try{
