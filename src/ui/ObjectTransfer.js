@@ -1,8 +1,8 @@
-import { qrShareKey } from './SharingStatus.js?v=0.4.65';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.65';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.65';
-import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.4.65';
-import { parseCardPayload } from './CardPayload.js?v=0.4.65';
+import { qrShareKey } from './SharingStatus.js?v=0.4.66';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.66';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.66';
+import { saveReceivedCard, saveReceivedLocation, parseLocationPayload } from './ReceivedObjects.js?v=0.4.66';
+import { parseCardPayload } from './CardPayload.js?v=0.4.66';
 const encode=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const decode=text=>Uint8Array.from(atob(text.replace(/-/g,'+').replace(/_/g,'/')),x=>x.charCodeAt(0));
 const digest=text=>crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));

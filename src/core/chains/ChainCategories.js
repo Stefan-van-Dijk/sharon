@@ -23,7 +23,7 @@ export function shopCategory(item, catalog = []) {
   const chain=catalog.find(value=>value.id===chainId);
   const kind=[item.kind,data.kind,chain?.kind].find(value=>typeof value==='string'&&value.trim()&&value.trim().toLowerCase()!=='shop')?.toLowerCase().trim()||'shop';
   // Prefer the actual OSM type; never guess from an unknown brand name.
-  return byKind.get(kind)||offlineCategories[chainId]||'other';
+  return byKind.get(kind)||(Object.hasOwn(offlineCategories,chainId)?offlineCategories[chainId]:'other');
 }
 
 /** Eén rustige 24-pixel lijniconentaal voor filters, kaarten en beide bronnen. */

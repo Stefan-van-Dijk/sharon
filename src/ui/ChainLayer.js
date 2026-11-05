@@ -1,24 +1,24 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.65';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.65';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.65';
-import { focusTextField } from './TextInputFocus.js?v=0.4.65';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.65';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.65';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.65';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.65';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.65';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.65';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.65';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.65';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.65';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.65';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.65';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.65';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.65';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.65';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.66';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.66';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.66';
+import { focusTextField } from './TextInputFocus.js?v=0.4.66';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.66';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.66';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.66';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.66';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.66';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.66';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.66';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.66';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.66';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.66';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.66';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.66';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.66';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.66';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
-export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
+export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',manageToggle=true,externalFilters=null,onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
   const sheet=root.querySelector('[data-places-sheet]'),list=root.querySelector('[data-places-list]'),search=root.querySelector('[data-places-search]');
@@ -33,7 +33,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     const refs=new Set(own.flatMap(item=>[item.data?.branchId,item.data?.sourceRef]).filter(Boolean));
     return [...own,...(selected==='@local'?[]:branches.filter(item=>(!selected||item.chainId===selected)&&!refs.has(item.id)&&!refs.has(item.sourceRef)))];
   };
-  const filters=mountChainFilters(root,{getItems:candidates,getCatalog:()=>catalog,onChange:()=>{draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));}});
+  const filters=externalFilters||mountChainFilters(root,{getItems:candidates,getCatalog:()=>catalog,onChange:()=>{draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));}});
   const paintOptions=()=>{select.replaceChildren(new Option('Alle bekende locaties',''));select.append(new Option('Opgeslagen locaties','@local'));for(const chain of catalog)select.append(new Option(chain.name,chain.id));select.value=selected;};
   const loadArea=async()=>{
     const run=++queryRevision;request?.abort();request=null;
@@ -175,7 +175,8 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     schedule();
   };
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
-  listen(toggle,'click',toggleSource);listen(select,'change',onSelect);
+  listen(select,'change',onSelect);
+  if(manageToggle)listen(toggle,'click',toggleSource);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
@@ -185,6 +186,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   // Preserve source controls when mounted outside the full environment view,
   // too. A completed upward swipe must not synthesize a source-toggle tap.
   let start=null,suppressClick=false;
+  if(manageToggle){
   listen(toggle,'touchstart',event=>{const touch=event.touches?.[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});
   listen(toggle,'touchend',event=>{
     const touch=event.changedTouches?.[0];
@@ -202,6 +204,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   listen(toggle,'keydown',event=>{
     if(event.key==='ArrowUp'){event.preventDefault();openMenu();}
   });
+  }
   listeners.push(mountSourceSheetHandle(sheet,'[data-places-handle]',()=>showSheet(false)));
   const click=event=>{
     if(!enabled||disposed)return;
@@ -237,9 +240,9 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
-  return {openMenu,toggleSource,resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
+  return {openMenu,toggleSource,filterItems:candidates,filterCatalog:()=>catalog,refreshFilters(){draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));},resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
       closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);
-  },closeBoard(){alignment?.destroy();boardRevision++;closeDeck?.();closeDeck=null;activePlace();},handles(event){return enabled&&!disposed&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[points]}).length>0;},destroy(){filters.destroy();alignment?.destroy();disposed=true;revision++;queryRevision++;boardRevision++;request?.abort();clearTimeout(timer);popup?.remove();closeDeck?.();off?.();offCards?.();offPlaces.forEach(off=>off?.());listeners.forEach(off=>off());map.off('click',click);map.off('moveend',draw);map.off('moveend',schedule);}};
+  },closeBoard(){alignment?.destroy();boardRevision++;closeDeck?.();closeDeck=null;activePlace();},handles(event){return enabled&&!disposed&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[points]}).length>0;},destroy(){if(!externalFilters)filters.destroy();alignment?.destroy();disposed=true;revision++;queryRevision++;boardRevision++;request?.abort();clearTimeout(timer);popup?.remove();closeDeck?.();off?.();offCards?.();offPlaces.forEach(off=>off?.());listeners.forEach(off=>off());map.off('click',click);map.off('moveend',draw);map.off('moveend',schedule);}};
 }
