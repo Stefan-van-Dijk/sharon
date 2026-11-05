@@ -13,6 +13,40 @@ async function setup(){
  const card={id:'card00000001',type:'card',name:'Mijn bonuspas',chainId:'Q1653985',cardKind:'loyalty'};await app.store.put('objects',card);
  return {app,events,point,card};
 }
+test('shop toggle and local branch rendering work with the real active feedback service',async()=>{
+ const {app,events,point,card}=await setup();let layer,stopFeedback;
+ try{
+  const {InformationFeedbackService}=await app.load(spec('core/information/InformationFeedbackService.js'));
+  const service=new InformationFeedbackService(app.store,{device:async()=>({personId:'person000001',registered:false}),request:async()=>{throw Error('No network');}});
+  stopFeedback=service.start(app.window);await service.ready;
+  const {informationKey}=await app.load(spec('core/information/InformationItem.js'));
+  service.summaries.set(informationKey({source:'openstreetmap',id:'node/1',uri:'https://www.openstreetmap.org/node/1'}),{own:{liked:true}});
+  app.window.localStorage.setItem('sharon.place.feedback.v1:node/1',JSON.stringify({read:true}));
+  await app.store.put('objects',{...card,personIds:['PersonTest01'],locationId:'TestPlace001'});
+  await app.store.put('objects',{...(await app.store.get('objects','TestPlace001')),personIds:['PersonTest01']});
+  await app.store.put('objects',{id:'PersonTest01',type:'person',data:{name:'Testpersoon'}});
+  const saved=JSON.stringify(await app.store.getAll('objects'));
+  const savedChains=JSON.stringify(await app.store.get('meta','chains.local.v1'));
+  const {mountChainLayer}=await app.load(spec('ui/ChainLayer.js'));
+  const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small>';app.document.body.append(root);
+  const sources=new Map(),handlers=new Map();
+  const map={addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(n,f){handlers.set(n,f);},off(n){handlers.delete(n);},getCenter:()=>point,getZoom:()=>14,queryRenderedFeatures:()=>[]};
+  layer=mountChainLayer(map,{}, {root,store:app.store,events,location:{latest:point}});
+  await until(()=>root.querySelector('select').options.length>1);
+  root.querySelector('[data-chain-toggle]').click();
+  assert.equal(root.querySelector('[data-chain-toggle]').getAttribute('aria-pressed'),'true','shop button activates: '+app.errors.join(' | '));
+  assert.equal(sources.get('sharon-chain-branches').data.features.length,1,'existing branch is rendered');
+  assert.equal(sources.get('sharon-chain-branches').data.features[0].properties.read,1);
+  assert.equal(sources.get('sharon-chain-branches').data.features[0].properties.liked,1);
+  root.querySelector('[data-chain-toggle]').click();
+  assert.equal(root.querySelector('[data-chain-toggle]').getAttribute('aria-pressed'),'false');
+  root.querySelector('[data-chain-toggle]').click();
+  assert.equal(root.querySelector('[data-chain-toggle]').getAttribute('aria-pressed'),'true');
+  assert.equal(JSON.stringify(await app.store.getAll('objects')),saved,'personal objects remain unchanged');
+  assert.equal(JSON.stringify(await app.store.get('meta','chains.local.v1')),savedChains,'saved branches remain unchanged');
+  assert.equal(app.errors.length,0,app.errors.join(' | '));
+ }finally{layer?.destroy();stopFeedback?.();app.close();}
+});
 test('card name recognizes a chain, enables its switch and saves the link',async()=>{
  const {app,events,point,card}=await setup();let close;
  try{

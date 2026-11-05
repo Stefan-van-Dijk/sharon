@@ -1,21 +1,21 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.67';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.67';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.67';
-import { focusTextField } from './TextInputFocus.js?v=0.4.67';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.67';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.67';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.67';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.67';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.67';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.67';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.67';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.67';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.67';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.67';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.67';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.67';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.67';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.67';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.68';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.68';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.68';
+import { focusTextField } from './TextInputFocus.js?v=0.4.68';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.68';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.68';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.68';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.68';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.68';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.68';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.68';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.68';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.68';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.68';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.68';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.68';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.68';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.68';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
 export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',manageToggle=true,externalFilters=null,onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
@@ -111,7 +111,11 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   };
   // Board feedback is written to localStorage immediately; remote summaries may lag.
   const feedbackForBranch=branch=>{
-    const remote=informationFeedback()?.summary({source:'openstreetmap',id:branch.sourceRef})?.own||{};
+    let remote={};
+    try {
+      const ref={source:'openstreetmap',id:branch.sourceRef,uri:'https://www.openstreetmap.org/'+branch.sourceRef};
+      remote=informationFeedback()?.summary(ref)?.own||{};
+    } catch {} // Invalid or unavailable feedback must not disable the source.
     try {return {...remote,...JSON.parse(localStorage.getItem('sharon.place.feedback.v1:'+branch.sourceRef)||'{}')};}
     catch {return remote;}
   };
