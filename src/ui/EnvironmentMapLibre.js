@@ -1,35 +1,35 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.66';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.66';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.66';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.66';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.66';
-import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.66';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.66';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.66';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.66';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.66';
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.66';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.66';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.66';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.66';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.66';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.66';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.66';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.67';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.67';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.67';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.67';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.67';
+import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.67';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.67';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.67';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.67';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.67';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.67';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.67';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.67';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.67';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.67';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.67';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.67';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.66';
-import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.66';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.66';
-import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.66';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.66';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.66';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.66';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.66';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.66';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.67';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.67';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.67';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.67';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.67';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.67';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.67';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.67';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.67';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.66';
+} from './EnvironmentScale.js?v=0.4.67';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';
@@ -246,6 +246,7 @@ export function openEnvironmentView(root, {
 
           </div>
         </div>
+        <small class="environment-shop-error" data-shop-inline-status role="status" hidden></small>
         <section id="environment-board-order" class="environment-source-sheet environment-board-order-sheet" data-board-order-sheet aria-label="Boardinstellingen" aria-hidden="true" hidden>
           <header><strong>Kaartinstellingen</strong><button type="button" data-board-order-close aria-label="Instellingen sluiten">⌄</button></header>
           <div class="sh-map-settings-tabs" role="group" aria-label="Kaartinstellingen">
@@ -494,19 +495,25 @@ export function openEnvironmentView(root, {
   // categories. Bind before map initialization, so a failed source cannot
   // leave the controls without touch/click feedback.
   const shopToggle=root.querySelector('[data-chain-toggle]');
-  let shopGesture=null, suppressShopClickUntil=0, pendingShopEnabled=false, shopStartupFailed=false;
+  let shopGesture=null, suppressShopClickUntil=0, pendingShopEnabled=false, shopStartupFailed=false, shopFailureText='';
+  const showShopFailure=message=>{
+    shopStartupFailed=true;shopFailureText=message;pendingShopEnabled=false;
+    shopToggle?.setAttribute('aria-pressed','false');
+    const status=root.querySelector('[data-chain-status]');if(status)status.textContent=message;
+    const inline=root.querySelector('[data-shop-inline-status]');if(inline){inline.textContent=message;inline.hidden=false;}
+  };
   const openShopMenu=()=>{
     setFilterMode(true);
     closeBoardOrder(root);
     if(chainLayer){chainLayer.openMenu();return;}
-    pendingShopEnabled=true;
-    shopToggle?.setAttribute('aria-pressed','true');
+    pendingShopEnabled=!shopStartupFailed;
+    shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
     const panel=root.querySelector('[data-places-sheet]');
     panel?.classList.add('is-open');
     panel?.setAttribute('aria-hidden','false');
     shopToggle?.setAttribute('aria-expanded','true');
     const status=root.querySelector('[data-chain-status]');
-    if(status)status.textContent=shopStartupFailed?'Winkels zijn niet beschikbaar doordat de kaart niet kon starten.':'Winkelbron wordt gestart…';
+    if(status)status.textContent=shopStartupFailed?shopFailureText:'Winkelbron wordt gestart…';
   };
   listenEarly(shopToggle,'touchstart',event=>{
     if(event.touches.length!==1){shopGesture=null;return;}
@@ -532,10 +539,11 @@ export function openEnvironmentView(root, {
   listenEarly(shopToggle,'touchcancel',()=>{shopGesture=null;},{passive:true});
   const toggleShop=()=>{
     if(chainLayer){chainLayer.toggleSource();return;}
+    if(shopStartupFailed){showShopFailure(shopFailureText);return;}
     pendingShopEnabled=!pendingShopEnabled;
     shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
     const status=root.querySelector('[data-chain-status]');
-    if(status)status.textContent=shopStartupFailed?'Winkels zijn niet beschikbaar doordat de kaart niet kon starten.':'Winkelbron wordt gestart…';
+    if(status)status.textContent='Winkelbron wordt gestart…';
   };
   listenEarly(shopToggle,'click',event=>{
     if(event.detail!==0 && performance.now()<suppressShopClickUntil){event.preventDefault();return;}
@@ -866,13 +874,12 @@ export function openEnvironmentView(root, {
       else if(pendingShopEnabled&&!initialChainId)chainLayer.toggleSource();
       pendingShopEnabled=false;
       } catch(error) {
-        const status=root.querySelector('[data-chain-status]');
-        if(status)status.textContent='Winkels konden niet gestart worden. '+String(error?.message||'Onbekende fout');
+        showShopFailure('Winkels konden niet starten. Open Omgeving opnieuw.');
         console.error('Sharon shops initialization failed',error);
       }
       wikipediaLayer = mountWikipediaLayer(map, lib, { mapDisplay:settings?.get().mapDisplay||{}, language: navigator.language?.split("-")[0] || "nl", onOpen: showBoard, onLoadState: setWikipediaLoadState });
       tiqetsLayer = mountTiqetsLayer(map, {onOpen:showBoard, onState:setTiqetsState});
-      for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) unsubscribers.push(boardSources.register(source));
+      for (const source of [chainLayer, wikipediaLayer, tiqetsLayer]) if(source) unsubscribers.push(boardSources.register(source));
       // Tiqets temporarily excluded from discovery.
       syncWikiFilters();
       if (wikipediaEnabled) wikipediaLayer.setEnabled(true);
@@ -995,9 +1002,7 @@ export function openEnvironmentView(root, {
       resizeObserver.observe(mapElement);
     }
   } catch (error) {
-    shopStartupFailed=true;
-    const shopStatus=root.querySelector('[data-chain-status]');
-    if(shopStatus)shopStatus.textContent='Winkels zijn niet beschikbaar doordat de kaart niet kon starten.';
+    showShopFailure('Winkels zijn niet beschikbaar doordat de kaart niet kon starten.');
     reportControl('kaart starten mislukt');
     reportDiagnosticError(error);
     reportDiagnosticStatus('kaart starten mislukt');

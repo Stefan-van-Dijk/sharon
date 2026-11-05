@@ -1,10 +1,10 @@
-import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.66';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.66';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.66';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.66';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.66';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.66';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.66';
+import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.67';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.67';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.67';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.67';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.67';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.67';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.67';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
@@ -36,7 +36,7 @@ export async function fetchWikipediaPlaces(center, { language = 'nl', signal, fe
 }
 export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay = {}, onOpen = null, onLoadState = null } = {}) {
   const sourceId = 'sharon-wikipedia', layerId = 'sharon-wikipedia-points';
-  let enabled = false, disposed = false, request = null, timeout = null, popup = null;
+  let enabled = false, disposed = false, request = null, timeout = null, popup = null, waitingForStyle = false;
   let currentFeatures = [];
   if(!discoveryMemory.has(language))discoveryMemory.set(language,{features:new Map(),areas:[]});
   const {features:knownFeatures,areas:discoveredAreas}=discoveryMemory.get(language);
@@ -133,7 +133,11 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
   const clear = () => { currentFeatures = []; lastData=''; activeId = null; map.getSource(sourceId)?.setData(EMPTY); };
   const reportLoad = state => { if (typeof onLoadState === 'function') onLoadState(state); };
   const refresh = async () => {
-    if (!enabled || disposed || boardViewportLocked(map) || !map.isStyleLoaded()) return;
+    if (!enabled || disposed || boardViewportLocked(map)) return;
+    // A move may finish while tiles or sources are still loading. Do not lose
+    // the latest search when MapLibre temporarily reports an unready style.
+    if (!map.isStyleLoaded()) { waitingForStyle = true; return; }
+    waitingForStyle = false;
     const center = map.getCenter();
     const radius=analysisFetchRadius(),bounds=map.getBounds?.();
     const covered=discoveredAreas.some(area=>area.radius>=radius&&(
@@ -150,6 +154,7 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
     finally { if (request === controller) { request = null; if (enabled && !disposed && !controller.signal.aborted) reportLoad('idle'); } }
   };
   const schedule = () => { clearTimeout(timeout); if (enabled&&!boardViewportLocked(map)) {redraw();timeout = setTimeout(refresh, 120);} };
+  const onIdle = () => { if (waitingForStyle && enabled && !disposed) schedule(); };
   const click = event => {
     if (!enabled || !map.getLayer(layerId)) return;
     const point = event.point;
@@ -189,14 +194,14 @@ export function mountWikipediaLayer(map, library, { language = 'nl', mapDisplay 
   const stopAreaLock=onBoardViewportLock(map,()=>{if(!boardViewportLocked(map)){schedule();return;}request?.abort();request=null;clearTimeout(timeout);reportLoad('idle');});
   const rangeChanged=()=>{redraw();schedule();};
   window.addEventListener(ANALYSIS_RANGE_EVENT,rangeChanged);
-  map.on('moveend', schedule); map.on('click', click);
+  map.on('moveend', schedule); map.on('idle', onIdle); map.on('click', click);
   const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
   const leave = () => { map.getCanvas().style.cursor = ''; };
   map.on('mouseenter', layerId, enter); map.on('mouseleave', layerId, leave);
   return { resetSession() { request?.abort(); request=null; clearTimeout(timeout); knownFeatures.clear(); discoveredAreas.length=0; clear(); if (enabled) { redraw(); schedule(); } else reportCounts(); }, acceptsBoard,getBoards(){return enabled?[...knownFeatures.values()].filter(acceptsBoard):[];}, handles(event){return enabled&&!!map.getLayer(layerId)&&map.queryRenderedFeatures([[event.point.x-14,event.point.y-14],[event.point.x+14,event.point.y+14]],{layers:[layerId]}).length>0;}, setSort(value) { sortMode = ['discover','nearby','relevant','popular'].includes(value) ? value : 'discover'; if (enabled) redraw(); }, setFilters(values, categories = []) { filters = values || []; categoryFilters = categories; redraw(); }, setActive(feature) {
     activeId = feature ? String(feature.properties?.wikidata || feature.id || '') : null;
     if (map.getLayer(activeLayer)) map.setFilter(activeLayer, ['==', ['get','wikidata'], activeId || '__none__']);
-  }, setEnabled(value) { enabled = Boolean(value); request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout);
+  }, setEnabled(value) { enabled = Boolean(value); waitingForStyle = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout);
       if (enabled) { ensure(); redraw(); schedule(); if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse); } else { clear(); reportCounts(); popup?.remove(); cancelAnimationFrame(pulseFrame); pulseFrame = null; } },
-    destroy() { stopAreaLock();window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged); window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
+    destroy() { stopAreaLock();window.removeEventListener(ANALYSIS_RANGE_EVENT,rangeChanged); window.removeEventListener('sharon-information-changed',onFeedbackChanged); window.removeEventListener('sharon-wiki-feedback-changed',onFeedbackChanged); cancelAnimationFrame(pulseFrame); pulseFrame = null; disposed = true; enabled = false; request?.abort(); request = null; reportLoad('idle'); clearTimeout(timeout); popup?.remove(); map.off('moveend', schedule); map.off('idle', onIdle); map.off('click', click); map.off('mouseenter', layerId, enter); map.off('mouseleave', layerId, leave); } };
 }

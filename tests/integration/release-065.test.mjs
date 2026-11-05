@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {appHarness} from '../helpers/app-harness.mjs';
+import {appHarness,until} from '../helpers/app-harness.mjs';
 const version=JSON.parse(readFileSync('package.json')).version;
 
 test('shop menu opened before renderer readiness remembers enabled state',async t=>{
@@ -63,4 +63,38 @@ test('shop filters remain usable and explain a failed map',async t=>{
   assert.match(root.querySelector('[data-chain-status]').textContent,/kaart niet kon starten/);
   const category=root.querySelector('[data-chain-category="groceries"]');category.click();
   assert.equal(category.getAttribute('aria-pressed'),'true');
+});
+
+test('a shop-layer initialization error stays visible and does not prevent Wikipedia setup',async t=>{
+  const app=await appHarness();t.after(()=>app.close());
+  await app.store.put('objects',{id:'PersonTest01',type:'person',data:{name:'Testpersoon',locationId:'TestPlace001'}});
+  const savedObjects=JSON.stringify(await app.store.getAll('objects'));
+  const {openEnvironmentView}=await app.load('./src/ui/EnvironmentMapLibre.js?v='+version);
+  const root=app.document.createElement('main');app.document.body.append(root);
+  let map;
+  class FakeMap {
+    constructor(options){map=this;this.container=options.container;this.sources=new Map();this.layers=new Map();this.handlers=new Map();
+      this.touchZoomRotate={enable(){},disableRotation(){}};this.dragPan={enable(){}};this.doubleClickZoom={disable(){}};
+      this.scrollZoom={setZoomRate(){},setWheelZoomRate(){}};this.keyboard={disableRotation(){}};}
+    on(name,...args){if(!this.handlers.has(name))this.handlers.set(name,new Set());this.handlers.get(name).add(args.at(-1));}
+    off(name,...args){this.handlers.get(name)?.delete(args.at(-1));}
+    emit(name){for(const fn of this.handlers.get(name)||[])fn();}
+    addSource(id,options){if(id==='sharon-chain-branches')throw Error('shop layer failed');this.sources.set(id,{setData(){},...options});}
+    addLayer(layer){this.layers.set(layer.id,layer);}
+    getSource(id){return this.sources.get(id);} getLayer(id){return this.layers.get(id);}
+    addControl(){} setBearing(){} getZoom(){return 14;} getCenter(){return {lat:52,lng:5};}
+    getContainer(){return this.container;} getCanvas(){return this.container;} getMinZoom(){return 1;} getMaxZoom(){return 22;}
+    getBounds(){return {getWest:()=>4.99,getEast:()=>5.01,getSouth:()=>51.99,getNorth:()=>52.01};}
+    isStyleLoaded(){return true;} setPaintProperty(){} setLayoutProperty(){} setFilter(){} triggerRepaint(){} resize(){} remove(){}
+  }
+  const events={on:()=>()=>{},emit(){}};
+  const stop=openEnvironmentView(root,{store:app.store,location:{latest:{lat:52,lng:5}},events,loadRenderer:async()=>({Map:FakeMap})});t.after(stop);
+  await until(()=>map?.handlers.has('load'),'the environment must attach its map load handler');
+  map.emit('load');
+  const shop=root.querySelector('[data-chain-toggle]');shop.click();
+  assert.equal(shop.getAttribute('aria-pressed'),'false','failed source must not appear enabled');
+  assert.match(root.querySelector('[data-shop-inline-status]').textContent,/Winkels.*niet.*starten/i);
+  root.querySelector('[data-wikipedia-toggle]').click();
+  assert.ok(map.getSource('sharon-wikipedia'),'Wikipedia is still initialized when the shop source fails');
+  assert.equal(JSON.stringify(await app.store.getAll('objects')),savedObjects,'personal objects and links stay intact');
 });

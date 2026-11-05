@@ -3,12 +3,18 @@ import {createServer} from 'node:http';
 import {readFileSync,existsSync} from 'node:fs';
 import {resolve,sep} from 'node:path';
 const version=JSON.parse(readFileSync('package.json')).version;
+const appStyles=readFileSync('index.html','utf8').match(/<style>([\s\S]*?)<\/style>/)[1];
 let server,base;
 test.beforeAll(async()=>{
   const root=resolve('_site');
   server=createServer((req,res)=>{
     const path=new URL(req.url,'http://local').pathname;
     if(path==='/fixture.html'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Board test</title>');return;}
+    if(['/maplibre-test.mjs','/maplibre-test-worker.mjs','/maplibre-gl-shared.mjs'].includes(path)){
+      const name=path.includes('shared')?'maplibre-gl-shared.mjs':path.includes('worker')?'maplibre-gl-worker.mjs':'maplibre-gl.mjs';
+      const file=resolve('node_modules/maplibre-gl/dist',name);
+      res.setHeader('Content-Type','text/javascript');res.end(readFileSync(file));return;
+    }
     const file=resolve(root,'.'+path);
     if(!file.startsWith(root+sep)||!existsSync(file)){res.writeHead(404).end();return;}
     res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'application/octet-stream');
@@ -17,6 +23,68 @@ test.beforeAll(async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
 });
 test.afterAll(async()=>{if(server)await new Promise(r=>server.close(r));});
+
+test('full environment rail exposes a physically tappable shop control while the map is starting',async({page})=>{
+  await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+  await page.goto(base+'/fixture.html');
+  await page.addStyleTag({content:appStyles});
+  await page.evaluate(async version=>{
+    document.body.innerHTML='<div class="app-stage is-environment" data-view="detail"><div class="app-frame"><div class="app-view"><main id="host"></main></div></div></div>';
+    const {openEnvironmentView}=await import('/src/ui/EnvironmentMapLibre.js?v='+version);
+    const root=document.querySelector('#host');
+    window.stopEnvironment=openEnvironmentView(root,{store:{get:async()=>null},events:{on:()=>()=>{}},location:{latest:null},loadRenderer:()=>new Promise(()=>{})});
+    const position=root.querySelector('[data-readout-position]');
+    for(const [type,x] of [['touchstart',240],['touchend',140]]){
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperties(event,{touches:{value:type==='touchstart'?[{clientX:x,clientY:100}]:[]},changedTouches:{value:[{clientX:x,clientY:100}]}});
+      position.dispatchEvent(event);
+    }
+  },version);
+  const button=page.locator('[data-chain-toggle]');
+  await expect(button).toBeVisible();
+  await expect.poll(()=>button.evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===el;})).toBe(true);
+  for(const pressed of ['true','false','true']){await button.tap();await expect(button).toHaveAttribute('aria-pressed',pressed);}
+  await page.evaluate(()=>window.stopEnvironment());
+});
+
+test('full environment loads real map renderer and discovers shops after a mobile tap',async({page})=>{
+  const versionId='v1-'+'a'.repeat(24);
+  await page.route('**/*',route=>{
+    const url=new URL(route.request().url());
+    if(url.origin===base)return route.continue();
+    if(url.hostname==='tiles.openfreemap.org'&&url.pathname==='/planet')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*'},json:{tilejson:'2.2.0',tiles:['https://tiles.openfreemap.org/{z}/{x}/{y}.pbf'],minzoom:0,maxzoom:14}});
+    if(url.hostname==='tiles.openfreemap.org')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*'}});
+    if(url.hostname==='sharon.life'&&url.pathname.endsWith('/chains.php')){
+      const input=JSON.parse(route.request().postData()||'{}');
+      const data=input.action==='catalog'?{schema:1,version:versionId,chains:[]}:{schema:1,version:versionId,coverage:'WORLD',points:[['shoptest0001','',4892000,52373000,'Testwinkel','node/123']],truncated:false};
+      return route.fulfill({status:200,headers:{'access-control-allow-origin':'*'},json:data});
+    }
+    return route.abort();
+  });
+  await page.goto(base+'/fixture.html');
+  await page.addStyleTag({content:appStyles});
+  await page.addStyleTag({path:resolve('node_modules/maplibre-gl/dist/maplibre-gl.css')});
+  await page.evaluate(async version=>{
+    document.body.innerHTML='<div class="app-stage is-environment" data-view="detail"><div class="app-frame"><div class="app-view"><main id="host"></main></div></div></div>';
+    const [{openEnvironmentView},{ObjectStore},lib]=await Promise.all([
+      import('/src/ui/EnvironmentMapLibre.js?v='+version),import('/src/core/storage/ObjectStore.js?v='+version),import('/maplibre-test.mjs')]);
+    const store=await new ObjectStore().open();
+    const renderer={...lib,Map:class extends lib.Map{constructor(options){super(options);window.testMap=this;}},setWorkerUrl:()=>lib.setWorkerUrl(location.origin+'/maplibre-test-worker.mjs')};
+    const root=document.querySelector('#host');
+    window.stopEnvironment=openEnvironmentView(root,{store,events:{on:()=>()=>{},emit(){}},location:{latest:{lat:52.373,lng:4.892}},loadRenderer:async()=>renderer});
+    const position=root.querySelector('[data-readout-position]');
+    for(const [type,x] of [['touchstart',240],['touchend',140]]){
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperties(event,{touches:{value:type==='touchstart'?[{clientX:x,clientY:100}]:[]},changedTouches:{value:[{clientX:x,clientY:100}]}});
+      position.dispatchEvent(event);
+    }
+  },version);
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.testMap?.getSource('sharon-chain-branches'))),{timeout:20000}).toBe(true);
+  const button=page.locator('[data-chain-toggle]');
+  for(const pressed of ['true','false','true']){await button.tap();await expect(button).toHaveAttribute('aria-pressed',pressed);}
+  await expect(page.locator('[data-places-list]')).toContainText('Testwinkel',{timeout:15000});
+  await page.evaluate(()=>window.stopEnvironment());
+});
 async function open(page,owner=true){
   await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
   await page.goto(base+'/fixture.html');
