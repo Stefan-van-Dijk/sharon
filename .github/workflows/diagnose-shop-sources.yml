@@ -1,0 +1,48 @@
+name: Diagnose openbare winkelbronnen
+
+on:
+  push:
+    branches:
+      - diagnostics/shop-sources-20261105
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Test publieke voorbeeldlocatie zonder gebruikersgegevens
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const api = 'https://sharon.life/log/api/chains.php';
+          const origins = [
+            ['live', 'https://stefan-van-dijk.github.io'],
+            ['test', 'https://sharon-vergelijking-0461-20261105.stefanvandijk953328.chatgpt.site']
+          ];
+          const bounds = [4.890,52.371,4.895,52.374]; // openbare voorbeeldlocatie
+          async function request(label,url,options) {
+            try {
+              const response = await fetch(url,{...options,signal:AbortSignal.timeout(30000)});
+              const raw = await response.text(); let data;
+              try { data=JSON.parse(raw); } catch { data=null; }
+              console.log(JSON.stringify({label,status:response.status,contentType:response.headers.get('content-type'),
+                allowOrigin:response.headers.get('access-control-allow-origin'),
+                schema:data?.schema??null,coverage:data?.coverage??null,
+                count:Array.isArray(data?.points)?data.points.length:Array.isArray(data?.elements)?data.elements.length:null,
+                truncated:data?.truncated??null,error:typeof data?.error==='string'?data.error:null,
+                remark:Boolean(data?.remark)}));
+            } catch(error) { console.log(JSON.stringify({label,error:String(error?.name||'Error')})); }
+          }
+          for (const [label,origin] of origins) {
+            await request(label+'-preflight',api,{method:'OPTIONS',headers:{Origin:origin,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+            await request(label+'-world',api,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({schema:1,action:'map',bounds,chainId:'',world:true})});
+          }
+          await request('live-nl',api,{method:'POST',headers:{Origin:origins[0][1],'Content-Type':'application/json'},body:JSON.stringify({schema:1,action:'map',bounds,chainId:''})});
+          const overpass = new URL('https://overpass-api.de/api/interpreter');
+          overpass.searchParams.set('data','[out:json][timeout:8];nwr["shop"]["shop"!~"^(no|vacant)$"](52.371,4.890,52.374,4.895);out body center 2001;');
+          for (const [label,origin] of origins) await request(label+'-overpass',overpass,{headers:{Origin:origin}});
+          NODE
