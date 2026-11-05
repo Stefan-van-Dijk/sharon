@@ -45,4 +45,8 @@ jobs:
           const overpass = new URL('https://overpass-api.de/api/interpreter');
           overpass.searchParams.set('data','[out:json][timeout:8];nwr["shop"]["shop"!~"^(no|vacant)$"](52.371,4.890,52.374,4.895);out body center 2001;');
           for (const [label,origin] of origins) await request(label+'-overpass',overpass,{headers:{Origin:origin}});
+          for (const endpoint of ['https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter']) {
+            const alt=new URL(endpoint);alt.searchParams.set('data',overpass.searchParams.get('data'));
+            await request(new URL(endpoint).hostname+'-test-origin',alt,{headers:{Origin:origins[1][1]}});
+          }
           NODE
