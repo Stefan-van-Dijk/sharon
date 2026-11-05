@@ -18,7 +18,7 @@ import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.65';
 import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.65';
 let discoveryBrowse=new ChainBrowse();
 const discoveredBranches=new Map();
-export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
+export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',manageToggle=true,onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
   const sheet=root.querySelector('[data-places-sheet]'),list=root.querySelector('[data-places-list]'),search=root.querySelector('[data-places-search]');
@@ -175,7 +175,8 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     schedule();
   };
   const onSelect=()=>{selected=select.value;popup?.remove();draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));schedule();};
-  listen(toggle,'click',toggleSource);listen(select,'change',onSelect);
+  listen(select,'change',onSelect);
+  if(manageToggle)listen(toggle,'click',toggleSource);
   listen(root.querySelector('[data-places-search-toggle]'),'click',()=>{
     const field=root.querySelector('[data-places-search-field]'),button=root.querySelector('[data-places-search-toggle]');
     if(!field)return;field.hidden=!field.hidden;button.setAttribute('aria-expanded',String(!field.hidden));
@@ -185,6 +186,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   // Preserve source controls when mounted outside the full environment view,
   // too. A completed upward swipe must not synthesize a source-toggle tap.
   let start=null,suppressClick=false;
+  if(manageToggle){
   listen(toggle,'touchstart',event=>{const touch=event.touches?.[0];start=touch?{x:touch.clientX,y:touch.clientY}:null;suppressClick=false;},{passive:true});
   listen(toggle,'touchend',event=>{
     const touch=event.changedTouches?.[0];
@@ -202,6 +204,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   listen(toggle,'keydown',event=>{
     if(event.key==='ArrowUp'){event.preventDefault();openMenu();}
   });
+  }
   listeners.push(mountSourceSheetHandle(sheet,'[data-places-handle]',()=>showSheet(false)));
   const click=event=>{
     if(!enabled||disposed)return;

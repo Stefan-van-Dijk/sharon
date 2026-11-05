@@ -516,25 +516,30 @@ export function openEnvironmentView(root, {
     const dx=(touch?.clientX??shopGesture.x)-shopGesture.x;
     const dy=(touch?.clientY??shopGesture.y)-shopGesture.y;
     shopGesture=null;
-    if(dy < -35 && Math.abs(dx) < -dy && !chainLayer){
+    if(dy < -35 && Math.abs(dx) < -dy){
       suppressShopClickUntil=performance.now()+650;
       if(event.cancelable)event.preventDefault();
       openShopMenu();
+    } else if(Math.abs(dx)<15 && Math.abs(dy)<15){
+      suppressShopClickUntil=performance.now()+650;
+      if(event.cancelable)event.preventDefault();
+      toggleShop();
     }
   },{passive:false});
   listenEarly(shopToggle,'touchcancel',()=>{shopGesture=null;},{passive:true});
-  listenEarly(shopToggle,'click',event=>{
-    if(performance.now()<suppressShopClickUntil){
-      event.preventDefault();return;
-    }
-    if(chainLayer)return; // ChainLayer owns the tap once mounted.
+  const toggleShop=()=>{
+    if(chainLayer){chainLayer.toggleSource();return;}
     pendingShopEnabled=!pendingShopEnabled;
     shopToggle?.setAttribute('aria-pressed',String(pendingShopEnabled));
     const status=root.querySelector('[data-chain-status]');
     if(status)status.textContent='Winkelbron wordt gestart…';
+  };
+  listenEarly(shopToggle,'click',event=>{
+    if(event.detail!==0 && performance.now()<suppressShopClickUntil){event.preventDefault();return;}
+    toggleShop();
   });
   listenEarly(shopToggle,'keydown',event=>{
-    if(event.key==='ArrowUp'&&!chainLayer){event.preventDefault();openShopMenu();}
+    if(event.key==='ArrowUp'){event.preventDefault();openShopMenu();}
   });
   let filterSwipe = null;
   const onFilterStart = event => {
@@ -853,7 +858,7 @@ export function openEnvironmentView(root, {
       errorBanner.hidden = true;
       installSharonLayers(map, settings?.get().mapDisplay);
       try {
-      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
+      chainLayer=mountChainLayer(map,lib,{store,events,location,root,mapDisplay:settings?.get().mapDisplay||{},initialChainId,manageToggle:false,onFocus:()=>{followingPosition=false;awaitingFirstPosition=false;cameraControls?.reset();},onOpen:showBoard,beforeOpen:()=>{closeBoard?.();closeLocationDeck?.();popup?.remove();}});
       if(root.querySelector('[data-places-sheet]')?.getAttribute('aria-hidden')==='false')chainLayer.openMenu();
       else if(pendingShopEnabled&&!initialChainId)chainLayer.toggleSource();
       pendingShopEnabled=false;

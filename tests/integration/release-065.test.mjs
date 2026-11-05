@@ -28,3 +28,22 @@ test('rotation preference persists through settings reopen without changing pers
   assert.equal(reopened.get().mapDisplay.allowRotation,true);
   assert.equal(JSON.stringify(await app.store.getAll('objects')),before);
 });
+
+test('environment shop touch handles taps without click and swipe without toggling',async t=>{
+  const app=await appHarness();t.after(()=>app.close());
+  const {openEnvironmentView}=await app.load('./src/ui/EnvironmentMapLibre.js?v='+version);
+  const root=app.document.createElement('main');app.document.body.append(root);
+  const stop=openEnvironmentView(root,{store:app.store,location:{latest:null},events:{on:()=>()=>{}},loadRenderer:()=>new Promise(()=>{})});t.after(stop);
+  const button=root.querySelector('[data-chain-toggle]');
+  const touch=(type,x,y)=>{const e=new app.window.Event(type,{bubbles:true,cancelable:true});Object.defineProperties(e,{touches:{value:type==='touchstart'?[{clientX:x,clientY:y}]:[]},changedTouches:{value:[{clientX:x,clientY:y}]}});button.dispatchEvent(e);};
+  touch('touchstart',100,100);touch('touchend',100,100);
+  assert.equal(button.getAttribute('aria-pressed'),'true');
+  assert.equal(root.querySelector('[data-places-sheet]').getAttribute('aria-hidden'),'true');
+  button.dispatchEvent(new app.window.MouseEvent('click',{bubbles:true,cancelable:true,detail:1}));
+  assert.equal(button.getAttribute('aria-pressed'),'true','a touch-generated click must not toggle twice');
+  touch('touchstart',100,100);touch('touchend',100,100);
+  assert.equal(button.getAttribute('aria-pressed'),'false');
+  touch('touchstart',100,100);touch('touchend',100,50);
+  assert.equal(button.getAttribute('aria-pressed'),'true');
+  assert.equal(root.querySelector('[data-places-sheet]').getAttribute('aria-hidden'),'false');
+});
