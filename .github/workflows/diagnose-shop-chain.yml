@@ -1,0 +1,48 @@
+name: Diagnose werkelijke winkellaadketen
+
+on:
+  push:
+    branches: [diagnostics/shop-sources-20261105]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Controleer historische en actuele winkelzoekcode
+        shell: bash
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/sharon-0461" 361e3370da94357fd0a510895ca580a03bd67fd5
+          node --input-type=module <<'NODE'
+          import {pathToFileURL} from 'node:url';
+          const versions=[['0.4.61',process.env.RUNNER_TEMP+'/sharon-0461'],['0.4.67',process.env.GITHUB_WORKSPACE]];
+          const bounds=[4.890,52.371,4.895,52.374]; // openbare voorbeeldlocatie
+          const origin='https://stefan-van-dijk.github.io';
+          for(const [version,dir] of versions){
+            const calls=[];
+            const fetcher=async(url,options={})=>{
+              const service=new URL(url).hostname;
+              try{
+                const response=await fetch(url,{...options,headers:{...options.headers,Origin:origin}});
+                calls.push({service,status:response.status,allowOrigin:response.headers.get('access-control-allow-origin')});
+                return response;
+              }catch(error){calls.push({service,error:error.name});throw error;}
+            };
+            const {ChainBrowse}=await import(pathToFileURL(dir+'/src/core/chains/ChainBrowse.js'));
+            const start=Date.now();
+            try{
+              const result=await new ChainBrowse({fetcher}).area(bounds);
+              console.log(JSON.stringify({version,seconds:(Date.now()-start)/1000,count:result.points.length,truncated:result.truncated,message:result.message,calls}));
+            }catch(error){console.log(JSON.stringify({version,seconds:(Date.now()-start)/1000,error:error.message,calls}));}
+          }
+          NODE
