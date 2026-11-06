@@ -10,8 +10,11 @@
     "test:integration": "node --experimental-vm-modules --test tests/integration/*.test.mjs",
     "check:source": "node scripts/check-syntax.mjs && node scripts/check-imports.mjs && node scripts/check-version.mjs",
     "build": "node scripts/build-site.mjs",
-    "verify": "npm run check:source && npm test && npm run build && npm run test:integration && node scripts/verify-site.mjs",
-    "test:boards": "playwright test --config playwright.boards.config.mjs"
+    "verify": "npm run verify:app && npm run test:intro",
+    "test:boards": "playwright test --config playwright.boards.config.mjs",
+    "test:preview": "node scripts/ai-test-preview.mjs",
+    "verify:app": "npm run check:source && npm test && npm run build && npm run test:integration && node scripts/verify-site.mjs",
+    "test:intro": "node --experimental-vm-modules --test tests/intro/*.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
