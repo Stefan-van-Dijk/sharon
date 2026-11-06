@@ -56,7 +56,7 @@ function chain_register(string $path, ?callable $download=null, ?int $clock=null
             touch($path.'.checked',$now);
             try{
                 $raw=$download?$download():file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/'.$source,false,
-                    stream_context_create(['http'=>['timeout'=>12,'follow_location'=>0,'header'=>"User-Agent: Sharon-chain-register/1.0\r\n"]]),0,$maxBytes+1);
+                    stream_context_create(['http'=>['timeout'=>28,'follow_location'=>0,'header'=>"User-Agent: Sharon-chain-register/1.0\r\n"]]),0,$maxBytes+1);
                 if(!is_string($raw)||strlen($raw)>$maxBytes)throw new RuntimeException('Register download failed');
                 $fresh=json_decode($raw,true,128,JSON_THROW_ON_ERROR);
                 if(!is_array($fresh))throw new RuntimeException('Invalid register');
@@ -102,7 +102,7 @@ function chain_browse_detail(array $data,string $id,string $directory,?callable 
     if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new RuntimeException('Storage unavailable');
     if(is_link($directory)||is_link($path))throw new RuntimeException('Invalid storage');
     if(!is_file($path)){
-        $raw=$download?$download($name):file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/browse-details/'.$name,false,stream_context_create(['http'=>['timeout'=>12,'follow_location'=>0]]),0,2000001);
+        $raw=$download?$download($name):file_get_contents('https://raw.githubusercontent.com/Stefan-van-Dijk/sharon/data/osm-chains-nl/browse-details/'.$name,false,stream_context_create(['http'=>['timeout'=>28,'follow_location'=>0]]),0,2000001);
         if(!is_string($raw)||strlen($raw)>2000000||!hash_equals($data['detailFiles'][$id[0]],hash('sha256',$raw)))throw new RuntimeException('Incomplete details');
         $temp=$path.'.'.bin2hex(random_bytes(6)).'.tmp';if(file_put_contents($temp,$raw,LOCK_EX)===false)throw new RuntimeException('Commit failed');@chmod($temp,0600);if(!rename($temp,$path)){@unlink($temp);throw new RuntimeException('Commit failed');}
     }
@@ -216,24 +216,31 @@ function world_shop_result(array $data,array $in,?callable $identity=null):array
 final class WorldShopSourceFailure extends RuntimeException {
     public function __construct(public readonly array $diagnostics){parent::__construct('Source unavailable');}
 }
-// GET works on shared hosting that restricts outbound POST; cURL does not
-// depend on allow_url_fopen. Both transports retain TLS checks and byte limits.
-function world_shop_download(string $query,string $endpoint):string {
-    $url=$endpoint.'?'.http_build_query(['data'=>$query]);
+// POST keeps Overpass QL out of URLs. GET is only used for an explicit
+// method/content-type rejection; do not retry a rate-limited provider.
+function world_shop_download(string $query,string $endpoint,string $method='POST'):string {
+    $body=http_build_query(['data'=>$query]);
+    $url=$method==='GET'?$endpoint.'?'.$body:$endpoint;
     $headers=['Accept: application/json','User-Agent: Sharon/1.0 (+https://sharon.life)'];
+    if($method==='POST')$headers[]='Content-Type: application/x-www-form-urlencoded';
     if(function_exists('curl_init')){
         $handle=curl_init($url);$raw='';
         try{
-            curl_setopt_array($handle,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers,
+            curl_setopt_array($handle,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>28,CURLOPT_HTTPHEADER=>$headers,CURLOPT_ENCODING=>'',
                 CURLOPT_WRITEFUNCTION=>static function($handle,$chunk)use(&$raw){if(strlen($raw)+strlen($chunk)>5000000)return 0;$raw.=$chunk;return strlen($chunk);}]);
+            if($method==='POST')curl_setopt_array($handle,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body]);
             if(curl_exec($handle)===false)throw new RuntimeException(match(curl_errno($handle)){CURLE_OPERATION_TIMEDOUT=>'timeout',CURLE_SSL_CONNECT_ERROR,CURLE_PEER_FAILED_VERIFICATION=>'tls',default=>'connection'});
-            $status=(int)curl_getinfo($handle,CURLINFO_RESPONSE_CODE);if($status!==200)throw new RuntimeException('http_'.$status);
+            $status=(int)curl_getinfo($handle,CURLINFO_RESPONSE_CODE);
+            if($method==='POST'&&in_array($status,[405,415],true))return world_shop_download($query,$endpoint,'GET');
+            if($status!==200)throw new RuntimeException('http_'.$status);
             return $raw;
         }finally{curl_close($handle);}
     }
-    $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>'GET','timeout'=>10,'follow_location'=>0,'header'=>implode("\r\n",$headers)."\r\n"]]),0,5000001);
+    $raw=@file_get_contents($url,false,stream_context_create(['http'=>['method'=>$method,'content'=>$method==='POST'?$body:'','timeout'=>28,'follow_location'=>0,'ignore_errors'=>true,'header'=>implode("\r\n",$headers)."\r\n"]]),0,5000001);
+    $status=0;if(preg_match('/HTTP\/\S+ ([0-9]{3})/',$http_response_header[0]??'',$match))$status=(int)$match[1];
+    if($method==='POST'&&in_array($status,[405,415],true))return world_shop_download($query,$endpoint,'GET');
+    if($status!==0&&$status!==200)throw new RuntimeException('http_'.$status);
     if(!is_string($raw)){
-        $status=0;if(preg_match('/HTTP\/\S+ ([0-9]{3})/',$http_response_header[0]??'',$match))$status=(int)$match[1];
         $warning=strtolower(error_get_last()['message']??'');
         throw new RuntimeException($status>=400?'http_'.$status:(str_contains($warning,'timed out')?'timeout':((str_contains($warning,'ssl')||str_contains($warning,'certificate'))?'tls':'connection')));
     }

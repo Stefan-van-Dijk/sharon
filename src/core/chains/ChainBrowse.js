@@ -1,10 +1,10 @@
-import {fetchShopSource} from './ShopSource.js?v=0.4.68';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.68';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.68';
+import {fetchShopSource} from './ShopSource.js?v=0.4.69';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.69';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.69';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
  async request(input,signal){
-  const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,25000);
+  const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,60000);
   try{
   const response=await this.fetcher(CHAIN_ENDPOINT,{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,...input}),signal:controller.signal});
   if(!response.ok)throw Error(response.status===503?'De winkelbron is tijdelijk niet beschikbaar.':'Winkelgegevens ophalen is niet gelukt.');
@@ -13,8 +13,11 @@ export class ChainBrowse {
   return data;
   }catch(error){
     // HTTP, network and invalid world payloads all trigger bounded OSM fallback.
-    if(input.world&&!controller.signal.aborted&&error?.name!=='AbortError')
-      return fetchShopSource(input,{fetcher:this.fetcher,signal:controller.signal});
+    if(input.world&&!signal?.aborted){
+      // A server timeout must not consume the direct source attempt's budget.
+      clearTimeout(timer);signal?.removeEventListener('abort',abort);
+      return fetchShopSource(input,{fetcher:this.fetcher,signal});
+    }
     throw error;
   }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  }
