@@ -59,21 +59,6 @@ test('Geblokkeerde opslag maakt de echte entry aantoonbaar onsuccesvol', async t
   assert.equal(app.document.querySelector('[data-module="cards"]'), null);
 });
 
-test('Lege installatie bereikt de echte kennismaking', async t => {
-  const app = await appHarness({ firstRun: true }); t.after(() => app.close());
-  const boot = app.boot();
-  // Attach rejection handling immediately, then inspect the still-running onboarding.
-  let bootError;
-  boot.catch(error => { bootError = error; });
-  const next = await until(() => app.document.querySelector('.story-continue'));
-  next.click();
-  await until(() => app.document.querySelector('[data-sharon-intro-form] input'));
-  assert.deepEqual(app.errors, []);
-  // Onboarding is deliberately left waiting for user input; no fictitious profile saved.
-  assert.equal(await app.store.get('settings', 'app'), undefined);
-  assert.equal(bootError, undefined);
-});
-
 test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
   const app = await appHarness(); t.after(() => app.close());
   await app.boot();

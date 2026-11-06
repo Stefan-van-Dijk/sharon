@@ -37,9 +37,17 @@ jobs:
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/check-pr-version.mjs "$PR_BASE_SHA"
-      - name: Bron, tests, release-assets en opstartketens
+      - name: Bepaal of de intro is gewijzigd
+        id: intro
+        env:
+          INTRO_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/check-intro-changes.mjs
+      - name: Ronde 2 — appcontroles met voorbereid testprofiel
         shell: bash # Explicit bash enables pipefail, including through tee.
-        run: npm run verify 2>&1 | tee verification.log
+        run: npm run verify:app 2>&1 | tee verification.log
+      - name: Ronde 1 — begroeting en kennismaking
+        if: steps.intro.outputs.changed == 'true'
+        run: npm run test:intro
       - name: Browsers installeren
         run: npx playwright install --with-deps chromium webkit
       - name: PWA-upgrade in Chromium

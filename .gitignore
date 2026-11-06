@@ -6,3 +6,5 @@ _site/
 .pwa-test-*/
 test-results/
 playwright-report/
+
+.ai-test-site/
