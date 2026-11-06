@@ -290,17 +290,22 @@ test('shop discovery stays within 10 km while the session remembers distant disc
   await until(()=>root.querySelector('[data-places-list]').textContent.includes('Dichtbij'));
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'),'session list retains distant cached locations');
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Buiten de straal'),'session list is not cropped to the active map');
+  await until(()=>!/(aanvullen|ophalen)/.test(root.querySelector('[data-chain-status]').textContent));
   const first=calls.find(q=>q.action==='map');assert.ok(first.bounds[2]-first.bounds[0]<.3);assert.ok(first.bounds[3]-first.bounds[1]<.2);
   [...root.querySelectorAll('[data-places-list] button')].find(b=>b.textContent.includes('Albert Heijn')).click();
   assert.equal(focused,1);assert.deepEqual(Array.from(camera.at(-1).center),[5,52]);layer.closeBoard();
   center={lat:53,lng:5};for(const fn of handlers.get('moveend'))fn();
-  await until(()=>calls.filter(q=>q.action==='map').length===2);
+  await until(()=>calls.some(q=>q.action==='map'&&q.bounds[1]>52.5));
+  await until(()=>!/(aanvullen|ophalen)/.test(root.querySelector('[data-chain-status]').textContent));
+  const loadedCalls=calls.filter(q=>q.action==='map').length;
+  assert.ok(loadedCalls<=18,'at most nine small areas per viewport');
+  assert.ok(calls.filter(q=>q.action==='map').every(q=>q.bounds[2]-q.bounds[0]<=0.020000001&&q.bounds[3]-q.bounds[1]<=0.020000001));
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Dichtbij'),'previously discovered shop stays in session');
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
   zoom=5;for(const fn of handlers.get('moveend'))fn();
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.ok(!root.querySelector('[data-chain-status]').textContent.includes('Zoom verder'));
-  assert.equal(calls.filter(q=>q.action==='map').length,2);
+  assert.equal(calls.filter(q=>q.action==='map').length,loadedCalls);
  }finally{layer?.destroy();app.close();}
 });
 

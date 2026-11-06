@@ -42,7 +42,9 @@ test('shop points survive panning and remounting; source toggles preserve sessio
   const root=app.document.createElement('div');root.innerHTML='<button data-chain-toggle></button><select data-chain-filter></select><small data-chain-status></small>';app.document.body.append(root);
   const open=()=>{const l=mountChainLayer(map,{}, {root,store:app.store});root.querySelector('[data-chain-toggle]').click();return l;};
   layer=open();await until(()=>layer.getBoards().length===1);
-  map.move({lat:52.5,lng:13.4});await until(()=>layer.getBoards().some(p=>p.name==='Berlin shop'));
+  const settled=()=>until(()=>!/(aanvullen|ophalen)/.test(root.querySelector('[data-chain-status]').textContent));
+  await settled();
+  map.move({lat:52.5,lng:13.4});await until(()=>layer.getBoards().some(p=>p.name==='Berlin shop'));await settled();
   assert.equal(map.sources.get('sharon-chain-branches').data.features.length,2,'both cities remain in the render source');
   assert.equal(layer.getBoards().length,2,'board list includes discoveries from both visited areas');
   const before=calls.filter(q=>q.action==='map').length;

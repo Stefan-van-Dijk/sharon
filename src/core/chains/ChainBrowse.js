@@ -1,8 +1,8 @@
-import {fetchShopSource} from './ShopSource.js?v=0.4.69';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.69';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.69';
+import {fetchShopSource} from './ShopSource.js?v=0.4.70';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.70';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.70';
 export class ChainBrowse {
- constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now()}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];}
+ constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now(),requestIntervalMs=1100}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];this.requestIntervalMs=requestIntervalMs;this.lastMapRequestAt=0;}
  async request(input,signal){
   const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,60000);
   try{
@@ -28,6 +28,25 @@ export class ChainBrowse {
  }
  async catalog(signal){let data;try{data=await this.cached('catalog',{action:'catalog'},signal);}catch(error){if(signal?.aborted)throw error;this.cache.set('catalog',{at:this.clock(),data:{chains:CHAIN_CATALOG}});return CHAIN_CATALOG;}
   if(!Array.isArray(data.chains)||data.chains.some(c=>!c||typeof c.id!=='string'||typeof c.name!=='string'))throw Error('Ongeldige ketencatalogus.');return data.chains;
+ }
+ async progressiveArea(bounds,chainId='',signal,onProgress=()=>{}){
+  const plan=shopAreaPlan(bounds),points=new Map();let truncated=false,message='',incomplete=plan.incomplete;
+  for(let index=0;index<plan.boxes.length;index++){
+   if(signal?.aborted)throw new DOMException('Aborted','AbortError');
+   const box=plan.boxes[index];
+   const known=this.areas.some(a=>!a.fallback&&!a.data.truncated&&(a.chainId===chainId||a.chainId==='')&&box[0]>=a.bounds[0]&&box[1]>=a.bounds[1]&&box[2]<=a.bounds[2]&&box[3]<=a.bounds[3]);
+   if(!known&&this.lastMapRequestAt){const ms=this.requestIntervalMs-(this.clock()-this.lastMapRequestAt);if(ms>0)await waitForShopRequest(ms,signal);}
+   if(!known)this.lastMapRequestAt=this.clock();
+   const result=await this.area(box,chainId,signal);
+   if(signal?.aborted)throw new DOMException('Aborted','AbortError');
+   for(const p of result.points){if(points.size<2000||points.has(p.sourceRef))points.set(p.sourceRef,p);else truncated=true;}
+   if(points.size>=2000&&index<plan.boxes.length-1)incomplete=true;
+   truncated||=result.truncated;message=result.message||message;
+   const progress={points:[...points.values()],truncated,message,incomplete,loading:points.size<2000&&index<plan.boxes.length-1,loaded:index+1,total:plan.boxes.length};
+   onProgress(progress);
+   if(points.size>=2000)break;
+  }
+  return {points:[...points.values()],truncated,message,incomplete,loading:false};
  }
  async area(bounds,chainId='',signal,visibleBounds=bounds){
   const needed=[Math.max(bounds[0],visibleBounds[0]),Math.max(bounds[1],visibleBounds[1]),Math.min(bounds[2],visibleBounds[2]),Math.min(bounds[3],visibleBounds[3])];
@@ -105,4 +124,26 @@ export function subtractShopBounds(box,covered){
  const [w,s,e,n]=box,[a,b,c,d]=covered,x=Math.max(w,a),y=Math.max(s,b),u=Math.min(e,c),v=Math.min(n,d);
  if(x>=u||y>=v)return [box];
  return [[w,s,x,n],[u,s,e,n],[x,s,u,y],[x,v,u,n]].filter(r=>r[0]<r[2]&&r[1]<r[3]);
+}
+
+// Stable small cells let nearby viewports reuse coverage. Only intersecting
+// rectangles are requested; wide views explicitly remain partially searched.
+export function shopAreaPlan(bounds){
+ const [w,s,e,n]=bounds,step=0.02;
+ if(![w,s,e,n].every(Number.isFinite)||w>=e||s>=n||e-w>1||n-s>1)throw Error('Ongeldig winkelgebied');
+ const boxes=[],cx=(w+e)/2,cy=(s+n)/2;
+ for(let x=Math.floor(w/step);x<Math.ceil(e/step);x++)for(let y=Math.floor(s/step);y<Math.ceil(n/step);y++){
+  const box=[Math.max(w,x*step),Math.max(s,y*step),Math.min(e,(x+1)*step),Math.min(n,(y+1)*step)];
+  if(box[0]<box[2]&&box[1]<box[3])boxes.push(box);
+ }
+ boxes.sort((a,b)=>Math.hypot((a[0]+a[2])/2-cx,(a[1]+a[3])/2-cy)-Math.hypot((b[0]+b[2])/2-cx,(b[1]+b[3])/2-cy));
+ return {boxes:boxes.slice(0,9),incomplete:boxes.length>9};
+}
+function waitForShopRequest(ms,signal){
+ return new Promise((resolve,reject)=>{
+  if(signal?.aborted){reject(new DOMException('Aborted','AbortError'));return;}
+  const abort=()=>{clearTimeout(timer);reject(new DOMException('Aborted','AbortError'));};
+  const timer=setTimeout(()=>{signal?.removeEventListener('abort',abort);resolve();},ms);
+  signal?.addEventListener('abort',abort,{once:true});
+ });
 }
