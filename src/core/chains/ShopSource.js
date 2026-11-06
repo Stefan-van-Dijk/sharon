@@ -1,4 +1,4 @@
-import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.68';
+import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.69';
 const identities=new Map();
 function identity(ref){
  if(identities.has(ref))return identities.get(ref);
@@ -16,19 +16,31 @@ export async function fetchShopSource(input,{fetcher=fetch,signal}={}){
   const b=input.bounds;if(!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite)||b[0]>=b[2]||b[1]>=b[3]||b[0]<-180||b[2]>180||b[1]<-90||b[3]>90||b[2]-b[0]>1||b[3]-b[1]>1)throw Error('Ongeldig winkelgebied');
   if(input.chainId&&!/^Q[1-9][0-9]*$/.test(input.chainId))throw Error('Deze merkfilter vereist het register');
   const brand=input.chainId?'["brand:wikidata"="'+input.chainId+'"]':'';
-  selector='nwr["shop"]["shop"!~"^(no|vacant)$"]'+brand+'('+[b[1],b[0],b[3],b[2]].join(',')+')';
+  const box='('+[b[1],b[0],b[3],b[2]].join(',')+')';
+  selector='(nwr["shop"]["shop"!~"^(no|vacant)$"]'+brand+box+';nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'+brand+box+';)';
  }
  const query='[out:json][timeout:8];'+selector+';out body center 2001;';
- const response=await fetcher('https://overpass-api.de/api/interpreter?'+new URLSearchParams({data:query}),{signal,credentials:'omit',referrerPolicy:'no-referrer'});
- if(!response.ok)throw Error('Winkelbron tijdelijk niet bereikbaar');const source=await response.json();
- if(source.remark||!Array.isArray(source.elements))throw Error('Onvolledige winkelgegevens');
+ const controller=new AbortController(),abort=()=>controller.abort();
+ if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});
+ const timer=setTimeout(abort,28000);
+ let source;
+ try{
+  const endpoint='https://overpass.private.coffee/api/interpreter';
+  const options={signal:controller.signal,credentials:'omit',referrerPolicy:'origin',redirect:'error'};
+  let response=await fetcher(endpoint,{...options,method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({data:query}).toString()});
+  if([405,415].includes(response.status))response=await fetcher(endpoint+'?'+new URLSearchParams({data:query}),options);
+  if(!response.ok)throw Error('Winkelbron tijdelijk niet bereikbaar');source=await response.json();
+  if(source.remark||!Array.isArray(source.elements))throw Error('Onvolledige winkelgegevens');
+ }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  const points=[],kinds={},details={};
  for(const e of source.elements.slice(0,2000)){
-  const t=e.tags||{},lat=e.lat??e.center?.lat,lng=e.lon??e.center?.lon;
-  if(!['node','way','relation'].includes(e.type)||!Number.isSafeInteger(e.id)||!t.shop||['no','vacant'].includes(t.shop)||!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+  const t=e.tags||{},lat=e.lat??e.center?.lat,lng=e.lon??e.center?.lon,kind=t.shop||t.amenity;
+  const allowed=Boolean(t.shop)||['restaurant','cafe','fast_food','bar','pub','pharmacy','fuel','charging_station','bank','post_office'].includes(kind);
+  if(!['node','way','relation'].includes(e.type)||!Number.isSafeInteger(e.id)||!allowed||['no','vacant'].includes(kind)||!Number.isFinite(lat)||!Number.isFinite(lng))continue;
   const ref=e.type+'/'+e.id,id=input.action==='detail'&&ref===input.sourceRef?input.id:identity(ref),chainId=/^Q[1-9][0-9]*$/.test(t['brand:wikidata']||'')?t['brand:wikidata']:'';
-  const name=String(t.name||t.brand||t.shop);points.push([id,chainId,Math.round(lng*1e6),Math.round(lat*1e6),name,ref]);kinds[id]=t.shop;
-  details[id]={id,chainId,sourceRef:ref,kind:t.shop,address:['addr:street','addr:housenumber','addr:postcode','addr:city'].map(k=>t[k]).filter(Boolean).join(' '),openingHours:t.opening_hours||'',website:t.website||t['contact:website']||''};
+  if(input.chainId&&chainId!==input.chainId)continue;
+  const name=String(t.name||t.brand||kind);points.push([id,chainId,Math.round(lng*1e6),Math.round(lat*1e6),name,ref]);kinds[id]=kind;
+  details[id]={id,chainId,sourceRef:ref,kind,address:['addr:street','addr:housenumber','addr:postcode','addr:city'].map(k=>t[k]).filter(Boolean).join(' '),openingHours:t.opening_hours||'',website:t.website||t['contact:website']||''};
  }
  return {schema:1,version:'v1-'+'0'.repeat(24),coverage:'WORLD',points,kinds,truncated:source.elements.length>2000,...(input.action==='detail'?{detail:details[input.id]}:{})};
 }

@@ -26,3 +26,16 @@ test('worldwide shop discovery falls back after invalid response payload',async(
   assert.equal(data.points.length,1);
   assert.equal(count,2);
 });
+
+test('server timeout leaves an independent direct-source budget while user cancellation stays final',async()=>{
+ const calls=[];
+ const browse=new ChainBrowse({fetcher:async(url,options)=>{
+  calls.push({url,signal:options.signal});
+  if(url.includes('chains.php'))throw new DOMException('Server timeout','AbortError');
+  assert.equal(options.signal.aborted,false);
+  return {ok:true,json:async()=>({elements:[{type:'node',id:123,lat:51.22,lon:4.4,tags:{shop:'bakery',name:'Bakker'}}]})};
+ }});
+ const result=await browse.area([4.39,51.21,4.41,51.23]);
+ assert.equal(result.points[0].name,'Bakker');assert.equal(calls.length,2);
+ assert.notEqual(calls[0].signal,calls[1].signal);
+});
