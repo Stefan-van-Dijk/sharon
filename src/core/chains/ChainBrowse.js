@@ -1,7 +1,7 @@
-import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.4.71';
-import {fetchShopSource} from './ShopSource.js?v=0.4.71';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.71';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.71';
+import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.4.72';
+import {fetchShopSource} from './ShopSource.js?v=0.4.72';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.72';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.72';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now(),requestIntervalMs=1100,forceRefresh=false,useAreaStorage=false}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];this.requestIntervalMs=requestIntervalMs;this.lastMapRequestAt=0;this.shopStorage=new EnvironmentShopCache(fetcher);this.forceRefresh=forceRefresh;this.useAreaStorage=useAreaStorage;}
  async request(input,signal){
@@ -135,15 +135,20 @@ export function subtractShopBounds(box,covered){
 // Stable small cells let nearby viewports reuse coverage. Only intersecting
 // rectangles are requested; wide views explicitly remain partially searched.
 export function shopAreaPlan(bounds){
- const [w,s,e,n]=bounds,step=0.02;
+ const [w,s,e,n]=bounds,step=0.004;
  if(![w,s,e,n].every(Number.isFinite)||w>=e||s>=n||e-w>1||n-s>1)throw Error('Ongeldig winkelgebied');
  const boxes=[],cx=(w+e)/2,cy=(s+n)/2;
- for(let x=Math.floor(w/step);x<Math.ceil(e/step);x++)for(let y=Math.floor(s/step);y<Math.ceil(n/step);y++){
+ const xs=Array.from({length:Math.ceil(e/step)-Math.floor(w/step)},(_,i)=>Math.floor(w/step)+i);
+ const ys=Array.from({length:Math.ceil(n/step)-Math.floor(s/step)},(_,i)=>Math.floor(s/step)+i);
+ const total=xs.length*ys.length;
+ xs.sort((a,b)=>Math.abs((a+.5)*step-cx)-Math.abs((b+.5)*step-cx));
+ ys.sort((a,b)=>Math.abs((a+.5)*step-cy)-Math.abs((b+.5)*step-cy));
+ for(const x of xs.slice(0,4))for(const y of ys.slice(0,4)){
   const box=[Math.max(w,x*step),Math.max(s,y*step),Math.min(e,(x+1)*step),Math.min(n,(y+1)*step)];
   if(box[0]<box[2]&&box[1]<box[3])boxes.push(box);
  }
  boxes.sort((a,b)=>Math.hypot((a[0]+a[2])/2-cx,(a[1]+a[3])/2-cy)-Math.hypot((b[0]+b[2])/2-cx,(b[1]+b[3])/2-cy));
- return {boxes:boxes.slice(0,9),incomplete:boxes.length>9};
+ return {boxes:boxes.slice(0,4),incomplete:total>4};
 }
 function waitForShopRequest(ms,signal){
  return new Promise((resolve,reject)=>{
