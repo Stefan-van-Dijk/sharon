@@ -352,12 +352,24 @@ test('card barcode stays clear of footer controls and empty code opens editing',
 });
 
 // Browser-engine comparison; standalone flag emulation is not a physical iOS install.
-for(const standalone of [false,true])test(`shop discovery and category gestures with standalone=${standalone}`,async({page})=>{
+for(const standalone of [false,true])for(const stored of [false,true])test(`shop discovery and category gestures with standalone=${standalone}, stored=${stored}`,async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(value=>Object.defineProperty(navigator,'standalone',{value,configurable:true}),standalone);
+  const sourceCalls=[];
+  // The optional area store is part of the request chain too. Every external
+  // route in this fixture must be explicit, including unavailable responses.
+  await page.route('https://sharon.life/environment/api/tiles.php',async route=>{
+    const headers={'access-control-allow-origin':'*','access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'Content-Type'};
+    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers});
+    const input=route.request().postDataJSON();
+    expect(['shops-read','shops-refresh']).toContain(input.action);
+    if(!stored)return route.fulfill({status:503,headers,json:{error:'shop_area_unavailable'}});
+    await route.fulfill({headers,json:{schema:1,storage:'environment-shops-v1',version:'v1-'+'b'.repeat(24),coverage:'WORLD',stale:false,truncated:false,
+      points:[['ShopTest0001','',5000000,52000000,'Testwinkel','node/1']],kinds:{ShopTest0001:'supermarket'}}});
+  });
   await page.route('https://sharon.life/log/api/chains.php',async route=>{
-    const {action}=route.request().postDataJSON();
-    await route.fulfill({json:{schema:1,version:'v1-'+'a'.repeat(24),coverage:'WORLD',
+    const {action}=route.request().postDataJSON();sourceCalls.push(action);
+    await route.fulfill({headers:{'access-control-allow-origin':'*'},json:{schema:1,version:'v1-'+'a'.repeat(24),coverage:'WORLD',
       ...(action==='map'?{points:[['ShopTest0001','',5000000,52000000,'Testwinkel','node/1']],kinds:{ShopTest0001:'supermarket'}}:{chains:[]})}});
   });
   await page.goto(base+'/fixture.html');
@@ -389,5 +401,7 @@ for(const standalone of [false,true])test(`shop discovery and category gestures 
   await expect(page.locator('[data-places-list]')).toContainText('Testwinkel');
   expect(await page.locator('[data-chain-category]').count()).toBeGreaterThan(5);
   await page.evaluate(()=>window.shopLayer.destroy());
+  if(stored)expect(sourceCalls.filter(action=>action==='map')).toEqual([]);
+  else expect(sourceCalls.filter(action=>action==='map').length).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });

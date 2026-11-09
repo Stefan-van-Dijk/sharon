@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.70';
-import { renderCardCode } from './CardCodes.js?v=0.4.70';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.4.70';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.70';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.70';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.70';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.4.71';
+import { renderCardCode } from './CardCodes.js?v=0.4.71';
+import { wrapBoardSurface } from './BoardChrome.js?v=0.4.71';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.4.71';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.4.71';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.71';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};

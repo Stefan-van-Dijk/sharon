@@ -412,6 +412,79 @@ function serve_file(string $path, string $cacheState = 'HIT'): never {
     exit;
 }
 
+// Public shop snapshots use the existing four-character geographic identifier.
+function environment_shop_id(float $lng,float $lat):string {
+    $west=-180.;$south=-90.;$width=360.;$height=180.;$id='';
+    for($i=0;$i<2;$i++){$width/=64;$height/=64;$x=min(63,max(0,(int)floor(($lng-$west)/$width)));$y=min(63,max(0,(int)floor(($lat-$south)/$height)));$id.=SHARON_ENV_ALPHABET[$x].SHARON_ENV_ALPHABET[$y];$west+=$x*$width;$south+=$y*$height;}
+    return $id;
+}
+function environment_shop_parts(array $bounds):array {
+    if(count($bounds)!==4||!array_is_list($bounds))throw new InvalidArgumentException('invalid_bounds');
+    foreach($bounds as $v)if(!is_numeric($v)||!is_finite((float)$v))throw new InvalidArgumentException('invalid_bounds');
+    [$w,$s,$e,$n]=array_map('floatval',$bounds);
+    if($w < -180||$e>180||$s < -90||$n>90||$w>=$e||$s>=$n||$e-$w>1||$n-$s>1)throw new InvalidArgumentException('invalid_bounds');
+    $parts=[];
+    for($x=(int)floor(($w+180)/360*4096);$x<(int)ceil(($e+180)/360*4096);$x++)for($y=(int)floor(($s+90)/180*4096);$y<(int)ceil(($n+90)/180*4096);$y++){
+        $a=$x/4096*360-180;$b=$y/4096*180-90;
+        $id=environment_shop_id($a+360/8192,$b+180/8192);
+        $parts[$id]=[max($w,$a),max($s,$b),min($e,$a+360/4096),min($n,$b+180/4096)];
+    }
+    if(count($parts)>512)throw new InvalidArgumentException('area_too_large');
+    return $parts;
+}
+function environment_shop_snapshot(string $directory,array $bounds,?int $now=null):?array {
+    $now??=time();$points=[];$kinds=[];$observed=[];$fresh=true;$found=false;
+    foreach(environment_shop_parts($bounds) as $id=>$part){
+        $path=$directory.'/'.$id.'.json';$row=null;
+        if(is_link($path))throw new RuntimeException('Invalid storage');
+        if(is_file($path)){if(filesize($path)>8000000)throw new RuntimeException('Area full');$row=json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR);$found=true;}
+        $covered=false;
+        foreach($row['coverage']??[] as $coverage){$b=$coverage['bounds'];if($b[0]<=$part[0]&&$b[1]<=$part[1]&&$b[2]>=$part[2]&&$b[3]>=$part[3]&&strtotime('+2 months',(int)$coverage['checkedAt'])>$now){$covered=true;break;}}
+        $fresh=$fresh&&$covered;
+        foreach($row['points']??[] as $ref=>$point){if($point[2]>=$bounds[0]*1e6&&$point[2]<=$bounds[2]*1e6&&$point[3]>=$bounds[1]*1e6&&$point[3]<=$bounds[3]*1e6){if(!isset($observed[$ref])||($row['observedAt'][$ref]??0)>=$observed[$ref]){$points[$ref]=$point;$observed[$ref]=$row['observedAt'][$ref]??0;$kinds[$point[0]]=$row['kinds'][$point[0]]??'shop';}}}
+    }
+    if(!$found)return null;
+    $truncated=count($points)>2000;
+    return ['schema'=>1,'storage'=>'environment-shops-v1','coverage'=>'WORLD','version'=>'v1-'.substr(hash('sha256',json_encode([$points,$kinds])),0,24),'points'=>array_slice(array_values($points),0,2000),'kinds'=>$kinds,'truncated'=>$truncated,'stale'=>!$fresh,'attribution'=>'© OpenStreetMap contributors'];
+}
+function environment_shop_save(string $directory,array $bounds,array $data,?int $now=null):void {
+    $now??=time();$parts=environment_shop_parts($bounds);
+    foreach($parts as $id=>$part){
+        $path=$directory.'/'.$id.'.json';if(is_link($path))throw new RuntimeException('Invalid storage');
+        $row=is_file($path)?json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR):['id'=>$id,'points'=>[],'kinds'=>[],'coverage'=>[]];
+        // Keep old records: one absent source observation is not proof of closure.
+        foreach($data['points'] as $p)if(environment_shop_id($p[2]/1e6,$p[3]/1e6)===$id){$row['points'][$p[5]]=$p;$row['observedAt'][$p[5]]=$now;$row['kinds'][$p[0]]=$data['kinds'][$p[0]]??'shop';}
+        if(($data['truncated']??true)===false){$row['coverage']=array_values(array_filter($row['coverage'],fn($c)=>$c['bounds']!==$part));$row['coverage'][]=['bounds'=>$part,'checkedAt'=>$now];$row['coverage']=array_slice($row['coverage'],-256);$row['lastCheckedAt']=$now;}
+        $row['updatedAt']=$now;$row['source']='openstreetmap';$row['license']='ODbL-1.0';
+        if(strlen(json_encode($row))>8000000)throw new RuntimeException('Area full');
+        if(!write_json_file($path,$row))throw new RuntimeException('Commit failed');
+    }
+}
+function environment_shop_handle(array $body,string $root):array {
+    $bounds=$body['bounds']??[];environment_shop_parts($bounds);$directory=$root.'/shops';
+    if(!is_dir($directory)&&!mkdir($directory,0755,true)&&!is_dir($directory))throw new RuntimeException('Storage unavailable');
+    if(is_link($directory))throw new RuntimeException('Invalid storage');
+    $cached=environment_shop_snapshot($directory,$bounds);
+    if(($body['action']??'')==='shops-read'){if(!$cached)throw new RuntimeException('area_missing');return $cached;}
+    if(($body['action']??'')!=='shops-refresh')throw new InvalidArgumentException('invalid_action');
+    $force=($body['force']??false)===true;
+    if($cached&&!$cached['stale']&&!$force)return $cached;
+    if(is_link($directory.'/.refresh.lock'))throw new RuntimeException('Invalid storage');
+    $lock=fopen($directory.'/.refresh.lock','c+');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB))throw new RuntimeException('Source busy');
+    try{
+        $cached=environment_shop_snapshot($directory,$bounds);
+        if($cached&&!$cached['stale']&&!$force)return $cached;
+        // Reuse the installed source/identity service; chains.php itself is unchanged.
+        if(!defined('SHARON_CHAINS_LIBRARY_ONLY'))define('SHARON_CHAINS_LIBRARY_ONLY',true);
+        $library=is_file(__DIR__.'/chains.php')?__DIR__.'/chains.php':dirname(__DIR__,2).'/log/api/chains.php';
+        require_once $library;
+        $data=world_shop_fetch(['schema'=>1,'world'=>true,'action'=>'map','bounds'=>$bounds,'chainId'=>''],dirname($library,2).'/private/chains/world-cache');
+        environment_shop_save($directory,$bounds,$data);
+        $result=environment_shop_snapshot($directory,$bounds);$result['truncated']=$data['truncated'];return $result;
+    }finally{flock($lock,LOCK_UN);fclose($lock);}
+}
+if(defined('SHARON_ENV_LIBRARY_ONLY'))return;
+
 $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
 if ($origin !== '' && in_array($origin, SHARON_ENV_ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
@@ -448,6 +521,11 @@ if ($method === 'GET') {
         json_response(400, ['error' => 'JSON-body ontbreekt.']);
     }
 
+    if(in_array($body['action']??'', ['shops-read','shops-refresh'],true)){
+        try{json_response(200,environment_shop_handle($body,dirname(__DIR__)),['Cache-Control: no-store']);}
+        catch(InvalidArgumentException $e){json_response(400,['error'=>$e->getMessage()]);}
+        catch(Throwable $e){json_response($e->getMessage()==='area_missing'?404:503,['error'=>'shop_area_unavailable']);}
+    }
     $id = trim((string)($body['id'] ?? ''));
     $scaleId = trim((string)($body['scale'] ?? ''));
 } else {

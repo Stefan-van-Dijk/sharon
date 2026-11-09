@@ -1,23 +1,24 @@
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.70';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.70';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.70';
-import { focusTextField } from './TextInputFocus.js?v=0.4.70';
-import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.70';
-import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.70';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.70';
-import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.70';
-import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.70';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.70';
-import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.70';
-import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.70';
-import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.70';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.70';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.70';
-import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.70';
-import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.70';
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.70';
-let discoveryBrowse=new ChainBrowse();
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.71';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.71';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.71';
+import { focusTextField } from './TextInputFocus.js?v=0.4.71';
+import { inAnalysisRange, analysisFetchRadius, analysisRangeLabel, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.71';
+import { SHOP_CATEGORIES, shopCategory, registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.71';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.71';
+import { sortBoards, boardOrderMode, BOARD_ORDER_EVENT, loadBoardSummaries } from './BoardOrder.js?v=0.4.71';
+import { closeBoardOrder } from './BoardOrderControls.js?v=0.4.71';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.71';
+import { ChainBrowse, shopViewportBounds } from '../core/chains/ChainBrowse.js?v=0.4.71';
+import { placeHidden, activePlace } from './PlaceFeedback.js?v=0.4.71';
+import { OSM_MAP_CREDIT } from './EnvironmentAttribution.js?v=0.4.71';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.71';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.71';
+import { localBranches, saveBranchLocation } from '../core/chains/ChainModel.js?v=0.4.71';
+import { CHAIN_CATALOG } from '../core/chains/ChainCatalog.js?v=0.4.71';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.4.71';
+let discoveryBrowse=new ChainBrowse({useAreaStorage:true});
 const discoveredBranches=new Map();
+let lastShopReset=0;
 export function mountChainLayer(map,library,{store,events,location,root,mapDisplay={},initialChainId='',manageToggle=true,externalFilters=null,onFocus=()=>{},beforeOpen=()=>{},onOpen=null}={}){
   const toggle=root.querySelector('[data-chain-toggle]'),select=root.querySelector('[data-chain-filter]'),status=root.querySelector('[data-chain-status]');
   let enabled=Boolean(initialChainId),selected=initialChainId,branches=[],disposed=false,popup=null,revision=0,focusPending=Boolean(initialChainId),places=[],closeDeck=null;
@@ -57,6 +58,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
     try{const area=await browse.progressiveArea(bounds,selected,signal,applyArea);applyArea(area);}
     catch(error){if(disposed||run!==queryRevision||signal.aborted)return;loadMessage=error.message+' Lokale gegevens blijven beschikbaar.';draw();}
   };
+  browse.onStoredUpdate=()=>{if(!disposed)schedule();};
   const schedule=()=>{clearTimeout(timer);if(!disposed&&!boardViewportLocked(map))timer=setTimeout(loadArea,400);};
   listeners.push(onBoardViewportLock(map,()=>{if(!boardViewportLocked(map)){schedule();return;}queryRevision++;request?.abort();request=null;clearTimeout(timer);}));
   const listen=(node,name,fn,options)=>{node?.addEventListener(name,fn,options);listeners.push(()=>node?.removeEventListener(name,fn,options));};
@@ -252,7 +254,7 @@ export function mountChainLayer(map,library,{store,events,location,root,mapDispl
   listen(window,'sharon-place-feedback-changed',event=>{draw();if(event.detail?.hidden)activePlace();});
   refresh().catch(()=>{status.hidden=false;status.textContent='Lokale winkelgegevens zijn niet beschikbaar.';});
   const getBoards=()=>enabled?candidates().filter(item=>filters.matches(item)):[];
-  return {openMenu,toggleSource,filterItems:candidates,filterCatalog:()=>catalog,refreshFilters(){draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));},resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse();const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
+  return {openMenu,toggleSource,filterItems:candidates,filterCatalog:()=>catalog,refreshFilters(){draw();window.dispatchEvent(new CustomEvent('sharon-chain-filters-changed'));},resetSession(){queryRevision++;request?.abort();request=null;clearTimeout(timer);discoveredBranches.clear();remote=[];browse=discoveryBrowse=new ChainBrowse({useAreaStorage:true,forceRefresh:Date.now()-lastShopReset<5000});lastShopReset=Date.now();browse.onStoredUpdate=()=>{if(!disposed)schedule();};const merged=new Map(local.map(item=>[item.sourceRef,item]));branches=[...merged.values()];loadMessage='';draw();schedule();},getBoards,acceptsBoard(item){return enabled&&(!selected||selected==='@local'&&item.type==='location'||item.chainId===selected||item.data?.chainId===selected)&&filters.matches(item);},allowsLocation(item){return !placeHidden(item);},openBoard(item,navigation){
     if(item.type==='location'){
       closeDeck=openLocationDeck({store,objects:[item],selected:{properties:{id:item.id}},map,location,events,navigation,category:SHOP_CATEGORIES[shopCategory(item,catalog)],onLocation:place=>focus(place.data.coordinates)});
     }else showBranch(item,null,navigation);
