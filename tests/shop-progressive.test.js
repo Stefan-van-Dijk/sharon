@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ChainBrowse,shopAreaPlan} from '../src/core/chains/ChainBrowse.js';
-const bounds=[4.395,51.215,4.425,51.245];
+const bounds=[4.401,51.221,4.405,51.225];
 test('small boxes cover the viewport exactly and wide views stay explicitly incomplete',()=>{
  const plan=shopAreaPlan(bounds);assert.equal(plan.incomplete,false);
  const area=plan.boxes.reduce((sum,b)=>sum+(b[2]-b[0])*(b[3]-b[1]),0);
  assert.ok(Math.abs(area-(bounds[2]-bounds[0])*(bounds[3]-bounds[1]))<1e-10);
- for(const b of plan.boxes){assert.ok(b[2]-b[0]<=0.020000001);assert.ok(b[3]-b[1]<=0.020000001);assert.ok(b[0]>=bounds[0]&&b[2]<=bounds[2]&&b[1]>=bounds[1]&&b[3]<=bounds[3]);}
- const wide=shopAreaPlan([4.3,51.1,4.5,51.3]);assert.equal(wide.boxes.length,9);assert.equal(wide.incomplete,true);
+ for(const b of plan.boxes){assert.ok(b[2]-b[0]<=0.004000001);assert.ok(b[3]-b[1]<=0.004000001);assert.ok(b[0]>=bounds[0]&&b[2]<=bounds[2]&&b[1]>=bounds[1]&&b[3]<=bounds[3]);}
+ const wide=shopAreaPlan([4.3,51.1,4.5,51.3]);assert.equal(wide.boxes.length,4);assert.equal(wide.incomplete,true);
 });
 test('progress arrives before completion, requests are sequential, covering cells are reused',async()=>{
  let requests=0,active=0;const progress=[];

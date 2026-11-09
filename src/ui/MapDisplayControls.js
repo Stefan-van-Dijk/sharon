@@ -1,4 +1,5 @@
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.71';
+import {shopOpacity,shopRadius} from './ShopPointMotion.js?v=0.4.72';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.72';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
@@ -86,18 +87,19 @@ export function applyMapDisplay(map, value){
   for(const id of ['sharon-chain-points-icons','sharon-wikipedia-icons']){
     setLayout(id,'visibility',state.showIcons?'visible':'none');
     setLayout(id,'icon-size',state.iconSize/24);
-    setPaint(id,'icon-opacity',['case',['==',['get','read'],1],0.3,1]);
+    setPaint(id,'icon-opacity',id==='sharon-chain-points-icons'?shopOpacity(['case',['==',['get','read'],1],0.3,1]):['case',['==',['get','read'],1],0.3,1]);
   }
   for(const id of ['sharon-chain-points-names','sharon-wikipedia-names','sharon-object-point-labels','sharon-shape-label-text']){
     setLayout(id,'visibility',state.showNames?'visible':'none');
     setLayout(id,'text-size',state.nameSize);
   }
   for(const id of ['sharon-chain-points','sharon-wikipedia-points','sharon-points']){
-    setPaint(id,'circle-radius',state.pointSize);
+    setPaint(id,'circle-radius',id==='sharon-chain-points'?shopRadius(state.pointSize):state.pointSize);
     if(id!=='sharon-points'){
       const opacity=['case',['==',['get','read'],1],0.3,1];
-      setPaint(id,'circle-opacity',state.showPoints?opacity:0);
-      setPaint(id,'circle-stroke-opacity',state.showPoints?['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1]:0);
+      setPaint(id,'circle-opacity',state.showPoints?(id==='sharon-chain-points'?shopOpacity(opacity):opacity):0);
+      const stroke=['case',['==',['get','liked'],1],1,['==',['get','read'],1],0.3,1];
+      setPaint(id,'circle-stroke-opacity',state.showPoints?(id==='sharon-chain-points'?shopOpacity(stroke):stroke):0);
     }else{
       setPaint(id,'circle-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
       setPaint(id,'circle-stroke-opacity',state.showPoints?['*',['get','opacity'],['case',['get','seen'],0.2,1]]:0);
