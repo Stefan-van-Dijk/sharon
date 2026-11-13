@@ -405,3 +405,25 @@ for(const standalone of [false,true])for(const stored of [false,true])test(`shop
   else expect(sourceCalls.filter(action=>action==='map').length).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
+
+test('Paris shop markers appear from regional discovery when Sharon storage is unavailable',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));let regional=0,legacy=0;
+ const headers={'access-control-allow-origin':'*','access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'Content-Type'};
+ await page.route('https://sharon.life/environment/api/tiles.php',route=>route.fulfill({status:503,headers,json:{error:'shop_area_unavailable'}}));
+ await page.route('https://sharon.life/log/api/chains.php',route=>{legacy++;return route.fulfill({headers,json:{schema:1,version:'v1-'+'a'.repeat(24),chains:[]}});});
+ await page.route('https://ovp.dresel.systems/api/interpreter',route=>{regional++;return route.fulfill({headers,json:JSON.parse(readFileSync('tests/fixtures/paris-shops-osm.json','utf8'))});});
+ await page.goto(base+'/fixture.html');
+ await page.evaluate(async version=>{
+  const {mountChainLayer}=await import('/src/ui/ChainLayer.js?v='+version);
+  const {ObjectStore}=await import('/src/core/storage/ObjectStore.js?v='+version);const store=await new ObjectStore().open();
+  document.body.innerHTML='<button data-chain-toggle>Winkels</button><select data-chain-filter></select><small data-chain-status></small><div data-places-list></div>';
+  const sources=new Map();window.parisFeatures=()=>sources.get('sharon-chain-branches')?.data.features||[];
+  const map={addImage(){},addSource(id,o){sources.set(id,{data:o.data,setData(data){this.data=data;}});},addLayer(){},getSource:id=>sources.get(id),on(){},off(){},getCenter:()=>({lng:2.351,lat:48.857}),getZoom:()=>17,getBounds:()=>({getWest:()=>2.35,getEast:()=>2.352,getSouth:()=>48.856,getNorth:()=>48.858})};
+  window.parisLayer=mountChainLayer(map,{}, {store,root:document.body});
+ },version);
+ await page.locator('[data-chain-toggle]').tap();
+ await expect.poll(()=>page.evaluate(()=>window.parisFeatures().length)).toBeGreaterThan(0);
+ await expect(page.locator('[data-places-list]')).toContainText('Geox');
+ expect(regional).toBeGreaterThan(0);expect(legacy).toBeLessThanOrEqual(1); // optional catalog only
+ await page.evaluate(()=>window.parisLayer.destroy());expect(errors).toEqual([]);
+});

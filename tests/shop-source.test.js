@@ -32,3 +32,9 @@ test('only a method rejection retries GET, never a blocked or rate-limited sourc
  }
  for(const status of [406,429]){let calls=0;await assert.rejects(fetchShopSource({action:'map',bounds:[4.39,51.21,4.41,51.23]},{fetcher:async()=>{calls++;return {ok:false,status};}}));assert.equal(calls,1);}
 });
+test('regional discovery uses Europe only within its conservative coverage and keeps fetched details',async()=>{
+ const urls=[];const fetcher=async url=>{urls.push(url);return {ok:true,json:async()=>({elements:[{type:'node',id:123,lat:48.857,lon:2.351,tags:{shop:'shoes',name:'Parijs winkel'}}]})};};
+ const paris=await fetchShopSource({action:'map',bounds:[2.35,48.856,2.352,48.858]},{fetcher,preferRegional:true});
+ assert.ok(urls[0].includes('ovp.dresel.systems'));assert.equal(paris.details[paris.points[0][0]].name,undefined);assert.equal(paris.details[paris.points[0][0]].sourceRef,'node/123');
+ await fetchShopSource({action:'map',bounds:[139.7,35.6,139.702,35.602]},{fetcher,preferRegional:true});assert.ok(urls[1].includes('private.coffee'));
+});

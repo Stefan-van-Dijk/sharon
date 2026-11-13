@@ -1,0 +1,430 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-12T21:23:05Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 2211556506,
+  "lat": 48.8576638,
+  "lon": 2.3504734,
+  "tags": {
+    "check_date": "2026-04-02",
+    "check_date:opening_hours": "2022-10-01",
+    "contact:email": "info@maison-astronomie.com",
+    "contact:phone": "+331 42 77 99 55",
+    "contact:website": "https://www.maison-astronomie.com/",
+    "name": "Le Monde de l'observation",
+    "opening_hours": "Tu-Sa 10:15-18:30",
+    "shop": "vacant",
+    "wheelchair": "limited"
+  }
+},
+{
+  "type": "node",
+  "id": 2821707601,
+  "lat": 48.8574307,
+  "lon": 2.3500869,
+  "tags": {
+    "female": "yes",
+    "male": "yes",
+    "name": "Y salon",
+    "shop": "hairdresser",
+    "source": "survey",
+    "website": "https://y-coiffure.com/",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3342900967,
+  "lat": 48.8573959,
+  "lon": 2.3511801,
+  "tags": {
+    "check_date": "2026-04-02",
+    "name": "basket4ballers",
+    "shop": "sports",
+    "website": "https://www.basket4ballers.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 3342900968,
+  "lat": 48.8575974,
+  "lon": 2.3517147,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "70",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Geox",
+    "brand:wikidata": "Q588001",
+    "brand:wikipedia": "en:Geox",
+    "check_date": "2026-09-05",
+    "name": "Geox",
+    "phone": "+33 1 42 76 02 24",
+    "shop": "shoes",
+    "website": "https://www.geox.com/int/storedetails/paris-104187",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3405085317,
+  "lat": 48.8579740,
+  "lon": 2.3503770,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "82",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Mango",
+    "brand:wikidata": "Q136503",
+    "brand:wikipedia": "en:Mango (retailer)",
+    "check_date": "2026-09-05",
+    "name": "Mango",
+    "opening_hours": "Mo-Fr 10:00-20:00; Sa 10:00-21:00; Su 11:00-20:00",
+    "phone": "+33 1 44 59 80 37",
+    "shop": "clothes",
+    "website": "https://shop.mango.com/fr/fr/stores/paris/82-rue-de-rivoli-4eme-hotel-de-ville/10218",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3405085318,
+  "lat": 48.8578952,
+  "lon": 2.3505673,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "80",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Intimissimi",
+    "brand:wikidata": "Q305404",
+    "brand:wikipedia": "en:Intimissimi",
+    "check_date": "2026-09-05",
+    "clothes": "underwear",
+    "name": "Intimissimi",
+    "shop": "clothes",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3405085319,
+  "lat": 48.8578649,
+  "lon": 2.3506745,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "80",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Brioche Dorée",
+    "brand:website": "https://www.briochedoree.fr",
+    "brand:wikidata": "Q2925606",
+    "brand:wikipedia": "fr:Brioche dorée",
+    "check_date": "2026-09-05",
+    "contact:phone": "+33 1 40 27 97 43",
+    "indoor_seating": "yes",
+    "name": "Brioche Dorée",
+    "opening_hours": "Mo-Su 07:00-19:30",
+    "operator": "Groupe Le Duff",
+    "outdoor_seating": "no",
+    "ref:FR:SIRET": "31890659101536",
+    "shop": "bakery",
+    "smoking": "no",
+    "website": "https://www.briochedoree.fr/",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 3405085320,
+  "lat": 48.8578345,
+  "lon": 2.3507896,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "78",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Etam",
+    "brand:wikidata": "Q3059202",
+    "brand:wikipedia": "en:Etam Développement",
+    "check_date": "2026-09-05",
+    "clothes": "underwear",
+    "email": "2333mag@etam.com",
+    "name": "Etam",
+    "opening_hours": "Mo-Sa 10:00-20:00; Su 12:00-19:00",
+    "phone": "+33 1 57 40 63 60",
+    "shop": "clothes",
+    "website": "https://www.etam.com/nos-boutiques/villes/magasins?storeid=2333",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3405085787,
+  "lat": 48.8577196,
+  "lon": 2.3513477,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "74",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Oysho",
+    "brand:wikidata": "Q3327046",
+    "brand:wikipedia": "en:Oysho",
+    "check_date": "2026-09-05",
+    "name": "Oysho",
+    "opening_hours": "Mo-Sa 10:00-20:00; Su 10:30-19:00",
+    "phone": "+33 159202130",
+    "shop": "clothes",
+    "website": "https://www.oysho.com/fr/store-locator/paris/rue-de-rivoli-74-s7839.html",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3980384396,
+  "lat": 48.8577232,
+  "lon": 2.3511740,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "74",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "check_date": "2026-09-05",
+    "mobile": "+33 626745052",
+    "name": "Normal",
+    "shop": "supermarket",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4760691715,
+  "lat": 48.8560500,
+  "lon": 2.3503500,
+  "tags": {
+    "addr:street": "Voie Georges Pompidou",
+    "contact:facebook": "https://www.facebook.com/SoliCycle/?ref=bookmarks",
+    "email": "berges@solicycle.org",
+    "name": "SoliCycle Rives de Seine",
+    "opening_hours": "We,Fr,Sa 10:30-13:00,14:00-18:30",
+    "operator": "Etudes et Chantiers Île-de-France",
+    "phone": "+33666527655",
+    "ref:FR:SIRET": "44066204700032",
+    "second_hand": "only",
+    "service:bicycle:diy": "yes",
+    "service:bicycle:pump": "yes",
+    "service:bicycle:repair": "yes",
+    "service:bicycle:retail": "no",
+    "service:bicycle:second_hand": "no",
+    "shop": "bicycle",
+    "source": "CRESS Île-de-France",
+    "survey:date": "2024-01-03",
+    "website": "https://solicycle.org/",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5850964987,
+  "lat": 48.8578476,
+  "lon": 2.3514352,
+  "tags": {
+    "addr:city": "Paris",
+    "brand": "Lush",
+    "brand:wikidata": "Q1585448",
+    "brand:wikipedia": "en:Lush (company)",
+    "check_date": "2024-02-09",
+    "name": "Lush",
+    "shop": "cosmetics",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5867330585,
+  "lat": 48.8577844,
+  "lon": 2.3509418,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "76",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "brand": "Jeff de Bruges",
+    "brand:wikidata": "Q3176626",
+    "brand:wikipedia": "fr:Jeff de Bruges",
+    "check_date": "2026-09-05",
+    "contact:website": "https://www.jeff-de-bruges.com/jeff-de-bruges-paris-rivoli",
+    "email": "paris-rivoli@jeff-de-bruges.com",
+    "name": "Jeff de Bruges",
+    "opening_hours": "Mo-Tu 11:30-13:00,14:00-19:30; We-Sa 11:00-19:30",
+    "phone": "+33 1 42 78 57 29",
+    "shop": "chocolate",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5867330586,
+  "lat": 48.8577657,
+  "lon": 2.3510400,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "76",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "check_date": "2026-09-05",
+    "name": "Nōs by Mirene",
+    "shop": "clothes",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 7704944858,
+  "lat": 48.8577878,
+  "lon": 2.3500038,
+  "tags": {
+    "contact:instagram": "https://www.instagram.com/gbo_france/",
+    "name": "Gashapon Bandai Official Shop",
+    "opening_hours": "Mo-Su 10:00-20:00",
+    "shop": "gift"
+  }
+},
+{
+  "type": "node",
+  "id": 10099270358,
+  "lat": 48.8574446,
+  "lon": 2.3502313,
+  "tags": {
+    "name": "M'Optique",
+    "ref:FR:SIRET": "52227733400010",
+    "shop": "optician"
+  }
+},
+{
+  "type": "node",
+  "id": 10920092319,
+  "lat": 48.8575386,
+  "lon": 2.3519077,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "68",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "check_date": "2026-09-05",
+    "name": "Pikolinos",
+    "shop": "shoes"
+  }
+},
+{
+  "type": "node",
+  "id": 11036043729,
+  "lat": 48.8579422,
+  "lon": 2.3518629,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "4",
+    "addr:postcode": "75004",
+    "addr:street": "Rue du Renard",
+    "check_date": "2026-06-03",
+    "mobile": "+33 661559117",
+    "name": "Eye's Contact",
+    "opening_hours": "Mo-Sa 10:00-19:00",
+    "phone": "+33 176538091",
+    "ref:FR:SIRET": "52987978500010",
+    "shop": "optician",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 11781433971,
+  "lat": 48.8577614,
+  "lon": 2.3517689,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "2",
+    "addr:postcode": "75004",
+    "addr:street": "Rue du Renard",
+    "check_date": "2026-06-03",
+    "description": "Concept store japonais",
+    "email": "contact@his-world.com",
+    "name": "HIS Paris",
+    "opening_hours": "Mo-Fr 12:00-19:30; Sa 11:00-19:00",
+    "shop": "vacant",
+    "website": "https://www.hisparis.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 12298810360,
+  "lat": 48.8563052,
+  "lon": 2.3505033,
+  "tags": {
+    "level": "1",
+    "name": "Stéphane Bianca",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 12306707563,
+  "lat": 48.8575219,
+  "lon": 2.3519856,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "68",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "amenity": "fast_food",
+    "brand": "Ben's Cookies",
+    "brand:wikidata": "Q4885143",
+    "check_date": "2026-09-05",
+    "level": "0",
+    "name": "Ben's Cookies",
+    "opening_hours": "Mo-Sa 10:00-20:00; Su 11:00-19:00",
+    "shop": "confectionery",
+    "website": "https://www.benscookies.com/stores/rivoli/"
+  }
+},
+{
+  "type": "node",
+  "id": 13701134396,
+  "lat": 48.8575860,
+  "lon": 2.3506151,
+  "tags": {
+    "check_date": "2026-04-02",
+    "name": "Bouygues Télécom",
+    "shop": "mobile_phone"
+  }
+},
+{
+  "type": "node",
+  "id": 13929264010,
+  "lat": 48.8576900,
+  "lon": 2.3503579,
+  "tags": {
+    "addr:city": "Paris",
+    "addr:housenumber": "35",
+    "addr:postcode": "75004",
+    "addr:street": "Rue de Rivoli",
+    "check_date": "2026-06-11",
+    "name": "Le Monde de l'observation",
+    "opening_hours": "Tu-Sa 10:15-18:30",
+    "shop": "yes",
+    "website": "https://www.maison-astronomie.com/",
+    "wheelchair": "no"
+  }
+}
+
+  ]
+}

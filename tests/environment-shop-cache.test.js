@@ -19,11 +19,11 @@ test('shop discovery reads stored point identities without contacting chains',as
  const browse=new ChainBrowse({useAreaStorage:true,fetcher:async(url,o)=>{assert.ok(url.includes('/environment/api/tiles.php'));actions.push(JSON.parse(o.body).action);return {ok:true,json:async()=>({...snapshot,coverage:'WORLD',version:'v1-'+'a'.repeat(24),points:[['shop00000001','',4405000,51225000,'Bakker','node/1']],kinds:{shop00000001:'bakery'},truncated:false})};}});
  const result=await browse.area(bounds);assert.equal(result.points[0].id,'shop00000001');assert.equal(result.points[0].sourceRef,'node/1');assert.deepEqual(actions,['shops-read']);
 });
-test('a busy installed area service does not fall through to the same external source again',async()=>{
+test('a busy store uses the independent regional source without calling chains or server refresh',async()=>{
  const {ChainBrowse}=await import('../src/core/chains/ChainBrowse.js');const urls=[];
  const browse=new ChainBrowse({useAreaStorage:true,fetcher:async url=>{urls.push(url);return {ok:false,status:503,json:async()=>({error:'shop_area_unavailable'})};}});
- await assert.rejects(browse.request({action:'map',world:true,bounds}),/bezet/);
- assert.equal(urls.length,1);assert.ok(urls[0].includes('tiles.php'));
+ await assert.rejects(browse.request({action:'map',world:true,bounds}),/Winkelbron/);
+ assert.equal(urls.length,2);assert.ok(urls[0].includes('tiles.php'));assert.ok(urls[1].includes('ovp.dresel.systems'));
 });
 test('stale background refreshes are serialized',async()=>{
  let active=0,maxActive=0;const releases=[];
@@ -33,4 +33,14 @@ test('stale background refreshes are serialized',async()=>{
  });
  await cache.area(bounds);await cache.area([5,52,5.01,52.01]);await new Promise(r=>setImmediate(r));
  assert.equal(releases.length,1);releases.shift()();await new Promise(r=>setImmediate(r));assert.equal(releases.length,1);releases.shift()();await cache.background;assert.equal(maxActive,1);
+});
+test('a missing Paris cell uses discovery without waiting for server refresh',async()=>{
+ const actions=[];let discovered=0;
+ const cache=new EnvironmentShopCache(async(_u,o)=>{actions.push(JSON.parse(o.body).action);return {ok:false,status:404,json:async()=>({error:'shop_area_unavailable'})};});
+ const result=await cache.area([2.35,48.856,2.352,48.858],{discover:async()=>{discovered++;return {...snapshot,points:[['point']]};}});
+ assert.equal(result.points.length,1);assert.equal(discovered,1);assert.deepEqual(actions,['shops-read']);
+});
+test('empty stale coverage is not mistaken for an empty completed search',async()=>{
+ const cache=new EnvironmentShopCache(async()=>({ok:true,json:async()=>({...snapshot,stale:true})}));let discoveries=0;
+ await cache.area(bounds,{discover:async()=>{discoveries++;return snapshot;}});assert.equal(discoveries,1);
 });
