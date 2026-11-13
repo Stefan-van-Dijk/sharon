@@ -363,7 +363,7 @@ for(const standalone of [false,true])for(const stored of [false,true])test(`shop
     if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers});
     const input=route.request().postDataJSON();
     expect(['shops-read','shops-refresh']).toContain(input.action);
-    if(!stored)return route.fulfill({status:503,headers,json:{error:'shop_area_unavailable'}});
+    if(!stored)return route.fulfill({status:404,headers,json:{error:'not_installed'}});
     await route.fulfill({headers,json:{schema:1,storage:'environment-shops-v1',version:'v1-'+'b'.repeat(24),coverage:'WORLD',stale:false,truncated:false,
       points:[['ShopTest0001','',5000000,52000000,'Testwinkel','node/1']],kinds:{ShopTest0001:'supermarket'}}});
   });

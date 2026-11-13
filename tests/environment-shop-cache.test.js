@@ -7,7 +7,7 @@ test('fresh empty area is a valid cached answer and does not request the source'
 });
 test('stale snapshot is returned while refreshing, failed refresh never triggers update',async()=>{
  let release,updates=0;const calls=[];const cache=new EnvironmentShopCache(async(_u,o)=>{const q=JSON.parse(o.body);calls.push(q);if(q.action==='shops-read')return {ok:true,json:async()=>({...snapshot,stale:true})};await new Promise(r=>release=r);return {ok:false};});
- assert.equal((await cache.area(bounds,{onUpdate:()=>updates++})).stale,true);assert.equal(calls.length,2);release();await new Promise(r=>setImmediate(r));assert.equal(updates,0);
+ assert.equal((await cache.area(bounds,{onUpdate:()=>updates++})).stale,true);await new Promise(r=>setImmediate(r));assert.equal(calls.length,2);release();await new Promise(r=>setImmediate(r));assert.equal(updates,0);
 });
 test('missing or forced areas request refresh with the same bounds',async()=>{
  const calls=[];const cache=new EnvironmentShopCache(async(_u,o)=>{const q=JSON.parse(o.body);calls.push(q);return q.action==='shops-read'?{ok:false}:{ok:true,json:async()=>snapshot};});
@@ -18,4 +18,19 @@ test('shop discovery reads stored point identities without contacting chains',as
  const {ChainBrowse}=await import('../src/core/chains/ChainBrowse.js');const actions=[];
  const browse=new ChainBrowse({useAreaStorage:true,fetcher:async(url,o)=>{assert.ok(url.includes('/environment/api/tiles.php'));actions.push(JSON.parse(o.body).action);return {ok:true,json:async()=>({...snapshot,coverage:'WORLD',version:'v1-'+'a'.repeat(24),points:[['shop00000001','',4405000,51225000,'Bakker','node/1']],kinds:{shop00000001:'bakery'},truncated:false})};}});
  const result=await browse.area(bounds);assert.equal(result.points[0].id,'shop00000001');assert.equal(result.points[0].sourceRef,'node/1');assert.deepEqual(actions,['shops-read']);
+});
+test('a busy installed area service does not fall through to the same external source again',async()=>{
+ const {ChainBrowse}=await import('../src/core/chains/ChainBrowse.js');const urls=[];
+ const browse=new ChainBrowse({useAreaStorage:true,fetcher:async url=>{urls.push(url);return {ok:false,status:503,json:async()=>({error:'shop_area_unavailable'})};}});
+ await assert.rejects(browse.request({action:'map',world:true,bounds}),/bezet/);
+ assert.equal(urls.length,1);assert.ok(urls[0].includes('tiles.php'));
+});
+test('stale background refreshes are serialized',async()=>{
+ let active=0,maxActive=0;const releases=[];
+ const cache=new EnvironmentShopCache(async(_u,o)=>{
+  if(JSON.parse(o.body).action==='shops-read')return {ok:true,json:async()=>({...snapshot,stale:true})};
+  maxActive=Math.max(maxActive,++active);await new Promise(r=>releases.push(r));active--;return {ok:true,json:async()=>snapshot};
+ });
+ await cache.area(bounds);await cache.area([5,52,5.01,52.01]);await new Promise(r=>setImmediate(r));
+ assert.equal(releases.length,1);releases.shift()();await new Promise(r=>setImmediate(r));assert.equal(releases.length,1);releases.shift()();await cache.background;assert.equal(maxActive,1);
 });

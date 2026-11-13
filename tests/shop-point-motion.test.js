@@ -24,3 +24,11 @@ test('motion keeps the final marker size and read opacity while scaling the entr
  assert.equal(evaluate(shopRadius(5),1),5);assert.equal(evaluate(shopRadius(5),0),3.25);
  assert.equal(evaluate(shopOpacity(.3),1),.3);assert.equal(evaluate(shopOpacity(.3),0),0);
 });
+test('new points enter in small groups and later source updates do not restart their animation',()=>{
+ let now=0,tick;const states=new Map();const map={getSource:()=>({setData(){}}),setFeatureState:({id},s)=>states.set(id,s.shopVisibility)};
+ const motion=createShopPointMotion(map,'s',{reduced:false,clock:()=>now,frame:fn=>(tick=fn,1),cancel(){}});
+ const features=Array.from({length:40},(_,id)=>({type:'Feature',id,geometry:{type:'Point',coordinates:[5,52]},properties:{}}));
+ motion.update({features});now=30;tick();assert.ok(states.get(0)>0);assert.equal(states.get(20),0);
+ now=100;motion.update({features});now=220;tick();assert.equal(states.get(0),1);assert.ok(states.get(20)>0&&states.get(20)<1);
+ now=280;tick();assert.equal(states.get(20),1);motion.destroy();
+});

@@ -298,14 +298,16 @@ test('shop discovery stays within 10 km while the session remembers distant disc
   await until(()=>calls.some(q=>q.action==='map'&&q.bounds[1]>52.5));
   await until(()=>!/(aanvullen|ophalen)/.test(root.querySelector('[data-chain-status]').textContent));
   const loadedCalls=calls.filter(q=>q.action==='map').length;
-  assert.ok(loadedCalls<=18,'at most nine small areas per viewport');
-  assert.ok(calls.filter(q=>q.action==='map').every(q=>q.bounds[2]-q.bounds[0]<=0.020000001&&q.bounds[3]-q.bounds[1]<=0.020000001));
+  assert.ok(loadedCalls<=64,'at most 32 sequential new cells per exploration round');
+  assert.ok(calls.filter(q=>q.action==='map').every(q=>q.bounds[2]-q.bounds[0]<=0.002000001&&q.bounds[3]-q.bounds[1]<=0.002000001));
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Dichtbij'),'previously discovered shop stays in session');
   assert.ok(root.querySelector('[data-places-list]').textContent.includes('Verre winkel'));
   zoom=5;for(const fn of handlers.get('moveend'))fn();
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.ok(!root.querySelector('[data-chain-status]').textContent.includes('Zoom verder'));
-  assert.equal(calls.filter(q=>q.action==='map').length,loadedCalls);
+  const mapCalls=calls.filter(q=>q.action==='map');
+  assert.ok(mapCalls.length<=loadedCalls+32);
+  assert.equal(new Set(mapCalls.map(q=>JSON.stringify(q.bounds))).size,mapCalls.length,'known cells are not fetched again while exploring further');
  }finally{layer?.destroy();app.close();}
 });
 

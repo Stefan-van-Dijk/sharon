@@ -10,12 +10,13 @@ export function createShopPointMotion(map,source,{reduced=globalThis.matchMedia?
   if(disposed)return;
   if(reduced||!map.setFeatureState){map.getSource(source)?.setData(data);return;}
   if(ticket!==null)cancel(ticket);ticket=null;const now=clock(),wanted=new Set(data.features.map(f=>f.id));
-  for(const r of rows.values()){r.from=r.value;r.target=wanted.has(r.feature.id)?1:0;r.start=now;}
-  for(const feature of data.features){const r=rows.get(feature.id);if(r)r.feature=feature;else rows.set(feature.id,{feature,from:0,value:0,target:1,start:now});}
+  for(const r of rows.values()){const target=wanted.has(r.feature.id)?1:0;if(target!==r.target){r.from=r.value;r.target=target;r.start=now;}}
+  let added=0;
+  for(const feature of data.features){const r=rows.get(feature.id);if(r)r.feature=feature;else rows.set(feature.id,{feature,from:0,value:0,target:1,start:now+Math.min(360,Math.floor(added++/20)*60)});}
   write();for(const r of rows.values())state(r);
   function tick(){
    if(disposed||!map.getSource(source)){ticket=null;return;}let active=false,removed=false;const now=clock();
-   for(const [id,r] of rows){const t=Math.min(1,(now-r.start)/220),ease=1-(1-t)**3;r.value=r.from+(r.target-r.from)*ease;state(r);if(t<1&&r.from!==r.target)active=true;else if(r.target===0){rows.delete(id);removed=true;}}
+   for(const [id,r] of rows){const t=Math.max(0,Math.min(1,(now-r.start)/220)),ease=1-(1-t)**3;r.value=r.from+(r.target-r.from)*ease;state(r);if(t<1&&r.from!==r.target)active=true;else if(r.target===0){rows.delete(id);removed=true;}}
    if(removed)write();ticket=active?frame(tick):null;
   }
   ticket=frame(tick);
