@@ -1,4 +1,4 @@
-import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.73';
+import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.74';
 const identities=new Map();
 function identity(ref){
  if(identities.has(ref))return identities.get(ref);
@@ -7,7 +7,7 @@ function identity(ref){
  identities.set(ref,id);return id;
 }
 // Direct, bounded OSM discovery also works before a Sharon PHP server is installed.
-export async function fetchShopSource(input,{fetcher=fetch,signal}={}){
+export async function fetchShopSource(input,{fetcher=fetch,signal,preferRegional=false}={}){
  let selector;
  if(input.action==='detail'){
   const match=/^(node|way|relation)\/([1-9][0-9]*)$/.exec(input.sourceRef||'');if(!match)throw Error('Ongeldige winkelbron');
@@ -19,13 +19,14 @@ export async function fetchShopSource(input,{fetcher=fetch,signal}={}){
   const box='('+[b[1],b[0],b[3],b[2]].join(',')+')';
   selector='(nwr["shop"]["shop"!~"^(no|vacant)$"]'+brand+box+';nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|pharmacy|fuel|charging_station|bank|post_office)$"]'+brand+box+';)';
  }
+ const regional=preferRegional&&input.bounds&&input.bounds[0]>=-12&&input.bounds[2]<=32&&input.bounds[1]>=35&&input.bounds[3]<=60;
  const query='[out:json][timeout:8];'+selector+';out body center 2001;';
  const controller=new AbortController(),abort=()=>controller.abort();
  if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});
  const timer=setTimeout(abort,28000);
  let source;
  try{
-  const endpoint='https://overpass.private.coffee/api/interpreter';
+  const endpoint=regional?'https://ovp.dresel.systems/api/interpreter':'https://overpass.private.coffee/api/interpreter';
   const options={signal:controller.signal,credentials:'omit',referrerPolicy:'origin',redirect:'error'};
   let response=await fetcher(endpoint,{...options,method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({data:query}).toString()});
   if([405,415].includes(response.status))response=await fetcher(endpoint+'?'+new URLSearchParams({data:query}),options);
@@ -42,5 +43,5 @@ export async function fetchShopSource(input,{fetcher=fetch,signal}={}){
   const name=String(t.name||t.brand||kind);points.push([id,chainId,Math.round(lng*1e6),Math.round(lat*1e6),name,ref]);kinds[id]=kind;
   details[id]={id,chainId,sourceRef:ref,kind,address:['addr:street','addr:housenumber','addr:postcode','addr:city'].map(k=>t[k]).filter(Boolean).join(' '),openingHours:t.opening_hours||'',website:t.website||t['contact:website']||''};
  }
- return {schema:1,version:'v1-'+'0'.repeat(24),coverage:'WORLD',points,kinds,truncated:source.elements.length>2000,...(input.action==='detail'?{detail:details[input.id]}:{})};
+ return {schema:1,version:'v1-'+'0'.repeat(24),coverage:'WORLD',points,kinds,truncated:source.elements.length>2000,sourceEndpoint:regional?'https://ovp.dresel.systems/api/interpreter':'https://overpass.private.coffee/api/interpreter',details,...(input.action==='detail'?{detail:details[input.id]}:{})};
 }

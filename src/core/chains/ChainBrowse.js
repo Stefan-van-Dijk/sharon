@@ -1,13 +1,15 @@
-import {ShopAreaCache} from './ShopAreaCache.js?v=0.4.73';
-import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.4.73';
-import {fetchShopSource} from './ShopSource.js?v=0.4.73';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.73';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.73';
+import {ShopAreaCache} from './ShopAreaCache.js?v=0.4.74';
+import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.4.74';
+import {fetchShopSource} from './ShopSource.js?v=0.4.74';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.4.74';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.4.74';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now(),requestIntervalMs=1100,forceRefresh=false,useAreaStorage=false}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];this.requestIntervalMs=requestIntervalMs;this.lastMapRequestAt=0;this.shopStorage=new EnvironmentShopCache(fetcher);this.forceRefresh=forceRefresh;this.useAreaStorage=useAreaStorage;this.diskCache=new ShopAreaCache();this.localRefreshes=new Map();this.updatedBounds=new Set();}
  async request(input,signal){
   if(this.useAreaStorage&&input.world&&input.action==='map'){
-   const saved=await this.shopStorage.area(input.bounds,{signal,force:this.forcedBounds?.delete(JSON.stringify(input.bounds))===true,onUpdate:()=>{setTimeout(async()=>{const key='map:'+JSON.stringify([input.bounds,input.chainId||'']);this.cache.delete(key);await this.diskCache.delete(key);this.areaUpdated(input.bounds);},0);}});
+   const saved=await this.shopStorage.area(input.bounds,{signal,force:this.forcedBounds?.delete(JSON.stringify(input.bounds))===true,
+    discover:async()=>{if(this.directRetryAt>this.clock())throw Error('De winkelbron is tijdelijk niet beschikbaar. Probeer het over een halve minuut opnieuw.');try{return await fetchShopSource(input,{fetcher:this.fetcher,signal,preferRegional:true});}catch(error){if(!signal?.aborted)this.directRetryAt=this.clock()+30000;throw error;}},
+    onUpdate:data=>{setTimeout(async()=>{const key='map:'+JSON.stringify([input.bounds,input.chainId||'']);const entry={at:this.clock(),data};this.cache.set(key,entry);await this.diskCache.put(key,entry);this.areaUpdated(input.bounds);},0);}});
    if(saved)return saved;
   }
   const controller=new AbortController(),abort=()=>controller.abort();if(signal?.aborted)abort();signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,60000);
@@ -123,7 +125,7 @@ export class ChainBrowse {
   let data=known?.data,fallback=known?.fallback||false;
   const inNetherlands=bounds[0]>=3&&bounds[2]<=8&&bounds[1]>=50&&bounds[3]<=54.5;
   if(!known)try{
-    if(this.clock()<this.worldRetryAt)throw Error('De wereldwijde winkelbron is tijdelijk niet beschikbaar.');
+    if(!this.useAreaStorage&&this.clock()<this.worldRetryAt)throw Error('De wereldwijde winkelbron is tijdelijk niet beschikbaar.');
     data=await this.cached('map:'+JSON.stringify([bounds,chainId]),{action:'map',bounds,chainId,world:true},signal);
   }catch(error){
     if(signal?.aborted)throw error;
@@ -132,6 +134,7 @@ export class ChainBrowse {
     data=await this.cached('map:nl:'+JSON.stringify([bounds,chainId]),{action:'map',bounds,chainId},signal);fallback=true;
   }
   if(!Array.isArray(data.points)||data.points.length>2000)throw Error('Ongeldige kaartpunten.');
+  if(data.details){this.sourceDetails??=new Map();for(const [id,detail] of Object.entries(data.details))this.sourceDetails.set(id,detail);while(this.sourceDetails.size>2000)this.sourceDetails.delete(this.sourceDetails.keys().next().value);}
   const points=data.points.map(row=>{
    if(!Array.isArray(row)||row.length!==6||!/^[-_A-Za-z0-9]{12}$/.test(row[0])||typeof row[1]!=='string'||!Number.isInteger(row[2])||!Number.isInteger(row[3])||Math.abs(row[2])>180000000||Math.abs(row[3])>90000000||typeof row[4]!=='string'||! /^(node|way|relation)\/[1-9][0-9]*$/.test(row[5]))throw Error('Ongeldig kaartpunt.');
    return {id:row[0],chainId:row[1],coordinates:{lng:row[2]/1e6,lat:row[3]/1e6},name:row[4],sourceRef:row[5],status:'active',remote:true,world:data.coverage==='WORLD',kind:typeof data.kinds?.[row[0]]==='string'?data.kinds[row[0]]:undefined};
@@ -141,7 +144,7 @@ export class ChainBrowse {
  }
  async detail(branch,signal){
   if(!signal){if(this.pending.has(branch.id))return this.pending.get(branch.id);const request=this.detail(branch,new AbortController().signal).finally(()=>this.pending.delete(branch.id));this.pending.set(branch.id,request);return request;}
-  const data=await this.cached('detail:'+branch.id,{action:'detail',id:branch.id,...(branch.world?{world:true,sourceRef:branch.sourceRef}:{})},signal),d=data.detail;
+  const data=this.sourceDetails?.has(branch.id)?{detail:this.sourceDetails.get(branch.id)}:await this.cached('detail:'+branch.id,{action:'detail',id:branch.id,...(branch.world?{world:true,sourceRef:branch.sourceRef}:{})},signal),d=data.detail;
   if(!d||d.id!==branch.id||d.chainId!==branch.chainId||d.sourceRef!==branch.sourceRef||typeof d.address!=='string'||typeof d.openingHours!=='string')throw Error('Ongeldige vestigingsdetails.');
   let website='';try{const url=new URL(d.website);if(url.protocol==='https:'&&!url.username&&!url.password)website=url.href;}catch{}
   return {...branch,organizationId:d.organizationId,countryCode:d.countryCode,sources:d.sources,kind:d.kind||branch.kind,address:d.address,openingHours:d.openingHours,website,remote:false};

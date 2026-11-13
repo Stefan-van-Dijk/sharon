@@ -1,10 +1,10 @@
-import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.73';
-import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.73';
-import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.73';
-import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.73';
-import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.73';
-import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.73';
-import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.73';
+import { registerMapCategoryIcons } from '../core/chains/ChainCategories.js?v=0.4.74';
+import { inBoardViewport, boardViewportLocked, onBoardViewportLock } from './BoardViewport.js?v=0.4.74';
+import { inAnalysisRange, analysisFetchRadius, ANALYSIS_RANGE_EVENT } from './AnalysisRange.js?v=0.4.74';
+import { sortBoards, boardOrderMode } from './BoardOrder.js?v=0.4.74';
+import { informationFeedback } from '../core/information/InformationFeedbackService.js?v=0.4.74';
+import { wikipediaReference, informationRank, distanceMeters } from '../core/information/InformationItem.js?v=0.4.74';
+import { environmentIdForPoint } from '../core/location/EnvironmentIdentifier.js?v=0.4.74';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 const discoveryMemory=new Map();
 export function wikiFeatures(pages = []) {
