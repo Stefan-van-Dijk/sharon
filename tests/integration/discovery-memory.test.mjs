@@ -47,13 +47,13 @@ test('shop points survive panning and remounting; source toggles preserve sessio
   map.move({lat:52.5,lng:13.4});await until(()=>layer.getBoards().some(p=>p.name==='Berlin shop'));await settled();
   assert.equal(map.sources.get('sharon-chain-branches').data.features.length,2,'both cities remain in the render source');
   assert.equal(layer.getBoards().length,2,'board list includes discoveries from both visited areas');
-  const before=calls.filter(q=>q.action==='map').length;
+  const assertNoRefetch=()=>{const boxes=calls.filter(q=>q.action==='map').map(q=>JSON.stringify(q.bounds));assert.equal(new Set(boxes).size,boxes.length,'visited cells are reused while unknown cells may continue loading');};
   map.move({lat:48.857,lng:2.35});assert.ok(layer.getBoards().some(p=>p.name==='Paris shop'));await turn();
-  assert.equal(calls.filter(q=>q.action==='map').length,before,'returning to the visited viewport reuses its points');
-  layer.destroy();layer=open();await until(()=>layer.getBoards().length===2);await turn();assert.equal(calls.filter(q=>q.action==='map').length,before);
+  assertNoRefetch();
+  layer.destroy();layer=open();await until(()=>layer.getBoards().length===2);await turn();assertNoRefetch();
   const savedBefore=JSON.stringify(await app.store.getAll('objects'));
   root.querySelector('[data-chain-toggle]').click();assert.equal(layer.getBoards().length,0);assert.equal(map.sources.get('sharon-chain-branches').data.features.length,0);
-  root.querySelector('[data-chain-toggle]').click();await turn();assert.equal(calls.filter(q=>q.action==='map').length,before,'re-enabling uses visited coverage');assert.equal(layer.getBoards().length,2);
+  root.querySelector('[data-chain-toggle]').click();await turn();assertNoRefetch();assert.equal(layer.getBoards().length,2);
   assert.equal(map.sources.get('sharon-chain-branches').data.features.length,2,'source toggle preserves Berlin in session');
    layer.resetSession();await until(()=>map.sources.get('sharon-chain-branches').data.features.length===1);
   assert.equal(JSON.stringify(await app.store.getAll('objects')),savedBefore,'saved locations are preserved');

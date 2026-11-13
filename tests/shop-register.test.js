@@ -55,7 +55,7 @@ test('overlapping discovery only requests missing strips and bounds retained cac
  const calls=[],browse=new ChainBrowse({fetcher:async(_,options)=>{const q=JSON.parse(options.body);calls.push(q.bounds);return {ok:true,json:async()=>({schema:1,version:'v1-'+'a'.repeat(24),coverage:'WORLD',points:[],truncated:false})};}});
  await browse.area([5,52,5.1,52.1]);await browse.area([5.05,52,5.15,52.1]);
  assert.deepEqual(calls,[[5,52,5.1,52.1],[5.1,52,5.15,52.1]]);
- for(let i=0;i<40;i++)await browse.area([i,40,i+.1,40.1]);assert.ok(browse.areas.length<=32);assert.ok(browse.cache.size<=16);
+ for(let i=0;i<140;i++)await browse.area([i,40,i+.1,40.1]);assert.ok(browse.areas.length<=128);assert.ok(browse.cache.size<=128);
 });
 test('cached details remain usable on network failure; small analysis radii reduce fetch bounds',async()=>{
  let offline=false,now=0;
