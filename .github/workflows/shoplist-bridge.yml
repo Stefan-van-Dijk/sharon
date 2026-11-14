@@ -1,0 +1,9 @@
+name: ShopList bridge
+on: [push, pull_request]
+jobs:
+  connections:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: php -l server/connections.php
+      - run: php tests/helpers/connection-server.php

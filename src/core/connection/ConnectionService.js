@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.74';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.74';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.75';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.75';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -8,6 +8,11 @@ const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const timestamp=value=>Number(value)||Date.parse(value)||0;
 const errors = {
+  list_conflict:'De gedeelde lijst is gewijzigd. Open Sharon in ShopList om de online versie op te halen; je lokale wijzigingen blijven als kopie bewaard.',
+  list_forbidden:'Je hebt geen toegang meer tot deze boodschappenlijst.',
+  list_read_only:'Je mag deze boodschappenlijst alleen bekijken.',
+  list_exists:'Deze lijst is al verbonden. Open de bestaande online lijst.',
+  invalid_list:'De boodschappenlijst is ongeldig of te groot.',
   unknown_action:'Werk het serverbestand connections.php bij voor compacte contactcodes.',
   invalid_reference:'Deze contactcode is ongeldig of verlopen.',
   invalid_name:'Vul je naam in om verbinding te maken.',
@@ -296,3 +301,4 @@ export class ConnectionService {
     return m;
   }
 }
+

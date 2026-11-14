@@ -210,6 +210,49 @@ final class LogNetwork {
         return ['accepted'=>$accepted,'version'=>$summary['version'],'item'=>$summary];
     }
 
+    private function shoplistAction(string $action,array $in,string $pid):array {
+        $rows=$this->state['shoplists']??[];
+        $role=fn($row)=>$row['ownerId']===$pid?'owner':($row['members'][$pid]??null);
+        if($action==='shoplist-index')return ['lists'=>array_values(array_map(fn($r)=>['id'=>$r['id'],'name'=>$r['payload']['list']['name'],'revision'=>$r['revision'],'role'=>$role($r)],array_filter($rows,fn($r)=>$role($r)!==null)))];
+        $id=$in['id']??null;
+        if(!is_string($id)||!preg_match('/\A[a-zA-Z0-9_-]{1,80}\z/',$id))throw new LogNetworkError('invalid_list');
+        $row=$rows[$id]??null;
+        if($action==='shoplist-create'){
+            if($row)throw new LogNetworkError('list_exists',409);
+            if(count($rows)>=10000)throw new LogNetworkError('capacity',409);
+            $row=['id'=>$id,'ownerId'=>$pid,'members'=>[],'revision'=>0,'payload'=>null];
+        }elseif(!$row||!$role($row))throw new LogNetworkError('list_forbidden',403);
+        if($action==='shoplist-read')return ['list'=>$row,'role'=>$role($row)];
+        if($action==='shoplist-share'){
+            if($role($row)!=='owner')throw new LogNetworkError('owner_required',403);
+            $target=self::validId($in['personId']??null);$permission=$in['role']??null;
+            if($target===$pid||!in_array($permission,['read','write',null],true))throw new LogNetworkError('invalid_list');
+            if($permission===null)unset($row['members'][$target]);
+            else{
+                $connected=false;
+                foreach($this->state['relations'] as $r)if($r['type']==='chat'&&$r['status']==='active'&&in_array($pid,[$r['fromId'],$r['toId']],true)&&in_array($target,[$r['fromId'],$r['toId']],true))$connected=true;
+                $grant=$this->grant($target);
+                if(!$connected||($grant&&$grant['status']!=='active'))throw new LogNetworkError('chat_forbidden',403);
+                $row['members'][$target]=$permission;
+            }
+            $this->state['shoplists'][$id]=$row;return ['ok'=>true];
+        }
+        if(!in_array($action,['shoplist-create','shoplist-put'],true))throw new LogNetworkError('unknown_action');
+        if(!in_array($role($row),['owner','write'],true))throw new LogNetworkError('list_read_only',403);
+        $payload=$in['payload']??null;$operation=$in['operation']??null;
+        if(!is_array($payload)||!is_array($payload['list']??null)||($payload['list']['id']??null)!==$id||!is_string($payload['list']['name']??null)||strlen($payload['list']['name'])>240||!is_array($payload['list']['items']??null)||!array_is_list($payload['list']['items'])||count($payload['list']['items'])>500||!is_array($payload['products']??null)||!array_is_list($payload['products'])||!is_array($payload['categories']??null)||!array_is_list($payload['categories'])||strlen(json_encode($payload))>180000||!is_string($operation)||!preg_match('/\A[a-f0-9-]{36}\z/',$operation))throw new LogNetworkError('invalid_list');
+        $categories=[];$products=[];$items=[];
+        foreach($payload['categories'] as $c){if(!is_array($c)||!is_string($c['id']??null)||!is_string($c['name']??null)||isset($categories[$c['id']]))throw new LogNetworkError('invalid_list');$categories[$c['id']]=true;}
+        foreach($payload['products'] as $product){if(!is_array($product)||!is_string($product['id']??null)||!is_string($product['name']??null)||!is_string($product['categoryId']??null)||!isset($categories[$product['categoryId']])||!is_array($product['barcodes']??null)||isset($products[$product['id']]))throw new LogNetworkError('invalid_list');foreach($product['barcodes'] as $code)if(!is_string($code))throw new LogNetworkError('invalid_list');$products[$product['id']]=true;}
+        foreach($payload['list']['items'] as $item){if(!is_array($item)||!is_string($item['id']??null)||isset($items[$item['id']])||!is_string($item['productId']??null)||!isset($products[$item['productId']])||(!is_int($item['quantity']??null)&&!is_float($item['quantity']??null))||$item['quantity']<=0||!is_bool($item['done']??null)||!is_string($item['note']??null))throw new LogNetworkError('invalid_list');$items[$item['id']]=true;}
+        $hash=hash('sha256',json_encode($payload));
+        if(($row['operation']??null)===$operation){if(($row['actor']??null)!==$pid||$row['hash']!==$hash)throw new LogNetworkError('list_conflict',409);return ['list'=>$row,'role'=>$role($row)];}
+        if(($in['revision']??null)!==$row['revision'])throw new LogNetworkError('list_conflict',409);
+        $row['payload']=$payload;$row['revision']++;$row['operation']=$operation;$row['actor']=$pid;$row['hash']=$hash;
+        $this->state['shoplists'][$id]=$row;
+        return ['list'=>$row,'role'=>$role($row)];
+    }
+
     private function shareAction(string $action,array $in,?string $owner=null):array {
         $id=self::validId($in['id']??null);$access=$in['access']??'';
         if(!is_string($access)||!preg_match('/\A[A-Za-z0-9_-]{43}\z/',$access))throw new LogNetworkError('invalid_token');
@@ -321,6 +364,7 @@ final class LogNetwork {
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
+            if(str_starts_with($action,'shoplist-'))return $this->shoplistAction($action,$in,$pid);
             if($action==='share-publish')return $this->shareAction($action,$in,$pid);
             if (in_array($action,['information-summary','information-feedback','information-policy'],true))
                 return $this->informationAction($action,$in,$pid);
@@ -656,3 +700,4 @@ if ($action === 'revoke') {
 }
 
 out(500, ['error' => 'Onverwachte verbindingsstatus.']);
+
