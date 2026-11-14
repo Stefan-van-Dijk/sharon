@@ -1,3 +1,4 @@
+import { openShopListView } from './ShopListView.js?v=0.4.74';
 import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.74';
 import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.74';
 import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.74';
@@ -30,8 +31,8 @@ const MODULE_GUIDE = Object.freeze({
   codes: ['Scan en beheer QR-codes en barcodes als verwijzingen.', 'Verbindt met Kaarten, Objecten, Personen en Acties.'],
   settings: ['Stel Sharon, privacy en gegevensbeheer naar wens in.', 'Deze keuzes gelden voor alle modules.']
 });
-const MENU_ORDER = ['environment','locations','cards','persons','objects','themes','actions','notes','agenda','time','rides','codes'];
-const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
+const MENU_ORDER = ['shoplist','environment','locations','cards','persons','objects','themes','actions','notes','agenda','time','rides','codes'];
+const MENU_TITLES = Object.freeze({shoplist:'ShopList',environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
 const MENU_PREVIEW_ONLY = new Set(['notes','agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
@@ -526,6 +527,12 @@ export function createShell(root, {
     const module = modules.get(moduleId);
     if (!module) return;
 
+    if(module.id==='shoplist'){
+      setHeaderMode('detail','ShopList','shoplist');
+      await swapView(()=>openShopListView(outlet,{store}),{animate:options.animate!==false});
+      return;
+    }
+
     if (module.id === 'locations') {
       await openLocations(options.locationId || '', {
         animate: options.animate !== false
@@ -677,3 +684,4 @@ function escapeHtml(value) {
     '>': '&gt;'
   })[character]);
 }
+

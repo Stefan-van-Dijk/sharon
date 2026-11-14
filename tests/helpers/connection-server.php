@@ -162,4 +162,26 @@ $boundCode=$cs->handle('invite-code',['token'=>$bound['token']],$codeOwner['devi
 fails(fn()=>$cs->handle('accept-code',$boundCode,$first['deviceToken']),'invalid_invitation');
 check($cs->handle('accept-code',$boundCode,$second['deviceToken'])['contact']['personId']===$codeOwner['personId']);
 fails(fn()=>$cs->handle('invite-code',['token'=>$bound['token']],$codeOwner['deviceToken']),'invalid_invitation');
+
+[$shopDb,$shop,$shopStart,$shopOwner]=fixture();
+$reader=person($shop,'Reader');$stranger=person($shop,'Stranger');joinPerson($shop,$shopOwner,$reader);joinPerson($shop,$shopOwner,$stranger);
+$payload=['list'=>['id'=>'list-1','name'=>'Boodschappen','items'=>[]],'products'=>[],'categories'=>[]];
+$input=['id'=>'list-1','payload'=>$payload,'revision'=>0,'operation'=>'00000000-0000-4000-8000-000000000001'];
+$created=$shop->handle('shoplist-create',$input,$shopOwner['deviceToken']);check($created['list']['revision']===1);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken']);
+check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'])['role']==='read');
+fails(fn()=>$shop->handle('shoplist-put',$input,$reader['deviceToken']),'list_read_only');
+fails(fn()=>$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$stranger['personId'],'role'=>'write'],$reader['deviceToken']),'owner_required');
+check(count($shop->handle('shoplist-index',[],$stranger['deviceToken'])['lists'])===0);
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'write'],$shopOwner['deviceToken']);
+$update=[...$input,'revision'=>1,'operation'=>'00000000-0000-4000-8000-000000000002'];
+check($shop->handle('shoplist-put',$update,$reader['deviceToken'])['list']['revision']===2);
+check($shop->handle('shoplist-put',$update,$reader['deviceToken'])['list']['revision']===2);
+fails(fn()=>$shop->handle('shoplist-put',[...$input,'operation'=>'00000000-0000-4000-8000-000000000003'],$shopOwner['deviceToken']),'list_conflict');
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>null],$shopOwner['deviceToken']);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
+fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken']),'list_forbidden');
+
 echo json_encode(['checks'=>$checks,'ok'=>true]);
+
