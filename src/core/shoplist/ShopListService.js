@@ -1,5 +1,5 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.77';
-export const SHOPLIST_URL='https://stefan-van-dijk.github.io/Shopl/';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.78';
+export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);}
  async request(action,input={}){
