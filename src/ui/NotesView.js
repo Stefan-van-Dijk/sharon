@@ -1,7 +1,7 @@
-import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.76';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.76';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.76';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.76';
+import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.77';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.77';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.77';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.77';
 export async function openNotesView(outlet,{store,api=new ShopListService(store)}){
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};

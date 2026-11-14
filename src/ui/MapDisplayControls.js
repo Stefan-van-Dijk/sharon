@@ -1,5 +1,5 @@
-import {shopOpacity,shopRadius} from './ShopPointMotion.js?v=0.4.76';
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.76';
+import {shopOpacity,shopRadius} from './ShopPointMotion.js?v=0.4.77';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.77';
 
 export const MAP_DISPLAY_DEFAULTS=Object.freeze({
   showIcons:true,showNames:true,showPoints:true,clusterPoints:true,
