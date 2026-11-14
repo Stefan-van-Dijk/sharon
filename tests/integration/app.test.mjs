@@ -21,7 +21,8 @@ for (const demo of [false, true]) test(`Exact releasepakket start ${demo ? 'test
   const app = await appHarness({ demo }); t.after(() => app.close());
   await app.boot();
   await until(() => app.document.querySelector('[data-module="cards"]'));
-  assert.equal(app.document.querySelectorAll('.module-list [data-module]').length, demo ? 12 : 11);
+  assert.equal(app.document.querySelectorAll('.module-list [data-module]').length, demo ? 13 : 12);
+  assert.ok(app.document.querySelector('[data-module="shoplist"]'), 'ShopList is beschikbaar in het modulemenu');
   assert.equal(!!app.document.querySelector('.sh-skeleton-home-label'), demo);
   assert.equal(app.gps.length, 1);
   assert.equal(app.gps[0].enableHighAccuracy, false);
