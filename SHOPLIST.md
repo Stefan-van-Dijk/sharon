@@ -2,7 +2,7 @@
 
 ShopList (repository BS, URL unchanged) uses the existing Sharon identity and network endpoint. No credentials go in links. The first integration supports the shared GitHub Pages origin only; other origins require a future delegated identity handshake and are rejected.
 
-The ShopList module lists centrally stored lists and manages owner-controlled read/write/revoked grants for existing Sharon contacts. It opens the selected list in the standalone app, not an iframe. Full scanner screens embedded in Sharon, shop-location/card composition, paid-history cleanup and multi-list offline merging are not implemented in this change.
+The Notities & lijsten module combines local free text, ideas and checklists with centrally stored ShopList lists. Linked lists open a branded ShopList board. A rightward row swipe opens owner-controlled read/write/revoked grants for existing Sharon contacts. It opens the selected list in the standalone app, not an iframe. Full scanner screens embedded in Sharon, shop-location/card composition, paid-history cleanup and multi-list offline merging are not implemented in this change.
 
 The server checks membership on every action, list-specific access, owner-only grants and revision preconditions under its existing file transaction lock. Updates use a stable operation ID until acknowledged. Conflicts retain the local copy; retrieving the online version archives differing local content as a separate list. Read-only edits become private copies. This is whole-list optimistic concurrency, not automatic field merging.
 
