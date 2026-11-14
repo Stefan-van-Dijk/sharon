@@ -1,4 +1,4 @@
-import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.74';
+import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.75';
 export async function openShopListView(outlet,{store}){
  const api=new ShopListService(store);
  const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
