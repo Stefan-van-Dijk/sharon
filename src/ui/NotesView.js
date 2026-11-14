@@ -1,13 +1,21 @@
-import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.78';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.78';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.78';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.78';
-export async function openNotesView(outlet,{store,api=new ShopListService(store)}){
+import {openListShare} from './ListSharing.js?v=0.4.79';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.79';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.79';
+import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.79';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.79';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.79';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.79';
+export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
- let disposed=false,release=()=>{},local=[],linked=[],closeBoard=()=>{};
- outlet.replaceChildren();const root=node('section',null,'sh-notes-view'),tools=node('div',null,'sh-notes-tools'),search=node('input'),rows=node('div'),status=node('p');status.setAttribute('role','status');search.type='search';search.placeholder='Zoek notities, ideeën en lijsten';search.setAttribute('aria-label',search.placeholder);
- const add=button('Nieuw',()=>edit());const connect=node('a','Lijst koppelen in ShopList');connect.href=SHOPLIST_URL;tools.append(add,connect);root.append(tools,search,rows,status);outlet.append(root);
+ let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[];
+ let prefs=(await store.get?.('meta','notes.list.preferences'))?.value||{sort:'alpha',order:[]};if(!['alpha','recent','custom'].includes(prefs.sort))prefs.sort='alpha';
+ outlet.replaceChildren();const root=node('section',null,'module-view locations-view sh-card-view sh-notes-view'),tools=node('div',null,'sh-notes-tools'),controls=node('div'),rows=node('div',null,'sh-locations-list swipe-list'),status=node('p');status.setAttribute('role','status');
+ controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
+ const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
+ if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
+ const connect=node('a','Lijst koppelen in ShopList');connect.href=SHOPLIST_URL;tools.append(connect);root.append(tools,controls,rows,status);outlet.append(root);
+ const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false){
   closeBoard();const previous=document.activeElement,dialog=node('dialog',null,'sh-notes-board');dialog.setAttribute('aria-label',title);const head=node('header',null,shop?'sh-notes-brand':'sh-notes-heading');
@@ -33,20 +41,13 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   body.append(button('Bewerken',()=>edit(record)));
  }
  async function openLinked(list,sharing=false){
+  if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api});return;}
   const {dialog,body}=board(list.name,true),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
   const open=node('a','Open in ShopList');open.href=SHOPLIST_URL+'?shoplist='+encodeURIComponent(list.id);body.append(open);
   try{
    const response=await api.read(list.id);if(disposed||!dialog.isConnected)return;
    const payload=response.list.payload;message.textContent='';
-   if(sharing){
-    if(response.role!=='owner'){message.textContent='Alleen de eigenaar kan deze lijst verder delen.';return;}
-    const contacts=await api.connection.contacts();if(disposed||!dialog.isConnected)return;
-    if(!contacts.length)message.textContent='Verbind eerst een persoon in Sharon.';
-    for(const contact of contacts){const line=node('div',null,'sh-notes-person'),label=node('label',contact.name),select=node('select');select.setAttribute('aria-label','Toegang voor '+contact.name);
-     for(const [v,t]of [['','Geen toegang'],['read','Bekijken'],['write','Bewerken']]){const option=node('option',t);option.value=v;select.append(option);}select.value=response.list.members[contact.personId]||'';
-     const apply=button('Bewaren',async()=>{apply.disabled=true;select.disabled=true;try{await api.share(list.id,contact.personId,select.value||null);message.textContent=select.value?'Lijst gedeeld met '+contact.name+'.':'Toegang ingetrokken voor '+contact.name+'.';}catch(e){message.textContent=e.message;}finally{apply.disabled=false;select.disabled=false;}});label.append(select);line.append(label,apply);body.append(line);
-    }
-   }else{
+   {
     const products=new Map(payload.products.map(p=>[p.id,p]));
     const listRows=node('div');for(const item of payload.list.items){listRows.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));}body.append(listRows);
     if(!payload.list.items.length)body.append(node('p','Deze lijst is nog leeg.'));
@@ -55,16 +56,18 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   }catch(e){if(dialog.isConnected)message.textContent=e.message;}
  }
  function paint(){
-  if(disposed)return;release();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
-  const visible=[...local.map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r})),...linked.map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)).sort((a,b)=>a.title.localeCompare(b.title,'nl'));
-  for(const row of visible)rows.insertAdjacentHTML('beforeend',renderObjectStrip({id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:row.linked?[]:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}]}));
+  if(disposed)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
+  visible=sortList([...local.map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
+  for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:row.linked?[]:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   if(!visible.length)rows.append(node('p','Nog geen passende notities of lijsten.'));
+  controls.querySelectorAll('[data-list-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.listSort===prefs.sort)));
+  releaseControls=bindListControls(rows,{onMove:async(id,direction)=>{prefs.order=moveInOrder(visible.map(r=>r.id),id,direction);await savePrefs();paint();},onMoveTo:async(id,target,after)=>{prefs.order=moveToPosition(visible.map(r=>r.id),id,target,after);await savePrefs();paint();}});
   const find=id=>visible.find(r=>r.id===id);
   release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onDelete:async id=>{const r=find(id);try{await store.put('objects',{...r.record,archivedAt:Date.now()});await loadLocal();}catch(e){report(e);}}});
  }
  async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.archivedAt&&!r.deletedAt);paint();}
- search.oninput=paint;
+ search.oninput=paint;controls.querySelectorAll('[data-list-sort]').forEach(b=>b.onclick=async()=>{prefs.sort=b.dataset.listSort;try{await savePrefs();paint();}catch(e){report(e);}});
  await loadLocal();
  api.index().then(result=>{if(disposed)return;linked=result.lists;paint();}).catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});
- return ()=>{disposed=true;release();closeBoard();};
+ return ()=>{disposed=true;release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
 }

@@ -48,7 +48,7 @@ test('Testactie: eerst opslaan, daarna koppelen; persoonlijke objecten blijven g
   app.document.querySelector('[data-graph-add]').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(async () => (await dataset()).relations.some(r => r.from === action.id && r.to === 'DemoPerson01'));
   assert.equal(JSON.stringify(await app.store.getAll('objects')), before);
-  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.78');
+  const { ObjectStore } = await app.load('./src/core/storage/ObjectStore.js?v=0.4.79');
   const reopened = await new ObjectStore().open();
   assert.ok((await reopened.get('meta', 'skeleton.demo.dataset')).value.objects.some(o => o.id === action.id));
   assert.deepEqual(app.errors, []);
@@ -85,7 +85,7 @@ test('Reguliere kaart opslaan en vanuit de lijst opnieuw openen', async t => {
 
 test('Bestaande testworkspace wordt verrijkt zonder bewerkte gegevens te verliezen', async t => {
   const app = await appHarness({ demo: true }); t.after(() => app.close());
-  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.78');
+  const skeleton = await app.load('./src/core/skeleton/SkeletonCore.js?v=0.4.79');
   const old = skeleton.demoDataset();
   old.objects = old.objects.filter(o => o.module !== 'environment');
   old.objects.find(o => o.id === 'DemoPerson01').title = 'Bewaarde testnaam';
@@ -248,6 +248,8 @@ test('Notities en lijsten replaces the standalone ShopList menu and works offlin
  const entry=await until(()=>app.document.querySelector('[data-module="notes"]'));
  assert.equal(app.document.querySelector('[data-module="shoplist"]'),null);entry.click();
  await until(()=>app.document.querySelector('.sh-notes-view'));
- assert.match(app.document.querySelector('.sh-notes-view').textContent,/Nieuw/);
+ assert.ok(app.document.querySelector('[data-header-actions] [aria-label="Notitie of lijst toevoegen"]'));
+ assert.ok(app.document.querySelector('.sh-notes-view [data-list-search]'));
+ assert.equal(app.document.querySelectorAll('.sh-notes-view [data-list-sort]').length,3);
  assert.deepEqual(app.errors,[]);
 });
