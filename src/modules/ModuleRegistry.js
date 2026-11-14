@@ -1,5 +1,5 @@
 const DEFAULT_MODULES = Object.freeze([
-  { id: 'shoplist', title: 'ShopList' },
+  { id: 'notes', title: 'Notities & lijsten' },
   { id: 'rides', title: 'Ritten' },
   { id: 'time', title: 'Tijd' },
   { id: 'locations', title: 'Locaties' },
@@ -32,7 +32,7 @@ export class ModuleRegistry {
   }
 
   get(id) {
-    return this.#modules.get(id) ?? null;
+    return this.#modules.get(id==='shoplist'?'notes':id) ?? null;
   }
 }
 
