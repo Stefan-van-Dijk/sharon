@@ -1,8 +1,8 @@
-import {renderListControls} from './ListControls.js?v=0.4.83';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.83';
-import {sortList} from '../core/storage/ListOrder.js?v=0.4.83';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.4.83';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.83';
+import {renderListControls} from './ListControls.js?v=0.4.84';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.84';
+import {sortList} from '../core/storage/ListOrder.js?v=0.4.84';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.4.84';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.84';
 
 // Same board shell and people strips as card sharing; grants stay list-specific.
 export function openListShare(list,{store,api,onClose=()=>{}}){

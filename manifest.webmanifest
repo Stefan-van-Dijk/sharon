@@ -17,5 +17,11 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://stefan-van-dijk.github.io/shop/manifest.webmanifest"
+    }
   ]
 }
