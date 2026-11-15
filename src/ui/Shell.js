@@ -175,7 +175,7 @@ export function createShell(root, {
     if (animate) {
       outlet.classList.add('is-changing');
       await sleep(VIEW_FADE_MS);
-      if (change !== viewChange) return;
+      if (change !== viewChange || !root.isConnected) return;
     }
 
     if (viewCleanup) {
@@ -184,14 +184,17 @@ export function createShell(root, {
     }
 
     const cleanup = await renderer();
-    if (change !== viewChange) {
+    if (change !== viewChange || !root.isConnected) {
       if (typeof cleanup === 'function') cleanup();
       return;
     }
     if (typeof cleanup === 'function') viewCleanup = cleanup;
 
     if (animate) {
-      requestAnimationFrame(() => { outlet.classList.remove('is-changing'); events.emit('cards.context.check'); });
+      requestAnimationFrame(() => {
+        if (change !== viewChange || !root.isConnected) return;
+        outlet.classList.remove('is-changing'); events.emit('cards.context.check');
+      });
     } else {
       outlet.classList.remove('is-changing');
       events.emit('cards.context.check');

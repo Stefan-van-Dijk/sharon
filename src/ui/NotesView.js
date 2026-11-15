@@ -65,7 +65,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   }catch(e){if(dialog.isConnected)message.textContent=e.message;}
  }
  function paint(){
-  if(disposed)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
+  if(disposed||!root.isConnected)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
   connections.hidden=mode!=='connections';rows.hidden=mode==='connections';modes.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.notesMode===mode)));
   visible=sortList([...local.filter(r=>!!r.archivedAt===(mode==='archive')).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===(mode==='archive')).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
   for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:row.linked?[]:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
@@ -78,6 +78,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.deletedAt);paint();}
  search.oninput=paint;controls.querySelectorAll('[data-list-sort]').forEach(b=>b.onclick=async()=>{prefs.sort=b.dataset.listSort;try{await savePrefs();paint();}catch(e){report(e);}});
  await loadLocal();
+ if(!root.isConnected)return ()=>{};
  async function loadLinked(){const result=await api.index();if(disposed)return;linked=result.lists;paint();}
  const refresh=()=>{if(!document.hidden)loadLinked().catch(report);};document.addEventListener('visibilitychange',refresh);
  loadLinked().catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});

@@ -253,3 +253,22 @@ test('Notities en lijsten replaces the standalone ShopList menu and works offlin
  assert.equal(app.document.querySelectorAll('.sh-notes-view [data-list-sort]').length,3);
  assert.deepEqual(app.errors,[]);
 });
+
+test('Closing the window during notes loading does not emit a late context check',async t=>{
+ const app=await appHarness();t.after(()=>app.close());await app.boot();
+ const {ObjectStore}=await app.load('./src/core/storage/ObjectStore.js?v=0.4.82');
+ const {EventBus}=await app.load('./src/core/events/EventBus.js?v=0.4.82');
+ const entry=await until(()=>app.document.querySelector('[data-module="notes"]'));
+ const originalGetAll=ObjectStore.prototype.getAll,originalEmit=EventBus.prototype.emit;
+ let finish,closed=false;const late=[];
+ ObjectStore.prototype.getAll=async function(name){
+  const rows=await originalGetAll.call(this,name);
+  if(name==='objects'&&app.document.querySelector('.sh-notes-view')&&!finish)await new Promise(resolve=>{finish=resolve;});
+  return rows;
+ };
+ EventBus.prototype.emit=function(type,...args){if(closed){late.push(type);return;}return originalEmit.call(this,type,...args);};
+ entry.click();await until(()=>finish);
+ closed=true;app.close();finish();
+ await new Promise(resolve=>setTimeout(resolve,30));
+ assert.deepEqual(late,[]);assert.deepEqual(app.errors,[]);
+});
