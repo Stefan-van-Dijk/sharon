@@ -183,5 +183,21 @@ $shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'
 fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
 fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken']),'list_forbidden');
 
-echo json_encode(['checks'=>$checks,'ok'=>true]);
 
+
+
+// Per-person archive and departure preserve the other participants.
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken']);
+$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>true],$reader['deviceToken']);
+check($shop->handle('shoplist-index',[],$reader['deviceToken'])['lists'][0]['archived']===true);
+check($shop->handle('shoplist-index',[],$shopOwner['deviceToken'])['lists'][0]['archived']===false);
+$shop->handle('shoplist-leave',['id'=>'list-1'],$shopOwner['deviceToken']);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$shopOwner['deviceToken']),'list_forbidden');
+check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'])['role']==='read');
+fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken']),'list_read_only');
+$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>false],$reader['deviceToken']);
+$shop->handle('shoplist-leave',['id'=>'list-1'],$reader['deviceToken']);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
+check($shop->handle('shoplist-create',$input,$shopOwner['deviceToken'])['list']['revision']===1);
+
+echo json_encode(['checks'=>$checks,'ok'=>true]);

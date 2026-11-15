@@ -1,9 +1,9 @@
-# Shop koppelen — 0.4.81
+# Shop koppelen — 0.4.82
 
 Upload `server/connections.php` naar `/log/api/connections.php` op sharon.life.
 Behoud configuratie en private gegevens. GitHub Pages plaatst dit PHP-bestand niet.
 
-Sharon → Notities en lijsten → Shop verbinden → Koppelcode maken → Kopieer code.
+Sharon → Notities en lijsten → Koppelingen → ShopList. De strook maakt een code en kopieert die direct. Bij geweigerde klembordtoegang verschijnt Kopieer code als herhaalactie.
 Het maken van de code geeft één Shop-installatie toestemming voor toegang tot de
 boodschappenlijsten van deze identiteit, binnen bestaande lijstbevoegdheden.
 De code bestaat uit twaalf willekeurige tekens en is zeven dagen geldig.
@@ -26,5 +26,21 @@ en bij terugkeer; sluiten verwijdert de timer en listener.
 Bestaande actieve koppelingen blijven werken. Oude lange codes blijven hun oude
 bevestigingsroute gebruiken. Nieuwe codes gebruiken uitsluitend de compacte route.
 Een gekoppelde Shop leest het klembord niet opnieuw en vervangt geen identiteit.
-Verbinding intrekken blijft beschikbaar. Lokale lijsten worden nooit automatisch
-gepubliceerd. De code geeft geen toegang tot chats, contacten of netwerkbeheer.
+Verbinding intrekken blijft beschikbaar. Na koppelen synchroniseert Shop alle lokale actieve lijsten naar de eigen identiteit.
+Toegang voor andere personen ontstaat uitsluitend via Delen. De code geeft geen toegang tot chats, contacten of netwerkbeheer.
+
+
+## Lijstbeheer
+Archiveren is per persoon en telt als behouden. Via Archief kan dezelfde persoon
+herstellen. Verwijderen beëindigt het lidmaatschap van die persoon, inclusief diens
+gekoppelde installaties. Andere deelnemers behouden hun rechten. Vertrekt de eigenaar,
+dan neemt een bestaande schrijver het beheer over; zonder schrijver blijven lezers
+lezers. Alleen zonder eigenaar én zonder deelnemers wordt de lijst verwijderd.
+Shop haalt bij terugkeer, iedere 30 seconden en via het logo de lidmaatschappen op
+voordat wijzigingen worden verstuurd. Onverzonden wijzigingen van een verdwenen
+lidmaatschap blijven als lokale archiefkopie behouden.
+
+Release samen met Stefan-van-Dijk/shop: eerst connections.php uploaden, daarna beide
+clients. Controleer op iPhone het automatisch kopiëren en de plakbevestiging en test
+verwijderen/archiveren met twee echte identiteiten. De bestaande private gegevens
+blijven op hun huidige locatie.
