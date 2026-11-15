@@ -1,8 +1,14 @@
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.84';
 // No permanent credential leaves Sharon. Only an expiring invitation is copied.
 export function openShopPairing(connection,{autoCreate=false}={}){
  const document=globalThis.document;
- const dialog=document.createElement('dialog');dialog.className='sh-notes-board';dialog.setAttribute('aria-label','Shop verbinden');
- const heading=document.createElement('h2');heading.textContent='Shop verbinden';const body=document.createElement('div');body.className='sh-notes-body';const status=document.createElement('p');status.setAttribute('role','status');
+ const dialog=document.createElement('dialog');dialog.className='sh-notes-board sh-shop-access';dialog.setAttribute('aria-label','Shop verbinden');
+ const heading=document.createElement('h2');heading.textContent='ShopList.';
+ const intro=document.createElement('p');intro.className='sh-shop-invitation';intro.textContent='Alles voor je boodschappen. Wil je ShopList openen?';
+ const actions=document.createElement('div');actions.className='sh-shop-access-actions';
+ const open=document.createElement('a');open.href=SHOPLIST_URL;open.target='_blank';open.rel='noopener';open.textContent='Open ShopList';
+ const install=document.createElement('a');install.href=SHOPLIST_URL+'?install=1';install.target='_blank';install.rel='noopener';install.textContent='Zet ShopList op je beginscherm';actions.append(open,install);
+ const installInfo=document.createElement('p');installInfo.className='sh-shop-install-info';installInfo.textContent='Open ShopList om de installatiehulp te bekijken. Gebruik je de app al op je beginscherm? Tik dan op het ShopList-icoon.';const body=document.createElement('div');body.className='sh-notes-body';const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;};
  const request=async(action,input={})=>connection.request('shop-pair-'+action,input,await connection.device());
  let signature=null,invitation=null;let closed=false,polling=false;const onVisible=()=>{if(!document.hidden)refresh().catch(()=>{});};const timer=setInterval(()=>{if(!document.hidden)refresh().catch(()=>{});},5000);document.addEventListener('visibilitychange',onVisible);const close=()=>{if(closed)return;closed=true;clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);dialog.remove();};dialog.addEventListener('close',close,{once:true});
@@ -16,7 +22,10 @@ export function openShopPairing(connection,{autoCreate=false}={}){
    row.append(button(r.status==='active'?'Verbinding intrekken':'Annuleren',async()=>{await request('revoke',{id:r.id});await refresh();}));body.append(row);
   }
  };
- dialog.append(heading,body,status,button('Vernieuwen',refresh),button('Sluiten',close));document.body.append(dialog);dialog.showModal();if(autoCreate){
+ dialog.append(heading,intro,actions,installInfo,body,status,button('Vernieuwen',refresh),button('Sluiten',close));document.body.append(dialog);dialog.showModal();
+ // Only a browser-confirmed match is evidence of installation; pairing is not.
+ if(typeof navigator.getInstalledRelatedApps==='function')navigator.getInstalledRelatedApps().then(apps=>{if(closed)return;if(apps.some(app=>app.platform==='webapp'&&app.url===SHOPLIST_URL+'manifest.webmanifest')){install.hidden=true;installInfo.textContent='ShopList is geïnstalleerd. Open de app via de knop of het icoon op je beginscherm.';}}).catch(()=>{});
+ if(autoCreate){
   const code=request('create',{format:'compact'}).then(r=>{invitation=r;return r.code;});
   let copied;
   try{copied=typeof ClipboardItem!=='undefined'&&navigator.clipboard?.write?navigator.clipboard.write([new ClipboardItem({'text/plain':code.then(value=>new Blob([value],{type:'text/plain'}))})]):code.then(value=>navigator.clipboard.writeText(value));}catch(e){copied=Promise.reject(e);}
