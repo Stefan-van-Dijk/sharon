@@ -23,4 +23,22 @@ $s->handle('shop-pair-revoke',['id'=>$pair['id']],$master);fail(fn()=>$s->handle
 $expired=$s->handle('shop-pair-create',[],$master);$later=new LogNetwork($path,1301);fail(fn()=>$later->handle('shop-pair-claim',['id'=>$expired['id'],'code'=>explode('.',$expired['code'])[2],'deviceToken'=>LogNetwork::token()],null),'pair_expired');
 $pair=$s->handle('shop-pair-create',[],$other);$key=LogNetwork::token();$r=$s->handle('shop-pair-claim',['id'=>$pair['id'],'code'=>explode('.',$pair['code'])[2],'deviceToken'=>$key],null);$s->handle('shop-pair-confirm',['id'=>$pair['id'],'fingerprint'=>$r['fingerprint']],$other);
 $s->handle('set-access',['personId'=>$otherId,'status'=>'revoked'],$master);fail(fn()=>$s->handle('shop-device-self',[],$key),'unauthorized');
+
+$pair=$s->handle('shop-pair-create',['format'=>'compact'],$master);$code=$pair['code'];check(strlen($code)===12);check($pair['expiresAt']===(1000+7*86400)*1000);
+check($s->handle('shop-pair-probe',['code'=>$code],null)['valid']);
+check(!$s->handle('shop-pair-probe',['code'=>LogNetwork::id()],null)['valid']);
+$key=LogNetwork::token();$input=['code'=>$code,'deviceToken'=>$key];
+$s->handle('shop-pair-redeem',$input,null);$s->handle('shop-pair-redeem',$input,null);
+check($s->handle('shop-device-self',[],$key)['needsAck']);
+fail(fn()=>$s->handle('shoplist-index',[],$key),'pair_pending');
+fail(fn()=>$s->handle('shop-pair-redeem',[...$input,'deviceToken'=>LogNetwork::token()],null),'pair_used');
+check($s->handle('shop-pair-list',[],$master)['devices'][count($s->handle('shop-pair-list',[],$master)['devices'])-1]['status']==='ready');
+$s->handle('shop-device-ack',[],$key);$s->handle('shop-device-ack',[],$key);
+check(!$s->handle('shop-pair-probe',['code'=>$code],null)['valid']);
+fail(fn()=>$s->handle('shop-pair-redeem',$input,null),'pair_expired');
+check(!$s->handle('shop-device-self',[],$key)['needsAck']);check($s->handle('shoplist-index',[],$key)['lists']===[]);
+check(!str_contains(file_get_contents($path),$code));
+$s->handle('shop-device-revoke',[],$key);fail(fn()=>$s->handle('shop-device-self',[],$key),'unauthorized');
+$pair=$s->handle('shop-pair-create',['format'=>'compact'],$master);$future=new LogNetwork($path,1000+7*86400);check(!$future->handle('shop-pair-probe',['code'=>$pair['code']],null)['valid']);
+fail(fn()=>$future->handle('shop-pair-redeem',['code'=>$pair['code'],'deviceToken'=>LogNetwork::token()],null),'pair_expired');
 echo json_encode(['ok'=>true]);

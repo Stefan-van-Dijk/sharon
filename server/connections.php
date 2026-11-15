@@ -291,18 +291,41 @@ final class LogNetwork {
         $this->state['shopDevices']??=[];
         foreach($this->state['shopDevices'] as $id=>$r)
             if($r['status']!=='active' && $r['until']<=$now)unset($this->state['shopDevices'][$id]);
+        $this->state['shopPairCodes']??=[];
+        foreach($this->state['shopPairCodes'] as $hash=>$invite)if($invite['until']<=$now||!isset($this->state['shopDevices'][$invite['id']]))unset($this->state['shopPairCodes'][$hash]);
+        if(in_array($action,['shop-pair-probe','shop-pair-redeem'],true)){
+            $code=self::validId($in['code']??null);$entry=$this->state['shopPairCodes'][hash('sha256',$code)]??null;
+            if($action==='shop-pair-probe')return ['valid'=>$entry!==null];
+            if(!$entry)throw new LogNetworkError('pair_expired',410);
+            $id=$entry['id'];$r=$this->state['shopDevices'][$id];
+            $p=$this->state['people'][$r['personId']]??null;$grant=$p?$this->grant($p['id']):null;
+            if(!$p||($grant&&$grant['status']!=='active'))throw new LogNetworkError('unauthorized',401);
+            $this->member($p);$hash=self::hashToken($in['deviceToken']??null);
+            foreach($this->state['people'] as $person)if($person['tokenHash']===$hash)throw new LogNetworkError('invalid_token');
+            foreach($this->state['shopDevices'] as $other)if($other['id']!==$id&&$other['tokenHash']===$hash)throw new LogNetworkError('invalid_token');
+            if($r['tokenHash']!==null&&$r['tokenHash']!==$hash)throw new LogNetworkError('pair_used',409);
+            $r['tokenHash']=$hash;$r['status']='ready';$this->state['shopDevices'][$id]=$r;
+            return ['id'=>$id,'self'=>['personId'=>$p['id'],'name'=>$p['name']]];
+        }
         if($action==='shop-pair-create'){
             $pid=$person['id'];$this->rate('shop-pair:'.$pid,10,600);
             if(count(array_filter($this->state['shopDevices'],fn($r)=>$r['personId']===$pid))>=20)throw new LogNetworkError('pair_capacity',409);
+            if(($in['format']??'')==='compact'){
+                $id=self::id();do{$code=self::id();$hash=hash('sha256',$code);}while(isset($this->state['shopPairCodes'][$hash])||isset($this->state['shareCodes'][$hash])||isset($this->state['invitationCodes'][$hash]));
+                $until=$now+7*86400;
+                $this->state['shopDevices'][$id]=['id'=>$id,'personId'=>$pid,'tokenHash'=>null,'status'=>'pending','compact'=>true,'until'=>$until,'createdAt'=>$now];
+                $this->state['shopPairCodes'][$hash]=['id'=>$id,'until'=>$until];
+                return ['id'=>$id,'code'=>$code,'expiresAt'=>$until*1000];
+            }
             $id=self::id();$code=self::token();
             $this->state['shopDevices'][$id]=['id'=>$id,'personId'=>$pid,'codeHash'=>self::hashToken($code),'tokenHash'=>null,'status'=>'pending','until'=>$now+300,'createdAt'=>$now];
             return ['id'=>$id,'code'=>'SP1.' . $id . '.' . $code,'expiresAt'=>($now+300)*1000];
         }
-        if($action==='shop-pair-list')return ['devices'=>array_values(array_map(fn($r)=>['id'=>$r['id'],'status'=>$r['status'],'fingerprint'=>$r['tokenHash']?strtoupper(substr($r['tokenHash'],0,8)):null,'expiresAt'=>$r['until']*1000,'createdAt'=>$r['createdAt']*1000],array_filter($this->state['shopDevices'],fn($r)=>$r['personId']===$person['id'])))];
+        if($action==='shop-pair-list')return ['devices'=>array_values(array_map(fn($r)=>['id'=>$r['id'],'status'=>$r['status'],'compact'=>$r['compact']??false,'connectedAt'=>isset($r['connectedAt'])?$r['connectedAt']*1000:null,'fingerprint'=>$r['tokenHash']?strtoupper(substr($r['tokenHash'],0,8)):null,'expiresAt'=>$r['until']*1000,'createdAt'=>$r['createdAt']*1000],array_filter($this->state['shopDevices'],fn($r)=>$r['personId']===$person['id'])))];
         $id=self::validId($in['id']??null);$r=$this->state['shopDevices'][$id]??null;
         if(!$r)throw new LogNetworkError('pair_expired',410);
         if($action==='shop-pair-claim'){
-            if($r['until']<=$now||!hash_equals($r['codeHash'],self::hashToken($in['code']??null)))throw new LogNetworkError('pair_expired',410);
+            if(($r['compact']??false)||$r['until']<=$now||!hash_equals($r['codeHash'],self::hashToken($in['code']??null)))throw new LogNetworkError('pair_expired',410);
             $hash=self::hashToken($in['deviceToken']??null);
             foreach($this->state['people'] as $p)if(hash_equals($p['tokenHash'],$hash))throw new LogNetworkError('invalid_token');
             foreach($this->state['shopDevices'] as $other)if($other['id']!==$id&&$other['tokenHash']===$hash)throw new LogNetworkError('invalid_token');
@@ -312,7 +335,7 @@ final class LogNetwork {
             return ['status'=>$r['status'],'fingerprint'=>strtoupper(substr($hash,0,8))];
         }
         if($r['personId']!==$person['id'])throw new LogNetworkError('unauthorized',403);
-        if($action==='shop-pair-revoke'){unset($this->state['shopDevices'][$id]);return ['ok'=>true];}
+        if($action==='shop-pair-revoke'){foreach($this->state['shopPairCodes'] as $h=>$c)if($c['id']===$id)unset($this->state['shopPairCodes'][$h]);unset($this->state['shopDevices'][$id]);return ['ok'=>true];}
         if($action==='shop-pair-confirm'){
             if(!in_array($r['status'],['claimed','active'],true))throw new LogNetworkError('pair_pending',409);
             if(($in['fingerprint']??'')!==strtoupper(substr($r['tokenHash'],0,8)))throw new LogNetworkError('pair_pending',409);
@@ -325,12 +348,19 @@ final class LogNetwork {
         $hash=self::hashToken($auth);
         foreach($this->state['shopDevices']??[] as $r){
             if($r['tokenHash']!==$hash)continue;
-            if($r['status']!=='active')throw new LogNetworkError('pair_pending',403);
+            if(($r['compact']??false)&&$r['status']==='ready'&&$r['until']<=$this->now())throw new LogNetworkError('pair_expired',410);
+            if($r['status']!=='active'&&!($r['status']==='ready'&&in_array($action,['shop-device-self','shop-device-ack','shop-device-revoke'],true)))throw new LogNetworkError('pair_pending',403);
             $p=$this->state['people'][$r['personId']]??null;$grant=$p?$this->grant($p['id']):null;
             if(!$p||($grant&&$grant['status']!=='active'))throw new LogNetworkError('unauthorized',401);
             $this->member($p);
-            if($action==='shop-device-revoke'){unset($this->state['shopDevices'][$r['id']]);return ['ok'=>true];}
-            if($action==='shop-device-self')return ['self'=>['personId'=>$p['id'],'name'=>$p['name']]];
+            if($action==='shop-device-ack'){
+                if(!($r['compact']??false))throw new LogNetworkError('shop_scope',403);
+                if($r['status']!=='active'){$this->state['shopDevices'][$r['id']]['status']='active';$this->state['shopDevices'][$r['id']]['connectedAt']=$this->now();}
+                foreach($this->state['shopPairCodes']??[] as $h=>$c)if($c['id']===$r['id'])unset($this->state['shopPairCodes'][$h]);
+                return ['ok'=>true];
+            }
+            if($action==='shop-device-revoke'){foreach($this->state['shopPairCodes']??[] as $h=>$c)if($c['id']===$r['id'])unset($this->state['shopPairCodes'][$h]);unset($this->state['shopDevices'][$r['id']]);return ['ok'=>true];}
+            if($action==='shop-device-self')return ['self'=>['personId'=>$p['id'],'name'=>$p['name']],'needsAck'=>$r['status']==='ready'];
             if(!in_array($action,['shoplist-index','shoplist-read','shoplist-create','shoplist-put'],true))throw new LogNetworkError('shop_scope',403);
             return $this->shoplistAction($action,$in,$p['id']);
         }
@@ -338,7 +368,7 @@ final class LogNetwork {
     }
     public function handle(string $action, array $in, ?string $auth): array {
         return $this->transaction(function () use ($action,$in,$auth) {
-            if($action==='shop-pair-claim')return $this->shopPairAction($action,$in);
+            if(in_array($action,['shop-pair-claim','shop-pair-probe','shop-pair-redeem'],true))return $this->shopPairAction($action,$in);
             $delegated=$this->shopDevice($action,$in,$auth);if($delegated!==null)return $delegated;
             if($action==='share-check'){$id=self::validId($in['id']??null);return ['valid'=>isset($this->state['shareCodes'][hash('sha256',$id)])];}
             if(in_array($action,['share-read','share-ack'],true))return $this->shareAction($action,$in);
