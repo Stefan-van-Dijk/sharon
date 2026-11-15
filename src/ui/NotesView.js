@@ -1,10 +1,11 @@
-import {openListShare} from './ListSharing.js?v=0.4.79';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.79';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.79';
-import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.79';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.79';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.79';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.79';
+import {openShopPairing} from './ShopPairing.js?v=0.4.80';
+import {openListShare} from './ListSharing.js?v=0.4.80';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.80';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.80';
+import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.80';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.80';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.80';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.80';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
@@ -14,7 +15,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
  const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
  if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
- const connect=node('a','Lijst koppelen in ShopList');connect.href=SHOPLIST_URL;tools.append(connect);root.append(tools,controls,rows,status);outlet.append(root);
+ const connect=node('a','Lijst koppelen in ShopList');connect.href=SHOPLIST_URL;tools.append(connect,button('Shop verbinden',()=>{closeBoard();closeBoard=openShopPairing(api.connection);}));root.append(tools,controls,rows,status);outlet.append(root);
  const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false){
