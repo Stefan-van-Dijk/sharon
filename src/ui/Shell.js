@@ -1,20 +1,20 @@
-import { openNotesView } from './NotesView.js?v=0.4.82';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.82';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.82';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.82';
-import { mountCardArrival } from './CardArrival.js?v=0.4.82';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.82';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.82';
-import { syncViewportHeight } from './Viewport.js?v=0.4.82';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.82';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.82';
-import { openPeopleView } from './PeopleView.js?v=0.4.82';
-import { openCardsView } from './CardsView.js?v=0.4.82';
-import { openLocationsView } from './LocationsView.js?v=0.4.82';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.82';
-import { openSettings } from './SettingsView.js?v=0.4.82';
-import { sharonWordmark } from './Brand.js?v=0.4.82';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.82';
+import { openNotesView } from './NotesView.js?v=0.4.83';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.83';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.83';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.83';
+import { mountCardArrival } from './CardArrival.js?v=0.4.83';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.83';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.83';
+import { syncViewportHeight } from './Viewport.js?v=0.4.83';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.83';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.83';
+import { openPeopleView } from './PeopleView.js?v=0.4.83';
+import { openCardsView } from './CardsView.js?v=0.4.83';
+import { openLocationsView } from './LocationsView.js?v=0.4.83';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.83';
+import { openSettings } from './SettingsView.js?v=0.4.83';
+import { sharonWordmark } from './Brand.js?v=0.4.83';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.83';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -36,7 +36,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.82';
+const APP_VERSION = '0.4.83';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -175,7 +175,7 @@ export function createShell(root, {
     if (animate) {
       outlet.classList.add('is-changing');
       await sleep(VIEW_FADE_MS);
-      if (change !== viewChange) return;
+      if (change !== viewChange || !root.isConnected) return;
     }
 
     if (viewCleanup) {
@@ -184,14 +184,17 @@ export function createShell(root, {
     }
 
     const cleanup = await renderer();
-    if (change !== viewChange) {
+    if (change !== viewChange || !root.isConnected) {
       if (typeof cleanup === 'function') cleanup();
       return;
     }
     if (typeof cleanup === 'function') viewCleanup = cleanup;
 
     if (animate) {
-      requestAnimationFrame(() => { outlet.classList.remove('is-changing'); events.emit('cards.context.check'); });
+      requestAnimationFrame(() => {
+        if (change !== viewChange || !root.isConnected) return;
+        outlet.classList.remove('is-changing'); events.emit('cards.context.check');
+      });
     } else {
       outlet.classList.remove('is-changing');
       events.emit('cards.context.check');
