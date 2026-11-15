@@ -1,4 +1,4 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.81';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.82';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);}
@@ -8,6 +8,8 @@ export class ShopListService {
   return this.connection.request('shoplist-'+action,input,device);
  }
  index(){return this.request('index');}
+ archive(id,archived=true){return this.request('archive',{id,archived});}
+ leave(id){return this.request('leave',{id});}
  read(id){return this.request('read',{id});}
  write(payload,revision=0,operation=crypto.randomUUID(),create=false){return this.request(create?'create':'put',{id:payload.list.id,payload,revision,operation});}
  share(id,personId,role){return this.request('share',{id,personId,role});}
