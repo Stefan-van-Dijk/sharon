@@ -1,30 +1,17 @@
-# Shop koppelen — 0.4.81
+# ShopList verbinden — 0.4.82
+Upload server/connections.php naar /log/api/connections.php op sharon.life.
+Behoud configuratie en private gegevens.
 
-Upload `server/connections.php` naar `/log/api/connections.php` op sharon.life.
-Behoud configuratie en private gegevens. GitHub Pages plaatst dit PHP-bestand niet.
+In Notities en lijsten kies je het koppelicoon naast de sorteeropties.
+Klik op de gekleurde ShopList-strook. De code wordt aangemaakt en gekopieerd.
+Open ShopList, tik op het Sharon-logo en kies Koppelen met Sharon.
+Bij een browserbeperking verschijnt Kopieer koppelcode als herhaalactie.
+De code is zeven dagen geldig en wordt verwijderd na bevestigde ontvangst.
 
-Sharon → Notities en lijsten → Shop verbinden → Koppelcode maken → Kopieer code.
-Het maken van de code geeft één Shop-installatie toestemming voor toegang tot de
-boodschappenlijsten van deze identiteit, binnen bestaande lijstbevoegdheden.
-De code bestaat uit twaalf willekeurige tekens en is zeven dagen geldig.
-
-In Shop druk je op het Sharon-logo. De app raadpleegt het klembord alleen tijdens
-die bewuste klik. Een tijdelijke menuoptie verschijnt bij een geldige code of als
-toestemming/opnieuw proberen nodig is. De browser kan een plakbevestiging vragen.
-Gewone klembordinhoud wordt niet opgeslagen of verstuurd. Alleen een exact passende
-code wordt bij het afzonderlijke koppelprotocol gecontroleerd; kaarten en contacten
-kunnen geen toegang verlenen. Controleren verbruikt de code niet.
-
-Na kiezen van Koppelen met Sharon bewaart Shop eerst een eigen apparaatsleutel.
-De server bindt de overdracht aan die sleutel, maar geeft nog geen lijsttoegang.
-Na duurzaam lokaal opslaan bevestigt Shop de ontvangst; de server activeert dan de
-verbinding en verwijdert de tijdelijke code. Herhalen met dezelfde sleutel is veilig,
-ook na een verloren bevestigingsantwoord. Sharon toont pas daarna Shop verbonden.
-Het open Sharon-koppelscherm controleert iedere vijf seconden als het zichtbaar is
-en bij terugkeer; sluiten verwijdert de timer en listener.
-
-Bestaande actieve koppelingen blijven werken. Oude lange codes blijven hun oude
-bevestigingsroute gebruiken. Nieuwe codes gebruiken uitsluitend de compacte route.
-Een gekoppelde Shop leest het klembord niet opnieuw en vervangt geen identiteit.
-Verbinding intrekken blijft beschikbaar. Lokale lijsten worden nooit automatisch
-gepubliceerd. De code geeft geen toegang tot chats, contacten of netwerkbeheer.
+ShopList synchroniseert de eigen lijsten met je Sharon-identiteit bij koppelen,
+openen, verversen en het logo. Personen krijgen toegang via de afzonderlijke deelactie.
+Archiveren geldt per persoon; het archief biedt Terugzetten.
+Verwijderen beëindigt je eigen deelname. Gearchiveerde deelnemers behouden toegang.
+Na de laatste deelnemer wordt de inhoud verwijderd; een minimale ID-tombstone
+voorkomt dat een oude installatie dezelfde lijst onbedoeld opnieuw publiceert.
+Een lokale herstelactie in Shop maakt van een verwijderde gekoppelde lijst een eigen kopie.

@@ -1,21 +1,26 @@
-import {openShopPairing} from './ShopPairing.js?v=0.4.81';
-import {openListShare} from './ListSharing.js?v=0.4.81';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.81';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.81';
-import {ShopListService,SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.81';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.81';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.81';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.81';
+import {openShopPairing} from './ShopPairing.js?v=0.4.82';
+import {openListShare} from './ListSharing.js?v=0.4.82';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.82';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.82';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.82';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.82';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.82';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.82';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
+ let mode='items',showArchive=false;
  let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[];
  let prefs=(await store.get?.('meta','notes.list.preferences'))?.value||{sort:'alpha',order:[]};if(!['alpha','recent','custom'].includes(prefs.sort))prefs.sort='alpha';
  outlet.replaceChildren();const root=node('section',null,'module-view locations-view sh-card-view sh-notes-view'),tools=node('div',null,'sh-notes-tools'),controls=node('div'),rows=node('div',null,'sh-locations-list swipe-list'),status=node('p');status.setAttribute('role','status');
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
  const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
  if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
- const connect=node('a','Lijst koppelen in ShopList');connect.href=SHOPLIST_URL;tools.append(connect,button('Shop verbinden',()=>{closeBoard();closeBoard=openShopPairing(api.connection);}));root.append(tools,controls,rows,status);outlet.append(root);
+ const pill=node('div',null,'sh-notes-mode');pill.setAttribute('role','group');pill.setAttribute('aria-label','Items of koppelingen');
+ for(const [value,label,icon]of [['items','Mijn items','☰'],['connections','Appkoppelingen','↔']]){const b=button(icon,()=>{mode=value;paint();});b.setAttribute('aria-label',label);b.title=label;b.innerHTML=value==='items'?'<svg width=20 height=20 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 6h14M7 12h14M7 18h14M2 6h1M2 12h1M2 18h1"/></svg>':'<svg width=20 height=20 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 14 4-4m-5 6-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 10a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-2 2"/></svg>';b.dataset.notesMode=value;pill.append(b);}controls.querySelector('.sh-card-sort-icons').append(pill);
+ const archive=button('Archief',()=>{showArchive=!showArchive;archive.setAttribute('aria-pressed',String(showArchive));paint();});tools.append(archive);
+ root.append(tools,controls,rows,status);outlet.append(root);
+
  const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false){
@@ -39,12 +44,12 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   const {body}=board(record.name);if(record.data?.kind==='list'){
    for(const [index,item]of (record.data.items||[]).entries()){const label=node('label',null,'sh-notes-check'),check=node('input');check.type='checkbox';check.checked=!!item.done;check.onchange=async()=>{const old=item.done;item.done=check.checked;try{await store.put('objects',{...record,updatedAt:Date.now()});}catch(e){item.done=old;check.checked=!!old;report(e);}};label.append(check,node('span',item.text));body.append(label);}
   }else{body.append(node('p',record.data?.body||'', 'sh-notes-text'));}
-  body.append(button('Bewerken',()=>edit(record)));
+  body.append(button('Bewerken',()=>edit(record)));if(record.archivedAt)body.append(button('Terugzetten',async()=>{try{await store.put('objects',{...record,archivedAt:null});await loadLocal();closeBoard();}catch(e){report(e);}}));
  }
  async function openLinked(list,sharing=false){
   if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api});return;}
   const {dialog,body}=board(list.name,true),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
-  const open=node('a','Open in ShopList');open.href=SHOPLIST_URL+'?shoplist='+encodeURIComponent(list.id);body.append(open);
+  body.append(button(list.archived?'Terugzetten':'Archiveren',async()=>{try{await api.archive(list.id,!list.archived);await loadLinked();dialog.close();}catch(e){message.textContent=e.message;}}),button('Uit mijn overzicht verwijderen',async()=>{try{await api.leave(list.id);await loadLinked();dialog.close();}catch(e){message.textContent=e.message;}}));
   try{
    const response=await api.read(list.id);if(disposed||!dialog.isConnected)return;
    const payload=response.list.payload;message.textContent='';
@@ -57,18 +62,21 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   }catch(e){if(dialog.isConnected)message.textContent=e.message;}
  }
  function paint(){
-  if(disposed)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
-  visible=sortList([...local.map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
+  if(disposed)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();pill.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.notesMode===mode)));archive.hidden=mode!=='items';
+  if(mode==='connections'){const strip=button('',()=>{closeBoard();closeBoard=openShopPairing(api.connection);});strip.className='sh-app-connection';strip.append(node('strong','ShopList.'),node('span','Verbinden met ShopList'),node('small','Boodschappen bij je eigen lijsten'));rows.append(strip);return;}
+  visible=sortList([...local.filter(r=>!!r.archivedAt===showArchive).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===showArchive).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
   for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:row.linked?[]:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   if(!visible.length)rows.append(node('p','Nog geen passende notities of lijsten.'));
   controls.querySelectorAll('[data-list-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.listSort===prefs.sort)));
   releaseControls=bindListControls(rows,{onMove:async(id,direction)=>{prefs.order=moveInOrder(visible.map(r=>r.id),id,direction);await savePrefs();paint();},onMoveTo:async(id,target,after)=>{prefs.order=moveToPosition(visible.map(r=>r.id),id,target,after);await savePrefs();paint();}});
   const find=id=>visible.find(r=>r.id===id);
-  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onDelete:async id=>{const r=find(id);try{await store.put('objects',{...r.record,archivedAt:Date.now()});await loadLocal();}catch(e){report(e);}}});
+  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):edit(r.record));},onDelete:async id=>{const r=find(id);try{await store.put('objects',{...r.record,archivedAt:Date.now()});await loadLocal();}catch(e){report(e);}}});
  }
- async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.archivedAt&&!r.deletedAt);paint();}
+ async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.deletedAt);paint();}
  search.oninput=paint;controls.querySelectorAll('[data-list-sort]').forEach(b=>b.onclick=async()=>{prefs.sort=b.dataset.listSort;try{await savePrefs();paint();}catch(e){report(e);}});
  await loadLocal();
- api.index().then(result=>{if(disposed)return;linked=result.lists;paint();}).catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});
- return ()=>{disposed=true;release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
+ async function loadLinked(){const result=await api.index();if(disposed)return;linked=result.lists;paint();}
+ const onVisible=()=>{if(!document.hidden)loadLinked().catch(report);};document.addEventListener('visibilitychange',onVisible);
+ loadLinked().catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});
+ return ()=>{if(disposed)return;disposed=true;root.ownerDocument.removeEventListener('visibilitychange',onVisible);release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
 }

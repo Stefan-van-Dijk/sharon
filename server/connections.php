@@ -212,17 +212,30 @@ final class LogNetwork {
 
     private function shoplistAction(string $action,array $in,string $pid):array {
         $rows=$this->state['shoplists']??[];
-        $role=fn($row)=>$row['ownerId']===$pid?'owner':($row['members'][$pid]??null);
-        if($action==='shoplist-index')return ['lists'=>array_values(array_map(fn($r)=>['id'=>$r['id'],'name'=>$r['payload']['list']['name'],'revision'=>$r['revision'],'role'=>$role($r)],array_filter($rows,fn($r)=>$role($r)!==null)))];
+        $role=fn($row)=>isset($row['removed'][$pid])?null:($row['ownerId']===$pid?'owner':($row['members'][$pid]??null));
+        if($action==='shoplist-index')return ['lists'=>array_values(array_map(fn($r)=>['id'=>$r['id'],'name'=>$r['payload']['list']['name'],'revision'=>$r['revision'],'role'=>$role($r),'archived'=>(bool)($r['archived'][$pid]??false)],array_filter($rows,fn($r)=>$role($r)!==null)))];
         $id=$in['id']??null;
         if(!is_string($id)||!preg_match('/\A[a-zA-Z0-9_-]{1,80}\z/',$id))throw new LogNetworkError('invalid_list');
         $row=$rows[$id]??null;
         if($action==='shoplist-create'){
-            if($row)throw new LogNetworkError('list_exists',409);
+            if($row){if($role($row)==='owner'&&($row['operation']??null)===($in['operation']??null)&&($row['hash']??null)===hash('sha256',json_encode($in['payload']??null)))return ['list'=>$row,'role'=>'owner'];throw new LogNetworkError('list_exists',409);}
+            if(isset($this->state['shoplistDeleted'][$id]))throw new LogNetworkError('list_forbidden',403);
             if(count($rows)>=10000)throw new LogNetworkError('capacity',409);
             $row=['id'=>$id,'ownerId'=>$pid,'members'=>[],'revision'=>0,'payload'=>null];
-        }elseif(!$row||!$role($row))throw new LogNetworkError('list_forbidden',403);
+        }elseif($action==='shoplist-leave'&&(!$row||isset($row['removed'][$pid])))return ['ok'=>true];
+        elseif(!$row||!$role($row))throw new LogNetworkError('list_forbidden',403);
         if($action==='shoplist-read')return ['list'=>$row,'role'=>$role($row)];
+        if($action==='shoplist-archive'){
+            if(!is_bool($in['archived']??null))throw new LogNetworkError('invalid_list');
+            $row['archived'][$pid]=$in['archived'];$this->state['shoplists'][$id]=$row;return ['ok'=>true];
+        }
+        if($action==='shoplist-leave'){
+            $row['removed'][$pid]=true;unset($row['members'][$pid],$row['archived'][$pid]);
+            if(isset($row['removed'][$row['ownerId']])&&!count($row['members'])){unset($this->state['shoplists'][$id]);$this->state['shoplistDeleted'][$id]=true;}
+            else $this->state['shoplists'][$id]=$row;
+            return ['ok'=>true];
+        }
+
         if($action==='shoplist-share'){
             if($role($row)!=='owner')throw new LogNetworkError('owner_required',403);
             $target=self::validId($in['personId']??null);$permission=$in['role']??null;
@@ -233,7 +246,7 @@ final class LogNetwork {
                 foreach($this->state['relations'] as $r)if($r['type']==='chat'&&$r['status']==='active'&&in_array($pid,[$r['fromId'],$r['toId']],true)&&in_array($target,[$r['fromId'],$r['toId']],true))$connected=true;
                 $grant=$this->grant($target);
                 if(!$connected||($grant&&$grant['status']!=='active'))throw new LogNetworkError('chat_forbidden',403);
-                $row['members'][$target]=$permission;
+                unset($row['removed'][$target]);$row['members'][$target]=$permission;
             }
             $this->state['shoplists'][$id]=$row;return ['ok'=>true];
         }
@@ -361,7 +374,7 @@ final class LogNetwork {
             }
             if($action==='shop-device-revoke'){foreach($this->state['shopPairCodes']??[] as $h=>$c)if($c['id']===$r['id'])unset($this->state['shopPairCodes'][$h]);unset($this->state['shopDevices'][$r['id']]);return ['ok'=>true];}
             if($action==='shop-device-self')return ['self'=>['personId'=>$p['id'],'name'=>$p['name']],'needsAck'=>$r['status']==='ready'];
-            if(!in_array($action,['shoplist-index','shoplist-read','shoplist-create','shoplist-put'],true))throw new LogNetworkError('shop_scope',403);
+            if(!in_array($action,['shoplist-index','shoplist-read','shoplist-create','shoplist-put','shoplist-archive','shoplist-leave'],true))throw new LogNetworkError('shop_scope',403);
             return $this->shoplistAction($action,$in,$p['id']);
         }
         return null;
