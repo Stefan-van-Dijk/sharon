@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.87">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.87">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.88">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.88">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3288,6 +3288,23 @@
 .sh-notes-deck.is-fullscreen{padding:0}.sh-notes-deck.is-fullscreen .sh-board-stack{width:100%;height:100%;transform:none}
 .sh-notes-deck.is-fullscreen .sh-board-deck{display:none}.sh-notes-deck.is-fullscreen .sh-notes-board{border-radius:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 .sh-notes-deck [hidden]{display:none!important}
+/* Notes and app connections use the same media face and in-face controls as Cards. */
+.sh-notes-deck .sh-notes-media{box-sizing:border-box;flex:0 0 var(--card-deck-media,250px);height:var(--card-deck-media,250px);min-height:150px;padding:28px 24px 70px;border:0;border-radius:28px 28px 23px 23px;background:#489ff8;color:#102d4a;display:flex;flex-direction:column;justify-content:center;touch-action:none;user-select:none}
+.sh-notes-deck .sh-notes-brand{background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:#fff}
+.sh-notes-deck .sh-notes-wordmark{color:inherit}.sh-notes-deck .sh-notes-media h2{margin:12px 0;overflow-wrap:anywhere;font-size:25px}
+.sh-notes-deck .sh-notes-media .sh-card-deck-grab{position:absolute;left:13px;bottom:20px;margin:0;max-width:calc(100% - 80px)}
+.sh-notes-deck .sh-notes-media .sh-notes-app-source{bottom:20px}
+.sh-notes-deck .sh-notes-expand{position:absolute;right:13px;top:12px;padding:8px;background:#ffffffdb;color:#1e354b;border-radius:50%;width:35px;height:35px;display:grid;place-items:center}
+.sh-notes-deck.is-fullscreen .sh-notes-media{flex-basis:150px;height:150px}
+
+.sh-shop-access{margin:0;padding:28px 16px;width:100%;height:100%;max-width:none;max-height:none;border:0;background:transparent;overflow:hidden;box-shadow:none}
+.sh-shop-access:not([open]){display:none}.sh-shop-access::backdrop{background:#0005;backdrop-filter:blur(8px)}
+.sh-shop-access .sh-shop-access-board{width:100%;height:100%;max-height:none;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+.sh-shop-access .sh-share-fixed{flex:0 0 var(--card-deck-media,250px);height:var(--card-deck-media,250px);padding:28px 24px 70px;border-radius:28px 28px 23px 23px;background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:white;touch-action:none;justify-content:center}
+.sh-shop-access .sh-share-fixed{border:0}.sh-shop-access .sh-share-fixed .sh-card-deck-grab{position:absolute;left:13px;bottom:20px;max-width:calc(100% - 80px)}
+.sh-shop-access .sh-share-fixed h2{color:inherit}.sh-shop-access .sh-shop-invitation{font-size:18px;margin:12px 0}
+.sh-shop-access .sh-shop-access-content{flex:1;min-height:0;overflow:auto;touch-action:pan-y;padding:20px 24px}.sh-shop-access .sh-notes-body{padding-inline:0}
+.sh-shop-access .sh-shop-access-close{position:absolute;right:12px;top:10px;font-size:12px;background:#ffffffdb;color:#1e354b;padding:7px 10px}
 .sh-shop-panel{display:grid;gap:14px;width:100%;min-width:0}.sh-shop-panel nav{display:flex;gap:6px;overflow:auto;padding-bottom:6px}.sh-shop-panel nav button{white-space:nowrap}.sh-shop-panel nav button[aria-pressed="true"]{background:#90412e;color:white}.sh-shop-panel>div>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #8883}.sh-shop-panel .sh-notes-check{display:grid;grid-template-columns:auto minmax(0,1fr) 78px}.sh-shop-panel .sh-notes-check small{grid-column:2/-1}.sh-shop-panel .sh-notes-check input[type=number]{width:78px;box-sizing:border-box}.sh-shop-panel button:disabled{opacity:.45}
 .sh-list-share-categories{border:1px solid #8884;border-radius:12px;padding:12px;margin:12px 0;font-size:13px}.sh-list-share-categories legend{padding:0 4px}.sh-list-share-categories select{width:100%;padding:8px;border-radius:8px;background:transparent;color:inherit}.sh-list-share-categories label{display:flex;gap:8px;align-items:center;padding:6px 0}
 </style>
@@ -3303,16 +3320,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.87#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.87#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.87#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.87#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.87#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.88#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.88#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.88#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.88#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.88#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.87"></script>
+  <script type="module" src="./src/main.js?v=0.4.88"></script>
 </body>
 </html>

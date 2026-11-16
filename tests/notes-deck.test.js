@@ -18,6 +18,7 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  const heading=()=>document.querySelector('.sh-notes-deck h2');
  assert.equal(heading().textContent,'Alpha');
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');assert.deepEqual(calls,['shop']);
+ const source=document.querySelector('a.sh-notes-app-source');assert.equal(new URL(source.href).searchParams.get('shoplist'),'shop');assert.equal(source.target,'_blank');assert(document.querySelector('[data-card-media] [data-deck-grab]'));
  document.querySelector('[data-notes-fullscreen]').click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');
  document.querySelector('[data-notes-fullscreen]').click();await settle();assert.equal(document.querySelector('.is-fullscreen'),null);

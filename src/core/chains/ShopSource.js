@@ -1,4 +1,4 @@
-import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.87';
+import {IdentifierService} from '../ids/IdentifierService.js?v=0.4.88';
 const identities=new Map();
 function identity(ref){
  if(identities.has(ref))return identities.get(ref);
