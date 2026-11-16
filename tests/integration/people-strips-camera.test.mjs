@@ -23,6 +23,7 @@ test('Home swipes keep the camera closed; Codes still opens it explicitly',async
  assert.equal(app.document.querySelector('[data-scan-video]'),null);assert.equal(cameraRequests,0);
  app.document.querySelector('[data-module="codes"]').click();
  await until(()=>app.document.querySelector('[data-scan-video]'));
+ app.document.querySelector('[data-scan-start]').click();
  await until(()=>cameraRequests===1);
  assert.match(app.document.querySelector('[data-scan-status]').textContent,/cameratoegang/);
  assert.deepEqual(app.errors,[]);
