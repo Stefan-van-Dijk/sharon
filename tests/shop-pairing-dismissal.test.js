@@ -47,3 +47,27 @@ test('App board size handles adjust height independently and cancelled resizing 
  swipe(win,dialog.querySelector('[data-deck-size="media"]'),-30);assert.equal(media(),picture-30);
  swipe(win,dialog.querySelector('[data-deck-size="board"]'),40,true);assert.equal(height(),initial-50);assert(dialog.isConnected);
 });
+test('Reopening an active connection only reads status, even after the invitation expiry',async t=>{
+ fixture(t);const calls=[];
+ const connection={device:async()=>({}),request:async action=>{calls.push(action);return {devices:[{id:'active',status:'active',fingerprint:'ABCD',expiresAt:1}]};}};
+ for(let i=0;i<2;i++){
+  const close=openShopPairing(connection);await new Promise(r=>setTimeout(r,0));
+  assert.match(document.querySelector('.sh-shop-invitation').textContent,/is verbonden/);
+  assert.equal(document.querySelector('input'),null);assert.equal(document.querySelector('[data-pair-create]').textContent,'Andere installatie koppelen');close();
+ }
+ assert.deepEqual(calls,['shop-pair-list','shop-pair-list']);
+});
+test('Only explicit additional installation creates and copies a code; ready remains pending until acknowledgement',async t=>{
+ fixture(t);const descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator'),copied=[],calls=[];Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async value=>copied.push(value)}}});
+ t.after(()=>{if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;});
+ let pending=null;const connection={device:async()=>({}),request:async action=>{calls.push(action);if(action==='shop-pair-create'){pending={id:'new',status:'pending',compact:true};return {id:'new',code:'abcdefghijkl',expiresAt:Date.now()+60000};}return {devices:[{id:'existing',status:'active',fingerprint:'FIRST'},...(pending?[pending]:[])]};}};
+ const close=openShopPairing(connection);t.after(close);const settle=()=>new Promise(r=>setTimeout(r,0));await settle();
+ document.querySelector('[data-pair-create]').click();await settle();assert.deepEqual(copied,['abcdefghijkl']);assert.equal(calls.filter(a=>a==='shop-pair-create').length,1);assert.equal(document.querySelector('[data-pair-create]').disabled,false);
+ const refresh=()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Vernieuwen').click();
+ pending.status='ready';refresh();await settle();assert.match(document.querySelector('.sh-notes-body').textContent,/rondt het opslaan/);assert(document.querySelector('input'));
+ pending.status='active';refresh();await settle();assert.equal(document.querySelector('input'),null);assert.match(document.querySelector('[role="status"]').textContent,/Koppeling geslaagd/);
+});
+test('Unavailable status cannot create a code or claim the app is disconnected',async t=>{
+ fixture(t);const calls=[];const close=openShopPairing({device:async()=>({}),request:async action=>{calls.push(action);throw Error('Offline');}});t.after(close);await new Promise(r=>setTimeout(r,0));
+ assert.match(document.querySelector('[role="status"]').textContent,/Verbindingsstatus kon niet worden opgehaald/);assert.equal(document.querySelector('[data-pair-create]'),null);assert.deepEqual(calls,['shop-pair-list']);
+});

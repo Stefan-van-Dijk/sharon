@@ -1,6 +1,6 @@
-import {wrapBoardSurface} from './BoardChrome.js?v=0.4.90';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.90';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.90';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.4.91';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.91';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.91';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -16,7 +16,7 @@ export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:e
  return ()=>{gestures?.dispose();dialog.removeEventListener('cancel',cancel);};
 }
 // No permanent credential leaves Sharon. Only an expiring invitation is copied.
-export function openShopPairing(connection,{autoCreate=false}={}){
+export function openShopPairing(connection){
  const document=globalThis.document;
  const dialog=document.createElement('dialog');dialog.className='sh-card-share-overlay sh-shop-access';dialog.setAttribute('aria-label','Shop verbinden');
  const surface=document.createElement('section');surface.className='sh-share-board sh-notes-board sh-shop-access-board';surface.dataset.cardBoard='';
@@ -29,12 +29,16 @@ export function openShopPairing(connection,{autoCreate=false}={}){
  const installInfo=document.createElement('p');installInfo.className='sh-shop-install-info';installInfo.textContent='Open ShopList om de installatiehulp te bekijken. Gebruik je de app al op je beginscherm? Tik dan op het ShopList-icoon.';const body=document.createElement('div');body.className='sh-notes-body';const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;};
  const request=async(action,input={})=>connection.request('shop-pair-'+action,input,await connection.device());
- let releaseBoard=()=>{};const previous=document.activeElement;let signature=null,invitation=null;let closed=false,polling=false;const onVisible=()=>{if(!document.hidden)refresh().catch(()=>{});};const timer=setInterval(()=>{if(!document.hidden)refresh().catch(()=>{});},5000);document.addEventListener('visibilitychange',onVisible);const close=()=>{if(closed)return;closed=true;releaseBoard();clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);dialog.remove();previous?.focus();};dialog.addEventListener('close',close,{once:true});
+ let releaseBoard=()=>{};const previous=document.activeElement;let signature=null,invitation=null,devices=[],hasPending=false,creating=false;let closed=false,polling=false;const onVisible=()=>{if(!document.hidden)refresh().catch(()=>{});};const timer=setInterval(()=>{if(hasPending&&!document.hidden)refresh().catch(()=>{});},5000);document.addEventListener('visibilitychange',onVisible);const close=()=>{if(closed)return;closed=true;releaseBoard();clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);dialog.remove();previous?.focus();};dialog.addEventListener('close',close,{once:true});
  const showCode=r=>{const code=document.createElement('input');code.value=r.code;code.readOnly=true;code.setAttribute('aria-label','Tijdelijke koppelcode');body.append(code,button('Kopieer code',async()=>{await navigator.clipboard.writeText(r.code);status.textContent='Open ShopList. Tik op het Sharon-logo en kies Koppelen met Sharon.';}));status.textContent='Zeven dagen geldig, tot Shop de koppeling succesvol heeft opgeslagen.';};
- const refresh=async()=>{if(polling||closed)return;polling=true;let result;try{result=await request('list');}finally{polling=false;}if(closed)return;const next=JSON.stringify(result.devices);if(next===signature)return;signature=next;body.replaceChildren();
-  const info=document.createElement('p');info.textContent='Koppel ShopList om al je boodschappenlijsten binnen je eigen Sharon-identiteit te bekijken. Via Delen geef je anderen toegang.';body.append(info);
-  body.append(button('Koppelcode maken',async()=>{const r=await request('create',{format:'compact'});if(closed)return;invitation=r;showCode(r);}));
-  if(invitation&&!result.devices.some(d=>d.id===invitation.id&&d.status==='active')&&(!invitation.expiresAt||invitation.expiresAt>Date.now()))showCode(invitation);else {if(invitation&&result.devices.some(d=>d.id===invitation.id&&d.status==='active'))status.textContent='Koppeling geslaagd: Shop heeft de verbinding opgeslagen.';invitation=null;}
+ const refresh=async()=>{if(polling||closed)return;polling=true;let result;try{result=await request('list');}finally{polling=false;}if(closed)return;devices=result.devices;hasPending=devices.some(d=>d.status!=='active');const next=JSON.stringify([devices,invitation?.id]);if(next===signature)return;signature=next;status.textContent='';body.replaceChildren();
+  const active=devices.some(d=>d.status==='active');
+  intro.textContent=active?'ShopList is verbonden met Sharon.':hasPending?'Rond de koppeling af in ShopList.':'Verbind ShopList eenmalig met Sharon.';
+  grab.textContent=active?'ShopList verbonden':'ShopList verbinden';
+  const info=document.createElement('p');info.textContent=active?'Je lijsten zijn beschikbaar in Notities en lijsten.':'Koppel ShopList om je boodschappenlijsten in Sharon te bekijken.';body.append(info);
+  const create=button(active?'Andere installatie koppelen':hasPending?'Nieuwe koppelcode maken':'Koppelcode maken',createInvitation);create.dataset.pairCreate='';create.disabled=creating;body.append(create);
+
+  if(invitation&&result.devices.some(d=>d.id===invitation.id&&d.status!=='active')&&(!invitation.expiresAt||invitation.expiresAt>Date.now()))showCode(invitation);else {if(invitation&&result.devices.some(d=>d.id===invitation.id&&d.status==='active'))status.textContent='Koppeling geslaagd: Shop heeft de verbinding opgeslagen.';invitation=null;}
   for(const r of result.devices){const row=document.createElement('div');const text=document.createElement('p');text.textContent=r.status==='active'?'Shop verbonden · '+r.fingerprint:r.status==='ready'?'Shop rondt het opslaan van de koppeling af':r.status==='claimed'?'Controlecode '+r.fingerprint+' — komt deze overeen met Shop?':'Wacht op koppelen in Shop';row.append(text);
    if(r.status==='claimed'&&!r.compact)row.append(button('Ja, deze Shop verbinden',async()=>{await request('confirm',{id:r.id,fingerprint:r.fingerprint});status.textContent='Verbonden. Klik in Shop op Verbinding controleren.';await refresh();}));
    row.append(button(r.status==='active'?'Verbinding intrekken':'Annuleren',async()=>{await request('revoke',{id:r.id});await refresh();}));body.append(row);
@@ -47,10 +51,13 @@ export function openShopPairing(connection,{autoCreate=false}={}){
  const releaseHeader=bindNotesBoard(dialog,header,close,{shop:true,gestures:false});const deckGestures=bindBoardDeckGestures(stack,{onClose:close});releaseBoard=()=>{releaseHeader();deckGestures.dispose();};dialog.showModal();surface.tabIndex=-1;surface.focus();
  // Only a browser-confirmed match is evidence of installation; pairing is not.
  if(typeof navigator.getInstalledRelatedApps==='function')navigator.getInstalledRelatedApps().then(apps=>{if(closed)return;if(apps.some(app=>app.platform==='webapp'&&app.url===SHOPLIST_URL+'manifest.webmanifest')){install.hidden=true;installInfo.textContent='ShopList is geïnstalleerd. Open de app via de knop of het icoon op je beginscherm.';}}).catch(()=>{});
- if(autoCreate){
-  const code=request('create',{format:'compact'}).then(r=>{invitation=r;return r.code;});
+ // Opening this board only reads status. Creating an invitation is an explicit action.
+ refresh().catch(e=>{if(!closed)status.textContent='Verbindingsstatus kon niet worden opgehaald. '+e.message;});return close;
+ function createInvitation(){
+  if(creating||closed)return;creating=true;
+  const code=request('create',{format:'compact'}).then(r=>{if(!closed)invitation=r;return r.code;});
   let copied;
   try{copied=typeof ClipboardItem!=='undefined'&&navigator.clipboard?.write?navigator.clipboard.write([new ClipboardItem({'text/plain':code.then(value=>new Blob([value],{type:'text/plain'}))})]):code.then(value=>navigator.clipboard.writeText(value));}catch(e){copied=Promise.reject(e);}
-  Promise.allSettled([code,copied]).then(async results=>{if(closed)return;await refresh();if(results[0].status==='rejected')status.textContent=results[0].reason.message;else status.textContent=results[1].status==='fulfilled'?'Open ShopList. Tik op het Sharon-logo en kies Koppelen met Sharon.':'Tik op Kopieer code. Open daarna ShopList, tik op het Sharon-logo en kies Koppelen met Sharon.';}).catch(e=>{if(!closed)status.textContent=e.message;});
- }else refresh().catch(e=>{if(!closed)status.textContent=e.message;});return close;
+  return Promise.allSettled([code,copied]).then(async results=>{if(closed)return;signature=null;await refresh();if(results[0].status==='rejected')status.textContent=results[0].reason.message;else if(invitation)status.textContent=results[1].status==='fulfilled'?'Open ShopList. Tik op het Sharon-logo en kies Koppelen met Sharon.':'Tik op Kopieer code. Open daarna ShopList, tik op het Sharon-logo en kies Koppelen met Sharon.';}).finally(()=>{creating=false;const control=body.querySelector('[data-pair-create]');if(control)control.disabled=false;});
+ }
 }
