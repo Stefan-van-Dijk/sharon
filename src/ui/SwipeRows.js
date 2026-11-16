@@ -29,7 +29,7 @@ export function bindSwipeRows(container, {
     const singleAction = row.hasAttribute('data-swipe-single');
     if (!surface) continue;
 
-    const actionWidth = () => singleAction ? 88 : doubleSwipe ? 176 : Math.max(88, Math.min(DEFAULT_OPEN_X, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || DEFAULT_OPEN_X));
+    const actionWidth = () => singleAction ? 88 : doubleSwipe ? 176 : Math.max(88, row.querySelector('.swipe-actions')?.getBoundingClientRect().width || (row.querySelectorAll('.swipe-actions button').length * 88) || DEFAULT_OPEN_X);
     const firstWidth = () => doubleSwipe ? 88 : actionWidth();
     let pointerId = null;
     let startX = 0;

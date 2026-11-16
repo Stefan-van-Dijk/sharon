@@ -1,11 +1,11 @@
-import {openShopPairing} from './ShopPairing.js?v=0.4.84';
-import {openListShare} from './ListSharing.js?v=0.4.84';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.84';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.84';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.84';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.84';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.84';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.84';
+import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.85';
+import {openListShare} from './ListSharing.js?v=0.4.85';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.85';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.85';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.85';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.85';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.85';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.85';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=globalThis.document;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -27,8 +27,8 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false){
   closeBoard();const previous=document.activeElement,dialog=node('dialog',null,'sh-notes-board');dialog.setAttribute('aria-label',title);const head=node('header',null,shop?'sh-notes-brand':'sh-notes-heading');
-  if(shop)head.append(node('strong','ShopList.','sh-notes-wordmark'));head.append(node('h2',title));const body=node('div',null,'sh-notes-body');dialog.append(head,body,button('Sluiten',()=>dialog.close()));document.body.append(dialog);
-  let closed=false;closeBoard=()=>{if(closed)return;closed=true;dialog.remove();previous?.focus();};dialog.addEventListener('close',closeBoard,{once:true});dialog.showModal();return {dialog,body};
+  if(shop)head.append(node('strong','ShopList.','sh-notes-wordmark'));head.append(node('h2',title));const body=node('div',null,'sh-notes-body');dialog.append(head,body);document.body.append(dialog);
+  let releaseBoard=()=>{},closed=false;closeBoard=()=>{if(closed)return;closed=true;releaseBoard();dialog.remove();previous?.focus();};dialog.addEventListener('close',closeBoard,{once:true});releaseBoard=bindNotesBoard(dialog,head,closeBoard,{shop});dialog.showModal();return {dialog,body};
  }
  async function edit(record){
   const {dialog,body}=board(record?'Bewerken':'Nieuwe notitie of lijst');
@@ -46,14 +46,10 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   const {body}=board(record.name);if(record.data?.kind==='list'){
    for(const [index,item]of (record.data.items||[]).entries()){const label=node('label',null,'sh-notes-check'),check=node('input');check.type='checkbox';check.checked=!!item.done;check.onchange=async()=>{const old=item.done;item.done=check.checked;try{await store.put('objects',{...record,updatedAt:Date.now()});}catch(e){item.done=old;check.checked=!!old;report(e);}};label.append(check,node('span',item.text));body.append(label);}
   }else{body.append(node('p',record.data?.body||'', 'sh-notes-text'));}
-  body.append(button('Bewerken',()=>edit(record)),button(record.archivedAt?'Terugzetten':'Archiveren',async()=>{await store.put('objects',{...record,archivedAt:record.archivedAt?null:Date.now()});await loadLocal();closeBoard();}));
  }
  async function openLinked(list,sharing=false){
   if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api});return;}
   const {dialog,body}=board(list.name,true),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
-  body.append(button(list.archived?'Terugzetten':'Archiveren',async()=>{try{await api.archive(list.id,!list.archived);await loadLinked();dialog.close();}catch(e){message.textContent=e.message;}}),button('Uit mijn overzicht verwijderen',()=>{
-   const {body:confirmBody,dialog:confirmDialog}=board('Lijst verwijderen');confirmBody.append(node('p','Verwijder deze lijst uit jouw overzicht in Sharon en ShopList. Andere deelnemers behouden toegang. Als laatste deelnemer verwijder je de lijst volledig.'),button('Verwijderen',async()=>{try{await api.leave(list.id);await loadLinked();confirmDialog.close();}catch(e){report(e);}}));
-  }));
   try{
    const response=await api.read(list.id);if(disposed||!dialog.isConnected)return;
    const payload=response.list.payload;message.textContent='';
@@ -61,7 +57,6 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
     const products=new Map(payload.products.map(p=>[p.id,p]));
     const listRows=node('div');for(const item of payload.list.items){listRows.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));}body.append(listRows);
     if(!payload.list.items.length)body.append(node('p','Deze lijst is nog leeg.'));
-    if(response.role==='owner')body.append(button('Delen',()=>openLinked(list,true)));
    }
   }catch(e){if(dialog.isConnected)message.textContent=e.message;}
  }
@@ -69,12 +64,15 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   if(disposed||!root.isConnected)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
   archive.hidden=mode!=='items';archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar items':'Archief';add.hidden=mode!=='items';connections.hidden=mode!=='connections';rows.hidden=mode==='connections';modes.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.notesMode===mode)));
   visible=sortList([...local.filter(r=>!!r.archivedAt===showArchive).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===showArchive).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
-  for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:row.linked?[]:[{kind:'edit',label:'Bewerk'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
+  for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:[...(!row.linked?[{kind:'edit',label:'Bewerk'}]:[]),{kind:'secondary',label:showArchive?'Terugzetten':'Archiveren'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   if(!visible.length)rows.append(node('p','Nog geen passende notities of lijsten.'));
   controls.querySelectorAll('[data-list-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.listSort===prefs.sort)));
   releaseControls=bindListControls(rows,{onMove:async(id,direction)=>{prefs.order=moveInOrder(visible.map(r=>r.id),id,direction);await savePrefs();paint();},onMoveTo:async(id,target,after)=>{prefs.order=moveToPosition(visible.map(r=>r.id),id,target,after);await savePrefs();paint();}});
   const find=id=>visible.find(r=>r.id===id);
-  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onDelete:async id=>{const r=find(id);try{await store.put('objects',{...r.record,archivedAt:Date.now()});await loadLocal();}catch(e){report(e);}}});
+  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onSecondary:async id=>{const r=find(id);try{if(r.linked){await api.archive(r.record.id,!r.record.archived);await loadLinked();}else{await store.put('objects',{...r.record,archivedAt:r.record.archivedAt?null:Date.now()});await loadLocal();}}catch(e){report(e);}},onDelete:id=>{
+   const r=find(id);const {body,dialog}=board('Verwijderen');
+   body.append(node('p',r.linked?'Verwijder deze lijst uit jouw overzicht in Sharon en ShopList. Andere deelnemers behouden toegang. Als laatste deelnemer verwijder je de lijst volledig.':'Verwijder deze notitie of lijst uit jouw overzicht.'),button('Verwijderen',async()=>{try{if(r.linked){await api.leave(r.record.id);await loadLinked();}else{await store.put('objects',{...r.record,deletedAt:Date.now()});await loadLocal();}dialog.close();}catch(e){report(e);}}));
+  }});
  }
  async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.deletedAt);paint();}
  search.oninput=paint;controls.querySelectorAll('[data-list-sort]').forEach(b=>b.onclick=async()=>{prefs.sort=b.dataset.listSort;try{await savePrefs();paint();}catch(e){report(e);}});

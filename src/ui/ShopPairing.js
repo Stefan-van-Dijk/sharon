@@ -1,4 +1,18 @@
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.84';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.85';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.85';
+// Reuse the board's pull-down gesture, leaving scrolling and links native.
+export function bindNotesBoard(dialog,header,close,{shop=false,gestures:enableGestures=true}={}){
+ dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
+ header.classList.add('sh-notes-board-top');
+ if(shop){
+  const link=dialog.ownerDocument.createElement('a');link.href=SHOPLIST_URL;link.target='_blank';link.rel='noopener noreferrer';
+  link.className='sh-board-source sh-board-photo-source sh-notes-app-source';link.setAttribute('aria-label','Open ShopList');link.title='Open ShopList';
+  link.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="m8 9 2 2 4-4m-6 9 2 2 4-4"/></svg>';header.append(link);
+ }
+ const gestures=enableGestures?bindBoardDeckGestures(dialog,{onClose:close}):null;
+ const cancel=event=>{event.preventDefault();close();};dialog.addEventListener('cancel',cancel);
+ return ()=>{gestures?.dispose();dialog.removeEventListener('cancel',cancel);};
+}
 // No permanent credential leaves Sharon. Only an expiring invitation is copied.
 export function openShopPairing(connection,{autoCreate=false}={}){
  const document=globalThis.document;
@@ -11,7 +25,7 @@ export function openShopPairing(connection,{autoCreate=false}={}){
  const installInfo=document.createElement('p');installInfo.className='sh-shop-install-info';installInfo.textContent='Open ShopList om de installatiehulp te bekijken. Gebruik je de app al op je beginscherm? Tik dan op het ShopList-icoon.';const body=document.createElement('div');body.className='sh-notes-body';const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;};
  const request=async(action,input={})=>connection.request('shop-pair-'+action,input,await connection.device());
- let signature=null,invitation=null;let closed=false,polling=false;const onVisible=()=>{if(!document.hidden)refresh().catch(()=>{});};const timer=setInterval(()=>{if(!document.hidden)refresh().catch(()=>{});},5000);document.addEventListener('visibilitychange',onVisible);const close=()=>{if(closed)return;closed=true;clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);dialog.remove();};dialog.addEventListener('close',close,{once:true});
+ let releaseBoard=()=>{};const previous=document.activeElement;let signature=null,invitation=null;let closed=false,polling=false;const onVisible=()=>{if(!document.hidden)refresh().catch(()=>{});};const timer=setInterval(()=>{if(!document.hidden)refresh().catch(()=>{});},5000);document.addEventListener('visibilitychange',onVisible);const close=()=>{if(closed)return;closed=true;releaseBoard();clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);dialog.remove();previous?.focus();};dialog.addEventListener('close',close,{once:true});
  const showCode=r=>{const code=document.createElement('input');code.value=r.code;code.readOnly=true;code.setAttribute('aria-label','Tijdelijke koppelcode');body.append(code,button('Kopieer code',async()=>{await navigator.clipboard.writeText(r.code);status.textContent='Open ShopList. Tik op het Sharon-logo en kies Koppelen met Sharon.';}));status.textContent='Zeven dagen geldig, tot Shop de koppeling succesvol heeft opgeslagen.';};
  const refresh=async()=>{if(polling||closed)return;polling=true;let result;try{result=await request('list');}finally{polling=false;}if(closed)return;const next=JSON.stringify(result.devices);if(next===signature)return;signature=next;body.replaceChildren();
   const info=document.createElement('p');info.textContent='Koppel ShopList om al je boodschappenlijsten binnen je eigen Sharon-identiteit te bekijken. Via Delen geef je anderen toegang.';body.append(info);
@@ -22,7 +36,7 @@ export function openShopPairing(connection,{autoCreate=false}={}){
    row.append(button(r.status==='active'?'Verbinding intrekken':'Annuleren',async()=>{await request('revoke',{id:r.id});await refresh();}));body.append(row);
   }
  };
- dialog.append(heading,intro,actions,installInfo,body,status,button('Vernieuwen',refresh),button('Sluiten',close));document.body.append(dialog);dialog.showModal();
+ const header=document.createElement('header');header.append(heading,intro);dialog.append(header,actions,installInfo,body,status,button('Vernieuwen',refresh));document.body.append(dialog);releaseBoard=bindNotesBoard(dialog,header,close,{shop:true});dialog.showModal();
  // Only a browser-confirmed match is evidence of installation; pairing is not.
  if(typeof navigator.getInstalledRelatedApps==='function')navigator.getInstalledRelatedApps().then(apps=>{if(closed)return;if(apps.some(app=>app.platform==='webapp'&&app.url===SHOPLIST_URL+'manifest.webmanifest')){install.hidden=true;installInfo.textContent='ShopList is geïnstalleerd. Open de app via de knop of het icoon op je beginscherm.';}}).catch(()=>{});
  if(autoCreate){
