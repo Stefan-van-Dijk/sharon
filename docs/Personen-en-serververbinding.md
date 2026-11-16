@@ -330,3 +330,11 @@ kaartenberichten zonder locatie blijven bruikbaar; eerder gedeelde kaarten krijg
 geen locatie achteraf. De kaart moet daarvoor opnieuw worden gedeeld.
 
 Deze uitbreiding gebruikt het bestaande berichtenprotocol; geen PHP-update nodig.
+
+### ShopList: verbinding en tijdelijke koppelcode
+
+Een ShopList-verbinding geeft één installatie blijvende toegang onder een Sharon-identiteit. Een tijdelijke koppelcode is een eenmalige uitnodiging om zo'n verbinding tot stand te brengen. De geldigheid van die code bepaalt niet de levensduur van de bevestigde verbinding. Meerdere installaties kunnen elk een eigen verbinding onder dezelfde identiteit hebben.
+
+Het appboard openen leest uitsluitend de serverstatus. Bij `active` toont het board Verbonden, toegang tot ShopList en de mogelijkheid om de verbinding in te trekken. Alleen de expliciete actie Andere installatie koppelen maakt een extra code. Zonder actieve verbinding biedt het board Koppelcode maken. `pending`, `claimed` en `ready` zijn tussenstappen; pas `active` bevestigt dat ShopList de koppeling heeft afgerond. Een onbereikbare server betekent een onbekende actuele status en veroorzaakt geen nieuwe koppeling.
+
+Voorbeelden: een heropening na zeven dagen behoudt een actieve verbinding; een tweede installatie vraagt expliciet een nieuwe code; een mislukte statuscontrole mag nooit automatisch een nieuwe installatie registreren. Intrekken verwijdert uitsluitend de gekozen installatieverbinding.

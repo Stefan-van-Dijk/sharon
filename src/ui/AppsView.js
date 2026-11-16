@@ -35,7 +35,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   panel.replaceChildren();
   if(mode==='apps'){
    const strip=button('',()=>{
-    closePairing();closePairing=openShopPairing(connection,{autoCreate:true});
+    closePairing();closePairing=openShopPairing(connection);
     if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
    });strip.className='sh-app-connection';strip.dataset.appConnection='shoplist';strip.disabled=busy;
    const logo=document.createElement('span');logo.className='sh-module-icon';logo.innerHTML=moduleIcon('notes');
