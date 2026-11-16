@@ -1,10 +1,11 @@
-import { sharonWordmark } from './Brand.js?v=0.4.88';
-import { focusTextField } from './TextInputFocus.js?v=0.4.88';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.88';
-import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.88';
+import { moduleIcon } from './ModuleIcons.js?v=0.4.89';
+import { sharonWordmark } from './Brand.js?v=0.4.89';
+import { focusTextField } from './TextInputFocus.js?v=0.4.89';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.89';
+import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.89';
 
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.4.88';
-import { locationType } from '../core/location/LocationTypeRegistry.js?v=0.4.88';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.4.89';
+import { locationType } from '../core/location/LocationTypeRegistry.js?v=0.4.89';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -64,10 +65,12 @@ export async function runStory(root, {
   await typeParagraphs(copy, [
     'Goed. Sharon kan deze plek later herkennen.',
     'Bij herkenning kunnen triggers worden geactiveerd.',
-    'Daarbij kan Sharon het moment combineren met eerdere keuzes en vastleggingen.'
+    'Daarbij kan Sharon het moment combineren met eerdere keuzes en vastleggingen.',
+    'Via het raster met plusje op je beginscherm open je Apps en onderdelen. Daar zet je onderdelen aan en verbind je apps.'
   ], { reducedMotion });
 
   stage.innerHTML = `
+    <p class="story-note" data-story-apps-icon>${moduleIcon('apps')} Apps en onderdelen</p>
     <button type="button" class="story-continue" data-story-continue>Opslaan</button>
   `;
 

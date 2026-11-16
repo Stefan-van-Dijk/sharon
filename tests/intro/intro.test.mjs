@@ -13,7 +13,10 @@ test('Lege installatie bereikt de echte kennismaking', async t => {
   await until(() => app.document.querySelector('[data-sharon-intro-form] input'));
   assert.deepEqual(app.errors, []);
   // Onboarding is deliberately left waiting for user input; no fictitious profile saved.
-  assert.equal(await app.store.get('settings', 'app'), undefined);
+  const initial=(await app.store.get('settings', 'app')).value;
+  assert.equal(initial.profile.name,'');
+  assert.equal(initial.onboarding.storySeen,false);
+  assert.deepEqual(Array.from(initial.home.modules),['environment','locations']);
   assert.equal(bootError, undefined);
 });
 
