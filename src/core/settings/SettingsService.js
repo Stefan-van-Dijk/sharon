@@ -30,6 +30,7 @@ const DEFAULTS = Object.freeze({
 export class SettingsService {
   #store;
   #events;
+  #writes = Promise.resolve();
   #value = structuredClone(DEFAULTS);
 
   constructor(store, events) {
@@ -47,13 +48,21 @@ export class SettingsService {
     return structuredClone(this.#value);
   }
 
-  async update(patch) {
-    this.#value = merge(this.#value, patch);
+  update(patch) {
+    const snapshot = structuredClone(patch);
+    const write = this.#writes.then(() => this.#commit(snapshot));
+    this.#writes = write.catch(() => {});
+    return write;
+  }
+
+  async #commit(patch) {
+    const next = merge(this.#value, patch);
     await this.#store.put('settings', {
       key: 'app',
-      value: this.#value,
+      value: next,
       updatedAt: Date.now()
     });
+    this.#value = next;
     this.#events.emit('settings.changed', this.get());
     return this.get();
   }

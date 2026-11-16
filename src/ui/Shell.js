@@ -1,20 +1,22 @@
-import { openNotesView } from './NotesView.js?v=0.4.88';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.88';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.88';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.88';
-import { mountCardArrival } from './CardArrival.js?v=0.4.88';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.88';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.88';
-import { syncViewportHeight } from './Viewport.js?v=0.4.88';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.88';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.88';
-import { openPeopleView } from './PeopleView.js?v=0.4.88';
-import { openCardsView } from './CardsView.js?v=0.4.88';
-import { openLocationsView } from './LocationsView.js?v=0.4.88';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.88';
-import { openSettings } from './SettingsView.js?v=0.4.88';
-import { sharonWordmark } from './Brand.js?v=0.4.88';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.88';
+import {openAppsView} from './AppsView.js?v=0.4.89';
+import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.4.89';
+import { openNotesView } from './NotesView.js?v=0.4.89';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.89';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.89';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.89';
+import { mountCardArrival } from './CardArrival.js?v=0.4.89';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.89';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.89';
+import { syncViewportHeight } from './Viewport.js?v=0.4.89';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.89';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.89';
+import { openPeopleView } from './PeopleView.js?v=0.4.89';
+import { openCardsView } from './CardsView.js?v=0.4.89';
+import { openLocationsView } from './LocationsView.js?v=0.4.89';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.89';
+import { openSettings } from './SettingsView.js?v=0.4.89';
+import { sharonWordmark } from './Brand.js?v=0.4.89';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.89';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -36,7 +38,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.88';
+const APP_VERSION = '0.4.89';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -243,12 +245,16 @@ export function createShell(root, {
     setDetailTitle(detail ? viewTitle : '');
   };
 
+  let renderedHomeSelection;
   const renderHome = () => {
+    renderedHomeSelection=JSON.stringify(settings.get().home?.modules);
+    const chosen=demoMode?MENU_ORDER:homeModules(settings.get(),MENU_ORDER);
+    const visibleModules=chosen.filter(id=>id!=='persons'||demoMode||networkMember||Array.isArray(settings.get().home?.modules));
     outlet.innerHTML = `
       <div class="home-view">
         <section class="sh-home-context" data-home-context aria-label="Passend bij deze plek" aria-live="polite" hidden></section>
         <nav class="module-list" aria-label="Onderdelen">
-          ${MENU_ORDER.filter(id => id !== 'persons' || demoMode || networkMember).map(id => {
+          ${visibleModules.map(id => {
             const moduleId = demoMode ? (MENU_TEST_ID[id] || id) : (id === 'persons' ? 'people' : id);
             const previewOnly = MENU_PREVIEW_ONLY.has(id) || (demoMode && !SKELETON_MODULES.includes(moduleId) && !['environment','locations','cards'].includes(moduleId));
             const title = MENU_TITLES[id];
@@ -257,18 +263,19 @@ export function createShell(root, {
                 <div class="sh-home-module-line">
                   <span class="sh-home-swipe-reveal" aria-hidden="true">i</span>
                   <button type="button" class="module-row" data-module="${moduleId}" data-preview-title="${title}" data-guide-id="${id}" ${previewOnly ? 'data-preview-only="true"' : ''}>
-                    <span>${title}</span>${id==='persons'&&!demoMode?'<span class="sh-notification-dot" data-people-unread role="img" aria-label="Ongelezen berichten" hidden></span><small data-people-connection-error hidden>Geen verbinding</small>':''}</button>
+                    ${moduleIcon(id)}<span>${title}</span>${id==='persons'&&!demoMode?'<span class="sh-notification-dot" data-people-unread role="img" aria-label="Ongelezen berichten" hidden></span><small data-people-connection-error hidden>Geen verbinding</small>':''}</button>
                   
                 </div>
                 <div class="sh-home-module-guide" data-guide-panel hidden aria-live="polite"></div>
               </div>`;
           }).join('')}
 
+          ${visibleModules.length<4?`<button type="button" class="module-row sh-home-invitation" data-home-invitation aria-label="Maak Sharon van jou. Zet onderdelen aan of verbind je apps.">${moduleIcon('apps')}<span data-home-invitation-text aria-hidden="true"></span></button>`:''}
           <div class="sh-home-module-item" data-guide-item>
             <div class="sh-home-module-line">
               <span class="sh-home-swipe-reveal" aria-hidden="true">i</span>
               <button type="button" class="module-row settings-home-row" data-settings>
-                <span>Instellingen</span>
+                ${moduleIcon('settings')}<span>Instellingen</span>
               </button>
               
             </div>
@@ -291,6 +298,11 @@ export function createShell(root, {
     outlet.querySelector('[data-update-notice]').addEventListener('click', () => install.activateUpdate());
 
     headerActions.innerHTML = '<button type="button" class="sh-home-board-stack" data-home-board-stack disabled aria-label="Geen relevante boards" title="Relevante boards"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>';
+    headerActions.insertAdjacentHTML('beforeend',`<button type="button" class="sh-home-manage" data-home-manage aria-label="Apps en onderdelen" title="Apps en onderdelen">${moduleIcon('apps')}</button>`);
+    headerActions.querySelector('[data-home-manage]').onclick=()=>openApps();
+    const invitation=outlet.querySelector('[data-home-invitation]');
+    let invitationTimer=null;
+    if(invitation){invitation.onclick=()=>openApps();const text='Maak Sharon van jou. Zet onderdelen aan of verbind je apps.',target=invitation.querySelector('span');let n=0;if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)target.textContent=text;else invitationTimer=setInterval(()=>{target.textContent=text.slice(0,++n);if(n>=text.length)clearInterval(invitationTimer);},32);}
     const cleanupContext = mountHomeCardContext(outlet.querySelector('[data-home-context]'), {store: activeStore(), location, events, trigger: headerActions.querySelector('[data-home-board-stack]')});
     const message = outlet.querySelector('[data-message]');
     const existing = location.latest;
@@ -423,7 +435,7 @@ export function createShell(root, {
         }
       });
     });
-    return () => { cleanupContext(); closeGuide(); };
+    return () => { clearInterval(invitationTimer); cleanupContext(); closeGuide(); };
   };
 
   const showHome = async ({ animate = true } = {}) => {
@@ -502,6 +514,17 @@ export function createShell(root, {
   };
 
   events.on('environment.chain.open',event=>openModule('environment',{chainId:event.detail.chainId}));
+
+  events.on('settings.changed',()=>{
+    if(!demoMode&&currentView==='home'&&JSON.stringify(settings.get().home?.modules)!==renderedHomeSelection)swapView(()=>renderHome(),{animate:false});
+  });
+
+  const openApps = async ({fromHistory=false}={}) => {
+    if(!fromHistory)openHistoryModule('apps');
+    setHeaderMode('detail','Apps en onderdelen','apps');
+    if(demoMode){await swapView(()=>{outlet.innerHTML='<section class="module-view"><p>Beheer je onderdelen en appverbindingen in je gewone omgeving.</p></section>';});return;}
+    await swapView(()=>openAppsView(outlet,{settings,store,items:MENU_ORDER.map(id=>({id,title:MENU_TITLES[id]}))}));
+  };
 
   const openSettingsView = async ({ animate = true } = {}) => {
     setHeaderMode('detail', 'Instellingen', 'settings');
@@ -623,7 +646,8 @@ export function createShell(root, {
       }
       return;
     }
-    if (target === 'settings') openSettingsView({ animate: false });
+    if (target === 'apps') openApps({fromHistory:true});
+    else if (target === 'settings') openSettingsView({ animate: false });
     else openModule(target, { animate: false });
   });
   outlet.addEventListener('click', event => {

@@ -1,20 +1,20 @@
-import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.4.88';
-import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.4.88';
-import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.4.88';
-import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.4.88';
-import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.4.88';
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.4.88';
-import { EventBus } from './core/events/EventBus.js?v=0.4.88';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.4.88';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.4.88';
-import { LocationService } from './core/location/LocationService.js?v=0.4.88';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.4.88';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.4.88';
-import { InstallService } from './core/app/InstallService.js?v=0.4.88';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.4.88';
-import { createShell } from './ui/Shell.js?v=0.4.88';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.4.88';
-import { runStory } from './ui/Story.js?v=0.4.88';
+import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.4.89';
+import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.4.89';
+import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.4.89';
+import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.4.89';
+import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.4.89';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.4.89';
+import { EventBus } from './core/events/EventBus.js?v=0.4.89';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.4.89';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.4.89';
+import { LocationService } from './core/location/LocationService.js?v=0.4.89';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.4.89';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.4.89';
+import { InstallService } from './core/app/InstallService.js?v=0.4.89';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.4.89';
+import { createShell } from './ui/Shell.js?v=0.4.89';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.4.89';
+import { runStory } from './ui/Story.js?v=0.4.89';
 
 export async function createApp() {
   const events = new EventBus();
@@ -22,7 +22,11 @@ export async function createApp() {
   const settings = new SettingsService(store, events);
 
   await store.open();
+  const savedSettings = await store.get('settings', 'app');
   await settings.load();
+  // Only an installation without saved settings receives the compact Home.
+  // A forced intro and existing profiles retain their current module choices.
+  if (!savedSettings) await settings.update({ home: { modules: ['environment', 'locations'] } });
   // Preserve a received code through onboarding, but never redeem it automatically.
   let connectionNotice = '';
   try { await captureConnectionLink(store); }

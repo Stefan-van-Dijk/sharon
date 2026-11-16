@@ -427,3 +427,21 @@ test('Paris shop markers appear from regional discovery when Sharon storage is u
  expect(regional).toBeGreaterThan(0);expect(legacy).toBeLessThanOrEqual(1); // optional catalog only
  await page.evaluate(()=>window.parisLayer.destroy());expect(errors).toEqual([]);
 });
+
+test('Home offers bare board and management icons, configurable modules and the invitation threshold',async({page})=>{
+ await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
+ await page.goto(base+'/fixture.html');await page.addStyleTag({content:appStyles});
+ await page.evaluate(async version=>{
+  const {createApp}=await import('/src/app.js?v='+version);const {createShell}=await import('/src/ui/Shell.js?v='+version);
+  document.body.innerHTML='<div id="app"></div>';const app=await createApp();window.homeServices=app.services;createShell(document.querySelector('#app'),app.services);
+ },version);
+ const manage=page.locator('[data-home-manage]'),boards=page.locator('[data-home-board-stack]');
+ await expect(manage).toBeVisible();await expect(page.locator('.module-list [data-module]')).toHaveCount(2);await expect(page.locator('[data-home-invitation]')).toBeVisible();
+ for(const control of [manage,boards]){expect(await control.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');expect(await control.evaluate(el=>getComputedStyle(el).borderTopWidth)).toBe('0px');const box=await control.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);}
+ const a=await boards.boundingBox(),b=await manage.boundingBox();expect(b.x).toBeGreaterThanOrEqual(a.x+a.width);
+ await manage.click();await page.getByRole('switch',{name:'Kaarten',exact:true}).click();await expect(page.getByRole('switch',{name:'Kaarten',exact:true})).toHaveAttribute('aria-checked','true');
+ await page.getByRole('switch',{name:'Notities & lijsten',exact:true}).click();await expect(page.getByRole('switch',{name:'Notities & lijsten',exact:true})).toHaveAttribute('aria-checked','true');
+ await page.locator('[data-brand-control]').click();await expect(page.locator('.module-list [data-module]')).toHaveCount(4);await expect(page.locator('[data-home-invitation]')).toHaveCount(0);
+ await manage.click();for(const name of ['Omgeving','Locaties','Kaarten','Notities & lijsten']){await page.getByRole('switch',{name,exact:true}).click();await expect(page.getByRole('switch',{name,exact:true})).toHaveAttribute('aria-checked','false');}
+ await page.locator('[data-brand-control]').click();await expect(page.locator('.module-list [data-module]')).toHaveCount(0);await page.locator('[data-home-invitation]').click();await expect(page.getByRole('button',{name:'Apps verbinden',exact:true})).toBeVisible();
+});
