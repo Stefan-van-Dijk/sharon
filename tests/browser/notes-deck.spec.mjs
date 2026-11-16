@@ -49,6 +49,6 @@ test('archive strip starts above the items and a pull reveals restoration',async
  const area=await page.locator('.sh-notes-list-area').boundingBox();
  await page.mouse.move(area.x+area.width/2,area.y+10);await page.mouse.down();await page.mouse.move(area.x+area.width/2,area.y+90,{steps:8});await page.mouse.up();
  await expect(slot).toHaveClass(/is-revealed/);await page.locator('[data-notes-archive]').click();
- await page.locator('[data-swipe-surface]').click();await page.getByRole('button',{name:'Terugzetten',exact:true}).click();
+ await page.locator('[data-swipe-surface]').click();await page.getByRole('dialog').getByRole('button',{name:'Terugzetten',exact:true}).click();
  await expect(slot).toBeHidden();await expect(page.locator('.swipe-list')).toContainText('Oude notitie');await expect(page.locator('dialog')).toHaveCount(0);
 });
