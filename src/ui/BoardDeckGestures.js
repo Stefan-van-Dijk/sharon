@@ -1,5 +1,6 @@
 // Swipe the pill right to gather the boards, then drag the collected deck.
 export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout',onGrabTap,onGrabSearch}={}) {
+  const window=stack.ownerDocument?.defaultView||globalThis.window;
   let gesture=null,closed=false,interacted=false,suppressGrabClickUntil=0;
   let layout={x:0,y:0,height:Math.min(580,window.innerHeight-112),media:Math.min(330,window.innerHeight*.34)};
   const key=layoutKey;

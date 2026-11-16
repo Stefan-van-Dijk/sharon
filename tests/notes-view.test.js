@@ -23,7 +23,7 @@ test('Vertical scrolling does not share; leaving the module removes its board',a
 test('A checklist can be checked, edited and reopened with its progress retained',async t=>{
  const f=fixture(t,false);f.records.set('n',{id:'n',type:'note',name:'Inpakken',data:{kind:'list',body:'Paspoort',items:[{text:'Paspoort',done:false}]}});
  const stop=await openNotesView(f.outlet,f);t.after(stop);f.outlet.querySelector('[data-swipe-surface]').click();await settle();const check=document.querySelector('dialog input[type=checkbox]');check.checked=true;check.dispatchEvent(new f.dom.window.Event('change'));await settle();assert.equal(f.records.get('n').data.items[0].done,true);
- [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Bewerken').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Bewaren').click();await settle();assert.equal(f.records.get('n').data.items[0].done,true);
+ document.querySelector('dialog').close();f.outlet.querySelector('[data-swipe-edit]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Bewaren').click();await settle();assert.equal(f.records.get('n').data.items[0].done,true);
 });
 test('Read-only linked lists cannot expose owner sharing controls',async t=>{
  const f=fixture(t);f.api.index=async()=>({lists:[{id:'shared',name:'Weekend',role:'read'}]});const original=f.api.read;f.api.read=async id=>({...await original(id),role:'read'});const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();assert.equal(f.outlet.querySelector('[data-shareable]'),null);f.outlet.querySelector('[data-swipe-surface]').click();await settle();assert.equal([...document.querySelectorAll('dialog button')].some(b=>b.textContent==='Delen'),false);
@@ -63,5 +63,23 @@ test('Connection strip creates and copies code in one click without navigation',
 });
 test('Linked archive and removal act on membership and refresh the overview',async t=>{
  const f=fixture(t);let archived=false,removed=false;f.api.index=async()=>({lists:removed?[]:[{id:'shared',name:'Weekend',role:'read',archived}]});f.api.archive=async(id,value)=>{assert.equal(id,'shared');archived=value;};f.api.leave=async id=>{assert.equal(id,'shared');removed=true;};const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
- f.outlet.querySelector('[data-swipe-surface]').click();await settle();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Archiveren').click();await settle();assert.equal(f.outlet.querySelector('[data-swipe-surface]'),null);f.outlet.querySelector('[data-notes-archive]').click();f.outlet.querySelector('[data-swipe-surface]').click();await settle();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Uit mijn overzicht verwijderen').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();await settle();assert.equal(removed,true);assert.equal(f.records.size,0);
+ swipe(f,f.outlet.querySelector('[data-swipe-surface]'),-100,0);assert(f.outlet.querySelector('.is-actions-open'));
+ f.outlet.querySelector('[data-swipe-secondary]').click();await settle();assert.equal(f.outlet.querySelector('[data-swipe-surface]'),null);
+ f.outlet.querySelector('[data-notes-archive]').click();swipe(f,f.outlet.querySelector('[data-swipe-surface]'),-100,0);
+ f.outlet.querySelector('[data-swipe-delete]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();await settle();assert.equal(removed,true);assert.equal(f.records.size,0);
+});
+
+function swipe(f,target,dx,dy,cancel=false){
+ for(const [type,x,y] of [['pointerdown',100,10],['pointermove',100+dx,10+dy],[cancel?'pointercancel':'pointerup',100+dx,10+dy]]){
+ const e=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});target.dispatchEvent(e);
+ }
+}
+test('List board closes only on completed top pull-down and links to ShopList',async t=>{
+ const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
+ f.outlet.querySelector('[data-swipe-surface]').click();await settle();const dialog=document.querySelector('dialog'),top=dialog.querySelector('header');
+ assert.equal(dialog.querySelector('.sh-notes-app-source').href,'https://stefan-van-dijk.github.io/shop/');
+ assert.equal(dialog.querySelectorAll('button').length,0);
+ swipe(f,dialog.querySelector('.sh-notes-body'),0,100);assert(dialog.isConnected);
+ swipe(f,top,0,100,true);assert(dialog.isConnected);
+ swipe(f,top,0,100);assert.equal(dialog.isConnected,false);
 });
