@@ -74,12 +74,27 @@ function swipe(f,target,dx,dy,cancel=false){
  const e=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});target.dispatchEvent(e);
  }
 }
-test('List board closes only on completed top pull-down and links to ShopList',async t=>{
+test('List board closes only on completed top pull-down and keeps its app action inside Sharon',async t=>{
  const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
  f.outlet.querySelector('[data-swipe-surface]').click();await settle();const dialog=document.querySelector('dialog'),top=dialog.querySelector('header');
- assert.equal(dialog.querySelector('.sh-notes-app-source').href,'https://stefan-van-dijk.github.io/shop/');
- assert.equal(dialog.querySelectorAll('button').length,0);
+ assert.equal(dialog.querySelector('.sh-notes-app-source').tagName,'BUTTON');
+ assert.equal(dialog.querySelectorAll('a').length,0);
  swipe(f,dialog.querySelector('.sh-notes-body'),0,100);assert(dialog.isConnected);
  swipe(f,top,0,100,true);assert(dialog.isConnected);
  swipe(f,top,0,100);assert.equal(dialog.isConnected,false);
+});
+
+test('Selected list and its app icon fetch only that list inside Sharon, including on reopen',async t=>{
+ const f=fixture(t),calls=[];let resolveOld;
+ f.api.index=async()=>({lists:[{id:'a',name:'Alpha',role:'owner'},{id:'b',name:'Beta',role:'owner'}]});
+ const result=(id,text)=>({role:'owner',list:{payload:{list:{id,name:text,items:[]},products:[]}}});
+ f.api.read=id=>{calls.push(id);if(calls.length===1)return new Promise(resolve=>resolveOld=resolve);return Promise.resolve(result(id,'Verse '+id));};
+ const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();assert.deepEqual(calls,[]);
+ f.outlet.querySelector('[data-swipe-row="linked:a"] [data-swipe-surface]').click();
+ f.outlet.querySelector('[data-swipe-row="linked:b"] [data-swipe-surface]').click();await settle();
+ resolveOld(result('a','Oude Alpha'));await settle();
+ assert.equal(document.querySelectorAll('dialog').length,1);assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
+ document.querySelector('.sh-notes-app-source').click();await settle();
+ assert.deepEqual(calls,['a','b','b']);assert.equal(document.querySelector('dialog a'),null);
+ assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
 });

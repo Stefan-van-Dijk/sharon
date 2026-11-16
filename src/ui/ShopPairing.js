@@ -1,12 +1,13 @@
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.85';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.85';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.86';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.86';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
-export function bindNotesBoard(dialog,header,close,{shop=false,gestures:enableGestures=true}={}){
+export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
  header.classList.add('sh-notes-board-top');
  if(shop){
-  const link=dialog.ownerDocument.createElement('a');link.href=SHOPLIST_URL;link.target='_blank';link.rel='noopener noreferrer';
-  link.className='sh-board-source sh-board-photo-source sh-notes-app-source';link.setAttribute('aria-label','Open ShopList');link.title='Open ShopList';
+  const link=dialog.ownerDocument.createElement(onOpen?'button':'a');
+  if(onOpen){link.type='button';link.onclick=onOpen;}else{link.href=SHOPLIST_URL;link.target='_blank';link.rel='noopener noreferrer';}
+  link.className='sh-board-source sh-board-photo-source sh-notes-app-source';link.setAttribute('aria-label',onOpen?'Open deze lijst in Sharon':'Open ShopList');link.title=onOpen?'Open deze lijst in Sharon':'Open ShopList';
   link.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="m8 9 2 2 4-4m-6 9 2 2 4-4"/></svg>';header.append(link);
  }
  const gestures=enableGestures?bindBoardDeckGestures(dialog,{onClose:close}):null;

@@ -1,6 +1,6 @@
-import { matchingChainBranches } from '../chains/ChainModel.js?v=0.4.85';
-import { resolveLocation } from './LocationHierarchy.js?v=0.4.85';
-import { distanceBetween } from './LocationTriggerService.js?v=0.4.85';
+import { matchingChainBranches } from '../chains/ChainModel.js?v=0.4.86';
+import { resolveLocation } from './LocationHierarchy.js?v=0.4.86';
+import { distanceBetween } from './LocationTriggerService.js?v=0.4.86';
 
 export const CARD_CONTEXT_MAX_AGE_MS = 120_000;
 
