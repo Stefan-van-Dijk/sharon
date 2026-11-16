@@ -26,6 +26,9 @@ test('Home swipes keep the camera closed; Codes still opens it explicitly',async
  app.document.querySelector('[data-scan-start]').click();
  await until(()=>cameraRequests===1);
  assert.match(app.document.querySelector('[data-scan-status]').textContent,/cameratoegang/);
+ app.document.querySelector('[data-scan-close]').click();
+ await until(()=>app.document.querySelector('[data-module="codes"]'));
+ assert.equal(app.document.querySelector('[data-scan-video]'),null);
  assert.deepEqual(app.errors,[]);
 });
 test('contact strips edit locally, survive refresh and reload, delete without reappearing, and reconnect with the same identity',async t=>{
