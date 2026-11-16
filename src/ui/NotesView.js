@@ -1,30 +1,45 @@
-import {mountShopListPanel} from './ShopListPanel.js?v=0.4.90';
-import {openNotesDeck} from './NotesDeck.js?v=0.4.90';
-import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.90';
-import {openListShare} from './ListSharing.js?v=0.4.90';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.90';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.90';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.90';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.90';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.90';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.90';
+import {mountShopListPanel} from './ShopListPanel.js?v=0.4.91';
+import {openNotesDeck} from './NotesDeck.js?v=0.4.91';
+import {bindNotesBoard} from './ShopPairing.js?v=0.4.91';
+import {openListShare} from './ListSharing.js?v=0.4.91';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.91';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.91';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.91';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.91';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.91';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.91';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
- const document=globalThis.document;
+ const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
- let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],mode='items',showArchive=false;
+ let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],showArchive=false,archiveRevealed=false;
  let prefs=(await store.get?.('meta','notes.list.preferences'))?.value||{sort:'alpha',order:[]};if(!['alpha','recent','custom'].includes(prefs.sort))prefs.sort='alpha';
  outlet.replaceChildren();const root=node('section',null,'module-view locations-view sh-card-view sh-notes-view'),tools=node('div',null,'sh-notes-tools'),controls=node('div'),rows=node('div',null,'sh-locations-list swipe-list'),status=node('p');status.setAttribute('role','status');
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
  const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
  if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
- const modes=node('div',null,'sh-notes-modes');modes.setAttribute('aria-label','Toon');
- for(const [key,label,icon] of [['items','Items','☰'],['connections','Apps','↗']]){const b=button(icon,()=>{mode=key;paint();});if(key==='connections')b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 14 4-4m-5 6-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 10a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-2 2"/></svg>';b.dataset.notesMode=key;b.setAttribute('aria-label',label);b.title=label;modes.append(b);}
- controls.querySelector('.sh-card-sort-icons').append(modes);
- const archive=button('Archief',()=>{showArchive=!showArchive;paint();});archive.dataset.notesArchive='';archive.setAttribute('aria-pressed','false');tools.append(archive);
- const connections=node('div',null,'sh-notes-connections');
- const connect=button('',()=>{closeBoard();closeBoard=openShopPairing(api.connection,{autoCreate:true});});connect.className='sh-app-connection';connect.append(node('strong','ShopList.'),node('span','Je boodschappen, goed geregeld.'),node('span','↗'));connections.append(connect);
- root.append(tools,controls,connections,rows,status);outlet.append(root);
+ const archiveSlot=node('div',null,'sh-notes-archive-slot');
+ const archive=button('Archief',()=>{showArchive=!showArchive;suppressClickUntil=0;search.value='';paint();});archive.dataset.notesArchive='';archive.setAttribute('aria-pressed','false');archiveSlot.append(archive);
+ archive.onfocus=()=>{archiveRevealed=true;archiveSlot.classList.add('is-revealed');};
+ const listArea=node('div',null,'sh-notes-list-area');listArea.append(archiveSlot,rows);
+ root.append(tools,controls,listArea,status);outlet.append(root);
+ let pull=null,suppressClickUntil=0;
+ const hasArchive=()=>local.some(r=>r.archivedAt)||linked.some(r=>r.archived);
+ const atTop=()=>{for(let el=listArea;el;el=el.parentElement)if(el.scrollTop>1)return false;return !(document.scrollingElement?.scrollTop>1);};
+ const startPull=(x,y)=>{pull=hasArchive()&&!showArchive&&!archiveRevealed&&atTop()?{x,y,distance:0}:null;};
+ const movePull=(event,x,y)=>{if(!pull)return;const dx=x-pull.x,dy=y-pull.y;if(dy<0||Math.abs(dx)>Math.max(10,Math.abs(dy))){pull=null;return;}pull.distance=dy;if(dy>8&&event.cancelable)event.preventDefault();};
+ const endPull=()=>{if(pull?.distance>=48){suppressClickUntil=Date.now()+400;archiveRevealed=true;archiveSlot.classList.add('is-revealed');}pull=null;};
+ const cancelPull=()=>{pull=null;};
+ const suppressPullClick=event=>{if(Date.now()<suppressClickUntil&&!event.target.closest('[data-notes-archive]')){event.preventDefault();event.stopImmediatePropagation();}};
+ listArea.addEventListener('click',suppressPullClick,true);
+ const touchStart=event=>{if(event.touches.length!==1){cancelPull();return;}const t=event.touches[0];startPull(t.clientX,t.clientY);};
+ const touchMove=event=>{if(event.touches.length!==1){cancelPull();return;}const t=event.touches[0];movePull(event,t.clientX,t.clientY);};
+ const pointerStart=event=>{if(event.pointerType!=='touch'&&event.button===0)startPull(event.clientX,event.clientY);};
+ const pointerMove=event=>{if(event.pointerType!=='touch')movePull(event,event.clientX,event.clientY);};
+ const pointerEnd=event=>{if(event.pointerType!=='touch')endPull();};
+ listArea.addEventListener('touchstart',touchStart,{passive:true});listArea.addEventListener('touchmove',touchMove,{passive:false});listArea.addEventListener('touchend',endPull);listArea.addEventListener('touchcancel',cancelPull);
+ listArea.addEventListener('pointerdown',pointerStart);window.addEventListener('pointermove',pointerMove);window.addEventListener('pointerup',pointerEnd);window.addEventListener('pointercancel',cancelPull);
+ const releasePull=()=>{cancelPull();listArea.removeEventListener('click',suppressPullClick,true);listArea.removeEventListener('touchstart',touchStart);listArea.removeEventListener('touchmove',touchMove);listArea.removeEventListener('touchend',endPull);listArea.removeEventListener('touchcancel',cancelPull);listArea.removeEventListener('pointerdown',pointerStart);window.removeEventListener('pointermove',pointerMove);window.removeEventListener('pointerup',pointerEnd);window.removeEventListener('pointercancel',cancelPull);};
  const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false,onOpen){
@@ -72,16 +87,24 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
    }catch(e){if(isCurrent())message.textContent=e.message;}
   }});
  }
+ async function changeArchive(row){
+  if(row.linked){await api.archive(row.record.id,!row.record.archived);await loadLinked();}
+  else{await store.put('objects',{...row.record,archivedAt:row.record.archivedAt?null:Date.now()});await loadLocal();}
+ }
+ function openArchived(row){
+  const {body,dialog}=board(row.title);const restore=button('Terugzetten',async()=>{restore.disabled=true;try{await changeArchive(row);dialog.close();}catch(error){report(error);restore.disabled=false;}});body.append(node('p','Zet dit item terug in je notities en lijsten.'),restore);
+ }
  function paint(){
   if(disposed||!root.isConnected)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
-  archive.hidden=mode!=='items';archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar items':'Archief';add.hidden=mode!=='items';connections.hidden=mode!=='connections';rows.hidden=mode==='connections';modes.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.notesMode===mode)));
+  if(!hasArchive()){showArchive=false;archiveRevealed=false;}
+  archiveSlot.hidden=!hasArchive();archiveSlot.classList.toggle('is-revealed',archiveRevealed||showArchive);archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar notities en lijsten':'Archief';
   visible=sortList([...local.filter(r=>!!r.archivedAt===showArchive).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===showArchive).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
   for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:[...(!row.linked?[{kind:'edit',label:'Bewerk'}]:[]),{kind:'secondary',label:showArchive?'Terugzetten':'Archiveren'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   if(!visible.length)rows.append(node('p','Nog geen passende notities of lijsten.'));
   controls.querySelectorAll('[data-list-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.listSort===prefs.sort)));
   releaseControls=bindListControls(rows,{onMove:async(id,direction)=>{prefs.order=moveInOrder(visible.map(r=>r.id),id,direction);await savePrefs();paint();},onMoveTo:async(id,target,after)=>{prefs.order=moveToPosition(visible.map(r=>r.id),id,target,after);await savePrefs();paint();}});
   const find=id=>visible.find(r=>r.id===id);
-  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r)(r.linked?openLinked(r.record):openLocal(r.record));},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onSecondary:async id=>{const r=find(id);try{if(r.linked){await api.archive(r.record.id,!r.record.archived);await loadLinked();}else{await store.put('objects',{...r.record,archivedAt:r.record.archivedAt?null:Date.now()});await loadLocal();}}catch(e){report(e);}},onDelete:id=>{
+  release=bindSwipeRows(rows,{onOpen:id=>{const r=find(id);if(r){if(showArchive)openArchived(r);else r.linked?openLinked(r.record):openLocal(r.record);}},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onSecondary:async id=>{const r=find(id);try{await changeArchive(r);}catch(e){report(e);}},onDelete:id=>{
    const r=find(id);const {body,dialog}=board('Verwijderen');
    body.append(node('p',r.linked?'Verwijder deze lijst uit jouw overzicht in Sharon en ShopList. Andere deelnemers behouden toegang. Als laatste deelnemer verwijder je de lijst volledig.':'Verwijder deze notitie of lijst uit jouw overzicht.'),button('Verwijderen',async()=>{try{if(r.linked){await api.leave(r.record.id);await loadLinked();}else{await store.put('objects',{...r.record,deletedAt:Date.now()});await loadLocal();}dialog.close();}catch(e){report(e);}}));
   }});
@@ -93,5 +116,5 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  async function loadLinked(){const result=await api.index();if(disposed)return;linked=result.lists;paint();}
  const refresh=()=>{if(!document.hidden)loadLinked().catch(report);};document.addEventListener('visibilitychange',refresh);
  loadLinked().catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});
- return ()=>{disposed=true;document.removeEventListener('visibilitychange',refresh);release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
+ return ()=>{disposed=true;document.removeEventListener('visibilitychange',refresh);releasePull();release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
 }

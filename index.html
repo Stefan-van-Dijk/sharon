@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.90">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.90">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.91">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.91">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3270,9 +3270,9 @@
     .sh-list-share .sh-share-fixed{background:#f6f1e7;--share-accent:#da6342}.sh-list-share .sh-notes-brand{border:0;padding:12px 18px;overflow:auto}.sh-list-share-role{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;margin:12px 0}.sh-list-share-role select{max-width:50%;padding:8px;border:1px solid #ddd;border-radius:12px;background:transparent}.sh-list-share [data-share-close]{display:block;margin:10px auto}
 
 
-.sh-notes-modes{display:flex;gap:2px;border:1px solid var(--border,#8885);border-radius:24px;padding:2px;margin-inline-start:8px}.sh-notes-modes button[aria-pressed="true"]{background:#5670d5;color:white}.sh-app-connection{width:100%;display:flex;align-items:center;gap:14px;text-align:left;border:0;border-radius:16px;padding:20px;background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:white;cursor:pointer}.sh-app-connection strong{font-size:1.4rem}.sh-app-connection span:last-child{margin-left:auto;font-size:1.6rem}.sh-notes-connections{margin-block:16px}.sh-notes-connections[hidden]{display:none}
+.sh-app-connection{width:100%;display:flex;align-items:center;gap:14px;text-align:left;border:0;border-radius:16px;padding:20px;background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:white;cursor:pointer}.sh-app-connection strong{font-size:1.4rem}.sh-app-connection span:last-child{margin-left:auto;font-size:1.6rem}
 
-.sh-notes-view .sh-list-controls.sh-card-search-toolbar{grid-template-columns:minmax(70px,1fr) auto}.sh-notes-view .sh-list-controls.sh-card-search-toolbar::after{display:none}.sh-notes-view .sh-notes-modes button[aria-pressed="true"]{background:#673bd2;color:#fff}.sh-notes-view .sh-notes-modes{margin-left:4px}.sh-app-connection span{min-width:0}
+.sh-notes-view .sh-list-controls.sh-card-search-toolbar{grid-template-columns:minmax(70px,1fr) auto}.sh-notes-view .sh-list-controls.sh-card-search-toolbar::after{display:none}.sh-app-connection span{min-width:0}
 
 .sh-shop-access{padding:26px;border:0;border-radius:24px;background:#f6f1e7;color:#29251f;max-width:440px;width:calc(100% - 32px);box-sizing:border-box}.sh-shop-access h2{font-size:36px;letter-spacing:-1.5px;margin:0;color:#90412e}.sh-shop-invitation{font-size:20px;line-height:1.4}.sh-shop-access-actions{display:grid;gap:10px}.sh-shop-access-actions a{padding:14px;border-radius:12px;text-decoration:none;text-align:center;font-weight:650;color:#fff;background:#90412e}.sh-shop-access-actions a+a{background:#e9dece;color:#3e352b}.sh-shop-access-actions [hidden]{display:none}.sh-shop-install-info{font-size:13px;line-height:1.5;color:#665b50}.sh-shop-access .sh-notes-body{border-top:1px solid #dacbbb;margin-top:20px;padding-top:12px}.sh-notes-tools [data-notes-archive]{font-size:12px;border:0;background:transparent;color:inherit;text-decoration:underline}
 .sh-notes-board-top{position:relative;touch-action:pan-x;min-height:90px;padding-bottom:48px}
@@ -3319,6 +3319,12 @@
 .sh-shop-access .sh-shop-access-close{position:absolute;right:12px;top:10px;font-size:12px;background:#ffffffdb;color:#1e354b;padding:7px 10px}
 .sh-shop-panel{display:grid;gap:14px;width:100%;min-width:0}.sh-shop-panel nav{display:flex;gap:6px;overflow:auto;padding-bottom:6px}.sh-shop-panel nav button{white-space:nowrap}.sh-shop-panel nav button[aria-pressed="true"]{background:#90412e;color:white}.sh-shop-panel>div>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #8883}.sh-shop-panel .sh-notes-check{display:grid;grid-template-columns:auto minmax(0,1fr) 78px}.sh-shop-panel .sh-notes-check small{grid-column:2/-1}.sh-shop-panel .sh-notes-check input[type=number]{width:78px;box-sizing:border-box}.sh-shop-panel button:disabled{opacity:.45}
 .sh-list-share-categories{border:1px solid #8884;border-radius:12px;padding:12px;margin:12px 0;font-size:13px}.sh-list-share-categories legend{padding:0 4px}.sh-list-share-categories select{width:100%;padding:8px;border-radius:8px;background:transparent;color:inherit}.sh-list-share-categories label{display:flex;gap:8px;align-items:center;padding:6px 0}
+
+.sh-notes-archive-slot{max-height:0;overflow:hidden;transition:max-height .2s ease}
+.sh-notes-archive-slot.is-revealed{max-height:64px}
+.sh-notes-archive-slot[hidden]{display:none}
+.sh-notes-archive-slot button{width:100%;min-height:56px;text-align:left;border:0;border-bottom:1px solid #0002;background:transparent;color:inherit;font:inherit;padding:14px 16px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.sh-notes-archive-slot{transition:none}}
 </style>
 </head>
 <body>
@@ -3332,16 +3338,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.90#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.90#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.90#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.90#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.90#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.91#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.91#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.91#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.91#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.91#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.90"></script>
+  <script type="module" src="./src/main.js?v=0.4.91"></script>
 </body>
 </html>

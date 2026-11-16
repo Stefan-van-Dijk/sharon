@@ -56,10 +56,33 @@ test('Compact pairing shows success only after Shop acknowledgement and refreshe
  phase='active';document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.match(document.querySelector('dialog').textContent,/Koppeling geslaagd/);assert.equal(document.querySelector('dialog input'),null);assert.equal(calls.includes('shop-pair-confirm'),false);closePair();stop();const n=calls.length;document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.equal(calls.length,n);
 });
 
-test('Connection strip creates and copies code in one click without navigation',async t=>{
- const f=fixture(t),calls=[],copied=[];const previous=Object.getOwnPropertyDescriptor(globalThis,'navigator');Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async code=>copied.push(code)}}});t.after(()=>{if(previous)Object.defineProperty(globalThis,'navigator',previous);else delete globalThis.navigator;});
- f.api.connection.device=async()=>({});f.api.connection.request=async action=>{calls.push(action);return action==='shop-pair-create'?{id:'device',code:'abcdefghijkl',expiresAt:Date.now()+60000}:{devices:[]};};
- const stop=await openNotesView(f.outlet,f);t.after(stop);f.outlet.querySelector('[data-notes-mode="connections"]').click();assert.equal(f.outlet.querySelectorAll('[data-notes-mode]').length,2);assert.equal(f.outlet.querySelector('.sh-notes-connections').hidden,false);f.outlet.querySelector('.sh-app-connection').click();await settle();await settle();assert.deepEqual(copied,['abcdefghijkl']);assert.equal(calls.filter(a=>a==='shop-pair-create').length,1);assert.match(document.querySelector('dialog [role="status"]').textContent,/Open ShopList. Tik op het Sharon-logo en kies Koppelen met Sharon/);assert.equal(document.querySelector('dialog a').href,'https://stefan-van-dijk.github.io/shop/');assert.match(document.querySelector('dialog').textContent,/Wil je ShopList openen/);
+function pullArchive(f,{distance=80,cancel=false}={}){
+ const area=f.outlet.querySelector('.sh-notes-list-area');
+ for(const [type,y] of [['touchstart',10],['touchmove',10+distance],[cancel?'touchcancel':'touchend',10+distance]]){
+  const event=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.defineProperty(event,'touches',{value:type==='touchend'||type==='touchcancel'?[]:[{clientX:100,clientY:y}]});area.dispatchEvent(event);
+ }
+}
+test('Notes only shows items; archive is revealed by pulling at the top and restores a local item',async t=>{
+ const f=fixture(t);f.records.set('old',{id:'old',type:'note',name:'Oud idee',archivedAt:123,data:{kind:'idea',body:'Bewaren'}});
+ const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
+ assert.equal(f.outlet.querySelector('[data-notes-mode]'),null);assert.equal(f.outlet.querySelector('.sh-app-connection'),null);
+ const slot=f.outlet.querySelector('.sh-notes-archive-slot');assert.equal(slot.hidden,false);assert.equal(slot.classList.contains('is-revealed'),false);
+ pullArchive(f,{distance:20});assert.equal(slot.classList.contains('is-revealed'),false);
+ pullArchive(f,{cancel:true});assert.equal(slot.classList.contains('is-revealed'),false);
+ f.outlet.scrollTop=100;pullArchive(f);assert.equal(slot.classList.contains('is-revealed'),false);f.outlet.scrollTop=0;
+ pullArchive(f);assert.equal(slot.classList.contains('is-revealed'),true);
+ f.outlet.querySelector('[data-notes-archive]').click();assert.match(f.outlet.querySelector('.swipe-list').textContent,/Oud idee/);
+ f.outlet.querySelector('[data-swipe-surface]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Terugzetten').click();await settle();
+ assert.equal(f.records.get('old').archivedAt,null);assert.equal(slot.hidden,true);assert.match(f.outlet.querySelector('.swipe-list').textContent,/Oud idee/);assert.equal(document.querySelector('dialog'),null);
+});
+test('An empty archive has no strip and pulling does not reveal it',async t=>{
+ const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();pullArchive(f);
+ const slot=f.outlet.querySelector('.sh-notes-archive-slot');assert.equal(slot.hidden,true);assert.equal(slot.classList.contains('is-revealed'),false);
+});
+test('Linked archived list is restored through its server membership',async t=>{
+ const f=fixture(t);let archived=true;f.api.index=async()=>({lists:[{id:'shared',name:'Weekend',archived}]});f.api.archive=async(id,value)=>{assert.equal(id,'shared');archived=value;};
+ const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();pullArchive(f);f.outlet.querySelector('[data-notes-archive]').click();f.outlet.querySelector('[data-swipe-surface]').click();
+ [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Terugzetten').click();await settle();assert.equal(archived,false);assert.match(f.outlet.querySelector('.swipe-list').textContent,/Weekend/);
 });
 test('Linked archive and removal act on membership and refresh the overview',async t=>{
  const f=fixture(t);let archived=false,removed=false;f.api.index=async()=>({lists:removed?[]:[{id:'shared',name:'Weekend',role:'read',archived}]});f.api.archive=async(id,value)=>{assert.equal(id,'shared');archived=value;};f.api.leave=async id=>{assert.equal(id,'shared');removed=true;};const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
