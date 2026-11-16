@@ -1,45 +1,28 @@
-import {mountShopListPanel} from './ShopListPanel.js?v=0.4.91';
-import {openNotesDeck} from './NotesDeck.js?v=0.4.91';
-import {bindNotesBoard} from './ShopPairing.js?v=0.4.91';
-import {openListShare} from './ListSharing.js?v=0.4.91';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.91';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.91';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.91';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.91';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.91';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.91';
+import {mountShopListPanel} from './ShopListPanel.js?v=0.4.92';
+import {openNotesDeck} from './NotesDeck.js?v=0.4.92';
+import {bindNotesBoard} from './ShopPairing.js?v=0.4.92';
+import {openListShare} from './ListSharing.js?v=0.4.92';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.92';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.92';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.92';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.92';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.92';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.92';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
- let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],showArchive=false,archiveRevealed=false;
+ let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],showArchive=false;
  let prefs=(await store.get?.('meta','notes.list.preferences'))?.value||{sort:'alpha',order:[]};if(!['alpha','recent','custom'].includes(prefs.sort))prefs.sort='alpha';
  outlet.replaceChildren();const root=node('section',null,'module-view locations-view sh-card-view sh-notes-view'),tools=node('div',null,'sh-notes-tools'),controls=node('div'),rows=node('div',null,'sh-locations-list swipe-list'),status=node('p');status.setAttribute('role','status');
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
  const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
  if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
  const archiveSlot=node('div',null,'sh-notes-archive-slot');
- const archive=button('Archief',()=>{showArchive=!showArchive;suppressClickUntil=0;search.value='';paint();});archive.dataset.notesArchive='';archive.setAttribute('aria-pressed','false');archiveSlot.append(archive);
- archive.onfocus=()=>{archiveRevealed=true;archiveSlot.classList.add('is-revealed');};
- const listArea=node('div',null,'sh-notes-list-area');listArea.append(archiveSlot,rows);
+ const archive=button('Archief',()=>{showArchive=!showArchive;search.value='';paint();});archive.dataset.notesArchive='';archive.setAttribute('aria-pressed','false');archiveSlot.append(archive);
+ const listArea=node('div',null,'sh-notes-list-area');listArea.append(rows,archiveSlot);
  root.append(tools,controls,listArea,status);outlet.append(root);
- let pull=null,suppressClickUntil=0;
  const hasArchive=()=>local.some(r=>r.archivedAt)||linked.some(r=>r.archived);
- const atTop=()=>{for(let el=listArea;el;el=el.parentElement)if(el.scrollTop>1)return false;return !(document.scrollingElement?.scrollTop>1);};
- const startPull=(x,y)=>{pull=hasArchive()&&!showArchive&&!archiveRevealed&&atTop()?{x,y,distance:0}:null;};
- const movePull=(event,x,y)=>{if(!pull)return;const dx=x-pull.x,dy=y-pull.y;if(dy<0||Math.abs(dx)>Math.max(10,Math.abs(dy))){pull=null;return;}pull.distance=dy;if(dy>8&&event.cancelable)event.preventDefault();};
- const endPull=()=>{if(pull?.distance>=48){suppressClickUntil=Date.now()+400;archiveRevealed=true;archiveSlot.classList.add('is-revealed');}pull=null;};
- const cancelPull=()=>{pull=null;};
- const suppressPullClick=event=>{if(Date.now()<suppressClickUntil&&!event.target.closest('[data-notes-archive]')){event.preventDefault();event.stopImmediatePropagation();}};
- listArea.addEventListener('click',suppressPullClick,true);
- const touchStart=event=>{if(event.touches.length!==1){cancelPull();return;}const t=event.touches[0];startPull(t.clientX,t.clientY);};
- const touchMove=event=>{if(event.touches.length!==1){cancelPull();return;}const t=event.touches[0];movePull(event,t.clientX,t.clientY);};
- const pointerStart=event=>{if(event.pointerType!=='touch'&&event.button===0)startPull(event.clientX,event.clientY);};
- const pointerMove=event=>{if(event.pointerType!=='touch')movePull(event,event.clientX,event.clientY);};
- const pointerEnd=event=>{if(event.pointerType!=='touch')endPull();};
- listArea.addEventListener('touchstart',touchStart,{passive:true});listArea.addEventListener('touchmove',touchMove,{passive:false});listArea.addEventListener('touchend',endPull);listArea.addEventListener('touchcancel',cancelPull);
- listArea.addEventListener('pointerdown',pointerStart);window.addEventListener('pointermove',pointerMove);window.addEventListener('pointerup',pointerEnd);window.addEventListener('pointercancel',cancelPull);
- const releasePull=()=>{cancelPull();listArea.removeEventListener('click',suppressPullClick,true);listArea.removeEventListener('touchstart',touchStart);listArea.removeEventListener('touchmove',touchMove);listArea.removeEventListener('touchend',endPull);listArea.removeEventListener('touchcancel',cancelPull);listArea.removeEventListener('pointerdown',pointerStart);window.removeEventListener('pointermove',pointerMove);window.removeEventListener('pointerup',pointerEnd);window.removeEventListener('pointercancel',cancelPull);};
  const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
  function board(title,shop=false,onOpen){
@@ -96,8 +79,8 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  }
  function paint(){
   if(disposed||!root.isConnected)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
-  if(!hasArchive()){showArchive=false;archiveRevealed=false;}
-  archiveSlot.hidden=!hasArchive();archiveSlot.classList.toggle('is-revealed',archiveRevealed||showArchive);archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar notities en lijsten':'Archief';
+  if(!hasArchive()){showArchive=false;}
+  archiveSlot.hidden=!hasArchive();archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar notities en lijsten':'Archief · herstellen';
   visible=sortList([...local.filter(r=>!!r.archivedAt===showArchive).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===showArchive).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
   for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:[...(!row.linked?[{kind:'edit',label:'Bewerk'}]:[]),{kind:'secondary',label:showArchive?'Terugzetten':'Archiveren'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   if(!visible.length)rows.append(node('p','Nog geen passende notities of lijsten.'));
@@ -116,5 +99,5 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  async function loadLinked(){const result=await api.index();if(disposed)return;linked=result.lists;paint();}
  const refresh=()=>{if(!document.hidden)loadLinked().catch(report);};document.addEventListener('visibilitychange',refresh);
  loadLinked().catch(e=>{if(!disposed)status.textContent='Notities werken lokaal. Gekoppelde lijsten zijn niet bereikbaar: '+e.message;});
- return ()=>{disposed=true;document.removeEventListener('visibilitychange',refresh);releasePull();release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
+ return ()=>{disposed=true;document.removeEventListener('visibilitychange',refresh);release();releaseControls();closeBoard();closeShare();if(headerActions)headerActions.replaceChildren();};
 }

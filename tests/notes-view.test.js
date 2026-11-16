@@ -56,32 +56,23 @@ test('Compact pairing shows success only after Shop acknowledgement and refreshe
  phase='active';document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.match(document.querySelector('dialog').textContent,/Koppeling geslaagd/);assert.equal(document.querySelector('dialog input'),null);assert.equal(calls.includes('shop-pair-confirm'),false);closePair();stop();const n=calls.length;document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.equal(calls.length,n);
 });
 
-function pullArchive(f,{distance=80,cancel=false}={}){
- const area=f.outlet.querySelector('.sh-notes-list-area');
- for(const [type,y] of [['touchstart',10],['touchmove',10+distance],[cancel?'touchcancel':'touchend',10+distance]]){
-  const event=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.defineProperty(event,'touches',{value:type==='touchend'||type==='touchcancel'?[]:[{clientX:100,clientY:y}]});area.dispatchEvent(event);
- }
-}
-test('Notes only shows items; archive is revealed by pulling at the top and restores a local item',async t=>{
+test('Notes only shows items; archive recovery follows every item and restores a local item',async t=>{
  const f=fixture(t);f.records.set('old',{id:'old',type:'note',name:'Oud idee',archivedAt:123,data:{kind:'idea',body:'Bewaren'}});
  const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
  assert.equal(f.outlet.querySelector('[data-notes-mode]'),null);assert.equal(f.outlet.querySelector('.sh-app-connection'),null);
- const slot=f.outlet.querySelector('.sh-notes-archive-slot');assert.equal(slot.hidden,false);assert.equal(slot.classList.contains('is-revealed'),false);
- pullArchive(f,{distance:20});assert.equal(slot.classList.contains('is-revealed'),false);
- pullArchive(f,{cancel:true});assert.equal(slot.classList.contains('is-revealed'),false);
- f.outlet.scrollTop=100;pullArchive(f);assert.equal(slot.classList.contains('is-revealed'),false);f.outlet.scrollTop=0;
- pullArchive(f);assert.equal(slot.classList.contains('is-revealed'),true);
+ const slot=f.outlet.querySelector('.sh-notes-archive-slot');assert.equal(slot.hidden,false);
+ assert.equal(slot.previousElementSibling,f.outlet.querySelector('.swipe-list'));
  f.outlet.querySelector('[data-notes-archive]').click();assert.match(f.outlet.querySelector('.swipe-list').textContent,/Oud idee/);
  f.outlet.querySelector('[data-swipe-surface]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Terugzetten').click();await settle();
  assert.equal(f.records.get('old').archivedAt,null);assert.equal(slot.hidden,true);assert.match(f.outlet.querySelector('.swipe-list').textContent,/Oud idee/);assert.equal(document.querySelector('dialog'),null);
 });
-test('An empty archive has no strip and pulling does not reveal it',async t=>{
- const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();pullArchive(f);
+test('An empty archive has no recovery strip',async t=>{
+ const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
  const slot=f.outlet.querySelector('.sh-notes-archive-slot');assert.equal(slot.hidden,true);assert.equal(slot.classList.contains('is-revealed'),false);
 });
 test('Linked archived list is restored through its server membership',async t=>{
  const f=fixture(t);let archived=true;f.api.index=async()=>({lists:[{id:'shared',name:'Weekend',archived}]});f.api.archive=async(id,value)=>{assert.equal(id,'shared');archived=value;};
- const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();pullArchive(f);f.outlet.querySelector('[data-notes-archive]').click();f.outlet.querySelector('[data-swipe-surface]').click();
+ const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();f.outlet.querySelector('[data-notes-archive]').click();f.outlet.querySelector('[data-swipe-surface]').click();
  [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Terugzetten').click();await settle();assert.equal(archived,false);assert.match(f.outlet.querySelector('.swipe-list').textContent,/Weekend/);
 });
 test('Linked archive and removal act on membership and refresh the overview',async t=>{

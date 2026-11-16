@@ -8,7 +8,7 @@ function touch(app,target,type,x,y=250){
  const event=new app.window.Event(type,{bubbles:true,cancelable:true});
  const point={clientX:x,clientY:y};Object.assign(event,{touches:type==='touchend'?[]:[point],changedTouches:[point]});target.dispatchEvent(event);
 }
-test('right swipe from the middle of a Home menu row opens the camera, vertical scroll stays on Home',async t=>{
+test('Home swipes keep the camera closed; Codes still opens it explicitly',async t=>{
  const app=await appHarness();t.after(()=>app.close());
  app.window.HTMLMediaElement.prototype.pause=function(){};
  app.window.ZXing={};let cameraRequests=0;
@@ -20,6 +20,8 @@ test('right swipe from the middle of a Home menu row opens the camera, vertical 
  touch(app,row,'touchstart',150);touch(app,row,'touchmove',160,350);touch(app,row,'touchend',160,350);
  assert.equal(app.document.querySelector('[data-scan-video]'),null);
  touch(app,row,'touchstart',150);touch(app,row,'touchmove',335);touch(app,row,'touchend',335);
+ assert.equal(app.document.querySelector('[data-scan-video]'),null);assert.equal(cameraRequests,0);
+ app.document.querySelector('[data-module="codes"]').click();
  await until(()=>app.document.querySelector('[data-scan-video]'));
  await until(()=>cameraRequests===1);
  assert.match(app.document.querySelector('[data-scan-status]').textContent,/cameratoegang/);
