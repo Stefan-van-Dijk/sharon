@@ -1,22 +1,22 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.92';
-import { openCardShare } from './CardSharing.js?v=0.4.92';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.92';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.92';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.92';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.92';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.92';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.92';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.92';
-import { openCardBoard } from './CardBoard.js?v=0.4.92';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.92';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.92';
-import { mountCardScanner } from './CardScanner.js?v=0.4.92';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.92';
-import { renderStrip } from './Strip.js?v=0.4.92';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.92';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.92';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.92';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.92';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.93';
+import { openCardShare } from './CardSharing.js?v=0.4.93';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.93';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.4.93';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.4.93';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.4.93';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.93';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.93';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.4.93';
+import { openCardBoard } from './CardBoard.js?v=0.4.93';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.4.93';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.4.93';
+import { mountCardScanner } from './CardScanner.js?v=0.4.93';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.4.93';
+import { renderStrip } from './Strip.js?v=0.4.93';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.93';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.93';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.93';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.4.93';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

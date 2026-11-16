@@ -1,22 +1,22 @@
-import {openAppsView} from './AppsView.js?v=0.4.92';
-import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.4.92';
-import { openNotesView } from './NotesView.js?v=0.4.92';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.92';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.92';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.92';
-import { mountCardArrival } from './CardArrival.js?v=0.4.92';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.92';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.92';
-import { syncViewportHeight } from './Viewport.js?v=0.4.92';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.92';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.92';
-import { openPeopleView } from './PeopleView.js?v=0.4.92';
-import { openCardsView } from './CardsView.js?v=0.4.92';
-import { openLocationsView } from './LocationsView.js?v=0.4.92';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.92';
-import { openSettings } from './SettingsView.js?v=0.4.92';
-import { sharonWordmark } from './Brand.js?v=0.4.92';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.92';
+import {openAppsView} from './AppsView.js?v=0.4.93';
+import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.4.93';
+import { openNotesView } from './NotesView.js?v=0.4.93';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.93';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.93';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.93';
+import { mountCardArrival } from './CardArrival.js?v=0.4.93';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.93';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.93';
+import { syncViewportHeight } from './Viewport.js?v=0.4.93';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.93';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.93';
+import { openPeopleView } from './PeopleView.js?v=0.4.93';
+import { openCardsView } from './CardsView.js?v=0.4.93';
+import { openLocationsView } from './LocationsView.js?v=0.4.93';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.93';
+import { openSettings } from './SettingsView.js?v=0.4.93';
+import { sharonWordmark } from './Brand.js?v=0.4.93';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.93';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -38,7 +38,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.92';
+const APP_VERSION = '0.4.93';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -576,7 +576,7 @@ export function createShell(root, {
 
     if (['people','codes'].includes(module.id) && !demoMode) {
       setHeaderMode('detail', 'Personen', 'people');
-      await swapView(() => openPeopleView(outlet, {store, settings, location, chatMonitor, headerActions, onOpenObject: item=>item.type==='card'?openCards({cardId:item.id}):openLocations(item.id), setTitle: setDetailTitle, initialScreen: options.activate?'owner-start':options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
+      await swapView(() => openPeopleView(outlet, {store, settings, onScanClose: module.id==='codes'?()=>showHome():null, location, chatMonitor, headerActions, onOpenObject: item=>item.type==='card'?openCards({cardId:item.id}):openLocations(item.id), setTitle: setDetailTitle, initialScreen: options.activate?'owner-start':options.scanned?'scanned':options.camera?'camera':module.id==='codes'?'scan':'', onCode: result=>openCards({scanned:result}), onMembership: value => { networkMember=value; }}), {animate: options.animate !== false});
       return;
     }
 
