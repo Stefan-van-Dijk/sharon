@@ -17,12 +17,14 @@ function swipe(win,target,dy,cancel=false){
  }
 }
 test('Pairing can be dismissed while its server request is pending, restoring focus and ignoring late completion',async t=>{
- fixture(t);let finish,calls=0;
+ const win=fixture(t);let finish,calls=0;
  const connection={device:async()=>({}),request:()=>{calls++;return new Promise(resolve=>finish=resolve);}};
  const close=openShopPairing(connection);t.after(close);await Promise.resolve();await Promise.resolve();
  const dialog=document.querySelector('dialog');
  assert(dialog.querySelector('.sh-board-stack [data-card-board] .sh-card-media'));
- dialog.querySelector('[data-shop-close]').click();
+ assert.equal(dialog.querySelector('[data-shop-close]'),null);
+ assert.equal(dialog.querySelectorAll('[data-deck-size]').length,2);
+ swipe(win,dialog.querySelector('h2'),100);
  assert.equal(dialog.isConnected,false);assert.equal(document.activeElement.id,'launch');
  finish({devices:[]});await Promise.resolve();await Promise.resolve();
  document.dispatchEvent(new window.Event('visibilitychange'));await Promise.resolve();
@@ -34,4 +36,14 @@ test('Pairing board closes on completed media pull-down, preserving content scro
  swipe(win,dialog.querySelector('.sh-shop-access-content'),100);assert(dialog.isConnected);
  swipe(win,header,100,true);assert(dialog.isConnected);
  swipe(win,header,100);assert.equal(dialog.isConnected,false);
+});
+
+test('App board size handles adjust height independently and cancelled resizing restores layout',t=>{
+ const win=fixture(t);const close=openShopPairing({device:async()=>({}),request:async()=>({devices:[]})});t.after(close);
+ const dialog=document.querySelector('dialog'),stack=dialog.querySelector('.sh-board-stack');
+ const height=()=>parseFloat(stack.style.getPropertyValue('--card-deck-height'));
+ const media=()=>parseFloat(stack.style.getPropertyValue('--card-deck-media'));
+ const initial=height(),picture=media();swipe(win,dialog.querySelector('[data-deck-size="board"]'),50);assert.equal(height(),initial-50);assert.equal(media(),picture);
+ swipe(win,dialog.querySelector('[data-deck-size="media"]'),-30);assert.equal(media(),picture-30);
+ swipe(win,dialog.querySelector('[data-deck-size="board"]'),40,true);assert.equal(height(),initial-50);assert(dialog.isConnected);
 });

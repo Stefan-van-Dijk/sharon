@@ -31,9 +31,9 @@ async function drag(page,target,dy){
 test('connection board stays within viewport and can close while its server request is pending',async({page})=>{
  await openPairing(page,{pending:true});
  const dialog=page.locator('.sh-shop-access'),surface=dialog.locator('.sh-shop-access-board'),close=dialog.locator('[data-shop-close]');
- await expect(close).toBeVisible();const box=await surface.boundingBox(),viewport=page.viewportSize();
+ await expect(close).toHaveCount(0);const box=await surface.boundingBox(),viewport=page.viewportSize();
  expect(box.width).toBeGreaterThan(250);expect(box.height).toBeGreaterThan(250);expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(viewport.width);expect(box.y+box.height).toBeLessThanOrEqual(viewport.height);
- await close.click();await expect(dialog).toHaveCount(0);await expect(page.locator('#launch')).toBeFocused();
+ await drag(page,dialog.locator('h2'),100);await expect(dialog).toHaveCount(0);await expect(page.locator('#launch')).toBeFocused();
  await page.evaluate(()=>{window.finishPairing({devices:[]});document.dispatchEvent(new Event('visibilitychange'));});
  await expect(dialog).toHaveCount(0);expect(await page.evaluate(()=>window.requests)).toBe(1);
 });
@@ -46,4 +46,13 @@ test('connection board keeps scrolling inside content and closes on a downward m
  expect(await content.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
  await content.evaluate(el=>{el.scrollTop=120;});expect(await content.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);await expect(dialog).toBeVisible();
  await drag(page,dialog.locator('h2'),100);await expect(dialog).toHaveCount(0);
+});
+
+test('app board and media resize independently without closing the board',async({page})=>{
+ await openPairing(page);
+ const dialog=page.locator('.sh-shop-access'),surface=dialog.locator('.sh-shop-access-board'),media=dialog.locator('[data-card-media]');
+ const before=await surface.boundingBox();await drag(page,dialog.locator('[data-deck-size="board"]'),80);
+ expect((await surface.boundingBox()).height).toBeLessThan(before.height-30);
+ const picture=await media.boundingBox();await drag(page,dialog.locator('[data-deck-size="media"]'),-40);
+ expect((await media.boundingBox()).height).toBeLessThan(picture.height-15);await expect(dialog).toBeVisible();
 });

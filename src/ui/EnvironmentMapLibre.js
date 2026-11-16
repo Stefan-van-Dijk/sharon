@@ -1,35 +1,35 @@
-import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.89';
-import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.89';
-import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.89';
-import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.89';
-import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.89';
-import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.89';
-import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.89';
-import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.89';
-import { mountChainLayer } from './ChainLayer.js?v=0.4.89';
-import { mountChainFilters } from './ChainFilters.js?v=0.4.89';
-import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.89';
-import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.89';
-import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.89';
-import { openLocationDeck } from './LocationDeck.js?v=0.4.89';
-import { openBoardViewer } from './BoardViewer.js?v=0.4.89';
-import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.89';
-import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.89';
+import { lockBoardViewport, inBoardViewport } from './BoardViewport.js?v=0.4.90';
+import { mountSourceSheetHandle } from './SourceSheetHandle.js?v=0.4.90';
+import { createEnvironmentBoardSources } from './EnvironmentBoardSources.js?v=0.4.90';
+import { boardOrderMode, BOARD_ORDER_EVENT, markBoardOpened } from './BoardOrder.js?v=0.4.90';
+import { mountBoardOrderControls, closeBoardOrder } from './BoardOrderControls.js?v=0.4.90';
+import { mountMapDisplayControls, applyMapDisplay } from './MapDisplayControls.js?v=0.4.90';
+import { createBoardMapAlignment } from './BoardMapAlignment.js?v=0.4.90';
+import { placeHidden, mountPlacePulse } from './PlaceFeedback.js?v=0.4.90';
+import { mountChainLayer } from './ChainLayer.js?v=0.4.90';
+import { mountChainFilters } from './ChainFilters.js?v=0.4.90';
+import { categoryIconSvg } from '../core/chains/ChainCategories.js?v=0.4.90';
+import { mountTiqetsLayer } from './TiqetsLayer.js?v=0.4.90';
+import { tiqetsStatus, tiqetsBoard } from './TiqetsSource.js?v=0.4.90';
+import { openLocationDeck } from './LocationDeck.js?v=0.4.90';
+import { openBoardViewer } from './BoardViewer.js?v=0.4.90';
+import { mountWikipediaLayer } from './WikipediaLayer.js?v=0.4.90';
+import { MAPLIBRE_JS, ensureRendererStyle, configureRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.4.90';
 import {
   environmentIdForPoint,
   environmentPointId
-} from '../core/location/EnvironmentIdentifier.js?v=0.4.89';
-import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.89';
-import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.89';
-import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.89';
-import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.89';
-import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.89';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.4.89';
-import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.89';
-import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.89';
+} from '../core/location/EnvironmentIdentifier.js?v=0.4.90';
+import { environmentGeoJSON, environmentShapeLabels } from './EnvironmentData.js?v=0.4.90';
+import { bindEnvironmentPositionButton } from './EnvironmentPosition.js?v=0.4.90';
+import { bindEnvironmentButton } from './EnvironmentGestures.js?v=0.4.90';
+import { createEnvironmentCameraControls } from './EnvironmentCamera.js?v=0.4.90';
+import { createEnvironmentVisibilityControl } from './EnvironmentVisibility.js?v=0.4.90';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.4.90';
+import { bindEnvironmentAppearance } from './EnvironmentAppearance.js?v=0.4.90';
+import { createEnvironmentAppearanceEditor } from './EnvironmentAppearanceEditor.js?v=0.4.90';
 import { environmentScaleForSpan, nextEnvironmentScale, environmentSpanForZoom,
   environmentZoomForSpan, configureEnvironmentGestures
-} from './EnvironmentScale.js?v=0.4.89';
+} from './EnvironmentScale.js?v=0.4.90';
 
 // Both map modules reuse SharonMapRuntime for renderer, CSS, and worker.
 const CAMERA_KEY = 'environment-camera:v1';

@@ -15,4 +15,8 @@ const paths={
  apps:'<rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M18 14v8m-4-4h8"/>'
 };
 export function moduleIcon(id){return '<svg class="sh-module-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[id==='people'?'persons':id]||paths.apps)+'</svg>';}
-export function homeModules(settings,available){const saved=settings.home?.modules;return Array.isArray(saved)?[...new Set(saved)].filter(id=>available.includes(id)):[...available];}
+export function homeOrder(settings,available){
+ const saved=settings.home?.order??settings.home?.modules;
+ return [...new Set([...(Array.isArray(saved)?saved:[]),...available])].filter(id=>available.includes(id));
+}
+export function homeModules(settings,available){const saved=settings.home?.modules;return homeOrder(settings,available).filter(id=>!Array.isArray(saved)||saved.includes(id));}
