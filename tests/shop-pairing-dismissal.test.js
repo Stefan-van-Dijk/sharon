@@ -71,3 +71,20 @@ test('Unavailable status cannot create a code or claim the app is disconnected',
  fixture(t);const calls=[];const close=openShopPairing({device:async()=>({}),request:async action=>{calls.push(action);throw Error('Offline');}});t.after(close);await new Promise(r=>setTimeout(r,0));
  assert.match(document.querySelector('[role="status"]').textContent,/Verbindingsstatus kon niet worden opgehaald/);assert.equal(document.querySelector('[data-pair-create]'),null);assert.deepEqual(calls,['shop-pair-list']);
 });
+
+test('App connection restores its own position and both sizes after closing and status updates',async t=>{
+ const win=fixture(t),records=new Map([['cards.board.layout',{key:'cards.board.layout',value:{x:0,y:0,height:.8,media:.4}}]]);
+ const store={get:async(_,key)=>records.get(key),put:async(_,record)=>records.set(record.key,structuredClone(record))};
+ let devices=[];const connection={store,device:async()=>({}),request:async()=>({devices})};
+ const settle=()=>new Promise(r=>setTimeout(r,0));let close=openShopPairing(connection);await settle();
+ let dialog=document.querySelector('dialog'),stack=dialog.querySelector('.sh-board-stack');
+ swipe(win,dialog.querySelector('[data-deck-size="board"]'),50);
+ swipe(win,dialog.querySelector('[data-deck-size="media"]'),-30);
+ dialog.querySelector('[data-deck-grab]').dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true,cancelable:true}));await settle();
+ const layout=stack.style.cssText,cardLayout=structuredClone(records.get('cards.board.layout'));
+ assert(records.has('apps.shoplist.board.layout'));close();
+ close=openShopPairing(connection);t.after(close);await settle();
+ dialog=document.querySelector('dialog');stack=dialog.querySelector('.sh-board-stack');assert.equal(stack.style.cssText,layout);
+ devices=[{id:'active',status:'active',fingerprint:'ABCD'}];[...dialog.querySelectorAll('button')].find(b=>b.textContent==='Vernieuwen').click();await settle();
+ assert.equal(stack.style.cssText,layout);assert.deepEqual(records.get('cards.board.layout'),cardLayout);
+});
