@@ -24,8 +24,8 @@ test('all object modules share the Cards strip and swipe semantics; rebinding cl
     surface.click();assert.equal(actions.at(-1),'open:'+module);
     swipe(app,row);assert.ok(row.classList.contains('is-actions-open'));
     const count=actions.length;surface.click();assert.equal(actions.length,count);assert.equal(row.classList.contains('is-actions-open'),true,'synthetic click after swipe is ignored');
-    // Let the swipe click guard expire before testing a fresh interaction.
-    await new Promise(resolve=>setTimeout(resolve,15));
+    // A fresh tap has its own pointer sequence; elapsed time alone is not intent.
+    pointer(app,surface,'pointerdown',180);pointer(app,surface,'pointerup',180);
     surface.click();assert.equal(row.classList.contains('is-actions-open'),false);
     swipe(app,row);row.querySelector('[data-swipe-edit]').click();assert.equal(actions.at(-1),'edit:'+module);
     row.querySelector('[data-swipe-delete]').click();assert.equal(actions.at(-1),'delete:'+module);
