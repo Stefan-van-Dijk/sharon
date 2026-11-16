@@ -1,5 +1,6 @@
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.87';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.87';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.4.88';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.88';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.88';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -17,7 +18,9 @@ export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:e
 // No permanent credential leaves Sharon. Only an expiring invitation is copied.
 export function openShopPairing(connection,{autoCreate=false}={}){
  const document=globalThis.document;
- const dialog=document.createElement('dialog');dialog.className='sh-notes-board sh-shop-access';dialog.setAttribute('aria-label','Shop verbinden');
+ const dialog=document.createElement('dialog');dialog.className='sh-card-share-overlay sh-shop-access';dialog.setAttribute('aria-label','Shop verbinden');
+ const surface=document.createElement('section');surface.className='sh-share-board sh-notes-board sh-shop-access-board';surface.dataset.cardBoard='';
+ const stack=wrapBoardSurface(dialog,surface);stack.classList.add('sh-share-zone-stack');
  const heading=document.createElement('h2');heading.textContent='ShopList.';
  const intro=document.createElement('p');intro.className='sh-shop-invitation';intro.textContent='Alles voor je boodschappen. Wil je ShopList openen?';
  const actions=document.createElement('div');actions.className='sh-shop-access-actions';
@@ -37,7 +40,11 @@ export function openShopPairing(connection,{autoCreate=false}={}){
    row.append(button(r.status==='active'?'Verbinding intrekken':'Annuleren',async()=>{await request('revoke',{id:r.id});await refresh();}));body.append(row);
   }
  };
- const header=document.createElement('header');header.append(heading,intro);dialog.append(header,actions,installInfo,body,status,button('Vernieuwen',refresh));document.body.append(dialog);releaseBoard=bindNotesBoard(dialog,header,close,{shop:true});dialog.showModal();
+ const header=document.createElement('header');header.className='sh-share-fixed sh-card-media sh-notes-brand';header.append(heading,intro);
+ const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='sh-shop-access-close';dismiss.dataset.shopClose='';dismiss.textContent='Sluiten';dismiss.setAttribute('aria-label','Verbindingsmenu sluiten');dismiss.onclick=close;header.append(dismiss);
+ const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab sh-board-compass';grab.dataset.deckGrab='';grab.textContent='ShopList verbinden';grab.setAttribute('aria-label','Boards oppakken en verplaatsen');header.append(grab);
+ const content=document.createElement('div');content.className='sh-share-board-info sh-shop-access-content';content.append(actions,installInfo,body,status,button('Vernieuwen',refresh));surface.append(header,content);document.body.append(dialog);
+ const releaseHeader=bindNotesBoard(dialog,header,close,{shop:true,gestures:false});const deckGestures=bindBoardDeckGestures(stack,{onClose:close});releaseBoard=()=>{releaseHeader();deckGestures.dispose();};dialog.showModal();dismiss.focus();
  // Only a browser-confirmed match is evidence of installation; pairing is not.
  if(typeof navigator.getInstalledRelatedApps==='function')navigator.getInstalledRelatedApps().then(apps=>{if(closed)return;if(apps.some(app=>app.platform==='webapp'&&app.url===SHOPLIST_URL+'manifest.webmanifest')){install.hidden=true;installInfo.textContent='ShopList is geïnstalleerd. Open de app via de knop of het icoon op je beginscherm.';}}).catch(()=>{});
  if(autoCreate){
