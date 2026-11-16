@@ -15,7 +15,7 @@ function fixture(t,connection,initial={home:{modules:['environment','locations']
 test('Home module choices persist, reorder and keep all choices reachable when every module is hidden',async t=>{
  const f=fixture(t);const toggle=id=>document.querySelector(`[data-module-choice="${id}"] [role="switch"]`);
  assert.equal(toggle('notes').getAttribute('aria-checked'),'false');toggle('notes').click();await settle();assert.deepEqual(f.settings.get().home.modules,['environment','locations','notes']);
- document.querySelector('[aria-label="Notities en lijsten omhoog"]').click();await settle();assert.deepEqual(f.settings.get().home.modules,['environment','notes','locations']);
+ document.querySelector('[data-module-handle="notes"]').dispatchEvent(new f.dom.window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));await settle();assert.deepEqual(f.settings.get().home.modules,['environment','notes','locations']);
  f.reopen();assert.equal(toggle('notes').getAttribute('aria-checked'),'true');
  for(const id of ['environment','notes','locations']){toggle(id).click();await settle();}
  assert.deepEqual(f.settings.get().home.modules,[]);assert.equal(document.querySelectorAll('[role="switch"]').length,3);
@@ -26,7 +26,15 @@ test('Failed Home settings write retains prior toggles and exposes the storage e
 });
 test('Dragging a selected module reorders it without changing membership',async t=>{
  const f=fixture(t),source=document.querySelector('[data-module-choice="locations"]'),target=document.querySelector('[data-module-choice="environment"]');
- source.dispatchEvent(new f.dom.window.Event('dragstart',{bubbles:true}));target.dispatchEvent(new f.dom.window.Event('drop',{bubbles:true,cancelable:true}));await settle();assert.deepEqual(f.settings.get().home.modules,['locations','environment']);
+ const handle=source.querySelector('[data-module-handle]');document.elementFromPoint=()=>target;
+ for(const type of ['pointerdown','pointermove','pointerup']){const event=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.assign(event,{pointerId:1,clientX:20,clientY:20,button:0});handle.dispatchEvent(event);}
+ await settle();assert.deepEqual(f.settings.get().home.modules,['locations','environment']);
+ const order=f.settings.get().home.order;
+ document.querySelector('[data-module-choice="locations"] [role="switch"]').click();await settle();
+ document.querySelector('[data-module-choice="locations"] [role="switch"]').click();await settle();
+ assert.deepEqual(f.settings.get().home.order,order);assert.deepEqual(f.settings.get().home.modules,['locations','environment']);
+ f.reopen();assert.deepEqual([...document.querySelectorAll('[data-module-choice]')].map(el=>el.dataset.moduleChoice),order);
+
 });
 test('Explicit app connection enables its content module and closes its board when management is left',async t=>{
  const navigatorDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');

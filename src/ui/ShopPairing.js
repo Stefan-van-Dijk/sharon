@@ -1,6 +1,6 @@
-import {wrapBoardSurface} from './BoardChrome.js?v=0.4.89';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.89';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.89';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.4.90';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.90';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.90';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -41,10 +41,10 @@ export function openShopPairing(connection,{autoCreate=false}={}){
   }
  };
  const header=document.createElement('header');header.className='sh-share-fixed sh-card-media sh-notes-brand';header.append(heading,intro);
- const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='sh-shop-access-close';dismiss.dataset.shopClose='';dismiss.textContent='Sluiten';dismiss.setAttribute('aria-label','Verbindingsmenu sluiten');dismiss.onclick=close;header.append(dismiss);
+ for(const [kind,label] of [['board','Hoogte van board aanpassen'],['media','Hoogte van afbeelding en informatie aanpassen']]){const resize=document.createElement('button');resize.type='button';resize.className='sh-board-resizer';resize.dataset.deckSize=kind;resize.setAttribute('aria-label',label);header.append(resize);}
  const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab sh-board-compass';grab.dataset.deckGrab='';grab.textContent='ShopList verbinden';grab.setAttribute('aria-label','Boards oppakken en verplaatsen');header.append(grab);
  const content=document.createElement('div');content.className='sh-share-board-info sh-shop-access-content';content.append(actions,installInfo,body,status,button('Vernieuwen',refresh));surface.append(header,content);document.body.append(dialog);
- const releaseHeader=bindNotesBoard(dialog,header,close,{shop:true,gestures:false});const deckGestures=bindBoardDeckGestures(stack,{onClose:close});releaseBoard=()=>{releaseHeader();deckGestures.dispose();};dialog.showModal();dismiss.focus();
+ const releaseHeader=bindNotesBoard(dialog,header,close,{shop:true,gestures:false});const deckGestures=bindBoardDeckGestures(stack,{onClose:close});releaseBoard=()=>{releaseHeader();deckGestures.dispose();};dialog.showModal();surface.tabIndex=-1;surface.focus();
  // Only a browser-confirmed match is evidence of installation; pairing is not.
  if(typeof navigator.getInstalledRelatedApps==='function')navigator.getInstalledRelatedApps().then(apps=>{if(closed)return;if(apps.some(app=>app.platform==='webapp'&&app.url===SHOPLIST_URL+'manifest.webmanifest')){install.hidden=true;installInfo.textContent='ShopList is geïnstalleerd. Open de app via de knop of het icoon op je beginscherm.';}}).catch(()=>{});
  if(autoCreate){
