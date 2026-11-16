@@ -1,6 +1,6 @@
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.93';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.4.93';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.93';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.94';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.4.94';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.4.94';
 
 // One selected record is mounted; navigation uses the current filtered overview.
 export function openNotesDeck({items,id,store,render}){

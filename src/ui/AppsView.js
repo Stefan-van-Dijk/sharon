@@ -1,6 +1,6 @@
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.4.93';
-import {openShopPairing} from './ShopPairing.js?v=0.4.93';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.93';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.4.94';
+import {openShopPairing} from './ShopPairing.js?v=0.4.94';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.94';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
@@ -35,7 +35,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   panel.replaceChildren();
   if(mode==='apps'){
    const strip=button('',()=>{
-    closePairing();closePairing=openShopPairing(connection);
+    closePairing();closePairing=openShopPairing(connection,{layoutStore:store});
     if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
    });strip.className='sh-app-connection';strip.dataset.appConnection='shoplist';strip.disabled=busy;
    const logo=document.createElement('span');logo.className='sh-module-icon';logo.innerHTML=moduleIcon('notes');

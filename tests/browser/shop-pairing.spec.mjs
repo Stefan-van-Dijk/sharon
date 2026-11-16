@@ -21,7 +21,7 @@ async function openPairing(page,{pending=false}={}){
  await page.evaluate(async pending=>{
   const {openShopPairing}=await import('/src/ui/ShopPairing.js');
   document.querySelector('#launch').focus();
-  window.requests=0;window.stopPairing=openShopPairing({device:async()=>({}),request:async()=>{window.requests++;if(pending)return new Promise(resolve=>window.finishPairing=resolve);return {devices:Array.from({length:12},(_,i)=>({id:'device'+i,status:'active',fingerprint:'TEST '+i}))};}});
+  window.requests=0;window.stopPairing=openShopPairing({store:{get:async(_,key)=>JSON.parse(localStorage.getItem(key)||'null'),put:async(_,record)=>localStorage.setItem(record.key,JSON.stringify(record))},device:async()=>({}),request:async()=>{window.requests++;if(pending)return new Promise(resolve=>window.finishPairing=resolve);return {devices:Array.from({length:12},(_,i)=>({id:'device'+i,status:'active',fingerprint:'TEST '+i}))};}});
  },pending);
 }
 async function drag(page,target,dy){
@@ -55,4 +55,24 @@ test('app board and media resize independently without closing the board',async(
  expect((await surface.boundingBox()).height).toBeLessThan(before.height-30);
  const picture=await media.boundingBox();await drag(page,dialog.locator('[data-deck-size="media"]'),-40);
  expect((await media.boundingBox()).height).toBeLessThan(picture.height-15);await expect(dialog).toBeVisible();
+});
+
+test('connection board keeps its moved position and sizes after reopening and status refresh',async({page})=>{
+ await openPairing(page);
+ const surface=page.locator('.sh-shop-access-board'),media=page.locator('.sh-shop-access [data-card-media]');
+ await drag(page,page.locator('[data-deck-size="board"]'),80);
+ await drag(page,page.locator('[data-deck-size="media"]'),-35);
+ const grab=page.locator('[data-deck-grab]'),box=await grab.boundingBox();
+ await page.mouse.move(box.x+20,box.y+box.height/2);await page.mouse.down();
+ await page.mouse.move(box.x+55,box.y+box.height/2,{steps:4});
+ await page.mouse.move(box.x+55,box.y+box.height/2-45,{steps:6});await page.mouse.up();
+ const before=await surface.boundingBox(),picture=await media.boundingBox();
+ await page.waitForFunction(()=>localStorage.getItem('apps.shoplist.board.layout'));
+ await page.evaluate(()=>window.stopPairing());await openPairing(page);
+ await expect.poll(async()=>Math.abs((await surface.boundingBox()).y-before.y)).toBeLessThan(2);
+ expect(Math.abs((await surface.boundingBox()).height-before.height)).toBeLessThan(2);
+ expect(Math.abs((await media.boundingBox()).height-picture.height)).toBeLessThan(2);
+ await page.getByRole('button',{name:'Vernieuwen',exact:true}).click();
+ expect(Math.abs((await surface.boundingBox()).y-before.y)).toBeLessThan(2);
+ expect(Math.abs((await surface.boundingBox()).height-before.height)).toBeLessThan(2);
 });
