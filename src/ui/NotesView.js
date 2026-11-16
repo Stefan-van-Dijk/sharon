@@ -1,11 +1,11 @@
-import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.85';
-import {openListShare} from './ListSharing.js?v=0.4.85';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.85';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.85';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.85';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.85';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.85';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.85';
+import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.86';
+import {openListShare} from './ListSharing.js?v=0.4.86';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.86';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.86';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.86';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.86';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.86';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.86';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=globalThis.document;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -25,10 +25,10 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  root.append(tools,controls,connections,rows,status);outlet.append(root);
  const savePrefs=()=>store.put('meta',{key:'notes.list.preferences',value:prefs});
  const report=e=>{if(!disposed)status.textContent=e.message;};
- function board(title,shop=false){
+ function board(title,shop=false,onOpen){
   closeBoard();const previous=document.activeElement,dialog=node('dialog',null,'sh-notes-board');dialog.setAttribute('aria-label',title);const head=node('header',null,shop?'sh-notes-brand':'sh-notes-heading');
   if(shop)head.append(node('strong','ShopList.','sh-notes-wordmark'));head.append(node('h2',title));const body=node('div',null,'sh-notes-body');dialog.append(head,body);document.body.append(dialog);
-  let releaseBoard=()=>{},closed=false;closeBoard=()=>{if(closed)return;closed=true;releaseBoard();dialog.remove();previous?.focus();};dialog.addEventListener('close',closeBoard,{once:true});releaseBoard=bindNotesBoard(dialog,head,closeBoard,{shop});dialog.showModal();return {dialog,body};
+  let releaseBoard=()=>{},closed=false;closeBoard=()=>{if(closed)return;closed=true;releaseBoard();dialog.remove();previous?.focus();};dialog.addEventListener('close',closeBoard,{once:true});releaseBoard=bindNotesBoard(dialog,head,closeBoard,{shop,onOpen});dialog.showModal();return {dialog,body};
  }
  async function edit(record){
   const {dialog,body}=board(record?'Bewerken':'Nieuwe notitie of lijst');
@@ -48,11 +48,14 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   }else{body.append(node('p',record.data?.body||'', 'sh-notes-text'));}
  }
  async function openLinked(list,sharing=false){
-  if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api});return;}
-  const {dialog,body}=board(list.name,true),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
+  if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api,onOpen:()=>{closeShare();openLinked(list);}});return;}
+  const {dialog,body}=board(list.name,true,()=>openLinked(list)),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
   try{
    const response=await api.read(list.id);if(disposed||!dialog.isConnected)return;
-   const payload=response.list.payload;message.textContent='';
+   const payload=response.list.payload;
+   if(payload.list.id&&payload.list.id!==list.id)throw Error('De ontvangen lijst komt niet overeen. Open de lijst opnieuw.');
+   message.textContent='';
+   if(payload.list.name)dialog.querySelector('h2').textContent=payload.list.name;
    {
     const products=new Map(payload.products.map(p=>[p.id,p]));
     const listRows=node('div');for(const item of payload.list.items){listRows.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));}body.append(listRows);
