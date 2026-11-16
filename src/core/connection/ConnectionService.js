@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.86';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.86';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.4.87';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.87';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -13,10 +13,12 @@ const errors = {
   pair_pending:'Plak eerst de code in Shop en bevestig daarna dezelfde controlecode.',
   pair_capacity:'Trek eerst een oude Shop-verbinding in.',
   shop_scope:'Deze sleutel geeft alleen toegang tot boodschappenlijsten.',
-  list_conflict:'De gedeelde lijst is gewijzigd. Open Sharon in ShopList om de online versie op te halen; je lokale wijzigingen blijven als kopie bewaard.',
+  list_conflict:'Deze lijst is ondertussen gewijzigd. Haal de nieuwste versie op en probeer opnieuw.',
   list_forbidden:'Je hebt geen toegang meer tot deze boodschappenlijst.',
   list_read_only:'Je mag deze boodschappenlijst alleen bekijken.',
   list_exists:'Deze lijst is al verbonden. Open de bestaande online lijst.',
+  catalog_conflict:'Je catalogus is elders gewijzigd. Haal de actuele keuzes op en probeer opnieuw.',
+  invalid_catalog:'De catalogus bevat ongeldige gegevens of is te groot.',
   invalid_list:'De boodschappenlijst is ongeldig of te groot.',
   unknown_action:'Werk het serverbestand connections.php bij om deze verbindingsfunctie te gebruiken.',
   invalid_reference:'Deze contactcode is ongeldig of verlopen.',

@@ -38,10 +38,10 @@ export function bindSwipeRows(container, {
     let currentX = 0;
     let dragging = false;
     let locked = '';
-    let suppressTimer;
     const suppressClick = () => {
-      clearTimeout(suppressTimer);surface.dataset.swipeSuppressClick = '1';
-      suppressTimer=setTimeout(()=>{delete surface.dataset.swipeSuppressClick;},80);
+      // Keep the compatibility click suppressed regardless of the browser's
+      // touch-to-click delay. Only a new deliberate interaction clears it.
+      surface.dataset.swipeSuppressClick = '1';
     };
 
     const setX = (value, animate = false) => {
@@ -63,6 +63,7 @@ export function bindSwipeRows(container, {
     const pointerDown = event => {
       if (pointerId !== null) return;
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      delete surface.dataset.swipeSuppressClick;
 
       if (openRow && openRow !== row) {
         openRow.dispatchEvent(new CustomEvent('swipe.close'));
@@ -140,6 +141,9 @@ export function bindSwipeRows(container, {
     listen(surface,'pointerup',pointerUp);
     listen(surface,'pointercancel',pointerCancel);
 
+    listen(surface,'keydown',event=>{
+      if(event.key==='Enter'||event.key===' ')delete surface.dataset.swipeSuppressClick;
+    });
     listen(surface,'click', event => {
       if (surface.dataset.swipeSuppressClick === '1') {
         event.preventDefault();
@@ -176,7 +180,7 @@ export function bindSwipeRows(container, {
     listen(row,'swipe.reset', () => close(true));
     cleanups.push(()=>{
       if(pointerId!==null){try{surface.releasePointerCapture?.(pointerId);}catch{}}
-      pointerId=null;clearTimeout(suppressTimer);delete surface.dataset.swipeSuppressClick;close(false);
+      pointerId=null;delete surface.dataset.swipeSuppressClick;close(false);
     });
   }
 

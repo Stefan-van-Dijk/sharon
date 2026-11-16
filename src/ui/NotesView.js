@@ -1,11 +1,13 @@
-import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.86';
-import {openListShare} from './ListSharing.js?v=0.4.86';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.86';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.86';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.86';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.86';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.86';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.86';
+import {mountShopListPanel} from './ShopListPanel.js?v=0.4.87';
+import {openNotesDeck} from './NotesDeck.js?v=0.4.87';
+import {openShopPairing,bindNotesBoard} from './ShopPairing.js?v=0.4.87';
+import {openListShare} from './ListSharing.js?v=0.4.87';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.87';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.87';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.87';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.87';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.87';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.87';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=globalThis.document;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -42,26 +44,33 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
    await store.put('objects',item);if(disposed)return;await loadLocal();dialog.close();
   }catch(e){message.textContent=e.message;}finally{save.disabled=false;}});body.append(message,save);title.focus();
  }
- async function openLocal(record){
-  const {body}=board(record.name);if(record.data?.kind==='list'){
-   for(const [index,item]of (record.data.items||[]).entries()){const label=node('label',null,'sh-notes-check'),check=node('input');check.type='checkbox';check.checked=!!item.done;check.onchange=async()=>{const old=item.done;item.done=check.checked;try{await store.put('objects',{...record,updatedAt:Date.now()});}catch(e){item.done=old;check.checked=!!old;report(e);}};label.append(check,node('span',item.text));body.append(label);}
-  }else{body.append(node('p',record.data?.body||'', 'sh-notes-text'));}
+ function openLocal(record){openItem('local:'+record.id);}
+ function openLinked(list,sharing=false){
+  if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api,onOpen:()=>{closeShare();openItem('linked:'+list.id);}});return;}
+  openItem('linked:'+list.id);
  }
- async function openLinked(list,sharing=false){
-  if(sharing){closeBoard();closeShare();closeShare=openListShare(list,{store,api,onOpen:()=>{closeShare();openLinked(list);}});return;}
-  const {dialog,body}=board(list.name,true,()=>openLinked(list)),message=node('p',sharing?'Contacten laden…':'Lijst ophalen…');message.setAttribute('role','status');body.append(message);
-  try{
-   const response=await api.read(list.id);if(disposed||!dialog.isConnected)return;
-   const payload=response.list.payload;
-   if(payload.list.id&&payload.list.id!==list.id)throw Error('De ontvangen lijst komt niet overeen. Open de lijst opnieuw.');
-   message.textContent='';
-   if(payload.list.name)dialog.querySelector('h2').textContent=payload.list.name;
-   {
-    const products=new Map(payload.products.map(p=>[p.id,p]));
-    const listRows=node('div');for(const item of payload.list.items){listRows.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));}body.append(listRows);
-    if(!payload.list.items.length)body.append(node('p','Deze lijst is nog leeg.'));
+ function openItem(id){
+  closeBoard();closeShare();
+  closeBoard=openNotesDeck({items:()=>visible,id,store,render:async(row,{body,title,isCurrent,fullscreen,setBeforeLeave})=>{
+   const record=row.record;
+   if(!row.linked){
+    if(record.data?.kind==='list'){
+     for(const item of record.data.items||[]){const label=node('label',null,'sh-notes-check'),check=node('input');check.type='checkbox';check.checked=!!item.done;check.onchange=async()=>{const old=item.done;item.done=check.checked;try{await store.put('objects',{...record,updatedAt:Date.now()});}catch(e){item.done=old;check.checked=!!old;report(e);}};label.append(check,node('span',item.text));body.append(label);}
+    }else body.append(node('p',record.data?.body||'','sh-notes-text'));
+    return;
    }
-  }catch(e){if(dialog.isConnected)message.textContent=e.message;}
+   const message=node('p','Lijst ophalen…');message.setAttribute('role','status');body.append(message);
+   try{
+    const response=await api.read(record.id);if(disposed||!isCurrent())return;
+    const payload=response.list.payload;
+    if(payload.list.id&&payload.list.id!==record.id)throw Error('De ontvangen lijst komt niet overeen. Open de lijst opnieuw.');
+    message.textContent='';if(payload.list.name)title.textContent=payload.list.name;
+    if(fullscreen){const panel=mountShopListPanel({body,response,api,isCurrent,onUpdated:()=>{loadLinked().catch(report);}});setBeforeLeave(panel.beforeLeave);return;}
+    const products=new Map(payload.products.map(p=>[p.id,p]));
+    for(const item of payload.list.items)body.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));
+    if(!payload.list.items.length)body.append(node('p','Deze lijst is nog leeg.'));
+   }catch(e){if(isCurrent())message.textContent=e.message;}
+  }});
  }
  function paint(){
   if(disposed||!root.isConnected)return;release();releaseControls();const q=search.value.toLocaleLowerCase('nl');rows.replaceChildren();
