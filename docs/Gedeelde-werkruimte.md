@@ -8,7 +8,7 @@ Locaties, Kaarten, Omgeving en de pasvoorstellen op Home gebruiken in beide omge
 - Test: één gedeelde opslagadapter voor locaties, passen, locatieacties en modulevoorkeuren. Deze schrijft alleen testmetadata.
 - Bestaande testobjecten behouden hun identifiers en relaties. Locatiegegevens uit v0.3.58 en oude kaart-/locatievoorkeuren blijven leesbaar.
 - Passen gebruiken de bestaande `usable-at`-relatie. Bewerken van een pas werkt de koppeling bij; de graph en de kaartmodule zien dezelfde koppeling.
-- Verwijderen van een gekoppelde testpas archiveert die pas en bewaart de relaties. Een losse testpas kan worden verwijderd.
+- Bij een gekoppelde testpas heet de actie expliciet Archiveren: de pas en zijn relaties blijven bewaard. Een losse testpas biedt Verwijderen. Dezelfde keuze geldt voor testlocaties. Een locatie met zichtbare sublocaties wordt pas verwijderd of gearchiveerd nadat de sublocaties zijn verplaatst, gearchiveerd of verwijderd. Onder de zichtbare stroken van Kaarten en Locaties verschijnt Archief · herstellen zodra er gearchiveerde records zijn; Herstellen brengt hetzelfde object met dezelfde relaties terug.
 - Locaties samenvoegen behoudt de paskoppeling in beide omgevingen.
 
 De oude locatieadapter is alleen een compatibiliteitsverwijzing naar deze gedeelde adapter. Er is geen tweede locatie-editor of kaartmodule voor testmodus.

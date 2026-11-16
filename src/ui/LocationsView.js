@@ -1,23 +1,23 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.4.91';
-import { openCardShare } from './CardSharing.js?v=0.4.91';
-import { mountPersonLinks } from './PersonLinks.js?v=0.4.91';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.91';
-import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.91';
-import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.91';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.91';
-import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.91';
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.91';
-import { bindSwipeRows } from './SwipeRows.js?v=0.4.91';
-import { renderStrip } from './Strip.js?v=0.4.91';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.4.91';
-import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.4.91';
-import { mountLocationArea } from './LocationAreaPreview.js?v=0.4.91';
-import { typeLocationConclusion } from './LocationConclusion.js?v=0.4.91';
-import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.4.91';
+import { mountSharingBadges } from './SharingStatus.js?v=0.4.92';
+import { openCardShare } from './CardSharing.js?v=0.4.92';
+import { mountPersonLinks } from './PersonLinks.js?v=0.4.92';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.4.92';
+import { sortList, moveToPosition } from '../core/storage/ListOrder.js?v=0.4.92';
+import { getPrivateWebSources, addPrivateWebSource, removePrivateWebSource } from '../core/location/LocationWebSources.js?v=0.4.92';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.4.92';
+import { locationIcon } from '../core/location/LocationTypeRegistry.js?v=0.4.92';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.4.92';
+import { bindSwipeRows } from './SwipeRows.js?v=0.4.92';
+import { renderStrip } from './Strip.js?v=0.4.92';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.4.92';
+import { enhanceLocationEditor } from './LocationOnboardingFlow.js?v=0.4.92';
+import { mountLocationArea } from './LocationAreaPreview.js?v=0.4.92';
+import { typeLocationConclusion } from './LocationConclusion.js?v=0.4.92';
+import { renderLocationSentence, distanceSituation, resolveSentenceVariants, addLocationVariant, updateGroupVariant, setLocationVariantExcluded, removeLocationVariant, removeGroupVariant, addGlobalVariant, removeGlobalVariant, setGroupVariantExcluded, setGlobalVariantExcluded, setDefaultSentenceScope } from './LocationSentenceLibrary.js?v=0.4.92';
 import {
   LOCATION_TYPES, addressText, ownCoordinates, parentIdOf,
   locationMap, resolveLocation, isDescendant, pathForLocation, orderedLocations
-} from '../core/location/LocationHierarchy.js?v=0.4.91';
+} from '../core/location/LocationHierarchy.js?v=0.4.92';
 
 const PREF_KEY = 'locations.preferences';
 const TYPES = new Map(LOCATION_TYPES);
@@ -26,7 +26,7 @@ const DEFAULT_RADIUS = 100;
 export async function openLocationsView(root, {
   store, location, geocoder, events, initialLocationId = '', setTitle = () => {}, headerActions = null
 }) {
-  let objects = [], locations = [], byId = new Map();
+  let objects = [], locations = [], byId = new Map(), removal = new Map();
   let prefs = (await store.get('meta', PREF_KEY))?.value || { sort: 'alpha', order: [] };
   let sentenceLibrary = (await store.get('meta', 'locations.sentenceLibrary'))?.value || {};
   let lastSentence = '';
@@ -40,7 +40,8 @@ export async function openLocationsView(root, {
 
   async function reload() {
     objects = await store.getAll('objects');
-    locations = objects.filter(item => item.type === 'location' && !item.deletedAt);
+    locations = objects.filter(item => item.type === 'location' && !item.deletedAt && !item.archivedAt && item.status!=='archived');
+    removal=new Map(await Promise.all(locations.map(async item=>[item.id,await store.removalAction?.(item.id)||'delete'])));
     byId = locationMap(locations);
   }
   await reload();
@@ -62,6 +63,7 @@ export async function openLocationsView(root, {
       add.addEventListener('click', () => edit(null));
       headerActions.append(add);
     }
+    const archived=objects.filter(item=>item.type==='location'&&(!item.deletedAt||store.restoreObject)&&(item.archivedAt||item.status==='archived'));
     const nearOrder = prefs.sort==='near' ? sortList(locations,{sort:'near',distance:item=>{const coordinates=resolveLocation(item,byId).coordinates;return coordinates&&nearPoint?distanceBetween(nearPoint,coordinates):Infinity;}}).map(item=>item.id) : prefs.order;
     const rows = orderedLocations(locations, prefs.sort==='near'?'custom':prefs.sort, nearOrder);
     root.innerHTML = `
@@ -87,12 +89,13 @@ export async function openLocationsView(root, {
                 iconHtml: locationIcon(item.data?.kind),
                 bodyHtml: `<span class="sh-location-copy"><strong>${escapeHtml(item.data?.title || 'Locatie')}</strong><small>${escapeHtml(secondary)}</small></span>`,
                 trailingHtml: '<span class="sh-location-chevron" aria-hidden="true">›</span>',
-                actions: [{ kind: 'edit', label: 'Bewerk' }, { kind: 'delete', label: 'Verwijder' }]
+                actions: [{ kind: 'edit', label: 'Bewerk' }, removal.get(item.id)==='archive'?{kind:'secondary',label:'Archiveren'}:{ kind: 'delete', label: 'Verwijder' }]
               })}
               ${custom ? renderOrderControls(item.id) : ''}
               </div>`;
           }).join('') : '<p class="empty-state">Nog geen locaties. Voeg een plaats toe om te beginnen.</p>'}
         </div>
+        ${archived.length?'<details class="sh-archive-recovery" data-location-archive><summary>Archief · herstellen</summary>'+archived.map(item=>'<button type="button" data-location-restore="'+escapeAttribute(item.id)+'">'+escapeHtml(item.data?.title||'Locatie')+' · Herstellen</button>').join('')+'</details>':''}
         <p class="sh-location-feedback" role="status" data-list-status>${escapeHtml(status)}</p>
       </section>
     `;
@@ -103,7 +106,11 @@ export async function openLocationsView(root, {
       onShare: id=>{closeShare?.();closeShare=openCardShare(byId.get(id),{store,location,onStatusChange:()=>mountSharingBadges(root,store)});},
       onOpen: id => detail(byId.get(id)),
       onEdit: id => edit(byId.get(id)),
-      onDelete: id => removeLocation(id)
+      onSecondary:id=>{if(removal.get(id)==='archive')return removeLocation(id);},
+      onDelete: id => {if(removal.get(id)!=='archive')return removeLocation(id);}
+    });
+    root.querySelectorAll('[data-location-restore]').forEach(button=>button.onclick=async()=>{
+      button.disabled=true;try{const id=button.dataset.locationRestore;if(store.restoreObject)await store.restoreObject(id);else {const item=await store.get('objects',id);await store.put('objects',{...item,archivedAt:null,status:'active'});}await reload();await list('Locatie hersteld.');}catch(error){button.disabled=false;root.querySelector('[data-list-status]').textContent=error.message;}
     });
     const applySearch = () => {
       const q=query.trim().toLocaleLowerCase('nl'),visible=new Set();
@@ -160,11 +167,14 @@ export async function openLocationsView(root, {
   async function removeLocation(id) {
     const item = byId.get(id);
     if (!item) return;
+    const archive=removal.get(id)==='archive';
     if (locations.some(child => parentIdOf(child) === id)) {
-      list('Verplaats of verwijder eerst de onderliggende locaties.');
+      list('Verplaats, archiveer of verwijder eerst de onderliggende locaties.');
       return;
     }
-    if (!confirm(`“${item.data?.title || 'Locatie'}” verwijderen?`)) return;
+    if (!confirm(`“${item.data?.title || 'Locatie'}” ${archive?'archiveren':'verwijderen'}?`)) return;
+    if(archive){await store.archiveObject(id);await reload();await list('Locatie gearchiveerd.');return;}
+    if(store.removalAction){await store.delete('objects',id);await reload();await list('Locatie verwijderd.');return;}
     const now = Date.now();
     await store.put('objects', { ...item, updatedAt: now, deletedAt: now });
     for (const action of objects.filter(x => x.type === 'location-action' && !x.deletedAt && x.data?.locationId === id)) {

@@ -1,5 +1,5 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.91';
-import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.4.91';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.4.92';
+import { demoWorkspace, saveDemoDataset } from './SkeletonCore.js?v=0.4.92';
 
 // One test workspace for the same production modules and context rules.
 // Existing graph identifiers and legacy test metadata remain readable.
@@ -19,6 +19,7 @@ export function createDemoWorkspaceStore(store) {
       ...(item.fields?.locationRecord || {}),
       id: item.id, externalId: item.id, type: 'location', schemaVersion: 1,
       deletedAt: item.status === 'archived' ? (item.fields?.locationRecord?.deletedAt || 1) : null,
+      archivedAt: item.status === 'archived' ? 1 : null, status:item.status,
       personIds: linkedPeople(data,item.id),
       data: {
         kind: item.fields?.type === 'winkel' ? 'shop' : 'other', radiusM: 100,
@@ -31,7 +32,8 @@ export function createDemoWorkspaceStore(store) {
       cardKind: item.fields?.cardRecord?.cardKind || 'loyalty',
       locationId: data.relations.find(relation => relation.from === item.id && relation.type === 'usable-at' &&
         data.objects.some(target => target.id === relation.to && target.module === 'locations'))?.to || null,
-      deletedAt: item.status === 'archived' ? 1 : null
+      deletedAt: item.status === 'archived' ? 1 : null,
+      archivedAt: item.status === 'archived' ? 1 : null, status:item.status
     })),
     ...(data.locationActions || [])
   ];
@@ -40,7 +42,16 @@ export function createDemoWorkspaceStore(store) {
     pending = result.catch(() => {});
     return result;
   };
+  const setArchived=(key,archived)=>write(async()=>{
+    const data=await load(),object=data.objects.find(item=>item.id===key);
+    if(!object||!['cards','locations'].includes(object.module))throw Error('Onbekend testobject.');
+    object.status=archived?'archived':'active';
+    await saveDemoDataset(store,data);
+  });
   return {
+    async removalAction(key){await pending;const data=await load();return data.relations.some(relation=>relation.from===key||relation.to===key)?'archive':'delete';},
+    archiveObject:key=>setArchived(key,true),
+    restoreObject:key=>setArchived(key,false),
     async getAll(table) {
       await pending;
       if (table !== 'objects') throw Error('Deze testopslag ondersteunt alleen objecten.');

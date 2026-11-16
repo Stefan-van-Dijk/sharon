@@ -37,7 +37,7 @@ test('notes deck is sized, draggable and expands to viewport before returning to
  await surface.locator('[data-notes-fullscreen]').click();await swipeHeading();await expect(heading).toHaveText('Tweede lijst');
  await page.evaluate(()=>window.stopNotes());await expect(surface).toHaveCount(0);
 });
-test('archive strip starts above the items and a pull reveals restoration',async({page})=>{
+test('archive recovery follows the items and restores a saved note',async({page})=>{
  await page.goto(base+'/fixture.html');await page.addStyleTag({content:styles});
  await page.evaluate(async()=>{
   const {openNotesView}=await import('/src/ui/NotesView.js');
@@ -45,10 +45,9 @@ test('archive strip starts above the items and a pull reveals restoration',async
   window.stopNotes=await openNotesView(document.querySelector('main'),{store:{get:async()=>undefined,getAll:async()=>[...records.values()],put:async(_,record)=>records.set(record.id,record)},api:{index:async()=>({lists:[]})}});
  });
  const slot=page.locator('.sh-notes-archive-slot');
- expect((await slot.boundingBox()).height).toBe(0);await expect(page.locator('[data-notes-mode]')).toHaveCount(0);
- const area=await page.locator('.sh-notes-list-area').boundingBox();
- await page.mouse.move(area.x+area.width/2,area.y+10);await page.mouse.down();await page.mouse.move(area.x+area.width/2,area.y+90,{steps:8});await page.mouse.up();
- await expect(slot).toHaveClass(/is-revealed/);await page.locator('[data-notes-archive]').click();
+ await expect(slot).toBeVisible();await expect(page.locator('[data-notes-mode]')).toHaveCount(0);
+ const rows=await page.locator('.swipe-list').boundingBox(),archive=await slot.boundingBox();expect(archive.y).toBeGreaterThanOrEqual(rows.y+rows.height);
+ await page.locator('[data-notes-archive]').click();
  await page.locator('[data-swipe-surface]').click();await page.getByRole('dialog').getByRole('button',{name:'Terugzetten',exact:true}).click();
  await expect(slot).toBeHidden();await expect(page.locator('.swipe-list')).toContainText('Oude notitie');await expect(page.locator('dialog')).toHaveCount(0);
 });
