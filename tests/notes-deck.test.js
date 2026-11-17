@@ -12,13 +12,13 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  let stop=()=>{};t.after(()=>{stop();dom.window.close();Object.assign(globalThis,old);});
  const metadata=new Map(),calls=[];
  const store={get:async(_,key)=>metadata.get(key),getAll:async()=>[{id:'note',type:'note',name:'Alpha',data:{kind:'note',body:'Mijn notitie'}},{id:'other',type:'note',name:'Zulu',data:{kind:'idea',body:'Andere'}}],put:async(_,record)=>metadata.set(record.key,record)};
- const api={index:async()=>({lists:[{id:'shop',name:'Boodschappen',role:'owner'}]}),read:async id=>{calls.push(id);return {list:{payload:{list:{id,name:'Boodschappen',items:[]},products:[]}}};}};
+ const api={connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}})},index:async()=>({lists:[{id:'shop',name:'Boodschappen',role:'owner'}]}),read:async id=>{calls.push(id);return {list:{payload:{list:{id,name:'Boodschappen',items:[]},products:[]}}};}};
  stop=await openNotesView(document.querySelector('main'),{store,api});await settle();
  document.querySelector('[data-swipe-row="local:note"] [data-swipe-surface]').click();await settle();
  const heading=()=>document.querySelector('.sh-notes-deck h2');
  assert.equal(heading().textContent,'Alpha');
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');assert.deepEqual(calls,['shop']);
- const source=document.querySelector('a.sh-notes-app-source');assert.equal(new URL(source.href).searchParams.get('shoplist'),'shop');assert.equal(source.target,'_blank');assert(document.querySelector('[data-card-media] [data-deck-grab]'));
+ const source=document.querySelector('button.sh-notes-app-source');assert(source);assert.equal(source.getAttribute('target'),null);assert(document.querySelector('[data-card-media] [data-deck-grab]'));
  document.querySelector('[data-notes-fullscreen]').click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');
  const frame=document.querySelector('iframe');
