@@ -1,4 +1,4 @@
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.97';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.98';
 export function shopAppUrl(id,account){
  const url=new URL(SHOPLIST_URL);if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(!id)url.searchParams.set('view','collect');return url.href;
 }

@@ -1,13 +1,13 @@
-import {mountShopApp} from './ShopApp.js?v=0.4.97';
-import {openNotesDeck} from './NotesDeck.js?v=0.4.97';
-import {bindNotesBoard} from './ShopPairing.js?v=0.4.97';
-import {openListShare} from './ListSharing.js?v=0.4.97';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.97';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.97';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.97';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.97';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.97';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.97';
+import {mountShopApp} from './ShopApp.js?v=0.4.98';
+import {openNotesDeck} from './NotesDeck.js?v=0.4.98';
+import {bindNotesBoard} from './ShopPairing.js?v=0.4.98';
+import {openListShare} from './ListSharing.js?v=0.4.98';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.98';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.98';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.98';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.98';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.98';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.98';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};

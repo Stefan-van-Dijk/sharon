@@ -51,3 +51,20 @@ test('archive recovery follows the items and restores a saved note',async({page}
  await page.locator('[data-swipe-surface]').click();await page.getByRole('dialog').getByRole('button',{name:'Terugzetten',exact:true}).click();
  await expect(slot).toBeHidden();await expect(page.locator('.swipe-list')).toContainText('Oude notitie');await expect(page.locator('dialog')).toHaveCount(0);
 });
+
+test('embedded Shop uses a compact return bar and the remaining viewport, then restores the board',async({page})=>{
+ await page.goto(base+'/fixture.html');await page.addStyleTag({content:styles});
+ await page.evaluate(async()=>{
+  const {openNotesDeck}=await import('/src/ui/NotesDeck.js');const metadata=new Map();
+  window.stopNotes=openNotesDeck({items:()=>[{id:'shop',title:'Deze week',linked:true}],id:'shop',store:{get:async(_,key)=>metadata.get(key),put:async(_,record)=>metadata.set(record.key,record)},render:(_, {body,fullscreen})=>{
+   if(fullscreen){const frame=document.createElement('iframe');frame.className='sh-shop-app';frame.title='ShopList';frame.srcdoc='<h1>ShopList</h1><p>Deze week</p>';body.append(frame);}else body.textContent='Bewaarde lijst';
+  }});
+ });
+ const board=page.locator('.sh-notes-board'),header=board.locator('header'),toggle=board.locator('[data-notes-fullscreen]');
+ const before=await board.boundingBox();await toggle.click();
+ const bar=await header.boundingBox(),frame=await page.locator('.sh-shop-app').boundingBox(),viewport=page.viewportSize();
+ expect(bar.height).toBeLessThanOrEqual(48);expect(frame.y).toBeCloseTo(bar.y+bar.height,0);expect(frame.y+frame.height).toBeCloseTo(viewport.height,0);
+ await expect(board.locator('.sh-notes-app-source')).toBeHidden();
+ await toggle.click();await expect(page.locator('.sh-shop-app')).toHaveCount(0);
+ await expect.poll(async()=>Math.abs((await board.boundingBox()).height-before.height)).toBeLessThan(2);
+});
