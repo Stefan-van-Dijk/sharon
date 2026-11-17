@@ -74,4 +74,12 @@ $server->handle('shoplibrary-item',['id'=>$collection,'key'=>$id,'include'=>fals
 expect(!in_array($id,array_column($read()['products'],'key'),true),'editor removes product from this collection');
 $server->handle('shoplibrary-share',[...$share,'role'=>null],$owner);
 expect($server->handle('shoplibrary-index',[],$guest)['collections']===[],'owner can revoke access');
+$clear=['id'=>$id,'name'=>'','brand'=>'','quantity'=>'','revision'=>3];
+denies(fn()=>$server->handle('shoplibrary-product-edit',$clear,$guest),'barcode_protected');
+denies(fn()=>$server->handle('shoplibrary-product-edit',[...$clear,'id'=>$source['id'],'revision'=>1],$owner),'barcode_protected');
+$cleared=$server->handle('shoplibrary-product-edit',$clear,$owner)['product'];
+expect($cleared['id']===$id && $cleared['name']==='' && $cleared['brand']==='' && $cleared['quantity']==='' && $cleared['barcode']===null,'own fields can be removed without changing ID12');
+$other=$server->handle('shoplibrary-products',['ids'=>[$id]],$guest)['products'][0];
+expect($other['name']==='' && $other['brand']==='' && $other['quantity']==='','other users receive cleared information');
+denies(fn()=>$server->handle('shoplibrary-product-edit',$clear,$owner),'product_conflict');
 echo "Productbibliotheek en gedeelde categorieën gecontroleerd.\n";

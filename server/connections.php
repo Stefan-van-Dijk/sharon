@@ -218,7 +218,7 @@ final class LogNetwork {
             $data = [];
             foreach ($fields as $field) {
                 $value = $input[$field] ?? null;
-                if (!is_string($value) || trim($value) === '' || strlen($value) > 240) throw new LogNetworkError('invalid_product');
+                if (!is_string($value) || ($action === 'shoplibrary-product' && trim($value) === '') || strlen($value) > 240) throw new LogNetworkError('invalid_product');
                 $data[$field] = trim($value);
             }
             if ($action === 'shoplibrary-product-edit') {
