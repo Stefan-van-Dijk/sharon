@@ -7,3 +7,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: php -l server/connections.php
       - run: php tests/helpers/connection-server.php
+      - run: php tests/helpers/shop-library.php

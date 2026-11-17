@@ -1,9 +1,9 @@
-import {bindNotesBoard} from './ShopPairing.js?v=0.5.04';
-import {renderListControls} from './ListControls.js?v=0.5.04';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.04';
-import {sortList} from '../core/storage/ListOrder.js?v=0.5.04';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.04';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.04';
+import {bindNotesBoard} from './ShopPairing.js?v=0.5.05';
+import {renderListControls} from './ListControls.js?v=0.5.05';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.05';
+import {sortList} from '../core/storage/ListOrder.js?v=0.5.05';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.05';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.05';
 
 // Same board shell and people strips as card sharing; grants stay list-specific.
 export function openListShare(list,{store,api,onOpen,onClose=()=>{}}){

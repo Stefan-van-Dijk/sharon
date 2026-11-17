@@ -39,3 +39,11 @@ test('Lost create acknowledgement recovers only matching owned content',async()=
  const request=createShopSession(api,null);await request('write',{create:true,payload,revision:0,operation:'retry'});await request('read',{id:'new'});
  remote={...payload,list:{id:'other',items:[]}};await assert.rejects(request('write',{create:true,payload,revision:0,operation:'retry'}),{code:'list_exists'});
 });
+
+test('Catalog opens in Shop while sharing privileges stay in Sharon',async()=>{
+ assert.equal(new URL(shopAppUrl(null,null,'catalog')).searchParams.get('view'),'catalog');
+ const api={connection:{device:async()=>({registered:true,personId:'me',self:{line:0}})},library:async command=>command};
+ const request=createShopSession(api,null);
+ for(const command of ['share','create','contacts'])await assert.rejects(request('library',{command}),/Sharon/);
+ assert.equal(await request('library',{command:'index'}),'index');
+});
