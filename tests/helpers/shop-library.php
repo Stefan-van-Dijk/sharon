@@ -1,0 +1,77 @@
+<?php
+declare(strict_types=1);
+define('LOG_CONNECTION_LIBRARY_ONLY',true);
+require 'server/connections.php';
+
+$dir=sys_get_temp_dir().'/shop-library-'.bin2hex(random_bytes(8));
+mkdir($dir,0700);
+register_shutdown_function(function()use($dir){foreach(glob($dir.'/*') as $file) unlink($file); rmdir($dir);});
+$server=new LogNetwork($dir.'/network.json',1000);
+function expect(bool $value, string $label): void {
+    if (!$value) throw new RuntimeException($label);
+}
+function denies(callable $work, string $reason): void {
+    try { $work(); } catch (LogNetworkError $error) {
+        expect($error->reason===$reason, 'Expected '.$reason.', got '.$error->reason);
+        return;
+    }
+    throw new RuntimeException('Expected '.$reason);
+}
+function registerPerson(LogNetwork $server, string $name): array {
+    $id=LogNetwork::id();$token=LogNetwork::token();
+    $server->handle('register',['personId'=>$id,'deviceToken'=>$token,'name'=>$name],null);
+    return [$id,$token];
+}
+[$ownerId,$owner]=registerPerson($server,'Owner');
+$server->handle('bootstrap',$server->start(),$owner);
+[$guestId,$guest]=registerPerson($server,'Guest');
+$invitation=$server->handle('invite',['recipientId'=>$guestId],$owner)['invitation'];
+$server->handle('accept',$invitation,$guest);
+
+$facts=['name'=>'Aardbeien','brand'=>'Testmerk','quantity'=>'400 g','barcode'=>'00123456'];
+$product=$server->handle('shoplibrary-product',$facts,$owner)['product'];
+$id=$product['id'];
+expect((bool)preg_match('/\A[A-Za-z0-9_-]{12}\z/',$id),'central ID12');
+expect($server->handle('shoplibrary-product',$facts,$guest)['product']['id']===$id,'reuse across accounts');
+denies(fn()=>$server->handle('shoplibrary-product',[...$facts,'quantity'=>'800 g'],$guest),'product_conflict');
+denies(fn()=>$server->handle('shoplibrary-barcode-remove',['id'=>$id,'barcode'=>$facts['barcode']],$guest),'barcode_protected');
+$source=$server->handle('shoplibrary-product',[...$facts,'barcode'=>'00876543','source'=>'openfoodfacts'],$owner)['product'];
+denies(fn()=>$server->handle('shoplibrary-barcode-remove',['id'=>$source['id'],'barcode'=>'00876543'],$owner),'barcode_protected');
+$edited=$server->handle('shoplibrary-product-edit',[...$facts,'id'=>$id,'name'=>'Verse aardbeien','revision'=>1],$owner)['product'];
+expect($edited['id']===$id&&$edited['revision']===2,'central edit preserves ID');
+$server->handle('shoplibrary-barcode-remove',['id'=>$id,'barcode'=>$facts['barcode']],$owner);
+expect($server->handle('shoplibrary-lookup',['barcode'=>$facts['barcode']],$guest)['product']===null,'removed code is no longer returned by lookup');
+expect($server->handle('shoplibrary-products',['ids'=>[$id]],$guest)['products'][0]['name']==='Verse aardbeien','product remains available');
+
+$catalog=['categories'=>[
+    ['id'=>'fruit','name'=>'Fruit','entries'=>[['type'=>'category','id'=>'berries']]],
+    ['id'=>'berries','name'=>'Bessen','entries'=>[]],
+    ['id'=>'private','name'=>'Privé','entries'=>[]],
+], 'products'=>[
+    ['id'=>'p','name'=>'Mijn alias','categoryId'=>'berries','barcodes'=>[],'centralId'=>$id],
+    ['id'=>'private-p','name'=>'Privé product','categoryId'=>'private','barcodes'=>[]],
+], 'recipes'=>[]];
+$server->handle('shopcatalog-put',['payload'=>$catalog,'revision'=>0,'operation'=>'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'],$owner);
+$collection=LogNetwork::id();
+$create=['id'=>$collection,'name'=>'Fruit samen','categories'=>['fruit','berries']];
+$server->handle('shoplibrary-create',$create,$owner);
+$server->handle('shoplibrary-create',$create,$owner);
+expect($server->handle('shoplibrary-index',[],$guest)['collections']===[],'private until explicitly shared');
+$share=['id'=>$collection,'personId'=>$guestId,'role'=>'read'];
+$server->handle('shoplibrary-share',$share,$owner);
+$read=fn()=>$server->handle('shoplibrary-index',[],$guest)['collections'][0];
+expect(array_column($read()['products'],'name')===['Verse aardbeien'],'nested category includes no duplicates, aliases or unrelated products');
+$item=['id'=>$collection,'key'=>$source['id'],'include'=>true];
+denies(fn()=>$server->handle('shoplibrary-item',$item,$guest),'collection_forbidden');
+
+$catalog['products'][]=['id'=>'new-fruit','name'=>'Banaan','categoryId'=>'fruit','barcodes'=>[]];
+$server->handle('shopcatalog-put',['payload'=>$catalog,'revision'=>1,'operation'=>'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'],$owner);
+expect(array_column($read()['products'],'name')===['Verse aardbeien','Banaan'],'new category products follow the share');
+$server->handle('shoplibrary-share',[...$share,'role'=>'write'],$owner);
+$server->handle('shoplibrary-item',$item,$guest);
+expect(in_array($source['id'],array_column($read()['products'],'key'),true),'editor adds a central product');
+$server->handle('shoplibrary-item',['id'=>$collection,'key'=>$id,'include'=>false],$guest);
+expect(!in_array($id,array_column($read()['products'],'key'),true),'editor removes product from this collection');
+$server->handle('shoplibrary-share',[...$share,'role'=>null],$owner);
+expect($server->handle('shoplibrary-index',[],$guest)['collections']===[],'owner can revoke access');
+echo "Productbibliotheek en gedeelde categorieën gecontroleerd.\n";

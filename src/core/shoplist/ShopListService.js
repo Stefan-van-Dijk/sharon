@@ -1,4 +1,4 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.99';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.4.100';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);}
@@ -9,6 +9,13 @@ export class ShopListService {
  }
  async catalog(){const device=await this.connection.device();return this.connection.request('shopcatalog-read',{},device);}
  async writeCatalog(payload,revision,operation=crypto.randomUUID()){const device=await this.connection.device();return this.connection.request('shopcatalog-put',{payload,revision,operation},device);}
+ async library(command,input={}){
+  const allowed=['product','product-edit','products','lookup','barcode-remove','contacts','index','create','share','item'];
+  if(!allowed.includes(command))throw Error('Onbekende ShopList-actie.');
+  const device=await this.connection.device();
+  const {action,protocol,...payload}=input;
+  return this.connection.request('shoplibrary-'+command,payload,device);
+ }
  index(){return this.request('index');}
  archive(id,archived=true){return this.request('archive',{id,archived});}
  leave(id){return this.request('leave',{id});}

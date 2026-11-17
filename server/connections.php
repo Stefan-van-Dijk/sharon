@@ -210,6 +210,179 @@ final class LogNetwork {
         return ['accepted'=>$accepted,'version'=>$summary['version'],'item'=>$summary];
     }
 
+    private function shopLibrary(string $action, array $input, string $personId): array {
+        $products = $this->state['shopProducts'] ?? [];
+        $collections = $this->state['shopCollections'] ?? [];
+        if (in_array($action, ['shoplibrary-product','shoplibrary-product-edit'], true)) {
+            $fields = ['name', 'brand', 'quantity'];
+            $data = [];
+            foreach ($fields as $field) {
+                $value = $input[$field] ?? null;
+                if (!is_string($value) || trim($value) === '' || strlen($value) > 240) throw new LogNetworkError('invalid_product');
+                $data[$field] = trim($value);
+            }
+            if ($action === 'shoplibrary-product-edit') {
+                $id = self::validId($input['id'] ?? null);
+                $record = $products[$id] ?? null;
+                if (!$record || $record['ownerId'] !== $personId || $record['source'] !== null) throw new LogNetworkError('barcode_protected', 403);
+                if (($input['revision'] ?? null) !== ($record['revision'] ?? 1)) throw new LogNetworkError('product_conflict', 409);
+                $record = [...$record, ...$data, 'revision'=>($record['revision'] ?? 1)+1];
+                $this->state['shopProducts'][$id] = $record;
+                return ['product'=>[...$this->shopPublicProduct($record),'canRemoveBarcode'=>true]];
+            }
+            $barcode = $input['barcode'] ?? null;
+            if (!is_string($barcode) || !preg_match('/\A[0-9]{8,14}\z/', $barcode)) throw new LogNetworkError('invalid_product');
+            $source = ($input['source'] ?? null) === 'openfoodfacts' ? 'https://world.openfoodfacts.org/product/'.$barcode : null;
+            foreach ($products as $product) {
+                if ($product['barcode'] !== $barcode) continue;
+                foreach ($fields as $field) {
+                    if (strcasecmp($product[$field], $data[$field]) !== 0) throw new LogNetworkError('product_conflict', 409);
+                }
+                return ['product' => $this->shopPublicProduct($product)];
+            }
+            if (count($products) >= 20000) throw new LogNetworkError('capacity', 409);
+            do {$id = self::id();} while (isset($products[$id]));
+            $record = ['id'=>$id, ...$data, 'barcode'=>$barcode, 'source'=>$source, 'ownerId'=>$personId, 'revision'=>1];
+            $this->state['shopProducts'][$id] = $record;
+            return ['product' => $this->shopPublicProduct($record)];
+        }
+        if ($action === 'shoplibrary-lookup') {
+            $barcode = $input['barcode'] ?? null;
+            if (!is_string($barcode) || !preg_match('/\A[0-9]{8,14}\z/', $barcode)) throw new LogNetworkError('invalid_product');
+            foreach ($products as $product) if ($product['barcode'] === $barcode) return ['product'=>$this->shopPublicProduct($product)];
+            return ['product'=>null];
+        }
+        if ($action === 'shoplibrary-products') {
+            $ids = $this->shopLibraryIds($input['ids'] ?? null);
+            return ['products' => array_values(array_map(fn($id) => [...$this->shopPublicProduct($products[$id]),'canRemoveBarcode'=>$products[$id]['ownerId']===$personId && $products[$id]['source']===null], array_filter($ids, fn($id) => isset($products[$id]))))];
+        }
+        if ($action === 'shoplibrary-barcode-remove') {
+            $id = self::validId($input['id'] ?? null);
+            $product = $products[$id] ?? null;
+            if (!$product || $product['ownerId'] !== $personId || $product['source'] !== null) throw new LogNetworkError('barcode_protected', 403);
+            if ($product['barcode'] !== null && $product['barcode'] !== ($input['barcode'] ?? null)) throw new LogNetworkError('product_conflict', 409);
+            if ($product['barcode'] !== null) {
+                $this->state['shopProducts'][$id]['barcode'] = null;
+                $this->state['shopProducts'][$id]['revision'] = ($product['revision'] ?? 1)+1;
+            }
+            return ['ok' => true];
+        }
+        if ($action === 'shoplibrary-contacts') {
+            $contacts = [];
+            foreach ($this->state['relations'] as $relation) {
+                if ($relation['type'] !== 'chat' || $relation['status'] !== 'active' || !in_array($personId, [$relation['fromId'], $relation['toId']], true)) continue;
+                $id = $relation['fromId'] === $personId ? $relation['toId'] : $relation['fromId'];
+                $grant = $this->grant($id);
+                if ($grant && $grant['status'] !== 'active') continue;
+                $contacts[$id] = ['id'=>$id, 'name'=>$this->state['people'][$id]['name']];
+            }
+            return ['contacts'=>array_values($contacts)];
+        }
+        if ($action === 'shoplibrary-index') {
+            $visible = [];
+            foreach ($collections as $row) {
+                $role = $row['ownerId'] === $personId ? 'owner' : ($row['members'][$personId] ?? null);
+                if ($role === null) continue;
+                $visible[] = $this->shopCollectionView($row, $role, $products);
+            }
+            return ['collections'=>$visible];
+        }
+        $id = self::validId($input['id'] ?? null);
+        $row = $collections[$id] ?? null;
+        if ($action === 'shoplibrary-create') {
+            $name = $input['name'] ?? null;
+            $categoryIds = $this->shopLibraryIds($input['categories'] ?? null);
+            $available = array_column($this->state['shopcatalogs'][$personId]['payload']['categories'] ?? [], 'id');
+            if (!is_string($name) || trim($name) === '' || strlen($name) > 240 || !$categoryIds || array_diff($categoryIds, $available)) throw new LogNetworkError('invalid_collection');
+            if ($row) {
+                if ($row['ownerId'] !== $personId || $row['name'] !== trim($name) || $row['categories'] !== $categoryIds) throw new LogNetworkError('collection_conflict', 409);
+                return ['ok'=>true];
+            }
+            if (count($collections) >= 2000) throw new LogNetworkError('capacity', 409);
+            $this->state['shopCollections'][$id] = ['id'=>$id, 'name'=>trim($name), 'ownerId'=>$personId, 'categories'=>$categoryIds, 'members'=>[], 'additions'=>[], 'hidden'=>[]];
+            return ['ok'=>true];
+        }
+        $role = !$row ? null : ($row['ownerId'] === $personId ? 'owner' : ($row['members'][$personId] ?? null));
+        if ($role === null) throw new LogNetworkError('collection_forbidden', 403);
+        if ($action === 'shoplibrary-share') {
+            if ($role !== 'owner') throw new LogNetworkError('owner_required', 403);
+            $target = self::validId($input['personId'] ?? null);
+            $permission = $input['role'] ?? null;
+            if ($target === $personId || !in_array($permission, [null,'read','write'], true)) throw new LogNetworkError('invalid_collection');
+            if ($permission === null) unset($row['members'][$target]);
+            else {
+                if (count($row['members']) >= 30 && !isset($row['members'][$target])) throw new LogNetworkError('capacity', 409);
+                $contacts = $this->shopLibrary('shoplibrary-contacts', [], $personId)['contacts'];
+                if (!in_array($target, array_column($contacts, 'id'), true)) throw new LogNetworkError('chat_forbidden', 403);
+                $row['members'][$target] = $permission;
+            }
+        } elseif ($action === 'shoplibrary-item') {
+            if (!in_array($role, ['owner','write'], true)) throw new LogNetworkError('collection_forbidden', 403);
+            $key = $input['key'] ?? null;
+            $include = $input['include'] ?? null;
+            if (!is_string($key) || !is_bool($include)) throw new LogNetworkError('invalid_collection');
+            if ($include) {
+                self::validId($key);
+                if (!isset($products[$key])) throw new LogNetworkError('invalid_product');
+                if (count($row['additions']) >= 500 && !isset($row['additions'][$key])) throw new LogNetworkError('capacity', 409);
+                $row['additions'][$key] = true;
+                unset($row['hidden'][$key]);
+            } else {
+                $visible = array_column($this->shopCollectionView($row, $role, $products)['products'], 'key');
+                if (!in_array($key, $visible, true)) return ['ok'=>true];
+                if (count($row['hidden']) >= 1000) throw new LogNetworkError('capacity', 409);
+                unset($row['additions'][$key]);
+                $row['hidden'][$key] = true;
+            }
+        } else throw new LogNetworkError('unknown_action');
+        $this->state['shopCollections'][$id] = $row;
+        return ['ok'=>true];
+    }
+
+    private function shopLibraryIds(mixed $ids): array {
+        if (!is_array($ids) || !array_is_list($ids) || count($ids) > 500) throw new LogNetworkError('invalid_collection');
+        foreach ($ids as $id) {
+            if (!is_string($id) || !preg_match('/\A[a-zA-Z0-9_-]{1,160}\z/', $id)) throw new LogNetworkError('invalid_collection');
+        }
+        return array_values(array_unique($ids));
+    }
+
+    private function shopPublicProduct(array $product): array {
+        return array_intersect_key($product, array_flip(['id','name','brand','quantity','barcode','source','revision']));
+    }
+
+    private function shopCollectionView(array $row, string $role, array $products): array {
+        $catalog = $this->state['shopcatalogs'][$row['ownerId']]['payload'] ?? [];
+        $categories = array_column($catalog['categories'] ?? [], null, 'id');
+        $seen = [];
+        $entries = [];
+        $todo = $row['categories'];
+        while ($todo) {
+            $id = array_pop($todo);
+            if (isset($seen[$id]) || !isset($categories[$id])) continue;
+            $seen[$id] = true;
+            foreach ($categories[$id]['entries'] as $entry) {
+                if ($entry['type'] === 'category') $todo[] = $entry['id'];
+                if ($entry['type'] === 'product') $entries[$entry['id']] = true;
+            }
+        }
+        $visible = [];
+        foreach ($catalog['products'] ?? [] as $product) {
+            if (!isset($seen[$product['categoryId']]) && !isset($entries[$product['id']])) continue;
+            $central = $product['centralId'] ?? null;
+            if (is_string($central) && isset($products[$central])) {
+                $visible[$central] = ['key'=>$central, 'central'=>true, ...$this->shopPublicProduct($products[$central])];
+            } else {
+                $key = 'local-'.$product['id'];
+                $visible[$key] = ['key'=>$key, 'name'=>$product['name'], 'central'=>false];
+            }
+        }
+        foreach ($row['additions'] as $id => $_) $visible[$id] = ['key'=>$id, 'central'=>true, ...$this->shopPublicProduct($products[$id])];
+        $result = ['id'=>$row['id'], 'name'=>$row['name'], 'role'=>$role, 'products'=>array_values(array_diff_key($visible, $row['hidden']))];
+        if ($role === 'owner') $result['members'] = (object)$row['members'];
+        return $result;
+    }
+
     private function shopcatalogAction(string $action,array $in,string $pid):array {
         $row=$this->state['shopcatalogs'][$pid]??['revision'=>0,'payload'=>['categories'=>[],'products'=>[],'recipes'=>[]]];
         if($action==='shopcatalog-read')return ['catalog'=>$row];
@@ -229,6 +402,10 @@ final class LogNetwork {
             foreach($c['entries'] as $e){if(!is_array($e)||!is_string($e['type']??null)||!is_string($e['id']??null))throw new LogNetworkError('invalid_catalog');$group=['category'=>'categories','product'=>'products','recipe'=>'recipes'][$e['type']??'']??null;if(!$group||($ids[$e['id']??'']??null)!==$group)throw new LogNetworkError('invalid_catalog');}
         }
         foreach($payload['products'] as $p){
+            if (isset($p['centralId'])) {
+                $central = self::validId($p['centralId']);
+                if (!isset($this->state['shopProducts'][$central])) throw new LogNetworkError('invalid_catalog');
+            }
             if(!is_string($p['categoryId']??null)||($ids[$p['categoryId']]??null)!=='categories'||!is_array($p['barcodes']??null)||!array_is_list($p['barcodes']))throw new LogNetworkError('invalid_catalog');
             foreach($p['barcodes'] as $b)if(!is_string($b))throw new LogNetworkError('invalid_catalog');
         }
@@ -274,7 +451,7 @@ final class LogNetwork {
             $scope=$row['memberCategories'][$pid]??null;
             if($scope!==null&&$role($row)!=='owner'){
                 $payload=$row['payload'];$allowed=array_fill_keys($scope,true);
-                $products=array_values(array_map(fn($p)=>array_intersect_key($p,array_flip(['id','name','categoryId','barcodes','input'])),array_filter($payload['products'],fn($p)=>isset($allowed[$p['categoryId']]))));
+                $products=array_values(array_map(fn($p)=>array_intersect_key($p,array_flip(['id','name','categoryId','barcodes','input','centralId','centralBarcode','centralName'])),array_filter($payload['products'],fn($p)=>isset($allowed[$p['categoryId']]))));
                 $productIds=array_fill_keys(array_column($products,'id'),true);
                 $items=array_values(array_map(fn($i)=>array_intersect_key($i,array_flip(['id','productId','quantity','done','note'])),array_filter($payload['list']['items'],fn($i)=>isset($productIds[$i['productId']]))));
                 $categories=array_values(array_map(fn($c)=>['id'=>$c['id'],'name'=>$c['name'],'entries'=>[]],array_filter($payload['categories'],fn($c)=>isset($allowed[$c['id']]))));
@@ -431,6 +608,7 @@ final class LogNetwork {
             }
             if($action==='shop-device-revoke'){foreach($this->state['shopPairCodes']??[] as $h=>$c)if($c['id']===$r['id'])unset($this->state['shopPairCodes'][$h]);unset($this->state['shopDevices'][$r['id']]);return ['ok'=>true];}
             if($action==='shop-device-self')return ['self'=>['personId'=>$p['id'],'name'=>$p['name']],'needsAck'=>$r['status']==='ready'];
+            if(str_starts_with($action,'shoplibrary-'))return $this->shopLibrary($action,$in,$p['id']);
             if(str_starts_with($action,'shopcatalog-'))return $this->shopcatalogAction($action,$in,$p['id']);
             if(!in_array($action,['shoplist-index','shoplist-read','shoplist-create','shoplist-put','shoplist-archive','shoplist-leave'],true))throw new LogNetworkError('shop_scope',403);
             return $this->shoplistAction($action,$in,$p['id']);
@@ -520,6 +698,7 @@ final class LogNetwork {
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
             if(str_starts_with($action,'shop-pair-'))return $this->shopPairAction($action,$in,$p);
+            if(str_starts_with($action,'shoplibrary-'))return $this->shopLibrary($action,$in,$pid);
             if(str_starts_with($action,'shopcatalog-'))return $this->shopcatalogAction($action,$in,$pid);
             if(str_starts_with($action,'shoplist-'))return $this->shoplistAction($action,$in,$pid);
             if($action==='share-publish')return $this->shareAction($action,$in,$pid);
