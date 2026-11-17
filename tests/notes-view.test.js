@@ -13,7 +13,7 @@ test('Free text and ideas save without the network and survive reopening',async 
  [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Bewaren').click();await settle();assert.equal(f.records.size,1);assert.equal([...f.records.values()][0].data.body,'Vrije tekst\nTweede regel');stop();stop=await openNotesView(f.outlet,f);assert.match(f.outlet.textContent,/Idee voor later/);stop();
 });
 test('Linked list opens a branded board; right swipe opens sharing and only explicit save grants access',async t=>{
- const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();const surface=f.outlet.querySelector('[data-swipe-surface]');surface.click();await settle();assert.equal(document.querySelector('.sh-notes-wordmark').textContent,'ShopList.');assert.match(document.querySelector('dialog').textContent,/Weekend.*6 × Melk/s);document.querySelector('dialog').close();
+ const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();const surface=f.outlet.querySelector('[data-swipe-surface]');surface.click();await settle();assert.equal(document.querySelector('.sh-notes-wordmark').textContent,'ShopList.');assert.match(document.querySelector('dialog').textContent,/Weekend.*Melk6 ×/s);document.querySelector('dialog').close();
  function pointer(type,x,y=20){const e=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});surface.dispatchEvent(e);}
  pointer('pointerdown',10);pointer('pointermove',85);pointer('pointerup',85);await settle();assert.equal(f.shares.length,0);const share=document.querySelector('.sh-list-share');assert.match(share.textContent,/Kim/);assert(share.querySelector('[data-deck-grab]'));share.querySelector('[data-swipe-surface]').click();assert.equal(f.shares.length,0);const select=share.querySelector('select[aria-label="Toegang"]');select.value='write';share.querySelector('[data-share-send]').click();await settle();assert.deepEqual(f.shares,[['shared','person','write']]);
 });
@@ -104,7 +104,7 @@ test('Selected list and its app icon fetch only that list inside Sharon, includi
  const result=(id,text)=>({role:'owner',list:{payload:{list:{id,name:text,items:[]},products:[]}}});
  f.api.read=id=>{calls.push(id);if(calls.length===1)return new Promise(resolve=>resolveOld=resolve);return Promise.resolve(result(id,'Verse '+id));};
  const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();assert.deepEqual(calls,[]);
- f.outlet.querySelector('[data-swipe-row="linked:a"] [data-swipe-surface]').click();
+ f.outlet.querySelector('[data-swipe-row="linked:a"] [data-swipe-surface]').click();await settle();
  f.outlet.querySelector('[data-swipe-row="linked:b"] [data-swipe-surface]').click();await settle();
  resolveOld(result('a','Oude Alpha'));await settle();
  assert.equal(document.querySelectorAll('dialog').length,1);assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
@@ -113,4 +113,12 @@ test('Selected list and its app icon fetch only that list inside Sharon, includi
  const frame=document.querySelector('iframe.sh-shop-app');assert.equal(new URL(frame.src).searchParams.get('shoplist'),'b');
  assert.equal(new URL(frame.src).searchParams.get('from'),'sharon');
  assert.equal(document.querySelector('.sh-shop-panel'),null);
+});
+
+test('Preview CTA opens the selected list in the remembered mode',async t=>{
+ const f=fixture(t);f.metadata.set('shop.view.shared',{value:'check'});
+ const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();f.outlet.querySelector('[data-swipe-surface]').click();await settle();
+ assert.equal(document.querySelector('[data-notes-fullscreen]').hidden,true);
+ const cta=document.querySelector('.sh-shop-preview-open');assert.equal(cta.textContent,'Verder met afstrepen');cta.click();await settle();
+ const url=new URL(document.querySelector('iframe').src);assert.equal(url.searchParams.get('shoplist'),'shared');assert.equal(url.searchParams.get('view'),'check');
 });

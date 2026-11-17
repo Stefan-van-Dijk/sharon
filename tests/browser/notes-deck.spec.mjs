@@ -61,7 +61,7 @@ test('embedded Shop uses a compact return bar and the remaining viewport, then r
   }});
  });
  const board=page.locator('.sh-notes-board'),header=board.locator('header'),toggle=board.locator('[data-notes-fullscreen]');
- const before=await board.boundingBox();await toggle.click();
+ const before=await board.boundingBox();await expect(toggle).toBeHidden();await board.locator('.sh-notes-app-source').click();
  const bar=await header.boundingBox(),frame=await page.locator('.sh-shop-app').boundingBox(),viewport=page.viewportSize();
  expect(bar.height).toBeLessThanOrEqual(48);expect(frame.y).toBeCloseTo(bar.y+bar.height,0);expect(frame.y+frame.height).toBeCloseTo(viewport.height,0);
  await expect(board.locator('.sh-notes-app-source')).toBeHidden();

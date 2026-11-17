@@ -19,11 +19,14 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  assert.equal(heading().textContent,'Alpha');
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');assert.deepEqual(calls,['shop']);
  const source=document.querySelector('button.sh-notes-app-source');assert(source);assert.equal(source.getAttribute('target'),null);assert(document.querySelector('[data-card-media] [data-deck-grab]'));
- document.querySelector('[data-notes-fullscreen]').click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
+ assert.equal(document.querySelector('[data-notes-fullscreen]').hidden,true);source.click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');
  const frame=document.querySelector('iframe');
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://evil.example',source:frame.contentWindow,data:{type:'shop:view',view:'check'}}));await settle();assert.equal(metadata.has('shop.view.shop'),false);
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:view',view:'check'}}));await settle();assert.equal(metadata.get('shop.view.shop').value,'check');
  const sent=[];frame.contentWindow.postMessage=(message,origin)=>sent.push({message,origin});
  dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:return-ready'}}));
+ assert(document.querySelector('.shop-controls-ready'));
  document.querySelector('[data-notes-fullscreen]').click();await settle();
  assert.equal(document.querySelector('iframe'),frame);assert(document.querySelector('.is-fullscreen'));
  assert.deepEqual(sent,[{message:{type:'shop:prepare-return'},origin:'https://stefan-van-dijk.github.io'}]);
