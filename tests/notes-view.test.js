@@ -78,9 +78,9 @@ test('Linked archived list is restored through its server membership',async t=>{
 test('Linked archive and removal act on membership and refresh the overview',async t=>{
  const f=fixture(t);let archived=false,removed=false;f.api.index=async()=>({lists:removed?[]:[{id:'shared',name:'Weekend',role:'read',archived}]});f.api.archive=async(id,value)=>{assert.equal(id,'shared');archived=value;};f.api.leave=async id=>{assert.equal(id,'shared');removed=true;};const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
  swipe(f,f.outlet.querySelector('[data-swipe-surface]'),-100,0);assert(f.outlet.querySelector('.is-actions-open'));
- f.outlet.querySelector('[data-swipe-secondary]').click();await settle();assert.equal(f.outlet.querySelector('[data-swipe-surface]'),null);
+ f.outlet.querySelector('[data-swipe-secondary]').click();await settle();assert.equal(archived,true);assert.equal(f.outlet.querySelector('[data-swipe-row="linked:shared"]'),null);assert.ok(f.outlet.querySelector('[data-swipe-row="shop:catalog"]'));
  f.outlet.querySelector('[data-notes-archive]').click();swipe(f,f.outlet.querySelector('[data-swipe-surface]'),-100,0);
- f.outlet.querySelector('[data-swipe-delete]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();await settle();assert.equal(removed,true);assert.equal(f.records.size,0);
+ f.outlet.querySelector('[data-swipe-delete]').click();[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();await settle();assert.equal(removed,true);assert.equal(f.records.size,0);assert.equal(f.outlet.querySelector('[data-swipe-row="linked:shared"]'),null);assert.ok(f.outlet.querySelector('[data-swipe-row="shop:catalog"]'));
 });
 
 function swipe(f,target,dx,dy,cancel=false){
