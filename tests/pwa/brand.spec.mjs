@@ -34,7 +34,7 @@ test('intro resolves all SVG layers and assembles the approved mark', async ({pa
   await expect(layers).toHaveCount(4);
   await expect.poll(() => layers.evaluateAll(nodes => nodes.every(n => n.getBBox().width > 0))).toBe(true);
   await page.evaluate(async () => {
-    const version = document.querySelector('.vector-logo use').getAttribute('href').match(/v=([^#]+)/)[1];
+    const version = document.querySelector('.vector-logo image').getAttribute('href').match(/v=([0-9.]+)/)[1];
     const {runReturningIntro} = await import(`./src/ui/Boot.js?v=${version}`);
     await runReturningIntro(document, performance.now() - 1000, 'Test');
   });
@@ -51,4 +51,29 @@ test('reduced motion shows assembled layers without movement', async ({page}) =>
     const style = getComputedStyle(n);
     return style.transform === 'none' && style.transitionDuration === '0s' && style.opacity === '1';
   }))).toBe(true);
+});
+
+test('standalone animation layers preserve transparent ring gaps', async ({page}) => {
+  await page.goto(base);
+  const pixels = await page.evaluate(async () => {
+    const check = async (part, points) => {
+      const image = new Image();
+      image.src = `./assets/sharon-logo-${part}.svg`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 820;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, 820, 820);
+      return points.map(([x,y]) => ctx.getImageData(x,y,1,1).data[3]);
+    };
+    return {
+      outer: await check('outer-arcs', [[410,19], [110,159]]),
+      inner: await check('inner-ring', [[67,410], [701,228]]),
+      center: await check('center-crescent', [[460,360], [338,410]])
+    };
+  });
+  for (const [solid, gap] of Object.values(pixels)) {
+    expect(solid).toBeGreaterThan(240);
+    expect(gap).toBe(0);
+  }
 });

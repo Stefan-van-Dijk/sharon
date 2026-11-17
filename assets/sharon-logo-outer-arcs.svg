@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 90 820 820"><defs>
+    <!-- Lokale oorsprong: het gemeenschappelijke middelpunt van de ringen. -->
+    <!-- Witte delen blijven zichtbaar; zwarte delen worden uitgesneden. -->
+    <mask id="inner-ring-cut" maskUnits="userSpaceOnUse" x="-440" y="-440" width="880" height="880" style="mask-type:luminance">
+      <rect x="-440" y="-440" width="880" height="880" fill="white"/>
+      <rect x="0" y="-53" width="480" height="106" transform="rotate(-32)" fill="black"/>
+    </mask>
+    <clipPath id="outer-segments" clipPathUnits="userSpaceOnUse">
+      <!-- Horizontale, verticale en diagonale afsnijdingen, zoals in de constructietekening. -->
+      <rect x="-440" y="-440" width="880" height="157"/>
+      <rect x="-440" y="-204" width="157" height="487"/>
+      <rect x="283" y="-172" width="157" height="455"/>
+      <rect x="-200" y="283" width="400" height="157"/>
+      <rect transform="rotate(45)" x="-200" y="-80" width="400" height="60"/>
+    </clipPath>
+    <mask id="beam-center-cut" maskUnits="userSpaceOnUse" x="-100" y="-440" width="580" height="540" style="mask-type:luminance">
+      <rect x="-100" y="-440" width="580" height="540" fill="white"/>
+      <circle r="71" fill="black"/>
+    </mask>
+    <!-- Optioneel reliëf. Activeer met filter="url(#soft-relief)" op #logo.
+         Standaard blijft het logo vlak en scherp, ook op kleine formaten. -->
+    <filter id="soft-relief" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="soft-alpha"/>
+      <feOffset in="soft-alpha" dx="0" dy="2" result="offset-alpha"/>
+      <feFlood flood-color="#000000" flood-opacity="0.22" result="shadow-color"/>
+      <feComposite in="shadow-color" in2="offset-alpha" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs><g transform="translate(500 500)" color="#171a23" fill="currentColor"><g id="outer-arcs" clip-path="url(#outer-segments)">
+      <circle r="391" fill="none" stroke="currentColor" stroke-width="18"/>
+    </g></g></svg>
