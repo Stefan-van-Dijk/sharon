@@ -1,6 +1,20 @@
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
+export const LOGO_LAYERS = ['outer-arcs', 'inner-ring', 'diagonal-beam', 'center-crescent'];
+
+// Each SVG image is a complete document: Safari never has to resolve a mask
+// outside an externally referenced <use> fragment.
+export function buildLogoLayers(mark) {
+  const defs = mark.match(/<defs>[\s\S]*?<\/defs>/)?.[0];
+  if (!defs) throw Error('Logo mist SVG-definities.');
+  return Object.fromEntries(LOGO_LAYERS.map(id => {
+    const layer = mark.match(new RegExp(`<g id="${id}"[^>]*>[\\s\\S]*?<\\/g>`))?.[0];
+    if (!layer) throw Error(`Logo mist laag ${id}.`);
+    return [id, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 90 820 820">${defs}<g transform="translate(500 500)" color="#171a23" fill="currentColor">${layer}</g></svg>\n`];
+  }));
+}
+
 // Keep the approved mark as the source of truth; preserve the wordmark letters.
 export function buildWordmark(mark, wordmark) {
   const defs = mark.match(/<defs>([\s\S]*?)<\/defs>/)?.[1];
@@ -20,5 +34,9 @@ export function buildWordmark(mark, wordmark) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const path = 'assets/sharon-wordmark.svg';
-  writeFileSync(path, buildWordmark(readFileSync('assets/sharon-logo.svg', 'utf8'), readFileSync(path, 'utf8')));
+  const mark = readFileSync('assets/sharon-logo.svg', 'utf8');
+  writeFileSync(path, buildWordmark(mark, readFileSync(path, 'utf8')));
+  for (const [id, svg] of Object.entries(buildLogoLayers(mark))) {
+    writeFileSync(`assets/sharon-logo-${id}.svg`, svg);
+  }
 }
