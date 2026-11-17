@@ -1,13 +1,13 @@
-import {mountShopListPanel} from './ShopListPanel.js?v=0.4.95';
-import {openNotesDeck} from './NotesDeck.js?v=0.4.95';
-import {bindNotesBoard} from './ShopPairing.js?v=0.4.95';
-import {openListShare} from './ListSharing.js?v=0.4.95';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.95';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.95';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.95';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.4.95';
-import {bindSwipeRows} from './SwipeRows.js?v=0.4.95';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.95';
+import {mountShopApp} from './ShopApp.js?v=0.4.96';
+import {openNotesDeck} from './NotesDeck.js?v=0.4.96';
+import {bindNotesBoard} from './ShopPairing.js?v=0.4.96';
+import {openListShare} from './ListSharing.js?v=0.4.96';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.4.96';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.4.96';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.4.96';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.4.96';
+import {bindSwipeRows} from './SwipeRows.js?v=0.4.96';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.4.96';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions}){
  const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -49,7 +49,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  }
  function openItem(id){
   closeBoard();closeShare();
-  closeBoard=openNotesDeck({items:()=>visible,id,store,render:async(row,{body,title,isCurrent,fullscreen,setBeforeLeave})=>{
+  closeBoard=openNotesDeck({items:()=>visible,id,store,onAppReturn:()=>loadLinked().catch(report),render:async(row,{body,title,isCurrent,fullscreen,setBeforeLeave})=>{
    const record=row.record;
    if(!row.linked){
     if(record.data?.kind==='list'){
@@ -57,13 +57,13 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
     }else body.append(node('p',record.data?.body||'','sh-notes-text'));
     return;
    }
+   if(fullscreen){mountShopApp(body,record.id);return;}
    const message=node('p','Lijst ophalen…');message.setAttribute('role','status');body.append(message);
    try{
     const response=await api.read(record.id);if(disposed||!isCurrent())return;
     const payload=response.list.payload;
     if(payload.list.id&&payload.list.id!==record.id)throw Error('De ontvangen lijst komt niet overeen. Open de lijst opnieuw.');
     message.textContent='';if(payload.list.name)title.textContent=payload.list.name;
-    if(fullscreen){const panel=mountShopListPanel({body,response,api,isCurrent,onUpdated:()=>{loadLinked().catch(report);}});setBeforeLeave(panel.beforeLeave);return;}
     const products=new Map(payload.products.map(p=>[p.id,p]));
     for(const item of payload.list.items)body.append(node('p',(item.done?'✓ ':'')+item.quantity+' × '+(products.get(item.productId)?.name||'Product')));
     if(!payload.list.items.length)body.append(node('p','Deze lijst is nog leeg.'));

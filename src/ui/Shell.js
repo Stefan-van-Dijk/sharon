@@ -1,22 +1,22 @@
-import {openAppsView} from './AppsView.js?v=0.4.95';
-import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.4.95';
-import { openNotesView } from './NotesView.js?v=0.4.95';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.95';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.95';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.95';
-import { mountCardArrival } from './CardArrival.js?v=0.4.95';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.95';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.95';
-import { syncViewportHeight } from './Viewport.js?v=0.4.95';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.95';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.95';
-import { openPeopleView } from './PeopleView.js?v=0.4.95';
-import { openCardsView } from './CardsView.js?v=0.4.95';
-import { openLocationsView } from './LocationsView.js?v=0.4.95';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.95';
-import { openSettings } from './SettingsView.js?v=0.4.95';
-import { sharonWordmark } from './Brand.js?v=0.4.95';
-import { bindSwipeHome } from './SwipeHome.js?v=0.4.95';
+import {openAppsView} from './AppsView.js?v=0.4.96';
+import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.4.96';
+import { openNotesView } from './NotesView.js?v=0.4.96';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.4.96';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.4.96';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.4.96';
+import { mountCardArrival } from './CardArrival.js?v=0.4.96';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.4.96';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.4.96';
+import { syncViewportHeight } from './Viewport.js?v=0.4.96';
+import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.4.96';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.4.96';
+import { openPeopleView } from './PeopleView.js?v=0.4.96';
+import { openCardsView } from './CardsView.js?v=0.4.96';
+import { openLocationsView } from './LocationsView.js?v=0.4.96';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.4.96';
+import { openSettings } from './SettingsView.js?v=0.4.96';
+import { sharonWordmark } from './Brand.js?v=0.4.96';
+import { bindSwipeHome } from './SwipeHome.js?v=0.4.96';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -38,7 +38,7 @@ const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',c
 const MENU_PREVIEW_ONLY = new Set(['agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.4.95';
+const APP_VERSION = '0.4.96';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

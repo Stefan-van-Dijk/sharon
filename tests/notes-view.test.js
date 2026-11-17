@@ -110,6 +110,8 @@ test('Selected list and its app icon fetch only that list inside Sharon, includi
  assert.equal(document.querySelectorAll('dialog').length,1);assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
  assert.equal(new URL(document.querySelector('.sh-notes-app-source').href).searchParams.get('shoplist'),'b');
  document.querySelector('[data-notes-fullscreen]').click();await settle();
- assert.deepEqual(calls,['a','b','b']);
- assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
+ assert.deepEqual(calls,['a','b']);
+ const frame=document.querySelector('iframe.sh-shop-app');assert.equal(new URL(frame.src).searchParams.get('shoplist'),'b');
+ assert.equal(new URL(frame.src).searchParams.get('from'),'sharon');
+ assert.equal(document.querySelector('.sh-shop-panel'),null);
 });

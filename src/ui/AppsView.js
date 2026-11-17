@@ -1,6 +1,6 @@
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.4.95';
-import {openShopPairing} from './ShopPairing.js?v=0.4.95';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.95';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.4.96';
+import {openShopPairing} from './ShopPairing.js?v=0.4.96';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.4.96';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
