@@ -1,11 +1,19 @@
-# ShopList bridge
+# Shop vanuit Sharon
 
-ShopList (repository Shopl, URL /Shopl/) uses the existing Sharon identity and network endpoint. No credentials go in links. The first integration supports the shared GitHub Pages origin only; other origins require a future delegated identity handshake and are rejected.
+Shop blijft één zelfstandige app met eigen vormgeving, productbediening, camera en kassabarcodes. Sharon toont lijstoverzichten en beheert kiezen, verwijderen, archiveren en delen. Nieuwe lijsten maken blijft in Shop mogelijk, ook vanuit Sharon.
 
-The Notities & lijsten module combines local free text, ideas and checklists with centrally stored ShopList lists. Linked lists open a branded ShopList board. A rightward row swipe opens owner-controlled read/write/revoked grants for existing Sharon contacts. It opens the selected list in the standalone app, not an iframe. Full scanner screens embedded in Sharon, shop-location/card composition, paid-history cleanup and multi-list offline merging are not implemented in this change.
+## Openen en terugkeren
 
-The server checks membership on every action, list-specific access, owner-only grants and revision preconditions under its existing file transaction lock. Updates use a stable operation ID until acknowledged. Conflicts retain the local copy; retrieving the online version archives differing local content as a separate list. Read-only edits become private copies. This is whole-list optimistic concurrency, not automatic field merging.
+`/shop/?shoplist=<id>&from=sharon` opent de gekozen lijst in compacte stand. Optioneel `view=collect` opent Verzamelen; standaard opent Afstrepen. Zonder `from=sharon` behoudt Shop zijn zelfstandige interface. Deze parameters verlenen geen rechten; het bestaande apparaattoken en servercontroles blijven gelden. Geen toegangssleutels in URLs.
 
-Deploy server/connections.php to the existing /log/api/connections.php endpoint before releasing both clients. Preserve /log/private/connections and all existing identity data. GitHub Pages cannot deploy PHP. Validate server tests, then test two real connected identities: create, share, edit, conflict, offline retry, revoke. Clients display unavailable/pending until the endpoint supports these actions. The existing localStorage key bs.app.v1 is deliberately retained.
+Sharon gebruikt in het volledige board een iframe met de echte Shop-app en toestemming voor camera en microfoon. De externe app-link blijft beschikbaar. Lijstkiezer en verwijderen zijn in compacte stand verborgen; productbeheer blijft via het menu bereikbaar. Een nieuwe lijst wordt actief en synchronisatie wordt meteen aangevraagd.
 
-Release coordination: merge/release the matching BS and Sharon pull requests only after server deployment and cross-device verification. Follow the existing Sharon version bump and asset generation before release. These changes do not rename the GitHub repository or move existing URLs.
+Terug binnen het board gebruikt `postMessage({type:'shop:return'})` naar de vaste GitHub Pages-origin. Sharon accepteert alleen berichten van het gemonteerde iframe met de verwachte origin, herstelt het bestaande board en ververst het lijstoverzicht. Terug vanuit een apart tabblad opent de Sharon-startpagina; die route herstelt geen boardpositie.
+
+Tot de aangevraagde lijst geladen is blijft de inhoud niet bedienbaar. Een fout biedt opnieuw proberen; lokale gegevens worden behouden. Rechtenverlies kiest in compacte stand geen willekeurige andere lijst. Synchronisatie en conflictbehoud gebruiken de bestaande Shop-logica.
+
+## Gezamenlijke levering en controle
+
+Publiceer eerst de bijbehorende Shop-wijziging, daarna Sharon 0.4.96. De bestaande koppelserver blijft vereist; deze wijziging wijzigt geen serverprotocol of opgeslagen gegevens.
+
+Controleer voor publicatie op iPhone/Safari en geïnstalleerde Sharon: geselecteerde lijst, Verzamelen/Afstrepen, nieuwe lijst, synchronisatie bij terugkeer, camera, microfoon bij kassabediening, offline wijzigingen, ingetrokken toegang en herstel van conflicten. Browseropslag in het iframe moet dezelfde gekoppelde Shop-installatie bereiken; bij ontbrekende toegang blijft opnieuw koppelen of extern openen nodig.

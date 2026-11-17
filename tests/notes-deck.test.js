@@ -21,7 +21,10 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  const source=document.querySelector('a.sh-notes-app-source');assert.equal(new URL(source.href).searchParams.get('shoplist'),'shop');assert.equal(source.target,'_blank');assert(document.querySelector('[data-card-media] [data-deck-grab]'));
  document.querySelector('[data-notes-fullscreen]').click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');
- document.querySelector('[data-notes-fullscreen]').click();await settle();assert.equal(document.querySelector('.is-fullscreen'),null);
+ const frame=document.querySelector('iframe');
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://evil.example',source:frame.contentWindow,data:{type:'shop:return'}}));assert(document.querySelector('.is-fullscreen'));
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:dom.window,data:{type:'shop:return'}}));assert(document.querySelector('.is-fullscreen'));
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:return'}}));await settle();assert.equal(document.querySelector('.is-fullscreen'),null);
  swipe(dom.window,heading(),90);await settle();assert.equal(heading().textContent,'Alpha');
  const grab=document.querySelector('[data-deck-grab]'),stack=document.querySelector('.sh-share-zone-stack');
  pointer(dom.window,grab,'pointerdown',100,100);pointer(dom.window,grab,'pointermove',140,100);assert(stack.classList.contains('is-card-deck-lifted'));
