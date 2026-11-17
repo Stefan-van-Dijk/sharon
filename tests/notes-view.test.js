@@ -3,7 +3,7 @@ function fixture(t,online=true){
  const dom=new JSDOM('<main></main>',{url:'https://stefan-van-dijk.github.io/sharon/'});const prev={document:globalThis.document,window:globalThis.window,CustomEvent:globalThis.CustomEvent};Object.assign(globalThis,{document:dom.window.document,window:dom.window,CustomEvent:dom.window.CustomEvent});
  dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new dom.window.Event('close'));};
  const records=new Map(),shares=[],metadata=new Map();const store={get:async(_,key)=>metadata.get(key),getAll:async()=>[...records.values()],put:async(table,r)=>(table==='meta'?metadata:records).set(table==='meta'?r.key:r.id,structuredClone(r))};
- const api={index:async()=>{if(!online)throw Error('Offline');return {lists:[{id:'shared',name:'Weekend',role:'owner'}]};},read:async()=>({role:'owner',list:{members:{},payload:{products:[{id:'milk',name:'Melk'}],list:{items:[{productId:'milk',quantity:6,done:false}]}}}}),share:async(...args)=>shares.push(args),connection:{contacts:async()=>[{personId:'person',name:'Kim'}]}};
+ const api={index:async()=>{if(!online)throw Error('Offline');return {lists:[{id:'shared',name:'Weekend',role:'owner'}]};},read:async()=>({role:'owner',list:{members:{},payload:{products:[{id:'milk',name:'Melk'}],list:{items:[{productId:'milk',quantity:6,done:false}]}}}}),share:async(...args)=>shares.push(args),connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}}),contacts:async()=>[{personId:'person',name:'Kim'}]}};
  t.after(()=>{document.querySelector('[data-share-close]')?.click();Object.assign(globalThis,prev);dom.window.close();});return {outlet:document.querySelector('main'),dom,records,store,api,shares,metadata};
 }
 const settle=()=>new Promise(r=>setTimeout(r,0));
@@ -91,8 +91,8 @@ function swipe(f,target,dx,dy,cancel=false){
 test('List board closes only on completed top pull-down and links to its selected list in ShopList',async t=>{
  const f=fixture(t);const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();
  f.outlet.querySelector('[data-swipe-surface]').click();await settle();const dialog=document.querySelector('dialog'),top=dialog.querySelector('header');
- assert.equal(dialog.querySelector('.sh-notes-app-source').tagName,'A');
- assert.equal(new URL(dialog.querySelector('a').href).searchParams.get('shoplist'),'shared');
+ assert.equal(dialog.querySelector('.sh-notes-app-source').tagName,'BUTTON');
+ assert.equal(dialog.querySelector('a[target="_blank"]'),null);
  swipe(f,dialog.querySelector('.sh-notes-body'),0,100);assert(dialog.isConnected);
  swipe(f,top,0,100,true);assert(dialog.isConnected);
  swipe(f,top,0,100);assert.equal(dialog.isConnected,false);
@@ -108,8 +108,7 @@ test('Selected list and its app icon fetch only that list inside Sharon, includi
  f.outlet.querySelector('[data-swipe-row="linked:b"] [data-swipe-surface]').click();await settle();
  resolveOld(result('a','Oude Alpha'));await settle();
  assert.equal(document.querySelectorAll('dialog').length,1);assert.equal(document.querySelector('dialog h2').textContent,'Verse b');
- assert.equal(new URL(document.querySelector('.sh-notes-app-source').href).searchParams.get('shoplist'),'b');
- document.querySelector('[data-notes-fullscreen]').click();await settle();
+ document.querySelector('.sh-notes-app-source').click();await settle();
  assert.deepEqual(calls,['a','b']);
  const frame=document.querySelector('iframe.sh-shop-app');assert.equal(new URL(frame.src).searchParams.get('shoplist'),'b');
  assert.equal(new URL(frame.src).searchParams.get('from'),'sharon');
