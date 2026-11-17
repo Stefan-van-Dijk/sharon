@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.4.98">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.98">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.4.99">
+  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.4.99">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3336,6 +3336,17 @@
 .sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-media{height:48px;min-height:48px;flex-basis:48px;padding:0;border-radius:0;background:#f6f1e7;color:#29251f}
 .sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-media h2,.sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-wordmark{display:none}
 .sh-shop-app{display:block;width:100%;height:100%;min-height:0;border:0;background:#f6f1e7}
+
+.sh-notes-board:focus{outline:none}.sh-notes-board:focus-visible{outline:2px solid #756b5e;outline-offset:2px}
+.sh-notes-deck .is-shop-list,.sh-notes-deck .is-shop-list .sh-notes-body{background:#f6f1e7;color:#29251f}
+.sh-notes-deck .is-shop-list .sh-notes-brand{background:#eee5d6;color:#29251f;border-radius:24px 24px 0 0}
+.sh-notes-deck .is-shop-list .sh-notes-wordmark{color:#29251f}
+.sh-shop-preview{display:flex;flex-direction:column;gap:12px;align-self:start}.sh-shop-preview h3,.sh-shop-preview p{margin:0}.sh-shop-preview h3{font:500 28px/1.15 Georgia,serif}.sh-shop-preview small,.sh-shop-progress{font-size:13px;color:#716655}
+.sh-shop-preview-row{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid #dcd2c2;padding:10px 0;font-size:15px}
+.sh-notes-board .sh-shop-preview-open{background:#ad3b27;color:#fff;padding:14px 18px;min-height:48px;font-weight:650;margin-top:8px}
+.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-expand{left:12px;right:auto;top:2px;width:64px;height:44px;display:flex;gap:6px;background:transparent;border-radius:0;padding:6px}
+.sh-notes-expand img{width:28px;height:28px}
+.sh-notes-deck.is-fullscreen.shop-controls-ready .sh-notes-media{display:none}
 </style>
 </head>
 <body>
@@ -3349,16 +3360,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.98#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.98#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.98#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.98#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.98#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.4.99#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.4.99#e"></use></g>
+          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.4.99#logo"></use></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.4.99#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.4.99#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.4.98"></script>
+  <script type="module" src="./src/main.js?v=0.4.99"></script>
 </body>
 </html>

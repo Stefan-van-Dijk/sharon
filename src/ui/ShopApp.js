@@ -1,6 +1,6 @@
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.98';
-export function shopAppUrl(id,account){
- const url=new URL(SHOPLIST_URL);if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(!id)url.searchParams.set('view','collect');return url.href;
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.4.99';
+export function shopAppUrl(id,account,mode){
+ const url=new URL(SHOPLIST_URL);if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');return url.href;
 }
 // A session exposes only Shop operations. Sharon credentials never leave the host.
 export function createShopSession(api,selectedId){
@@ -34,7 +34,7 @@ export function createShopSession(api,selectedId){
   throw Error('Deze actie wordt in Sharon beheerd.');
  };
 }
-export function mountShopApp(body,id,{api,registerCleanup=()=>{}}={}){
+export function mountShopApp(body,id,{api,mode,registerCleanup=()=>{}}={}){
  const frame=body.ownerDocument.createElement('iframe'),win=body.ownerDocument.defaultView;
  const origin=new URL(SHOPLIST_URL).origin,request=api&&createShopSession(api,id);let disposed=false;
  const receive=async event=>{
@@ -44,7 +44,7 @@ export function mountShopApp(body,id,{api,registerCleanup=()=>{}}={}){
   catch(error){reply={error:{message:error.message,code:error.code||'session_error'}};}
   if(!disposed&&body.contains(frame))frame.contentWindow.postMessage({type:'shop:response',requestId,...reply},origin);
  };
- frame.className='sh-shop-app';frame.title='ShopList';if(api){api.connection.device().then(device=>{if(!disposed)frame.src=shopAppUrl(id,device.personId);}).catch(()=>{if(!disposed)frame.src=shopAppUrl(id);});}else frame.src=shopAppUrl(id);
+ frame.className='sh-shop-app';frame.title='ShopList';if(api){api.connection.device().then(device=>{if(!disposed)frame.src=shopAppUrl(id,device.personId,mode);}).catch(()=>{if(!disposed)frame.src=shopAppUrl(id,undefined,mode);});}else frame.src=shopAppUrl(id,undefined,mode);
  frame.allow='camera; microphone';win.addEventListener('message',receive);
  registerCleanup(()=>{disposed=true;win.removeEventListener('message',receive);});
  body.replaceChildren(frame);return frame;
