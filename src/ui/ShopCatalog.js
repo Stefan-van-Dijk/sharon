@@ -1,6 +1,6 @@
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.05';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.05';
-import {mountShopApp} from './ShopApp.js?v=0.5.05';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.06';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.06';
+import {mountShopApp} from './ShopApp.js?v=0.5.06';
 
 // Sharing decisions stay in Sharon. Shop supplies only a requested category or collection.
 export function openShopCatalog({store,api=new ShopListService(store),categoryId=null,collectionId=null}={}){

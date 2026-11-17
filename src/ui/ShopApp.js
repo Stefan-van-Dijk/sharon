@@ -1,5 +1,5 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.05';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.05';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.06';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.06';
 export function shopAppUrl(id,account,mode){
  const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261117-catalog');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check'||mode==='catalog')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');return url.href;
 }
