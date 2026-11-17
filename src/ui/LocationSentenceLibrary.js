@@ -1,4 +1,4 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.5.03';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.5.04';
 
 const defaults = {
   here: ['Je bent bij [Naam] — [Type].','Aangekomen bij [Naam] — [Type].','[Naam] — [Type]. Je bent er.'],

@@ -7,7 +7,7 @@ test('Shop opens the exact list in its own application, without credentials in t
  const body=dom.window.document.querySelector('main');const frame=mountShopApp(body,'a & b');
  assert.equal(body.children.length,1);assert.equal(frame.tagName,'IFRAME');
  const url=new URL(frame.src);assert.equal(url.pathname,'/shop/');assert.equal(url.searchParams.get('shoplist'),'a & b');assert.equal(url.searchParams.get('from'),'sharon');
- assert.deepEqual([...url.searchParams.keys()],['shoplist','from']);assert.equal(frame.allow,'camera; microphone');assert.equal(frame.title,'ShopList');
+ assert.deepEqual([...url.searchParams.keys()],['v','shoplist','from']);assert.equal(frame.allow,'camera; microphone');assert.equal(frame.title,'ShopList');
  assert.equal(shopAppUrl('other').includes('shoplist=other'),true);
 });
 

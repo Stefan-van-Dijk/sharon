@@ -1,6 +1,6 @@
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.03';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.04';
 export function shopAppUrl(id,account,mode){
- const url=new URL(SHOPLIST_URL);if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');return url.href;
+ const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261117-svg-bounds');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');return url.href;
 }
 // A session exposes only Shop operations. Sharon credentials never leave the host.
 export function createShopSession(api,selectedId){

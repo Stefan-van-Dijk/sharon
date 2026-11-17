@@ -1,5 +1,5 @@
-import {resolveLocation} from '../location/LocationHierarchy.js?v=0.5.03';
-import {distanceBetween} from '../location/LocationTriggerService.js?v=0.5.03';
+import {resolveLocation} from '../location/LocationHierarchy.js?v=0.5.04';
+import {distanceBetween} from '../location/LocationTriggerService.js?v=0.5.04';
 // Only confirmed local places and a fresh cached fix choose a mode; never request GPS here.
 export function shopContextMode(objects,point,last='collect',now=Date.now()){
  const fallback=last==='check'?'check':'collect';
