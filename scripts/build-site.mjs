@@ -14,6 +14,18 @@ export function buildSite(root = process.cwd(), output = resolve(root, '_site'))
       cpSync(join(root, name), join(output, name), { recursive: true });
     }
     if (existsSync(join(root, 'CNAME'))) cpSync(join(root, 'CNAME'), join(output, 'CNAME'));
+    // Lossless PNG renditions of the approved SVG, including the iPhone touch icon.
+    // Keep historical release fixtures working when this source is absent.
+    const iconsPath = join(root, 'scripts/brand-icons.json');
+    if (existsSync(iconsPath)) {
+      const {sourceSha256, icons} = JSON.parse(readFileSync(iconsPath, 'utf8'));
+      const actual = createHash('sha256').update(readFileSync(join(root, 'assets/sharon-logo.svg'))).digest('hex');
+      if (actual !== sourceSha256) throw Error('App-iconen opnieuw exporteren: SVG gewijzigd.');
+      for (const [path, encoded] of Object.entries(icons)) {
+        if (!/^assets\/sharon-(mark|icon-(180|192|512))\.png$/.test(path)) throw Error('Ongeldig icoonpad');
+        writeFileSync(join(output, path), Buffer.from(encoded, 'base64'));
+      }
+    }
     writeFileSync(join(output, '.nojekyll'), '');
     // Every local reference in the shipped shell, precache and module graph must exist.
     function walk(dir) {
