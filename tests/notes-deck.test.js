@@ -22,6 +22,13 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  document.querySelector('[data-notes-fullscreen]').click();await settle();assert(document.querySelector('.sh-notes-deck.is-fullscreen'));
  swipe(dom.window,heading(),-90);await settle();assert.equal(heading().textContent,'Boodschappen');
  const frame=document.querySelector('iframe');
+ const sent=[];frame.contentWindow.postMessage=(message,origin)=>sent.push({message,origin});
+ dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:return-ready'}}));
+ document.querySelector('[data-notes-fullscreen]').click();await settle();
+ assert.equal(document.querySelector('iframe'),frame);assert(document.querySelector('.is-fullscreen'));
+ assert.deepEqual(sent,[{message:{type:'shop:prepare-return'},origin:'https://stefan-van-dijk.github.io'}]);
+ assert.equal(document.querySelector('.sh-notes-app-source').hidden,true);
+
  dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://evil.example',source:frame.contentWindow,data:{type:'shop:return'}}));assert(document.querySelector('.is-fullscreen'));
  dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:dom.window,data:{type:'shop:return'}}));assert(document.querySelector('.is-fullscreen'));
  dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:return'}}));await settle();assert.equal(document.querySelector('.is-fullscreen'),null);
