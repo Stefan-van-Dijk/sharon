@@ -1,5 +1,5 @@
-const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.5.01';
-const LOGO_ASSET = './assets/sharon-logo.svg?v=0.5.01';
+const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.5.02';
+const LOGO_ASSET = './assets/sharon-logo.svg?v=0.5.02';
 
 export function sharonWordmark({
   mode = 'sharon',
@@ -26,7 +26,10 @@ export function sharonWordmark({
         <use href="${PARTS_ASSET}#e"></use>
       </g>
       <g class="vector-part vector-logo">
-        <use href="${PARTS_ASSET}#logo"></use>
+        <g class="logo-layer logo-layer--outer-arcs"><use href="${PARTS_ASSET}#logo-outer-arcs"></use></g>
+        <g class="logo-layer logo-layer--inner-ring"><use href="${PARTS_ASSET}#logo-inner-ring"></use></g>
+        <g class="logo-layer logo-layer--diagonal-beam"><use href="${PARTS_ASSET}#logo-diagonal-beam"></use></g>
+        <g class="logo-layer logo-layer--center-crescent"><use href="${PARTS_ASSET}#logo-center-crescent"></use></g>
       </g>
       <g class="vector-part vector-o">
         <use href="${PARTS_ASSET}#o"></use>

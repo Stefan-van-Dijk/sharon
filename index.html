@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.01">
-  <link rel="apple-touch-icon" href="./assets/sharon-mark.png?v=0.5.01">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.02">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.02">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -96,6 +96,22 @@
     .brand-motion.is-final .vector-n{transform:translateX(-40px)}
     .brand-motion.is-marking .vector-logo,
     .brand-motion.is-final .vector-logo{opacity:1;transform:scale(1)}
+
+    /* Assemble the approved SVG layers inside the existing Share on transition. */
+    .logo-layer{transform-box:view-box;transform-origin:143.65px 55.2px}
+    .brand-motion .logo-layer{transition:transform .52s cubic-bezier(.22,.61,.36,1),opacity .35s ease}
+    .brand-motion .logo-layer--outer-arcs{transform:rotate(-65deg) scale(1.12)}
+    .brand-motion .logo-layer--inner-ring{transform:rotate(32deg) scale(.88)}
+    .brand-motion .logo-layer--diagonal-beam{transform:translate(8px,-5px);opacity:0}
+    .brand-motion .logo-layer--center-crescent{transform:scale(.6);opacity:0}
+    .brand-motion.is-morphing .logo-layer--outer-arcs{transform:rotate(-18deg) scale(1.04)}
+    .brand-motion.is-morphing .logo-layer--inner-ring{transform:rotate(10deg) scale(.96)}
+    .brand-motion.is-marking .logo-layer,
+    .brand-motion.is-final .logo-layer{transform:none;opacity:1}
+    @media(prefers-reduced-motion:reduce){
+      .brand-motion .vector-part,.brand-motion .logo-layer{transition:none!important}
+      .brand-motion .logo-layer{transform:none!important;opacity:1!important}
+    }
 
     .home-brand-vector{width:110px;height:auto;flex:0 0 auto}
     .home-brand-vector.is-to-logo .vector-shar,
@@ -3360,16 +3376,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.01#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.01#e"></use></g>
-          <g class="vector-part vector-logo"><use href="./assets/sharon-wordmark.svg?v=0.5.01#logo"></use></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.01#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.01#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.02#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.02#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><use href="./assets/sharon-wordmark.svg?v=0.5.02#logo-outer-arcs"></use></g><g class="logo-layer logo-layer--inner-ring"><use href="./assets/sharon-wordmark.svg?v=0.5.02#logo-inner-ring"></use></g><g class="logo-layer logo-layer--diagonal-beam"><use href="./assets/sharon-wordmark.svg?v=0.5.02#logo-diagonal-beam"></use></g><g class="logo-layer logo-layer--center-crescent"><use href="./assets/sharon-wordmark.svg?v=0.5.02#logo-center-crescent"></use></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.02#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.02#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.01"></script>
+  <script type="module" src="./src/main.js?v=0.5.02"></script>
 </body>
 </html>
