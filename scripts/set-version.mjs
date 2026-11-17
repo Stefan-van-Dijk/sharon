@@ -6,7 +6,7 @@ if (!/^\d+\.\d+\.\d+$/.test(version || '')) throw Error('Gebruik: node scripts/s
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]);
 }
-for (const file of ['index.html', ...walk('src').filter(f => f.endsWith('.js')), 'tests/helpers/app-harness.mjs', ...walk('tests/integration').filter(f => f.endsWith('.mjs'))]) {
+for (const file of ['index.html', 'manifest.webmanifest', ...walk('src').filter(f => f.endsWith('.js')), 'tests/helpers/app-harness.mjs', ...walk('tests/integration').filter(f => f.endsWith('.mjs'))]) {
   let code = readFileSync(file, 'utf8').replace(/\?v=\d+\.\d+\.\d+/g, '?v=' + version);
   if (file.endsWith('.js')) code = code.replace(/((?:from\s*|import\s*(?:\(\s*)?)['"])(\.[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`);
   code = code.replace(/const APP_VERSION = '[^']+'/, `const APP_VERSION = '${version}'`);
