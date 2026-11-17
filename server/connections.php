@@ -291,15 +291,18 @@ final class LogNetwork {
         $row = $collections[$id] ?? null;
         if ($action === 'shoplibrary-create') {
             $name = $input['name'] ?? null;
-            $categoryIds = $this->shopLibraryIds($input['categories'] ?? null);
+            $scope = $input['scope'] ?? 'branch';
+            if (!in_array($scope, ['all','branch'], true)) throw new LogNetworkError('invalid_collection');
+            $categoryIds = $this->shopLibraryIds($input['categories'] ?? []);
+            if ($scope === 'all') $categoryIds = [];
             $available = array_column($this->state['shopcatalogs'][$personId]['payload']['categories'] ?? [], 'id');
-            if (!is_string($name) || trim($name) === '' || strlen($name) > 240 || !$categoryIds || array_diff($categoryIds, $available)) throw new LogNetworkError('invalid_collection');
+            if (!is_string($name) || trim($name) === '' || strlen($name) > 240 || ($scope === 'branch' && !$categoryIds) || array_diff($categoryIds, $available)) throw new LogNetworkError('invalid_collection');
             if ($row) {
-                if ($row['ownerId'] !== $personId || $row['name'] !== trim($name) || $row['categories'] !== $categoryIds) throw new LogNetworkError('collection_conflict', 409);
+                if ($row['ownerId'] !== $personId || $row['name'] !== trim($name) || $row['categories'] !== $categoryIds || ($row['scope'] ?? 'branch') !== $scope) throw new LogNetworkError('collection_conflict', 409);
                 return ['ok'=>true];
             }
             if (count($collections) >= 2000) throw new LogNetworkError('capacity', 409);
-            $this->state['shopCollections'][$id] = ['id'=>$id, 'name'=>trim($name), 'ownerId'=>$personId, 'categories'=>$categoryIds, 'members'=>[], 'additions'=>[], 'hidden'=>[]];
+            $this->state['shopCollections'][$id] = ['id'=>$id, 'name'=>trim($name), 'ownerId'=>$personId, 'categories'=>$categoryIds, 'scope'=>$scope, 'members'=>[], 'additions'=>[], 'hidden'=>[]];
             return ['ok'=>true];
         }
         $role = !$row ? null : ($row['ownerId'] === $personId ? 'owner' : ($row['members'][$personId] ?? null));
@@ -356,7 +359,8 @@ final class LogNetwork {
         $categories = array_column($catalog['categories'] ?? [], null, 'id');
         $seen = [];
         $entries = [];
-        $todo = $row['categories'];
+        $whole = ($row['scope'] ?? 'branch') === 'all';
+        $todo = $whole ? array_keys($categories) : $row['categories'];
         while ($todo) {
             $id = array_pop($todo);
             if (isset($seen[$id]) || !isset($categories[$id])) continue;
@@ -368,7 +372,7 @@ final class LogNetwork {
         }
         $visible = [];
         foreach ($catalog['products'] ?? [] as $product) {
-            if (!isset($seen[$product['categoryId']]) && !isset($entries[$product['id']])) continue;
+            if (!$whole && !isset($seen[$product['categoryId']]) && !isset($entries[$product['id']])) continue;
             $central = $product['centralId'] ?? null;
             if (is_string($central) && isset($products[$central])) {
                 $visible[$central] = ['key'=>$central, 'central'=>true, ...$this->shopPublicProduct($products[$central])];
@@ -378,7 +382,14 @@ final class LogNetwork {
             }
         }
         foreach ($row['additions'] as $id => $_) $visible[$id] = ['key'=>$id, 'central'=>true, ...$this->shopPublicProduct($products[$id])];
-        $result = ['id'=>$row['id'], 'name'=>$row['name'], 'role'=>$role, 'products'=>array_values(array_diff_key($visible, $row['hidden']))];
+        $tree = [];
+        foreach ($categories as $categoryId => $category) {
+            if (!isset($seen[$categoryId])) continue;
+            $children = [];
+            foreach ($category['entries'] as $entry) if ($entry['type'] === 'category' && isset($seen[$entry['id']])) $children[] = $entry['id'];
+            $tree[] = ['id'=>$categoryId, 'name'=>$category['name'], 'children'=>array_values(array_unique($children))];
+        }
+        $result = ['id'=>$row['id'], 'name'=>$row['name'], 'role'=>$role, 'ownerName'=>$this->state['people'][$row['ownerId']]['name'] ?? 'Eigenaar', 'scope'=>$whole ? 'all' : 'branch', 'categories'=>$tree, 'roots'=>$whole ? [] : $row['categories'], 'products'=>array_values(array_diff_key($visible, $row['hidden']))];
         if ($role === 'owner') $result['members'] = (object)$row['members'];
         return $result;
     }

@@ -1,14 +1,15 @@
-import {shopContextMode,shopPreview} from '../core/shoplist/ShopContext.js?v=0.5.04';
-import {mountShopApp} from './ShopApp.js?v=0.5.04';
-import {openNotesDeck} from './NotesDeck.js?v=0.5.04';
-import {bindNotesBoard} from './ShopPairing.js?v=0.5.04';
-import {openListShare} from './ListSharing.js?v=0.5.04';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.5.04';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.5.04';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.04';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.04';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.04';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.04';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.05';
+import {shopContextMode,shopPreview} from '../core/shoplist/ShopContext.js?v=0.5.05';
+import {mountShopApp} from './ShopApp.js?v=0.5.05';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.05';
+import {bindNotesBoard} from './ShopPairing.js?v=0.5.05';
+import {openListShare} from './ListSharing.js?v=0.5.05';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.5.05';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.5.05';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.05';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.05';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.05';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.05';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions,location}){
  const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -19,6 +20,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
  const add=button('+',()=>edit());add.className='sh-location-header-add';add.setAttribute('aria-label','Notitie of lijst toevoegen');
  if(headerActions){headerActions.replaceChildren(add);}else tools.append(add);
+ tools.append(button('Catalogus',()=>{closeShare();closeShare=openShopCatalog({store,api});}));
  const archiveSlot=node('div',null,'sh-notes-archive-slot');
  const archive=button('Archief',()=>{showArchive=!showArchive;search.value='';paint();});archive.dataset.notesArchive='';archive.setAttribute('aria-pressed','false');archiveSlot.append(archive);
  const listArea=node('div',null,'sh-notes-list-area');listArea.append(rows,archiveSlot);

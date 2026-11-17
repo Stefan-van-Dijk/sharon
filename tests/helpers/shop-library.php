@@ -83,3 +83,24 @@ $other=$server->handle('shoplibrary-products',['ids'=>[$id]],$guest)['products']
 expect($other['name']==='' && $other['brand']==='' && $other['quantity']==='','other users receive cleared information');
 denies(fn()=>$server->handle('shoplibrary-product-edit',$clear,$owner),'product_conflict');
 echo "Productbibliotheek en gedeelde categorieën gecontroleerd.\n";
+
+// A whole-catalog grant follows newly added branches, whereas a branch grant stays scoped.
+$whole=LogNetwork::id();
+$server->handle('shoplibrary-create',['id'=>$whole,'name'=>'Hele catalogus','scope'=>'all','categories'=>[]],$owner);
+$server->handle('shoplibrary-share',['id'=>$whole,'personId'=>$guestId,'role'=>'read'],$owner);
+$catalog['categories'][]=['id'=>'later','name'=>'Later toegevoegd','entries'=>[]];
+$catalog['products'][]=['id'=>'later-product','name'=>'Later product','categoryId'=>'later','barcodes'=>[]];
+$server->handle('shopcatalog-put',['payload'=>$catalog,'revision'=>2,'operation'=>'cccccccc-cccc-cccc-cccc-cccccccccccc'],$owner);
+$shared=$server->handle('shoplibrary-index',[],$guest)['collections'][0];
+expect($shared['scope']==='all','scope is explicit');
+expect(in_array('Later product',array_column($shared['products'],'name'),true),'future products in future branches are included');
+expect(in_array('later',array_column($shared['categories'],'id'),true),'tree includes future categories');
+expect(!isset($shared['members']),'recipient does not receive membership data');
+$server->handle('shoplibrary-share',[...$share,'role'=>'read'],$owner);
+$branch=$read();
+expect(!in_array('Later product',array_column($branch['products'],'name'),true),'branch excludes products outside its subtree');
+expect(!in_array('later',array_column($branch['categories'],'id'),true),'branch excludes unrelated category names');
+$server->handle('shoplibrary-share',[...$share,'role'=>null],$owner);
+denies(fn()=>$server->handle('shoplibrary-share',['id'=>$whole,'personId'=>$ownerId,'role'=>'write'],$guest),'owner_required');
+$server->handle('shoplibrary-share',['id'=>$whole,'personId'=>$guestId,'role'=>null],$owner);
+expect($server->handle('shoplibrary-index',[],$guest)['collections']===[],'whole catalog access can be revoked');
