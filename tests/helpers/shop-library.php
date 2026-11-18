@@ -104,3 +104,43 @@ $server->handle('shoplibrary-share',[...$share,'role'=>null],$owner);
 denies(fn()=>$server->handle('shoplibrary-share',['id'=>$whole,'personId'=>$ownerId,'role'=>'write'],$guest),'owner_required');
 $server->handle('shoplibrary-share',['id'=>$whole,'personId'=>$guestId,'role'=>null],$owner);
 expect($server->handle('shoplibrary-index',[],$guest)['collections']===[],'whole catalog access can be revoked');
+
+// Category boards use current catalog membership across list snapshots and enforce the reader's list grant.
+$createList = function(string $token, string $list, array $products) use ($server): void {
+    $categories = array_values(array_column(array_map(fn($p)=>['id'=>$p['categoryId'],'name'=>'Fruit','entries'=>[]],$products),null,'id'));
+    $items = array_map(fn($p)=>['id'=>'item-'.$p['id'],'productId'=>$p['id'],'quantity'=>2,'done'=>false,'note'=>'Privé notitie'],$products);
+    $payload = ['list'=>['id'=>$list,'name'=>$list,'items'=>$items],'products'=>$products,'categories'=>$categories];
+    $server->handle('shoplist-create',['id'=>$list,'payload'=>$payload,'revision'=>0,'operation'=>'dddddddd-dddd-dddd-dddd-dddddddddddd'],$token);
+};
+$createList($owner,'Weeklijst',[
+    ['id'=>'p','name'=>'Oude naam','categoryId'=>'private','barcodes'=>[],'centralId'=>$id],
+    ['id'=>'outside','name'=>'Buiten selectie','categoryId'=>'unrelated','barcodes'=>[]],
+]);
+$createList($guest,'Gedeelde-lijst',[
+    ['id'=>'alias','name'=>'Aardbeien','categoryId'=>'berries','barcodes'=>[],'centralId'=>$id],
+    ['id'=>'other-alias','name'=>'Verborgen regel','categoryId'=>'private','barcodes'=>[],'centralId'=>$id],
+]);
+$createList($guest,'Lijst-zonder-toegang',[
+    ['id'=>'alias','name'=>'Aardbeien','categoryId'=>'berries','barcodes'=>[],'centralId'=>$id],
+]);
+$server->handle('shoplist-share',['id'=>'Gedeelde-lijst','personId'=>$ownerId,'role'=>'read','categories'=>['berries']],$guest);
+$categoryLists = fn()=>$server->handle('shoplibrary-category-lists',['id'=>'fruit'],$owner)['lists'];
+$matches=$categoryLists();
+expect(array_column($matches,'id')===['Weeklijst','Gedeelde-lijst'],'one category spans own lists and permitted lists; IDs win over labels');
+foreach ($matches as $match) expect($match['items']===[['name'=>'Mijn alias','quantity'=>2,'done'=>false]],'uses current assignment, excludes other categories and scoped-out rows');
+$server->handle('shoplist-archive',['id'=>'Weeklijst','archived'=>true],$owner);
+expect(array_column($categoryLists(),'id')===['Gedeelde-lijst'],'archived lists are out of the active category view');
+
+$server->handle('shoplibrary-category-archive',['id'=>'fruit','archived'=>true],$owner);
+expect($server->handle('shopcatalog-read',[],$owner)['archivedCategoryIds']===['fruit'],'category archive is persisted');
+expect($server->handle('shopcatalog-read',[],$guest)['archivedCategoryIds']===[],'category archive is personal');
+expect($server->handle('shopcatalog-read',[],$owner)['catalog']['revision']===3,'archiving does not edit catalog contents');
+expect(count($categoryLists())===1,'archiving preserves category membership of products and lists');
+$server->handle('shoplibrary-category-archive',['id'=>'fruit','archived'=>false],$owner);
+expect($server->handle('shopcatalog-read',[],$owner)['archivedCategoryIds']===[],'restoring works');
+
+$server->handle('shoplibrary-share',[...$share,'role'=>'read'],$owner);
+$server->handle('shoplibrary-collection-archive',['id'=>$collection,'archived'=>true],$guest);
+expect($read()['archived']===true,'a recipient can archive their collection');
+expect($server->handle('shoplibrary-index',[],$owner)['collections'][0]['archived']===false,'archiving does not hide the owner collection');
+expect(count($read()['products'])>0,'archiving retains access');

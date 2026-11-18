@@ -1,7 +1,10 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.06';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.06';
-export function shopAppUrl(id,account,mode){
- const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261117-catalog');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check'||mode==='catalog')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');return url.href;
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.07';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.07';
+export function shopAppUrl(id,account,mode,{categoryId,collectionId}={}){
+ const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261118-category-board');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check'||mode==='catalog')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');
+ if(mode==='catalog'&&categoryId)url.searchParams.set('category',categoryId);
+ if(mode==='catalog'&&collectionId)url.searchParams.set('collection',collectionId);
+ return url.href;
 }
 // A session exposes only Shop operations. Sharon credentials never leave the host.
 export function createShopSession(api,selectedId){
@@ -17,7 +20,7 @@ export function createShopSession(api,selectedId){
   }
   if(action==='index'){const result=await api.index();return {...result,lists:result.lists.filter(row=>allowed.has(row.id))};}
   if(action==='catalog')return api.catalog();
-  if(action==='library'){if(['create','share','contacts'].includes(input.command))throw Error('Delen en toegang beheer je in Sharon.');return api.library(input.command,input.payload);}
+  if(action==='library'){if(['create','share','contacts','category-lists','category-archive','collection-archive'].includes(input.command))throw Error('Deze catalogusactie beheer je in Sharon.');return api.library(input.command,input.payload);}
   if(action==='writeCatalog')return api.writeCatalog(input.payload,input.revision,input.operation);
   if(action==='write'&&input.create){
    let result;
@@ -36,21 +39,25 @@ export function createShopSession(api,selectedId){
   throw Error('Deze actie wordt in Sharon beheerd.');
  };
 }
-export function mountShopApp(body,id,{api,mode,registerCleanup=()=>{}}={}){
+export function mountShopApp(body,id,{api,mode,categoryId,collectionId,onReturn,registerCleanup=()=>{}}={}){
  const frame=body.ownerDocument.createElement('iframe'),win=body.ownerDocument.defaultView;
  const origin=new URL(SHOPLIST_URL).origin,request=api&&createShopSession(api,id);let disposed=false,closeCatalog=()=>{};
  const receive=async event=>{
-  if(!disposed&&body.contains(frame)&&event.source===frame.contentWindow&&event.origin===origin&&event.data?.type==='shop:catalog-share'&&api){
+  if(disposed||!body.contains(frame)||event.source!==frame.contentWindow||event.origin!==origin)return;
+  if(event.data?.type==='shop:return-ready'&&onReturn){frame.dataset.returnReady='true';return;}
+  if(event.data?.type==='shop:return'&&onReturn){onReturn();return;}
+  if(event.data?.type==='shop:catalog-share'&&api){
    const {categoryId,collectionId}=event.data;if([categoryId,collectionId].some(id=>id!=null&&(typeof id!=='string'||id.length>160)))return;
    closeCatalog();closeCatalog=openShopCatalog({api,categoryId,collectionId});return;
   }
-  if(disposed||!body.contains(frame)||event.source!==frame.contentWindow||event.origin!==origin||event.data?.type!=='shop:request'||typeof event.data.requestId!=='string')return;
+  if(event.data?.type!=='shop:request'||typeof event.data.requestId!=='string')return;
   const {requestId,action,input}=event.data;let reply;
   try{if(!request)throw Error('De Shop-sessie is niet beschikbaar.');reply={result:await request(action,input)};}
   catch(error){reply={error:{message:error.message,code:error.code||'session_error'}};}
   if(!disposed&&body.contains(frame))frame.contentWindow.postMessage({type:'shop:response',requestId,...reply},origin);
  };
- frame.className='sh-shop-app';frame.title='ShopList';if(api){api.connection.device().then(device=>{if(!disposed)frame.src=shopAppUrl(id,device.personId,mode);}).catch(()=>{if(!disposed)frame.src=shopAppUrl(id,undefined,mode);});}else frame.src=shopAppUrl(id,undefined,mode);
+ const setSource=account=>{if(!disposed)frame.src=shopAppUrl(id,account,mode,{categoryId,collectionId});};
+ frame.className='sh-shop-app';frame.title='ShopList';if(api){api.connection.device().then(device=>setSource(device.personId)).catch(()=>setSource());}else setSource();
  frame.allow='camera; microphone';win.addEventListener('message',receive);
  registerCleanup(()=>{disposed=true;closeCatalog();win.removeEventListener('message',receive);});
  body.replaceChildren(frame);return frame;

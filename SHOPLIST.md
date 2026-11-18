@@ -24,4 +24,12 @@ Bij openen in een iframe gebruikt Shop een beperkte berichtenverbinding met Shar
 
 De URL bevat uitsluitend context: `account` (niet-geheim identiteit-ID voor opslagisolatie), `shoplist`, `from` en optioneel `view`. Shop controleert dat `account` overeenkomt met de identiteit uit de sessie. Lokale in-app-gegevens staan onder een aparte sleutel per identiteit en openingslijst; bestaande `bs.app.v1`-gegevens en de zelfstandige apparaatsleutel worden niet gelezen of vervangen. De sessie maakt geen permanente Shop-installatiekoppeling aan.
 
-Openen via Apps gebruikt dezelfde in-app-route zonder vooraf gekozen lijst; Verzamelen en Nieuwe lijst zijn beschikbaar. Het lijsticoon in een board opent de geselecteerde lijst binnen Sharon en maakt geen extern browservenster.
+Openen via Apps gebruikt dezelfde in-app-route zonder vooraf gekozen lijst; Verzamelen en Nieuwe lijst zijn beschikbaar. Met **Open ShopList** open je de geselecteerde lijst binnen Sharon.
+
+## Categorieboards
+
+Open in Sharon **Notities en lijsten → Catalogus**. Veeg een categorienstrook naar rechts om die categorie met haar subcategorieën te delen. Veeg naar links om de strook te archiveren. Terugzetten kan vanuit **Archief**. Het archief geldt per Sharon-identiteit. Gedeelde catalogi kunnen ook uit het eigen overzicht worden gearchiveerd.
+
+Een categorieboard toont bijpassende regels uit de actieve boodschappenlijsten die je mag lezen. De persoonlijke catalogus bepaalt bijpassende producten en subcategorieën. Elke lijst behoudt haar eigen aantallen en afvinkstatus. Vanuit het board kun je de categorie of een van de getoonde lijsten in ShopList openen.
+
+Publiceer voor deze wijziging eerst `server/connections.php` op de bestaande koppelserver, daarna ShopList en Sharon. Behoud de bestaande serverdata. Controleer delen en archiveren met twee identiteiten en de terugkeer vanuit ShopList op een iPhone.

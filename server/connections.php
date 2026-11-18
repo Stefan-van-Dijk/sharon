@@ -211,6 +211,18 @@ final class LogNetwork {
     }
 
     private function shopLibrary(string $action, array $input, string $personId): array {
+        if ($action === 'shoplibrary-category-lists' || $action === 'shoplibrary-category-archive') {
+            $categoryId = $this->shopLibraryIds([$input['id'] ?? null])[0];
+            $catalog = $this->state['shopcatalogs'][$personId]['payload'] ?? [];
+            $categories = array_column($catalog['categories'] ?? [], null, 'id');
+            if (!isset($categories[$categoryId]) || $categories[$categoryId]['name'] === 'Home') throw new LogNetworkError('invalid_collection');
+            if ($action === 'shoplibrary-category-lists') return ['lists'=>$this->shopCategoryLists($personId, $categoryId, $catalog, $categories)];
+            $archived = $input['archived'] ?? null;
+            if (!is_bool($archived)) throw new LogNetworkError('invalid_collection');
+            if ($archived) $this->state['shopCategoryArchive'][$personId][$categoryId] = true;
+            else unset($this->state['shopCategoryArchive'][$personId][$categoryId]);
+            return ['ok'=>true];
+        }
         $products = $this->state['shopProducts'] ?? [];
         $collections = $this->state['shopCollections'] ?? [];
         if (in_array($action, ['shoplibrary-product','shoplibrary-product-edit'], true)) {
@@ -283,7 +295,7 @@ final class LogNetwork {
             foreach ($collections as $row) {
                 $role = $row['ownerId'] === $personId ? 'owner' : ($row['members'][$personId] ?? null);
                 if ($role === null) continue;
-                $visible[] = $this->shopCollectionView($row, $role, $products);
+                $visible[] = [...$this->shopCollectionView($row, $role, $products), 'archived'=>isset($row['archived'][$personId])];
             }
             return ['collections'=>$visible];
         }
@@ -307,12 +319,17 @@ final class LogNetwork {
         }
         $role = !$row ? null : ($row['ownerId'] === $personId ? 'owner' : ($row['members'][$personId] ?? null));
         if ($role === null) throw new LogNetworkError('collection_forbidden', 403);
-        if ($action === 'shoplibrary-share') {
+        if ($action === 'shoplibrary-collection-archive') {
+            $archived = $input['archived'] ?? null;
+            if (!is_bool($archived)) throw new LogNetworkError('invalid_collection');
+            if ($archived) $row['archived'][$personId] = true;
+            else unset($row['archived'][$personId]);
+        } elseif ($action === 'shoplibrary-share') {
             if ($role !== 'owner') throw new LogNetworkError('owner_required', 403);
             $target = self::validId($input['personId'] ?? null);
             $permission = $input['role'] ?? null;
             if ($target === $personId || !in_array($permission, [null,'read','write'], true)) throw new LogNetworkError('invalid_collection');
-            if ($permission === null) unset($row['members'][$target]);
+            if ($permission === null) unset($row['members'][$target], $row['archived'][$target]);
             else {
                 if (count($row['members']) >= 30 && !isset($row['members'][$target])) throw new LogNetworkError('capacity', 409);
                 $contacts = $this->shopLibrary('shoplibrary-contacts', [], $personId)['contacts'];
@@ -354,13 +371,9 @@ final class LogNetwork {
         return array_intersect_key($product, array_flip(['id','name','brand','quantity','barcode','source','revision']));
     }
 
-    private function shopCollectionView(array $row, string $role, array $products): array {
-        $catalog = $this->state['shopcatalogs'][$row['ownerId']]['payload'] ?? [];
-        $categories = array_column($catalog['categories'] ?? [], null, 'id');
+    private function shopCategoryBranch(array $categories, array $todo): array {
         $seen = [];
         $entries = [];
-        $whole = ($row['scope'] ?? 'branch') === 'all';
-        $todo = $whole ? array_keys($categories) : $row['categories'];
         while ($todo) {
             $id = array_pop($todo);
             if (isset($seen[$id]) || !isset($categories[$id])) continue;
@@ -370,6 +383,46 @@ final class LogNetwork {
                 if ($entry['type'] === 'product') $entries[$entry['id']] = true;
             }
         }
+        return [$seen, $entries];
+    }
+
+    private function shopCategoryLists(string $personId, string $categoryId, array $catalog, array $categories): array {
+        [$branch, $entries] = $this->shopCategoryBranch($categories, [$categoryId]);
+        $ownProducts = array_column($catalog['products'] ?? [], null, 'id');
+        $byCentral = [];
+        foreach ($ownProducts as $product) {
+            $centralId = $product['centralId'] ?? null;
+            if (is_string($centralId)) $byCentral[$centralId][] = $product;
+        }
+        $matches = [];
+        foreach ($this->state['shoplists'] ?? [] as $row) {
+            if (isset($row['archived'][$personId]) && $row['archived'][$personId]) continue;
+            if ($row['ownerId'] !== $personId && !isset($row['members'][$personId])) continue;
+            $payload = $this->shoplistAction('shoplist-read', ['id'=>$row['id']], $personId)['list']['payload'];
+            $products = [];
+            foreach ($payload['products'] as $product) {
+                $sourceId = $product['catalogSourceId'] ?? null;
+                $centralId = $product['centralId'] ?? null;
+                $aliases = is_string($centralId) ? ($byCentral[$centralId] ?? []) : [];
+                $own = $ownProducts[$product['id']] ?? (is_string($sourceId) ? ($ownProducts[$sourceId] ?? null) : null)
+                    ?? (count($aliases) === 1 ? $aliases[0] : null);
+                $category = $own['categoryId'] ?? $product['categoryId'];
+                if (isset($branch[$category]) || ($own && isset($entries[$own['id']]))) $products[$product['id']] = $own['name'] ?? $product['name'];
+            }
+            $items = [];
+            foreach ($payload['list']['items'] as $item) {
+                if (isset($products[$item['productId']])) $items[] = ['name'=>$products[$item['productId']], 'quantity'=>$item['quantity'], 'done'=>$item['done']];
+            }
+            if ($items) $matches[] = ['id'=>$row['id'], 'name'=>$payload['list']['name'], 'items'=>$items];
+        }
+        return $matches;
+    }
+
+    private function shopCollectionView(array $row, string $role, array $products): array {
+        $catalog = $this->state['shopcatalogs'][$row['ownerId']]['payload'] ?? [];
+        $categories = array_column($catalog['categories'] ?? [], null, 'id');
+        $whole = ($row['scope'] ?? 'branch') === 'all';
+        [$seen, $entries] = $this->shopCategoryBranch($categories, $whole ? array_keys($categories) : $row['categories']);
         $visible = [];
         foreach ($catalog['products'] ?? [] as $product) {
             if (!$whole && !isset($seen[$product['categoryId']]) && !isset($entries[$product['id']])) continue;
@@ -396,7 +449,7 @@ final class LogNetwork {
 
     private function shopcatalogAction(string $action,array $in,string $pid):array {
         $row=$this->state['shopcatalogs'][$pid]??['revision'=>0,'payload'=>['categories'=>[],'products'=>[],'recipes'=>[]]];
-        if($action==='shopcatalog-read')return ['catalog'=>$row];
+        if($action==='shopcatalog-read')return ['catalog'=>$row,'archivedCategoryIds'=>array_map('strval',array_keys($this->state['shopCategoryArchive'][$pid]??[]))];
         if($action!=='shopcatalog-put')throw new LogNetworkError('unknown_action');
         $payload=$in['payload']??null;$operation=$in['operation']??null;
         if(!is_array($payload)||strlen(json_encode($payload))>500000||!is_string($operation)||!preg_match('/\A[a-f0-9-]{36}\z/',$operation))throw new LogNetworkError('invalid_catalog');
@@ -429,7 +482,11 @@ final class LogNetwork {
         if(($row['operation']??null)===$operation){if(($row['hash']??null)!==$hash)throw new LogNetworkError('catalog_conflict',409);return ['catalog'=>$row];}
         if(($in['revision']??null)!==$row['revision'])throw new LogNetworkError('catalog_conflict',409);
         $row=['payload'=>$payload,'revision'=>$row['revision']+1,'operation'=>$operation,'hash'=>$hash];
-        $this->state['shopcatalogs'][$pid]=$row;return ['catalog'=>$row];
+        $this->state['shopcatalogs'][$pid]=$row;
+        if (isset($this->state['shopCategoryArchive'][$pid])) {
+            $this->state['shopCategoryArchive'][$pid] = array_intersect_key($this->state['shopCategoryArchive'][$pid], array_fill_keys(array_column($payload['categories'], 'id'), true));
+        }
+        return ['catalog'=>$row];
     }
 
     private function shoplistAction(string $action,array $in,string $pid):array {
