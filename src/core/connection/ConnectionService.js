@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.06';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.06';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.07';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.07';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -18,6 +18,8 @@ const errors = {
   list_read_only:'Je mag deze boodschappenlijst alleen bekijken.',
   list_exists:'Deze lijst is al verbonden. Open de bestaande online lijst.',
   catalog_conflict:'Je catalogus is elders gewijzigd. Haal de actuele keuzes op en probeer opnieuw.',
+  collection_forbidden:'Je hebt geen toegang meer tot deze gedeelde catalogus.',
+  invalid_collection:'Deze categorie of gedeelde catalogus is niet beschikbaar. Open de catalogus opnieuw.',
   invalid_catalog:'De catalogus bevat ongeldige gegevens of is te groot.',
   invalid_list:'De boodschappenlijst is ongeldig of te groot.',
   unknown_action:'Werk het serverbestand connections.php bij om deze verbindingsfunctie te gebruiken.',

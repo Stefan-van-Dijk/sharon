@@ -42,8 +42,10 @@ test('Lost create acknowledgement recovers only matching owned content',async()=
 
 test('Catalog opens in Shop while sharing privileges stay in Sharon',async()=>{
  assert.equal(new URL(shopAppUrl(null,null,'catalog')).searchParams.get('view'),'catalog');
+ assert.equal(new URL(shopAppUrl(null,null,'catalog',{categoryId:'fruit'})).searchParams.get('category'),'fruit');
+ assert.equal(new URL(shopAppUrl(null,null,'catalog',{collectionId:'collection'})).searchParams.get('collection'),'collection');
  const api={connection:{device:async()=>({registered:true,personId:'me',self:{line:0}})},library:async command=>command};
  const request=createShopSession(api,null);
- for(const command of ['share','create','contacts'])await assert.rejects(request('library',{command}),/Sharon/);
+ for(const command of ['share','create','contacts','category-lists','category-archive','collection-archive'])await assert.rejects(request('library',{command}),/Sharon/);
  assert.equal(await request('library',{command:'index'}),'index');
 });
