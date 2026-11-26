@@ -543,6 +543,7 @@ export function createShell(root, {
       install,
       events,
       store,
+      accountAvailable:!demoMode,
       resetNetwork:()=>chatMonitor.resetNetwork(),
       onNetworkReset:()=>{networkMember=false;},
       onNetworkStart:()=>openModule('people',{activate:true})

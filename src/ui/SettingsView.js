@@ -8,6 +8,7 @@ export function openSettings(root, {
   events,
   settingsStore = null,
   store = null,
+  accountAvailable = true,
   onNetworkReset=()=>{},
   resetNetwork=null,
   onNetworkStart=()=>{}
@@ -53,7 +54,7 @@ export function openSettings(root, {
         </button>
       </section>`:''}
 
-      ${store?`<details class="settings-section" data-account-settings></details>`:''}
+      ${store&&accountAvailable?`<details class="settings-section" data-account-settings></details>`:''}
 
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
@@ -118,7 +119,8 @@ export function openSettings(root, {
 
   let disposed=false;
   const roleService=store?new ConnectionService(store):null;
-  if(roleService)mountAccountSettings(root.querySelector('[data-account-settings]'),roleService);
+  const accountHost=root.querySelector('[data-account-settings]');
+  if(accountHost)mountAccountSettings(accountHost,roleService);
   async function renderRole(verified=false){
     if(!roleService)return;
     const device=await roleService.device();
