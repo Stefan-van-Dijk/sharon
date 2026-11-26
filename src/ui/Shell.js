@@ -1,23 +1,23 @@
-import { openAgendaView } from './AgendaView.js?v=0.5.15';
-import {openAppsView} from './AppsView.js?v=0.5.15';
-import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.5.15';
-import { openNotesView } from './NotesView.js?v=0.5.15';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.15';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.5.15';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.15';
-import { mountCardArrival } from './CardArrival.js?v=0.5.15';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.5.15';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.5.15';
-import { syncViewportHeight } from './Viewport.js?v=0.5.15';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.15';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.5.15';
-import { openPeopleView } from './PeopleView.js?v=0.5.15';
-import { openCardsView } from './CardsView.js?v=0.5.15';
-import { openLocationsView } from './LocationsView.js?v=0.5.15';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.5.15';
-import { openSettings } from './SettingsView.js?v=0.5.15';
-import { sharonWordmark } from './Brand.js?v=0.5.15';
-import { bindSwipeHome } from './SwipeHome.js?v=0.5.15';
+import { openAgendaView } from './AgendaView.js?v=0.5.16';
+import {openAppsView} from './AppsView.js?v=0.5.16';
+import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.5.16';
+import { openNotesView } from './NotesView.js?v=0.5.16';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.16';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.5.16';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.16';
+import { mountCardArrival } from './CardArrival.js?v=0.5.16';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.5.16';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.5.16';
+import { syncViewportHeight } from './Viewport.js?v=0.5.16';
+import { SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.16';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.5.16';
+import { openPeopleView } from './PeopleView.js?v=0.5.16';
+import { openCardsView } from './CardsView.js?v=0.5.16';
+import { openLocationsView } from './LocationsView.js?v=0.5.16';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.5.16';
+import { openSettings } from './SettingsView.js?v=0.5.16';
+import { sharonWordmark } from './Brand.js?v=0.5.16';
+import { bindSwipeHome } from './SwipeHome.js?v=0.5.16';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -38,7 +38,7 @@ const MENU_ORDER = ['environment','locations','cards','persons','objects','theme
 const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities & lijsten',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.5.15';
+const APP_VERSION = '0.5.16';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -68,7 +68,7 @@ export function createShell(root, {
   };
   chatMonitor.subscribe(state=>{chatState=state;updatePeopleNotice();});
   let networkMember = false;
-  let demoMode = workspace?.testMode || false;
+  const demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
   const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
   events.on('app.update.ready', () => {
@@ -695,9 +695,8 @@ export function createShell(root, {
   });
 
   setHeaderMode('home');
-  Promise.all([demoWorkspace(store),store.get('meta','connection.device.log-json.v1')]).then(([{enabled},device]) => {
+  store.get('meta','connection.device.log-json.v1').then(device => {
     networkMember=device?.value?.registered===true && Number.isInteger(device?.value?.self?.line);
-    demoMode=enabled;
     if(!demoMode)chatMonitor.start();
     if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
     mountCardArrival({
@@ -705,7 +704,7 @@ export function createShell(root, {
       canOpen: () => currentView === 'home' && !outlet.classList.contains('is-changing') &&
         !outlet.querySelector('form') && !document.querySelector('[role="dialog"], .story-layer')
     });
-  }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);viewCleanup = renderHome(); });
+  }).catch(error => { console.warn('Home kon niet worden bijgewerkt',error);viewCleanup = renderHome(); });
 
   if (initialModule === 'people' && !demoMode) {
     queueMicrotask(() => openModule('people', {animate: false}));
