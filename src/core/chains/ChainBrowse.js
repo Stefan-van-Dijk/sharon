@@ -1,8 +1,8 @@
-import {ShopAreaCache} from './ShopAreaCache.js?v=0.5.11';
-import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.5.11';
-import {fetchShopSource} from './ShopSource.js?v=0.5.11';
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.5.11';
-import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.5.11';
+import {ShopAreaCache} from './ShopAreaCache.js?v=0.5.12';
+import {EnvironmentShopCache} from './EnvironmentShopCache.js?v=0.5.12';
+import {fetchShopSource} from './ShopSource.js?v=0.5.12';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.5.12';
+import {CHAIN_ENDPOINT} from './ChainSyncService.js?v=0.5.12';
 export class ChainBrowse {
  constructor({fetcher=(...args)=>fetch(...args),clock=()=>Date.now(),requestIntervalMs=1100,forceRefresh=false,useAreaStorage=false}={}){this.fetcher=fetcher;this.clock=clock;this.cache=new Map();this.pending=new Map();this.worldRetryAt=0;this.areas=[];this.requestIntervalMs=requestIntervalMs;this.lastMapRequestAt=0;this.shopStorage=new EnvironmentShopCache(fetcher);this.forceRefresh=forceRefresh;this.useAreaStorage=useAreaStorage;this.diskCache=new ShopAreaCache();this.localRefreshes=new Map();this.updatedBounds=new Set();}
  async request(input,signal){

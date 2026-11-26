@@ -122,3 +122,21 @@ test('Preview CTA opens the selected list in the remembered mode',async t=>{
  const cta=document.querySelector('.sh-shop-preview-open');assert.equal(cta.textContent,'Verder met afstrepen');cta.click();await settle();
  const url=new URL(document.querySelector('iframe').src);assert.equal(url.searchParams.get('shoplist'),'shared');assert.equal(url.searchParams.get('view'),'check');
 });
+
+test('ShopList catalog can be removed from the Sharon overview and restored after reopening',async t=>{
+ const f=fixture(t,false);
+ let stop=await openNotesView(f.outlet,f);
+ t.after(()=>stop());
+ const catalog=()=>f.outlet.querySelector('[data-swipe-row="shop:catalog"]');
+ catalog().querySelector('[data-swipe-delete]').click();
+ [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijder uit Sharon').click();
+ await settle();
+ assert.equal(catalog(),null);
+ stop();stop=await openNotesView(f.outlet,f);
+ assert.equal(catalog(),null);
+ f.outlet.querySelector('[data-notes-archive]').click();
+ catalog().querySelector('[data-swipe-secondary]').click();
+ await settle();
+ assert(catalog());
+ assert.equal(f.records.size,0);
+});
