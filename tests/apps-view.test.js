@@ -52,3 +52,14 @@ test('Existing profile without Home preference starts with all current choices e
  document.querySelector('[data-module-choice="locations"] button').click();await settle();
  assert.deepEqual(f.settings.get().home.modules,['environment','notes']);
 });
+
+test('Event Line opens the standalone webapp from Apps independently of ShopList', t => {
+ const f=fixture(t);
+ document.querySelector('[data-apps-tab="apps"]').click();
+ const link=document.querySelector('a[data-app-link="eventline"]');
+ assert.equal(link.href,'https://sharon.life/eventline/');
+ assert.equal(link.target,'_blank');
+ assert.equal(link.relList.contains('noopener'),true);
+ assert(document.querySelector('button[data-app-connection="shoplist"]'));
+ assert.deepEqual(f.settings.get().home.modules,['environment','locations']);
+});
