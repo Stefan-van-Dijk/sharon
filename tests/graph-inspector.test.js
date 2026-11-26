@@ -5,9 +5,8 @@ import {demoDataset} from '../src/core/skeleton/SkeletonCore.js';
 import {graphConnections} from '../src/core/skeleton/GraphService.js';
 const settings=readFileSync(new URL('../src/ui/SettingsView.js',import.meta.url),'utf8');
 const inspector=readFileSync(new URL('../src/ui/GraphInspector.js',import.meta.url),'utf8');
-test('graph inspector is isolated to demo Settings, not an app module',()=>{
- assert.match(settings,/data-graph-settings[^>]*hidden/);
- assert.match(settings,/inspector.hidden=!enabled/);
+test('graph inspector is no longer exposed in Settings',()=>{
+ assert.doesNotMatch(settings,/data-graph-settings|data-skeleton-toggle/);
  assert.match(inspector,/demoWorkspace\(store\)/);
  assert.doesNotMatch(inspector,/store\.getAll\('objects'\)/);
  assert.doesNotMatch(inspector,/store\.put\(/);

@@ -1,23 +1,23 @@
-import {openShopCatalog} from './ui/ShopCatalog.js?v=0.5.15';
-import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.5.15';
-import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.5.15';
-import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.5.15';
-import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.5.15';
-import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.5.15';
-import { IdentifierService } from './core/ids/IdentifierService.js?v=0.5.15';
-import { EventBus } from './core/events/EventBus.js?v=0.5.15';
-import { ObjectStore } from './core/storage/ObjectStore.js?v=0.5.15';
-import { SettingsService } from './core/settings/SettingsService.js?v=0.5.15';
-import { LocationService } from './core/location/LocationService.js?v=0.5.15';
-import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.5.15';
-import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.5.15';
-import { InstallService } from './core/app/InstallService.js?v=0.5.15';
-import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.5.15';
-import { createShell } from './ui/Shell.js?v=0.5.15';
-import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.5.15';
-import { runStory } from './ui/Story.js?v=0.5.15';
+import {openShopCatalog} from './ui/ShopCatalog.js?v=0.5.16';
+import { ChainSyncService } from './core/chains/ChainSyncService.js?v=0.5.16';
+import { InformationFeedbackService } from './core/information/InformationFeedbackService.js?v=0.5.16';
+import { captureConnectionLink, ConnectionService } from './core/connection/ConnectionService.js?v=0.5.16';
+import { demoWorkspace } from './core/skeleton/SkeletonCore.js?v=0.5.16';
+import { createDemoWorkspaceStore } from './core/skeleton/DemoWorkspaceStore.js?v=0.5.16';
+import { IdentifierService } from './core/ids/IdentifierService.js?v=0.5.16';
+import { EventBus } from './core/events/EventBus.js?v=0.5.16';
+import { ObjectStore } from './core/storage/ObjectStore.js?v=0.5.16';
+import { SettingsService } from './core/settings/SettingsService.js?v=0.5.16';
+import { LocationService } from './core/location/LocationService.js?v=0.5.16';
+import { ReverseGeocodeService } from './core/location/ReverseGeocodeService.js?v=0.5.16';
+import { LocationTriggerService } from './core/location/LocationTriggerService.js?v=0.5.16';
+import { InstallService } from './core/app/InstallService.js?v=0.5.16';
+import { ModuleRegistry } from './modules/ModuleRegistry.js?v=0.5.16';
+import { createShell } from './ui/Shell.js?v=0.5.16';
+import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.5.16';
+import { runStory } from './ui/Story.js?v=0.5.16';
 
-export async function createApp() {
+export async function createApp({ testWorkspace = false } = {}) {
   const events = new EventBus();
   const store = new ObjectStore();
   const settings = new SettingsService(store, events);
@@ -33,7 +33,7 @@ export async function createApp() {
   try { await captureConnectionLink(store); }
   catch (error) { connectionNotice = error.message; }
 
-  const workspaceState = await demoWorkspace(store);
+  const workspaceState = testWorkspace ? await demoWorkspace(store) : { enabled: false };
   const workspace = { testMode: workspaceState.enabled, store: workspaceState.enabled ? createDemoWorkspaceStore(store) : store };
 
   const location = new LocationService({ events, settings });
