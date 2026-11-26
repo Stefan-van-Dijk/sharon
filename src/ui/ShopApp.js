@@ -1,5 +1,5 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.13';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.13';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.14';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.14';
 export function shopAppUrl(id,account,mode,{categoryId,collectionId}={}){
  const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261118-category-board');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check'||mode==='catalog')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');
  if(mode==='catalog'&&categoryId)url.searchParams.set('category',categoryId);
