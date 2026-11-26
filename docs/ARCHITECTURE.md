@@ -73,3 +73,7 @@ Delen is geen opslagmodel van een losse module. Het wordt een generieke capabili
 ## Werkruimte
 
 Locaties, Kaarten, Omgeving en Home ontvangen de bij appstart geselecteerde werkruimte. Dezelfde modulecode werkt met persoonlijke opslag of met de gedeelde testopslag. Ook locatieacties gebruiken deze selectie, zodat testen geen persoonlijke acties uitvoert. Bestaande skeletobjecten worden door één adapter vertaald, met behoud van identifiers en relaties. Zie [gedeelde werkruimte](Gedeelde-werkruimte.md) voor migratie, scope en praktijkscenario.
+
+## Gedeelde informatie
+
+Zie de [gedeelde informatiearchitectuur](Gedeelde-informatiearchitectuur.md) voor bronhouderschap, het ID12-verwijzingscontract en het tijdregister.

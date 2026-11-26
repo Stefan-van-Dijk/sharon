@@ -211,6 +211,24 @@ export class ObjectStore {
     });
   }
 
+  async addTimeEntry(entry) {
+    return this.#write('objects', table => table.add(entry));
+  }
+
+  async removeTimeEntry(id) {
+    if (!this.#db) throw new Error('ObjectStore is nog niet geopend.');
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction('objects', 'readwrite');
+      const table = tx.objectStore('objects');
+      const request = table.get(id);
+      request.onsuccess = () => {
+        if (request.result?.type === 'time-entry') table.delete(id);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error || new Error('Verwijderen is afgebroken.'));
+    });
+  }
+
   async put(storeName, value) {
     return this.#write(storeName, table => table.put(value));
   }

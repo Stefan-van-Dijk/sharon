@@ -1,4 +1,4 @@
-import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.5.07';
+import { CHAIN_CATALOG } from './ChainCatalog.js?v=0.5.08';
 
 const normalize = value => String(value ?? '').normalize('NFKD').replace(/\p{M}/gu,'')
   .toLocaleLowerCase('nl').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
