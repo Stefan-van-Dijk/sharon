@@ -1,5 +1,5 @@
-import { MAX_CONNECTION_BACKUP_BYTES } from '../core/connection/ConnectionBackup.js?v=0.5.14';
-import { focusTextField } from './TextInputFocus.js?v=0.5.14';
+import { MAX_CONNECTION_BACKUP_BYTES } from '../core/connection/ConnectionBackup.js?v=0.5.15';
+import { focusTextField } from './TextInputFocus.js?v=0.5.15';
 
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
@@ -140,10 +140,13 @@ function showIdentityChoice(root, readPersonId, restoreBackup) {
       <p>Je kunt Sharon op dit toestel gebruiken zonder account.</p>
       <button type="button" data-intro-local>Verder op dit toestel</button>
       ${restoreBackup ? `<details>
-        <summary>Verbindingen herstellen uit back-up</summary>
+        <summary>Herstellen uit back-up</summary>
         <form data-intro-backup>
           <label>Back-upbestand <input name="backup" type="file" accept=".sharon-backup,application/json" required></label>
           <label>Wachtzin <input name="password" type="password" autocomplete="off" required></label>
+          <label>Wat wil je herstellen?
+            <select name="scope"><option value="connections">Alleen mijn verbindingen</option><option value="full">Ook mijn lokale items en instellingen</option></select>
+          </label>
           <button type="submit">Herstellen</button>
           <p role="status" data-intro-restore-status></p>
         </form>
@@ -166,7 +169,7 @@ function showIdentityChoice(root, readPersonId, restoreBackup) {
     const submit = form.querySelector('button');
     if (submit.disabled) return;
     const result = form.querySelector('[data-intro-restore-status]');
-    const { backup, password } = form.elements;
+    const { backup, password, scope } = form.elements;
     const file = backup.files[0];
     if (!file || file.size > MAX_CONNECTION_BACKUP_BYTES) {
       result.textContent = 'Kies een geldig Sharon-back-upbestand.';
@@ -175,9 +178,12 @@ function showIdentityChoice(root, readPersonId, restoreBackup) {
     submit.disabled = next.disabled = identity.disabled = true;
     result.textContent = 'Verbindingen controleren…';
     try {
-      await restoreBackup(await file.text(), password.value);
+      const withLocal = scope.value === 'full';
+      await restoreBackup(await file.text(), password.value, {withLocal});
       form.reset();
-      result.textContent = 'Je Sharon-ID is teruggezet. Je kunt verder op dit toestel.';
+      result.textContent = withLocal
+        ? 'Je Sharon-ID en lokale gegevens zijn teruggezet.'
+        : 'Je Sharon-ID is teruggezet. Je kunt verder op dit toestel.';
     } catch (error) {
       result.textContent = error.message;
     } finally {

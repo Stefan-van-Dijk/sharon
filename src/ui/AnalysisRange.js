@@ -1,4 +1,4 @@
-import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.5.14';
+import { distanceMeters } from '../core/location/GeographicBranchIndex.js?v=0.5.15';
 export const ANALYSIS_RANGE_KEY='sharon.boards.analysis-range.v1';
 export const ANALYSIS_PREVIEW_EVENT='sharon-analysis-preview-changed';
 export const ANALYSIS_VISIBILITY_EVENT='sharon-analysis-visibility-changed';

@@ -71,3 +71,32 @@ test('Schone onboarding zet vanuit een back-up de bestaande serveridentiteit ter
   await until(async () => (await app.store.get('settings','app')).value.profile.name === 'Testpersoon');
   assert.deepEqual(app.errors, []);
 });
+
+test('Volledig herstel houdt lokale items en voorkeuren uit de back-up', async t => {
+  const app = await appHarness({ firstRun: true }); t.after(() => app.close());
+  const password = 'een lange, aparte wachtzin';
+  const { encryptConnectionBackup } = await app.load('./src/core/connection/ConnectionBackup.js?v=0.5.15');
+  const item = {id:'mijn-notitie',type:'note',name:'Mijn lokale notitie'};
+  const prefs = {key:'app',value:{profile:{name:'Bewaarde naam'},onboarding:{storySeen:true},home:{modules:['notes']}}};
+  const backup = await encryptConnectionBackup({personId:'MijnSharon12',deviceToken:'a'.repeat(43)}, password,
+    {objects:[item],tracks:[],settings:[prefs],meta:[]});
+  // The test harness normally seeds a sample place. Simulate an empty installation.
+  for (const row of await app.store.getAll('objects')) await app.store.delete('objects',row.id);
+  app.boot().catch(() => {});
+  (await until(() => app.document.querySelector('.story-continue'))).click();
+  const input = await until(() => app.document.querySelector('[data-sharon-intro-form] input'));
+  input.value = 'Tijdelijke naam';
+  input.form.dispatchEvent(new app.window.Event('submit', {bubbles:true,cancelable:true}));
+  const form = await until(() => app.document.querySelector('[data-intro-backup]'));
+  Object.defineProperty(form.elements.backup,'files',{value:[{size:backup.length,text:async()=>backup}]});
+  form.elements.password.value = password;
+  form.elements.scope.value = 'full';
+  form.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
+  await until(() => form.querySelector('[role="status"]').textContent.includes('lokale gegevens zijn teruggezet'));
+  app.document.querySelector('[data-intro-local]').click();
+  await until(() => app.document.querySelector('[data-home-manage]'));
+  assert.deepEqual(await app.store.get('objects',item.id),item);
+  assert.deepEqual(await app.store.get('settings','app'),prefs);
+  assert(app.document.querySelector('[data-module="notes"]'));
+  assert.deepEqual(app.errors,[]);
+});
