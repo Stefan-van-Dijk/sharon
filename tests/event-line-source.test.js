@@ -13,7 +13,7 @@ test('only the public Event Line URL can be bookmarked', () => {
     eventLineLink(selector).replace('sharon.life', 'example.com'),
     eventLineLink(selector).replace('https:', 'http:'),
     eventLineLink(selector) + '&event=' + selector,
-    'https://sharon.life/eventlijn/api/index.php?event=' + selector
+    'https://sharon.life/eventline/api/index.php?event=' + selector
   ]) assert.throws(() => eventLineSelector(url));
 });
 
@@ -27,7 +27,7 @@ test('Agenda stores references only and resolves current public event data witho
   let isPublic = true;
   const source = new EventLineSource(store, async (url, options) => {
     assert.equal(url.origin, 'https://sharon.life');
-    assert.equal(url.pathname, '/eventlijn/api/index.php');
+    assert.equal(url.pathname, '/eventline/api/index.php');
     assert.equal(url.searchParams.get('publicEvent'), selector);
     assert.equal(options.credentials, 'omit');
     assert.equal(options.cache, 'no-store');

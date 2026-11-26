@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.08';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.10';
 
 const namespace = /^[a-z][a-z0-9-]{0,39}$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;

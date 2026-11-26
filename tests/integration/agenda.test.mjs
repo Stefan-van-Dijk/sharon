@@ -52,7 +52,7 @@ test('Agenda volgt een openbaar evenement bij de bron, met behoud van persoonlij
     return until(() => app.document.querySelector('[data-view-outlet] form'));
   };
   const form = await openAgenda();
-  form.elements.link.value = 'https://sharon.life/eventlijn/openbaar.html?event=' + selector;
+  form.elements.link.value = 'https://sharon.life/eventline/openbaar.html?event=' + selector;
   form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => app.document.querySelector('[data-view-outlet] a')?.textContent === 'Testbeurs');
   const connections = app.document.querySelector('[data-view-outlet] details form');
