@@ -9,7 +9,7 @@ import { mountCardArrival } from './CardArrival.js?v=0.5.17';
 import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.5.17';
 import { mountHomeCardContext } from './HomeCardContext.js?v=0.5.17';
 import { syncViewportHeight } from './Viewport.js?v=0.5.17';
-import { demoWorkspace, SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.17';
+import { SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.17';
 import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.5.17';
 import { openPeopleView } from './PeopleView.js?v=0.5.17';
 import { openCardsView } from './CardsView.js?v=0.5.17';
@@ -68,7 +68,7 @@ export function createShell(root, {
   };
   chatMonitor.subscribe(state=>{chatState=state;updatePeopleNotice();});
   let networkMember = false;
-  let demoMode = workspace?.testMode || false;
+  const demoMode = workspace?.testMode || false;
   const testWorkspaceStore = workspace?.testMode ? workspace.store : createDemoWorkspaceStore(store);
   const activeStore = () => workspace?.store || (demoMode ? testWorkspaceStore : store);
   events.on('app.update.ready', () => {
@@ -695,9 +695,8 @@ export function createShell(root, {
   });
 
   setHeaderMode('home');
-  Promise.all([demoWorkspace(store),store.get('meta','connection.device.log-json.v1')]).then(([{enabled},device]) => {
+  store.get('meta','connection.device.log-json.v1').then(device => {
     networkMember=device?.value?.registered===true && Number.isInteger(device?.value?.self?.line);
-    demoMode=enabled;
     if(!demoMode)chatMonitor.start();
     if (currentView === 'home') { viewCleanup?.(); viewCleanup = renderHome(); }
     mountCardArrival({
@@ -705,7 +704,7 @@ export function createShell(root, {
       canOpen: () => currentView === 'home' && !outlet.classList.contains('is-changing') &&
         !outlet.querySelector('form') && !document.querySelector('[role="dialog"], .story-layer')
     });
-  }).catch(error => { console.warn('Skelet testomgeving kon niet laden',error);viewCleanup = renderHome(); });
+  }).catch(error => { console.warn('Home kon niet worden bijgewerkt',error);viewCleanup = renderHome(); });
 
   if (initialModule === 'people' && !demoMode) {
     queueMicrotask(() => openModule('people', {animate: false}));

@@ -68,3 +68,11 @@ test('Repeated returns to Home consume the module history entry instead of leavi
  history.back();await until(()=>app.document.querySelector('[data-home-manage]'));
  assert.equal(history.state.__sharonNavigation,'home');assert.deepEqual(app.errors,[]);
 });
+
+test('De openbare app negeert een oude testinstelling en behoudt persoonlijke gegevens',async t=>{
+ const app=await appHarness({root:resolve('.'),staleDemoFlag:true});t.after(()=>app.close());
+ await app.boot();
+ await until(()=>app.document.querySelector('[data-home-manage]'));
+ assert.equal(app.document.querySelector('.sh-skeleton-home-label'),null);
+ assert.equal((await app.store.get('objects','TestPlace001')).data.title,'Persoonlijke plek');
+});

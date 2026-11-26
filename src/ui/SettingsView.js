@@ -1,6 +1,4 @@
 import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.17';
-import {mountGraphInspector} from './GraphInspector.js?v=0.5.17';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.17';
 export function openSettings(root, {
   settings,
   install,
@@ -100,14 +98,7 @@ export function openSettings(root, {
       </section>
 
       <section class="settings-section">
-        <span class="settings-kicker">Testen / ontwikkeling</span>
-        <label class="settings-row" for="sh-skeleton-test-toggle">
-          <span><strong>Testomgeving gebruiken</strong><small>Wissel de volledige app naar afzonderlijke voorbeeldgegevens.</small></span>
-          <input id="sh-skeleton-test-toggle" data-skeleton-toggle type="checkbox" aria-label="Testomgeving gebruiken">
-        </label>
-        <p class="privacy-note" data-skeleton-explanation>Je eigen gegevens blijven bewaard. De app herstart in de gekozen omgeving.</p>
-        <details class="sh-graph-settings" data-graph-settings hidden><summary>Graphinspectie</summary><div data-graph-inspector></div></details>
-
+        <span class="settings-kicker">Opnieuw beginnen</span>
         <button type="button" class="settings-row" data-reset-onboarding>
           <span><strong>Onboarding opnieuw starten</strong><small>Behoud locaties en overige gegevens.</small></span>
           <span class="settings-arrow">›</span>
@@ -206,31 +197,6 @@ export function openSettings(root, {
   });
   root.querySelector('[data-start-network]')?.addEventListener('click',()=>onNetworkStart());
 
-  if (store) {
-    const demoToggle = root.querySelector('[data-skeleton-toggle]');
-    demoWorkspace(store).then(({enabled}) => {
-      if (!demoToggle.isConnected) return;
-      demoToggle.checked=enabled;
-      const inspector=root.querySelector('[data-graph-settings]');
-      inspector.hidden=!enabled;
-      inspector.addEventListener('toggle',()=>{
-        if(inspector.open) mountGraphInspector(root.querySelector('[data-graph-inspector]'),store).catch(()=>{
-          root.querySelector('[data-graph-inspector]').textContent='Graphinspectie is niet beschikbaar.';
-        });
-      });
-    });
-    demoToggle.addEventListener('change',async event => {
-      demoToggle.disabled=true;
-      try {
-        await setDemoEnabled(store,event.target.checked);
-        window.location.reload();
-      } catch {
-        demoToggle.checked=!event.target.checked;
-        demoToggle.disabled=false;
-        root.querySelector('[data-skeleton-explanation]').textContent='Omschakelen is niet gelukt. Probeer het opnieuw.';
-      }
-    });
-  }
   const profileForm = root.querySelector('[data-profile-form]');
   const installButton = root.querySelector('[data-install-action]');
   const installHelp = root.querySelector('[data-install-help]');

@@ -7,7 +7,7 @@ import { IDBFactory } from 'fake-indexeddb';
 
 // Runs unmodified packaged modules in an isolated DOM and IndexedDB per test.
 // This is a DOM integration test, not a rendering, real GPS or service-worker test.
-export async function appHarness({ root = resolve('_site'), demo = false, storageFailure = false, firstRun = false } = {}) {
+export async function appHarness({ root = resolve('_site'), demo = false, storageFailure = false, firstRun = false, staleDemoFlag = false } = {}) {
   const errors = [], requests = [], gps = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', error => errors.push(error.message));
@@ -36,7 +36,11 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
     if (modules.has(key)) return modules.get(key);
     const path = resolve(root, '.' + url.pathname.replace(/^\/sharon/, ''));
     if (!path.startsWith(resolve(root) + sep)) throw Error('Module buiten artifact');
-    const module = new vm.SourceTextModule(readFileSync(path, 'utf8'), { context, identifier: key,
+    let source = readFileSync(path, 'utf8');
+    if (demo && url.pathname.endsWith('/src/main.js')) {
+      source = source.replace('await createApp()', 'await createApp({ testWorkspace: true })');
+    }
+    const module = new vm.SourceTextModule(source, { context, identifier: key,
       initializeImportMeta(meta) { meta.url = key; },
       importModuleDynamically: async (spec, parent) => {
         const child = getModule(new URL(spec, parent.identifier));
@@ -62,7 +66,7 @@ export async function appHarness({ root = resolve('_site'), demo = false, storag
     store = await new ObjectStore().open();
     if (!firstRun) await store.put('settings', { key: 'app', value: { profile: { name: 'Testgebruiker' }, onboarding: { storySeen: true } } });
     await store.put('objects', { id: 'TestPlace001', type: 'location', data: { title: 'Persoonlijke plek', kind: 'other', address: {} } });
-    await store.put('meta', { key: 'skeleton.demo.enabled', value: demo });
+    await store.put('meta', { key: 'skeleton.demo.enabled', value: demo || staleDemoFlag });
   }
   return { window: w, document: w.document, errors, requests, gps, store, load,
     boot() {

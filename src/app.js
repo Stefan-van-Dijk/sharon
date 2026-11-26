@@ -17,7 +17,7 @@ import { createShell } from './ui/Shell.js?v=0.5.17';
 import { runFirstIntro, runReturningIntro } from './ui/Boot.js?v=0.5.17';
 import { runStory } from './ui/Story.js?v=0.5.17';
 
-export async function createApp() {
+export async function createApp({ testWorkspace = false } = {}) {
   const events = new EventBus();
   const store = new ObjectStore();
   const settings = new SettingsService(store, events);
@@ -33,7 +33,7 @@ export async function createApp() {
   try { await captureConnectionLink(store); }
   catch (error) { connectionNotice = error.message; }
 
-  const workspaceState = await demoWorkspace(store);
+  const workspaceState = testWorkspace ? await demoWorkspace(store) : { enabled: false };
   const workspace = { testMode: workspaceState.enabled, store: workspaceState.enabled ? createDemoWorkspaceStore(store) : store };
 
   const location = new LocationService({ events, settings });
