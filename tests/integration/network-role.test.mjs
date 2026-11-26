@@ -36,3 +36,45 @@ test('checking a cached role handles revoked access and connection failure hones
  root.querySelector('[data-check-role]').click();await until(()=>root.querySelector('[data-role-label]').textContent==='Nog geen netwerktoegang');
  assert.equal((await app.store.get('meta','connection.device.log-json.v1')).value.self.line,null);
 });
+
+test('the packaged Settings route switches organizations within the live account',async t=>{
+ const app=await appHarness();t.after(()=>app.close());
+ const {ConnectionService}=await app.load('./src/core/connection/ConnectionService.js?v='+version);
+ const service=new ConnectionService(app.store),device=await service.device();
+ await service.rememberSelf({personId:device.personId,networkId:'Network00001',line:0});
+ const calls=[];
+ const organizations=[{id:'Organisatie1',name:'Bouwgroep',role:'viewer'},{id:'Organisatie2',name:'Gevelgroep',role:'member'}];
+ app.window.fetch=async(_,options)=>{
+  const input=JSON.parse(options.body);
+  if(input.action==='account-self'){
+   assert.equal(options.headers['X-Log-Access-Token'],device.deviceToken);
+   calls.push(input.action);
+   return {ok:true,json:async()=>({account:{personId:device.personId,emails:[],organizations}})};
+  }
+  if(input.action==='organization-select'){
+   calls.push(input.action);
+   return {ok:true,json:async()=>({organization:organizations.find(row=>row.id===input.organizationId)})};
+  }
+  throw new TypeError('Offline');
+ };
+ await app.boot();
+ (await until(()=>app.document.querySelector('[data-settings]'))).click();
+ const account=await until(()=>app.document.querySelector('[data-account-settings]'));
+ account.open=true;
+ await until(()=>account.querySelector('[data-account-body]:not([hidden])'));
+ const selector=account.querySelector('[data-organization-select]');
+ selector.elements.organization.value='Organisatie2';
+ selector.dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
+ const stored=await until(async()=>await app.store.get('meta','account.organization.v1.'+device.personId));
+ assert.equal(stored.value,'Organisatie2');
+ assert.deepEqual(calls,['account-self','organization-select']);
+ assert.deepEqual(app.errors,[]);
+});
+
+test('the demo Settings route does not open the personal account',async t=>{
+ const app=await appHarness({demo:true});t.after(()=>app.close());
+ await app.boot();
+ (await until(()=>app.document.querySelector('[data-settings]'))).click();
+ await until(()=>app.document.querySelector('[data-profile-form]'));
+ assert.equal(app.document.querySelector('[data-account-settings]'),null);
+});

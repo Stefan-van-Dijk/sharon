@@ -1,12 +1,14 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.08';
-import {mountGraphInspector} from './GraphInspector.js?v=0.5.08';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.08';
+import {mountAccountSettings} from './AccountSettings.js?v=0.5.09';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.09';
+import {mountGraphInspector} from './GraphInspector.js?v=0.5.09';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.09';
 export function openSettings(root, {
   settings,
   install,
   events,
   settingsStore = null,
   store = null,
+  accountAvailable = true,
   onNetworkReset=()=>{},
   resetNetwork=null,
   onNetworkStart=()=>{}
@@ -51,6 +53,8 @@ export function openSettings(root, {
           <span><strong>Eigen netwerk starten</strong><small>Alleen voor de eerste installatie. Andere deelnemers scannen jouw QR.</small></span><span class="settings-arrow">›</span>
         </button>
       </section>`:''}
+
+      ${store&&accountAvailable?`<details class="settings-section" data-account-settings></details>`:''}
 
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
@@ -115,6 +119,8 @@ export function openSettings(root, {
 
   let disposed=false;
   const roleService=store?new ConnectionService(store):null;
+  const accountHost=root.querySelector('[data-account-settings]');
+  if(accountHost)mountAccountSettings(accountHost,roleService);
   async function renderRole(verified=false){
     if(!roleService)return;
     const device=await roleService.device();

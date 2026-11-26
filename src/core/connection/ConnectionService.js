@@ -1,5 +1,5 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.08';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.08';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.09';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.09';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -8,6 +8,15 @@ const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const timestamp=value=>Number(value)||Date.parse(value)||0;
 const errors = {
+  invalid_email:'Vul een geldig e-mailadres in.',
+  email_unavailable:'Dit adres kan niet worden gekoppeld of bijgewerkt.',
+  email_proof_invalid:'De code is ongeldig of verlopen. Vraag een nieuwe code aan.',
+  email_not_configured:'E-mailverificatie moet nog op de server worden ingesteld.',
+  email_delivery_failed:'De server kon de bevestigingsmail niet versturen.',
+  invalid_organization:'Vul een geldige organisatienaam in.',
+  invalid_organization_role:'Kies een geldige organisatierol.',
+  organization_capacity:'Het maximale aantal organisaties is bereikt.',
+  organization_forbidden:'Je hebt geen toegang tot deze organisatie of rolwijziging.',
   pair_expired:'Deze koppelcode is verlopen. Maak een nieuwe code.',
   pair_used:'Deze code is al door een andere Shop gebruikt.',
   pair_pending:'Plak eerst de code in Shop en bevestig daarna dezelfde controlecode.',
@@ -152,6 +161,11 @@ export class ConnectionService {
       if (error.name==='TypeError' || error.name==='AbortError') throw Error(errors.service_unavailable);
       throw error;
     } finally { clearTimeout(timer); }
+  }
+  async accountRequest(action, input = {}) {
+    const device = await this.device();
+    if (!device.registered) throw Error('Maak eerst verbinding met het Sharon-netwerk.');
+    return this.request(action, input, device);
   }
   async rememberSelf(self) {
     if (!self || !IdentifierService.isValid(self.personId) || !IdentifierService.isValid(self.networkId) ||

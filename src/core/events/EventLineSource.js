@@ -1,4 +1,4 @@
-import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.08';
+import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.09';
 
 const origin = 'https://sharon.life';
 const publicPath = '/eventlijn/openbaar.html';
