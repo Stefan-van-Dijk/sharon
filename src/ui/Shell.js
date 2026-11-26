@@ -1,3 +1,4 @@
+import { openAgendaView } from './AgendaView.js?v=0.5.09';
 import {openAppsView} from './AppsView.js?v=0.5.09';
 import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.5.09';
 import { openNotesView } from './NotesView.js?v=0.5.09';
@@ -35,7 +36,6 @@ const MODULE_GUIDE = Object.freeze({
 });
 const MENU_ORDER = ['environment','locations','cards','persons','objects','themes','actions','notes','agenda','time','rides','codes'];
 const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities & lijsten',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
-const MENU_PREVIEW_ONLY = new Set(['agenda']);
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
 const APP_VERSION = '0.5.09';
@@ -256,7 +256,7 @@ export function createShell(root, {
         <nav class="module-list" aria-label="Onderdelen">
           ${visibleModules.map(id => {
             const moduleId = demoMode ? (MENU_TEST_ID[id] || id) : (id === 'persons' ? 'people' : id);
-            const previewOnly = MENU_PREVIEW_ONLY.has(id) || (demoMode && !SKELETON_MODULES.includes(moduleId) && !['environment','locations','cards'].includes(moduleId));
+            const previewOnly = (demoMode && !SKELETON_MODULES.includes(moduleId) && !['environment','locations','cards'].includes(moduleId));
             const title = MENU_TITLES[id];
             return `
               <div class="sh-home-module-item" data-guide-item>
@@ -563,6 +563,13 @@ export function createShell(root, {
     }
     const module = modules.get(moduleId);
     if (!module) return;
+
+    if (!demoMode && ['agenda', 'time'].includes(module.id)) {
+      setHeaderMode('detail', module.title, module.id);
+      await swapView(() => openAgendaView(outlet, { store: activeStore(), edit: module.id === 'time' }),
+        { animate: options.animate !== false });
+      return;
+    }
 
     if(module.id==='notes'){
       setHeaderMode('detail','Notities & lijsten','notes');

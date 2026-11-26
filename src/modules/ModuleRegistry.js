@@ -1,6 +1,7 @@
 const DEFAULT_MODULES = Object.freeze([
   { id: 'notes', title: 'Notities & lijsten' },
   { id: 'rides', title: 'Ritten' },
+  { id: 'agenda', title: 'Agenda' },
   { id: 'time', title: 'Tijd' },
   { id: 'locations', title: 'Locaties' },
   { id: 'environment', title: 'Omgeving' },
