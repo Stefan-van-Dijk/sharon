@@ -224,10 +224,10 @@ export class ObjectStore {
     return data;
   }
 
-  async restoreLocalBackup(data, deviceKey, identity, assertIdentity) {
+  async restoreLocalBackup(data, deviceKey, previousKey, identity, assertIdentity) {
     for (const name of backupTables) {
       const key = name === 'objects' || name === 'tracks' ? 'id' : 'key';
-      const rows = data?.[name];
+      const rows = data ? data[name] : [];
       if (!Array.isArray(rows) || rows.some(row => typeof row?.[key] !== 'string' ||
           (name === 'meta' && !backupMeta.test(row.key)))) {
         throw Error('De lokale gegevens in deze back-up zijn ongeldig.');
@@ -237,18 +237,20 @@ export class ObjectStore {
       const tx = this.#db.transaction(backupTables, 'readwrite');
       const meta = tx.objectStore('meta');
       const settings = tx.objectStore('settings');
-      const checks = [meta.get(deviceKey), tx.objectStore('objects').count(),
+      const checks = [meta.get(deviceKey), meta.get(previousKey), tx.objectStore('objects').count(),
         tx.objectStore('tracks').count(), settings.get('app')];
       let failure;
       checks.at(-1).onsuccess = () => {
         try {
-          assertIdentity(checks[0].result?.value);
-          if (checks[1].result || checks[2].result || checks[3].result?.value?.profile?.name) {
+          const clean = !checks[2].result && !checks[3].result && !checks[4].result?.value?.profile?.name;
+          const previous = checks[1].result?.value;
+          assertIdentity(checks[0].result?.value ?? previous, clean && !previous);
+          if (data && !clean) {
             throw Error('Zet lokale gegevens terug bij een schone installatie.');
           }
           for (const name of backupTables) {
             const table = tx.objectStore(name);
-            for (const row of data[name]) table.put(row);
+            for (const row of data?.[name] ?? []) table.put(row);
           }
           meta.put({ key: deviceKey, value: identity });
         } catch (error) {

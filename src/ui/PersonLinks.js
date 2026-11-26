@@ -1,4 +1,4 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.16';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.17';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 

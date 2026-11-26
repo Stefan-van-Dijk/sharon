@@ -1,6 +1,6 @@
-import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.16';
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.16';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.16';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.17';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.17';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.17';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -170,25 +170,19 @@ export class ConnectionService {
   async restoreBackup(text, password, { withLocal = false } = {}) {
     const { local, registered = true, ...device } = await decryptConnectionBackup(text, password);
     if (withLocal && !local) throw Error('Dit bestand bevat alleen verbindingen. Kies Alleen mijn verbindingen.');
-    const existing = (await this.store.get('meta', KEY))?.value ??
-      (await this.store.get('meta', PREVIOUS_KEY))?.value;
-    const check = current => {
+    const check = (current, clean) => {
+      if (clean && current?.registered === false && current.self === null) return;
       if (current && (current.personId !== device.personId || current.deviceToken !== device.deviceToken)) {
         throw Error('Dit toestel heeft al een andere Sharon-ID. Zet de back-up terug bij een schone installatie.');
       }
     };
-    check(existing);
     let self = null;
     if (registered) {
       ({ self } = await this.request('self', {}, device));
       validSelf(self, device.personId);
     }
     const identity = { ...device, registered, self };
-    if (withLocal) await this.store.restoreLocalBackup(local, KEY, identity, check);
-    else await this.store.updateMeta(KEY, current => {
-      check(current);
-      return identity;
-    });
+    await this.store.restoreLocalBackup(withLocal ? local : null, KEY, PREVIOUS_KEY, identity, check);
     return self;
   }
   async rememberSelf(self) {
