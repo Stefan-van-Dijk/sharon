@@ -10,7 +10,9 @@ final class LogNetworkError extends RuntimeException {
 }
 final class LogNetwork {
     private array $state;
-    public function __construct(private string $path, private ?int $clock = null) {}
+    public function __construct(
+        private string $path, private ?int $clock = null, private ?Closure $deliverAccountEmail = null
+    ) {}
     public static function token(int $bytes = 32): string {
         return rtrim(strtr(base64_encode(random_bytes($bytes)), '+/', '-_'), '=');
     }
@@ -683,8 +685,124 @@ final class LogNetwork {
         }
         return null;
     }
+    private static function accountEmail(mixed $value): string {
+        if (!is_string($value) || strlen($value)>254 || !filter_var($value,FILTER_VALIDATE_EMAIL) || strpbrk($value, '"(),:;<>[]\\')!==false)
+            throw new LogNetworkError('invalid_email');
+        return strtolower($value);
+    }
+
+    private function startAccountEmail(array $in, string $pid): array {
+        $email=self::accountEmail($in['email'] ?? null);
+        if ($this->deliverAccountEmail===null) throw new LogNetworkError('email_not_configured',503);
+        if (count($this->accountEmails($pid))>=12)
+            throw new LogNetworkError('email_unavailable',409);
+        $pending=$this->state['emailChallenges'] ?? [];
+        foreach ($pending as $key=>$row) {
+            if ($row['expiresAt']<=$this->now()) unset($pending[$key]);
+        }
+        $this->rate('email-person:'.$pid,5,3600);
+        $this->rate('email-target:'.hash('sha256',$email),5,3600);
+        if (count($pending)>=10000) throw new LogNetworkError('rate_limit',429);
+        do { $id=self::id(); } while (isset($pending[$id]));
+        $code=self::token();
+        $pending[$id]=['personId'=>$pid,'email'=>$email,'proof'=>self::hashToken($code),'expiresAt'=>$this->now()+900];
+        $this->state['emailChallenges']=$pending;
+        return ['challengeId'=>$id,'email'=>$email,'deliveryCode'=>$code];
+    }
+
+    private function accountEmails(string $pid): array {
+        $emails=[];
+        foreach ($this->state['verifiedEmails'] ?? [] as $email=>$row) {
+            if ($row['personId']===$pid) $emails[]=['email'=>$email,'verifiedAt'=>$row['verifiedAt']];
+        }
+        return $emails;
+    }
+
+    private function accountAction(string $action, array $in, string $pid): array {
+        if ($action==='account-email-start') return $this->startAccountEmail($in,$pid);
+        if ($action==='account-email-verify') {
+            $id=self::validId($in['challengeId'] ?? null);
+            $proof=self::hashToken($in['code'] ?? null);
+            $challenge=$this->state['emailChallenges'][$id] ?? null;
+            if (!$challenge || $challenge['personId']!==$pid || $challenge['expiresAt']<=$this->now()
+                || !hash_equals($challenge['proof'],$proof)) throw new LogNetworkError('email_proof_invalid',403);
+            $email=$challenge['email'];
+            if (isset($this->state['verifiedEmails'][$email]) || count($this->accountEmails($pid))>=12)
+                throw new LogNetworkError('email_unavailable',409);
+            $this->state['verifiedEmails'][$email]=['personId'=>$pid,'verifiedAt'=>gmdate(DATE_ATOM,$this->now())];
+            foreach ($this->state['emailChallenges'] as $key=>$pending) {
+                if ($pending['email']===$email) unset($this->state['emailChallenges'][$key]);
+            }
+            return ['emails'=>$this->accountEmails($pid)];
+        }
+        if ($action==='account-email-remove') {
+            $email=self::accountEmail($in['email'] ?? null);
+            if (($this->state['verifiedEmails'][$email]['personId'] ?? null)!==$pid)
+                throw new LogNetworkError('email_unavailable',404);
+            unset($this->state['verifiedEmails'][$email]);
+            foreach ($this->state['emailChallenges'] ?? [] as $id=>$challenge) {
+                if ($challenge['personId']===$pid && $challenge['email']===$email) unset($this->state['emailChallenges'][$id]);
+            }
+            return ['emails'=>$this->accountEmails($pid)];
+        }
+        $organizations=[];
+        foreach ($this->state['organizations'] ?? [] as $organization) {
+            if (isset($organization['members'][$pid])) $organizations[]=$this->organizationView($organization,$pid);
+        }
+        return ['account'=>['personId'=>$pid,'emails'=>$this->accountEmails($pid),'organizations'=>$organizations]];
+    }
+
+    private function organizationView(array $organization, string $pid): array {
+        return ['id'=>$organization['id'],'class'=>'organization','name'=>$organization['name'],
+            'role'=>$organization['members'][$pid]];
+    }
+
+    private function organizationAction(string $action, array $in, string $pid): array {
+        if ($action==='organization-create') {
+            $name=$in['name'] ?? '';
+            if (!is_string($name) || strlen($name)>160 || !preg_match('//u',$name) || trim($name)===''
+                || preg_match('/[\x00-\x1f\x7f]/',$name)) throw new LogNetworkError('invalid_organization');
+            if (count($this->state['organizations'] ?? [])>=1000 ||
+                count(array_filter($this->state['organizations'] ?? [],fn($org)=>($org['members'][$pid] ?? null)==='owner'))>=20)
+                throw new LogNetworkError('organization_capacity',409);
+            do { $id=self::id(); } while (isset($this->state['organizations'][$id]));
+            $organization=['id'=>$id,'name'=>trim($name),'members'=>[$pid=>'owner']];
+            $this->state['organizations'][$id]=$organization;
+            return ['organization'=>$this->organizationView($organization,$pid)];
+        }
+        $id=self::validId($in['organizationId'] ?? null);
+        $organization=$this->state['organizations'][$id] ?? [];
+        $role=$organization['members'][$pid] ?? null;
+        if ($role===null) throw new LogNetworkError('organization_forbidden',403);
+        if ($action==='organization-select') return ['organization'=>$this->organizationView($organization,$pid)];
+        if (!in_array($role,['owner','admin'],true)) throw new LogNetworkError('organization_forbidden',403);
+        if ($action==='organization-members') {
+            $members=[];
+            foreach ($organization['members'] as $personId=>$memberRole) {
+                $members[]=['personId'=>(string)$personId,'role'=>$memberRole,'name'=>$this->state['people'][$personId]['name']];
+            }
+            return ['members'=>$members];
+        }
+        $target=self::validId($in['personId'] ?? null);
+        $newRole=$in['role'] ?? null;
+        if (!array_key_exists('role',$in) || !in_array($newRole,[null,'admin','member','viewer'],true))
+            throw new LogNetworkError('invalid_organization_role');
+        $oldRole=$organization['members'][$target] ?? null;
+        if ($target===$pid || $oldRole==='owner' || ($role==='admin' && ($oldRole==='admin' || $newRole==='admin')))
+            throw new LogNetworkError('organization_forbidden',403);
+        if ($newRole===null) unset($organization['members'][$target]);
+        else {
+            $grant=$this->grant($target);
+            if ($target!==$this->state['ownerId'] && (!$grant || $grant['status']!=='active'))
+                throw new LogNetworkError('recipient_unknown',404);
+            $organization['members'][$target]=$newRole;
+        }
+        $this->state['organizations'][$id]=$organization;
+        return ['ok'=>true];
+    }
+
     public function handle(string $action, array $in, ?string $auth): array {
-        return $this->transaction(function () use ($action,$in,$auth) {
+        $result=$this->transaction(function () use ($action,$in,$auth) {
             if(in_array($action,['shop-pair-claim','shop-pair-probe','shop-pair-redeem'],true))return $this->shopPairAction($action,$in);
             $delegated=$this->shopDevice($action,$in,$auth);if($delegated!==null)return $delegated;
             if($action==='share-check'){$id=self::validId($in['id']??null);return ['valid'=>isset($this->state['shareCodes'][hash('sha256',$id)])];}
@@ -765,6 +883,10 @@ final class LogNetwork {
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
             $this->member($p);
+            if (in_array($action,['account-self','account-email-start','account-email-verify','account-email-remove'],true))
+                return $this->accountAction($action,$in,$pid);
+            if (in_array($action,['organization-create','organization-select','organization-members','organization-set-role'],true))
+                return $this->organizationAction($action,$in,$pid);
             if(str_starts_with($action,'shop-pair-'))return $this->shopPairAction($action,$in,$p);
             if(str_starts_with($action,'shoplibrary-'))return $this->shopLibrary($action,$in,$pid);
             if(str_starts_with($action,'shopcatalog-'))return $this->shopcatalogAction($action,$in,$pid);
@@ -867,7 +989,26 @@ final class LogNetwork {
             }
             throw new LogNetworkError('unknown_action',404);
         });
+        if ($action==='account-email-start') {
+            if (!($this->deliverAccountEmail)($result['email'],$result['deliveryCode']))
+                throw new LogNetworkError('email_delivery_failed',503);
+            return ['challengeId'=>$result['challengeId']];
+        }
+        return $result;
     }
+}
+
+function log_account_mailer(string $root): ?Closure {
+    $sender=getenv('SHARON_ACCOUNT_EMAIL_FROM');
+    if (!$sender && is_file($root.'/account-mail.php')) $sender=require $root.'/account-mail.php';
+    if (!is_string($sender) || !filter_var($sender,FILTER_VALIDATE_EMAIL)) return null;
+    return static fn(string $email,string $code): bool => mail(
+        $email,
+        'Bevestig je e-mailadres voor Sharon',
+        "Gebruik deze code binnen 15 minuten om dit adres aan je Sharon-account te koppelen.\n\n".$code.
+            "\n\nHeb je dit niet aangevraagd? Negeer dan dit bericht.",
+        ['From'=>$sender,'Content-Type'=>'text/plain; charset=UTF-8']
+    );
 }
 
 function log_network_request(array $body, string $root, string $raw): never {
@@ -885,7 +1026,7 @@ function log_network_request(array $body, string $root, string $raw): never {
         // Strato uses Apache; add the deny rule without replacing existing rules.
         $deny=$root.'/.htaccess';
         if (!is_file($deny) && file_put_contents($deny,"Require all denied\n",LOCK_EX)===false) throw new RuntimeException('Private storage unavailable');
-        $service=new LogNetwork($root.'/network-v1.json');
+        $service=new LogNetwork($root.'/network-v1.json',null,log_account_mailer($root));
         $token=header_value('X-Log-Access-Token') ?: null;
         $service->throttle($_SERVER['REMOTE_ADDR'] ?? 'unknown',$token,$body['action']==='register');
         if ($body['action']==='start') {
