@@ -1,4 +1,4 @@
-import { analysisRange, saveAnalysisRange, validCenter, ANALYSIS_RANGE_EVENT, ANALYSIS_PREVIEW_EVENT, ANALYSIS_VISIBILITY_EVENT, ANALYSIS_RANGE_KEY } from './AnalysisRange.js?v=0.5.12';
+import { analysisRange, saveAnalysisRange, validCenter, ANALYSIS_RANGE_EVENT, ANALYSIS_PREVIEW_EVENT, ANALYSIS_VISIBILITY_EVENT, ANALYSIS_RANGE_KEY } from './AnalysisRange.js?v=0.5.13';
 const EMPTY={type:'FeatureCollection',features:[]};
 export function analysisZoneGeoJSON(range){
   if(range.visible===false||!validCenter(range.center))return EMPTY;

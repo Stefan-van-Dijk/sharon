@@ -1,4 +1,4 @@
-import { loadCardScanner, createCardReader, decodedCard } from './CardCodes.js?v=0.5.12';
+import { loadCardScanner, createCardReader, decodedCard } from './CardCodes.js?v=0.5.13';
 
 export function mountCardScanner(host, { onResult, onClose, autoStart = false, photoFirst = false }) {
   let stopped = false, stream = null, timer = null, reader = null, token = 0;

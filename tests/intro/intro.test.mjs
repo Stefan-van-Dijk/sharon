@@ -20,3 +20,25 @@ test('Lege installatie bereikt de echte kennismaking', async t => {
   assert.equal(bootError, undefined);
 });
 
+test('Onboarding toont dezelfde lokale Sharon-ID en laat je zonder account doorgaan', async t => {
+  const app = await appHarness({ firstRun: true }); t.after(() => app.close());
+  app.boot().catch(() => {});
+  (await until(() => app.document.querySelector('.story-continue'))).click();
+  const input = await until(() => app.document.querySelector('[data-sharon-intro-form] input'));
+  input.value = 'Testpersoon';
+  input.form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
+  (await until(() => app.document.querySelector('[data-intro-identity]'))).click();
+  const status = await until(() => {
+    const node = app.document.querySelector('[data-intro-person-id]');
+    return node?.textContent ? node : null;
+  });
+  const { ConnectionService } = await app.load('./src/core/connection/ConnectionService.js?v=0.5.12');
+  const device = await new ConnectionService(app.store).device();
+  assert.equal(status.textContent, device.personId);
+  assert.match(device.personId, /^[A-Za-z0-9_-]{12}$/);
+  assert.equal(device.registered, false);
+  app.document.querySelector('[data-intro-local]').click();
+  await until(async () => (await app.store.get('settings', 'app')).value.profile.name === 'Testpersoon');
+  assert.equal((await new ConnectionService(app.store).device()).personId, device.personId);
+  assert.deepEqual(app.errors, []);
+});
