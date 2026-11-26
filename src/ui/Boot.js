@@ -1,4 +1,4 @@
-import { focusTextField } from './TextInputFocus.js?v=0.5.12';
+import { focusTextField } from './TextInputFocus.js?v=0.5.13';
 
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
@@ -11,10 +11,11 @@ const FINAL_HOLD_MS = 460;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function runFirstIntro(root, startedAt, { initialName = '' } = {}) {
+export async function runFirstIntro(root, startedAt, { initialName = '', readPersonId } = {}) {
   await waitUntil(startedAt, FIRST_RUN_PROMPT_MS);
   await showFirstRunStory(root);
   const name = await askForName(root, { initialName });
+  if (readPersonId) await showIdentityChoice(root, readPersonId);
   await mergeToSharon(root);
   return name;
 }
@@ -126,6 +127,47 @@ function askForName(root, { initialName = '' } = {}) {
         resolve(name);
       }, 180);
     });
+  });
+}
+
+function showIdentityChoice(root, readPersonId) {
+  const panel = root.querySelector('[data-intro-copy]');
+  if (!panel) return;
+  panel.innerHTML = `
+    <section class="sharon-intro-form" aria-labelledby="sharonIntroIdentityTitle">
+      <h2 id="sharonIntroIdentityTitle">Jouw Sharon-ID</h2>
+      <p>Je kunt Sharon op dit toestel gebruiken zonder account.</p>
+      <button type="button" data-intro-local>Verder op dit toestel</button>
+      <button type="button" data-intro-identity aria-expanded="false" aria-controls="sharonIntroIdentity">Bekijk mijn Sharon-ID</button>
+      <div id="sharonIntroIdentity" hidden>
+        <p>Je ID hoort bij dit profiel. Voor herstel op een ander toestel is later een gekoppelde aanmeldmethode nodig.</p>
+        <p role="status" data-intro-person-id></p>
+      </div>
+    </section>
+  `;
+  panel.classList.add('is-visible');
+  const next = panel.querySelector('[data-intro-local]');
+  const identity = panel.querySelector('[data-intro-identity]');
+  const details = panel.querySelector('#sharonIntroIdentity');
+  const status = panel.querySelector('[data-intro-person-id]');
+  next.focus();
+  return new Promise(resolve => {
+    identity.addEventListener('click', async () => {
+      const show = details.hidden;
+      details.hidden = !show;
+      identity.setAttribute('aria-expanded', String(show));
+      if (!show || status.textContent) return;
+      try {
+        status.textContent = await readPersonId();
+      } catch {
+        status.textContent = 'Je Sharon-ID kon niet worden opgehaald. Je kunt verder op dit toestel.';
+      }
+    });
+    next.addEventListener('click', () => {
+      panel.classList.remove('is-visible');
+      panel.replaceChildren();
+      resolve();
+    }, { once: true });
   });
 }
 

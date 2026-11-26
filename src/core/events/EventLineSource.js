@@ -1,4 +1,4 @@
-import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.12';
+import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.13';
 
 export const EVENT_LINE_URL = 'https://sharon.life/eventline/';
 const { origin, pathname } = new URL(EVENT_LINE_URL);
