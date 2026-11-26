@@ -1,4 +1,5 @@
-import { focusTextField } from './TextInputFocus.js?v=0.5.13';
+import { MAX_CONNECTION_BACKUP_BYTES } from '../core/connection/ConnectionBackup.js?v=0.5.14';
+import { focusTextField } from './TextInputFocus.js?v=0.5.14';
 
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
@@ -11,11 +12,11 @@ const FINAL_HOLD_MS = 460;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function runFirstIntro(root, startedAt, { initialName = '', readPersonId } = {}) {
+export async function runFirstIntro(root, startedAt, { initialName = '', readPersonId, restoreBackup } = {}) {
   await waitUntil(startedAt, FIRST_RUN_PROMPT_MS);
   await showFirstRunStory(root);
   const name = await askForName(root, { initialName });
-  if (readPersonId) await showIdentityChoice(root, readPersonId);
+  if (readPersonId) await showIdentityChoice(root, readPersonId, restoreBackup);
   await mergeToSharon(root);
   return name;
 }
@@ -130,7 +131,7 @@ function askForName(root, { initialName = '' } = {}) {
   });
 }
 
-function showIdentityChoice(root, readPersonId) {
+function showIdentityChoice(root, readPersonId, restoreBackup) {
   const panel = root.querySelector('[data-intro-copy]');
   if (!panel) return;
   panel.innerHTML = `
@@ -138,9 +139,18 @@ function showIdentityChoice(root, readPersonId) {
       <h2 id="sharonIntroIdentityTitle">Jouw Sharon-ID</h2>
       <p>Je kunt Sharon op dit toestel gebruiken zonder account.</p>
       <button type="button" data-intro-local>Verder op dit toestel</button>
+      ${restoreBackup ? `<details>
+        <summary>Verbindingen herstellen uit back-up</summary>
+        <form data-intro-backup>
+          <label>Back-upbestand <input name="backup" type="file" accept=".sharon-backup,application/json" required></label>
+          <label>Wachtzin <input name="password" type="password" autocomplete="off" required></label>
+          <button type="submit">Herstellen</button>
+          <p role="status" data-intro-restore-status></p>
+        </form>
+      </details>` : ''}
       <button type="button" data-intro-identity aria-expanded="false" aria-controls="sharonIntroIdentity">Bekijk mijn Sharon-ID</button>
       <div id="sharonIntroIdentity" hidden>
-        <p>Je ID hoort bij dit profiel. Voor herstel op een ander toestel is later een gekoppelde aanmeldmethode nodig.</p>
+        <p>Je ID hoort bij dit profiel. Je kunt je verbonden ID herstellen met een eerder gemaakte back-up.</p>
         <p role="status" data-intro-person-id></p>
       </div>
     </section>
@@ -150,6 +160,31 @@ function showIdentityChoice(root, readPersonId) {
   const identity = panel.querySelector('[data-intro-identity]');
   const details = panel.querySelector('#sharonIntroIdentity');
   const status = panel.querySelector('[data-intro-person-id]');
+  const form = panel.querySelector('[data-intro-backup]');
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = form.querySelector('button');
+    if (submit.disabled) return;
+    const result = form.querySelector('[data-intro-restore-status]');
+    const { backup, password } = form.elements;
+    const file = backup.files[0];
+    if (!file || file.size > MAX_CONNECTION_BACKUP_BYTES) {
+      result.textContent = 'Kies een geldig Sharon-back-upbestand.';
+      return;
+    }
+    submit.disabled = next.disabled = identity.disabled = true;
+    result.textContent = 'Verbindingen controleren…';
+    try {
+      await restoreBackup(await file.text(), password.value);
+      form.reset();
+      result.textContent = 'Je Sharon-ID is teruggezet. Je kunt verder op dit toestel.';
+    } catch (error) {
+      result.textContent = error.message;
+    } finally {
+      password.value = '';
+      submit.disabled = next.disabled = identity.disabled = false;
+    }
+  });
   next.focus();
   return new Promise(resolve => {
     identity.addEventListener('click', async () => {

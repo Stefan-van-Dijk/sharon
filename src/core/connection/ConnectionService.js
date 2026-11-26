@@ -1,5 +1,6 @@
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.13';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.13';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.14';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.14';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.14';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -43,6 +44,14 @@ const errors = {
   service_unavailable:'De server is niet beschikbaar. Je gegevens blijven op dit toestel.',
   not_configured:'De verbinding moet nog op de server worden ingesteld.'
 };
+
+function validSelf(self, personId) {
+  if (!self || !IdentifierService.isValid(self.personId) || !IdentifierService.isValid(self.networkId) ||
+      !(self.line === null || (Number.isInteger(self.line) && self.line >= 0 && self.line <= 3))) {
+    throw Error('Ongeldig serverantwoord.');
+  }
+  if (self.personId !== personId) throw Error('De server antwoordde voor een andere identiteit.');
+}
 
 function validInvitation(value) {
   if(value?.kind==='code' && IdentifierService.isValid(value.id))return {kind:'code',id:value.id};
@@ -153,11 +162,32 @@ export class ConnectionService {
       throw error;
     } finally { clearTimeout(timer); }
   }
+  async exportBackup(password) {
+    const device = await this.device();
+    if (!device.registered) throw Error('Verbind je Sharon-ID eerst met het netwerk.');
+    return encryptConnectionBackup(device, password);
+  }
+  async restoreBackup(text, password) {
+    const device = await decryptConnectionBackup(text, password);
+    const existing = (await this.store.get('meta', KEY))?.value ??
+      (await this.store.get('meta', PREVIOUS_KEY))?.value;
+    const check = current => {
+      if (current && (current.personId !== device.personId || current.deviceToken !== device.deviceToken)) {
+        throw Error('Dit toestel heeft al een andere Sharon-ID. Zet de back-up terug bij een schone installatie.');
+      }
+    };
+    check(existing);
+    const { self } = await this.request('self', {}, device);
+    validSelf(self, device.personId);
+    await this.store.updateMeta(KEY, current => {
+      check(current);
+      return { ...device, registered: true, self };
+    });
+    return self;
+  }
   async rememberSelf(self) {
-    if (!self || !IdentifierService.isValid(self.personId) || !IdentifierService.isValid(self.networkId) ||
-        !(self.line===null || (Number.isInteger(self.line)&&self.line>=0&&self.line<=3))) throw Error('Ongeldig serverantwoord.');
     const d = await this.device();
-    if (self.personId!==d.personId) throw Error('De server antwoordde voor een andere identiteit.');
+    validSelf(self, d.personId);
     // Durable write finishes before the registration/activation is reported.
     await this.store.setMeta(KEY,{...d,registered:true,self});
     return self;

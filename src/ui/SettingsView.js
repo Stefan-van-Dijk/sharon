@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.13';
-import {mountGraphInspector} from './GraphInspector.js?v=0.5.13';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.13';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.14';
+import {mountGraphInspector} from './GraphInspector.js?v=0.5.14';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.14';
 export function openSettings(root, {
   settings,
   install,
@@ -9,7 +9,8 @@ export function openSettings(root, {
   store = null,
   onNetworkReset=()=>{},
   resetNetwork=null,
-  onNetworkStart=()=>{}
+  onNetworkStart=()=>{},
+  showConnectionBackup=true
 }) {
   const state = settings.get();
   const installState = install.getState();
@@ -52,6 +53,23 @@ export function openSettings(root, {
         </button>
       </section>`:''}
 
+      ${store&&showConnectionBackup?`<section class="settings-section">
+        <span class="settings-kicker">Verbindingen back-uppen</span>
+        <details>
+          <summary>Maak een back-up van je Sharon-verbindingen</summary>
+          <p>Gebruik het bestand en je wachtzin tijdens de kennismaking na een schone installatie. Deze back-up bevat je identiteit voor online verbindingen. Lokale kaarten, notities en instellingen blijven op dit toestel.</p>
+          <form class="settings-form" data-connection-backup>
+            <label class="clean-field"><span>Wachtzin voor dit bestand</span>
+              <input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required>
+            </label>
+            <label class="clean-field"><span>Herhaal wachtzin</span>
+              <input name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="256" required>
+            </label>
+            <button class="settings-save">Download back-up</button>
+            <p role="status"></p>
+          </form>
+        </details>
+      </section>`:''}
       <section class="settings-section privacy-section">
         <span class="settings-kicker">Privacy & delen</span>
 
@@ -128,6 +146,38 @@ export function openSettings(root, {
     root.querySelector('[data-check-role]').disabled=!device.registered;
   }
   renderRole().catch(()=>{});
+  root.querySelector('[data-connection-backup]')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('button');
+    if (submit.disabled) return;
+    const status = form.querySelector('[role="status"]');
+    const { password, confirmation } = form.elements;
+    if (password.value !== confirmation.value) {
+      status.textContent = 'De wachtzinnen komen niet overeen.';
+      return;
+    }
+    submit.disabled = true;
+    status.textContent = 'Back-up versleutelen…';
+    try {
+      const backup = await roleService.exportBackup(password.value);
+      if (disposed) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([backup], {type:'application/json'}));
+      link.download = 'Sharon-verbindingen.sharon-backup';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      status.textContent = 'Bewaar het bestand en onthoud de wachtzin.';
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      form.reset();
+      submit.disabled = false;
+    }
+  });
+
   root.querySelector('[data-check-role]')?.addEventListener('click',async event=>{
     const button=event.currentTarget;button.disabled=true;
     const status=root.querySelector('[data-role-confirmation]');status.textContent='Rol controleren…';
