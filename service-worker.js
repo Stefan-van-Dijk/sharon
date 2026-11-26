@@ -41,6 +41,7 @@ const CORE = [
   "./src/core/connection/ConnectionService.js?v=0.5.08",
   "./src/core/connection/InvitationReference.js?v=0.5.08",
   "./src/core/events/EventBus.js?v=0.5.08",
+  "./src/core/events/EventLineSource.js?v=0.5.08",
   "./src/core/ids/IdentifierService.js?v=0.5.08",
   "./src/core/information/InformationFeedbackService.js?v=0.5.08",
   "./src/core/information/InformationItem.js?v=0.5.08",
