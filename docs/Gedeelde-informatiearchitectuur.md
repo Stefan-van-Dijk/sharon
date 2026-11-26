@@ -27,7 +27,7 @@ Een verwijderde koppeling laat het doelobject intact. De bestaande databasestruc
 | Tijdvak | `kind: interval`, `start`, `end` | Begin inclusief, einde exclusief en later dan begin |
 | Kalenderperiode | `kind: date-range`, `start`, `end` | Beide kalenderdatums inclusief. Dezelfde datum mag als begin en einde. |
 
-Tijdstippen volgen een beperkte ISO 8601/RFC 3339-vorm met seconden, bekende offset en maximaal drie cijfers voor fracties. Opslag normaliseert naar UTC met milliseconden. Datumwaarden behouden hun kalenderdatum. Een datum uit Event Line krijgt dus geen stilzwijgende UTC-middernacht. Een toekomstige bronadapter leest de tijd van een evenement bij Event Line. Een tijdkoppeling in Sharon blijft een eigen annotatie.
+Tijdstippen volgen een beperkte ISO 8601/RFC 3339-vorm met seconden, bekende offset en maximaal drie cijfers voor fracties. Opslag normaliseert naar UTC met milliseconden. Datumwaarden behouden hun kalenderdatum. Een datum uit Event Line krijgt dus geen stilzwijgende UTC-middernacht. De openbare bronadapter leest de tijd van een evenement bij Event Line. Een tijdkoppeling in Sharon blijft een eigen annotatie.
 
 ## Uitwisseling
 
@@ -39,3 +39,7 @@ Tijdstippen volgen een beperkte ISO 8601/RFC 3339-vorm met seconden, bekende off
 ## Uitrol
 
 Het lokale tijdregister vereist geen Strato-migratie, databasewijziging of nieuw serverbestand. Voor appoverschrijdende functies gelden de uitrolinstructies van de bron die de serverroute beheert. Een app die tijd of persoonsgegevens bij een andere bron leest, gebruikt de toegangscontrole van die bron.
+
+## Openbare evenementen in Agenda
+
+Agenda accepteert een openbare evenementlink van de bestaande Event Line-route op `sharon.life/eventlijn/`. Sharon bewaart alleen de ID12-verwijzing, de bronselector en de eigen verbindingen met locaties, personen en notities. Titel, tijd en locatie leest Agenda bij openen rechtstreeks uit de openbare projectie van Event Line, zonder accountcookies en zonder lokale kopie van die bronvelden. Zodra Event Line toegang intrekt, toont Agenda dat het evenement niet meer openbaar is. Event Line bepaalt de zichtbaarheid en de inhoud. Evenementen van vóór de bron-ID12 blijven bereikbaar via hun bestaande Event Line-link.

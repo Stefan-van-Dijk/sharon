@@ -1,3 +1,4 @@
+import { EventLineSource, eventLineLink } from '../core/events/EventLineSource.js?v=0.5.08';
 import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.08';
 import { availablePeople } from './PersonLinks.js?v=0.5.08';
 import { TimeRegister, referenceKey } from '../core/time/TimeRegister.js?v=0.5.08';
@@ -79,6 +80,7 @@ export async function openAgendaView(host, { store, edit = false }) {
     status.textContent = error.message;
     return;
   }
+  if (!edit) await mountEventLine(section, store, targets);
   if (!edit || !targets.size) {
     const hint = document.createElement('p');
     hint.textContent = edit ? 'Voeg eerst een notitie, persoon of locatie toe.' :
@@ -137,4 +139,102 @@ export async function openAgendaView(host, { store, edit = false }) {
       button.disabled = false;
     }
   });
+}
+
+async function mountEventLine(host, store, targets) {
+  const source = new EventLineSource(store);
+  const section = document.createElement('section');
+  section.innerHTML = `
+    <h2>Event Line</h2>
+    <form>
+      <label>Openbare evenementlink <input name="link" type="url" required></label>
+      <button>Voeg toe aan Agenda</button>
+    </form>
+    <p role="status"></p>
+    <ul></ul>
+  `;
+  host.append(section);
+  const form = section.querySelector('form');
+  const status = section.querySelector('p');
+  const list = section.querySelector('ul');
+  const button = form.querySelector('button');
+
+  async function render() {
+    const bookmarks = await source.list();
+    list.replaceChildren();
+    for (const bookmark of bookmarks) {
+      const row = document.createElement('li');
+      const summary = document.createElement('p');
+      summary.textContent = 'Evenement ophalen…';
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Verwijder uit Agenda';
+      remove.addEventListener('click', async () => {
+        try {
+          await source.remove(bookmark.ref);
+          await render();
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
+      row.append(summary, remove);
+      if (targets.size) {
+        const links = document.createElement('details');
+        links.innerHTML = '<summary>Verbindingen</summary><form><label>Locaties, personen en notities <select multiple></select></label> <button>Bewaar verbindingen</button></form>';
+        const field = links.querySelector('select');
+        const choices = new Map(targets);
+        const selected = new Set(bookmark.connections.map(referenceKey));
+        for (const reference of bookmark.connections) {
+          const key = referenceKey(reference);
+          if (!choices.has(key)) choices.set(key, { reference, title: reference.id });
+        }
+        for (const [key, item] of choices) {
+          const option = document.createElement('option');
+          option.value = key;
+          option.textContent = item.title + ' (' + item.reference.class + ')';
+          option.selected = selected.has(key);
+          field.append(option);
+        }
+        links.querySelector('form').addEventListener('submit', async event => {
+          event.preventDefault();
+          try {
+            await source.connect(bookmark.ref, Array.from(field.selectedOptions,
+              option => choices.get(option.value).reference));
+            status.textContent = 'Verbindingen opgeslagen.';
+          } catch (error) {
+            status.textContent = error.message;
+          }
+        });
+        row.append(links);
+      }
+      list.append(row);
+      source.resolve(bookmark).then(event => {
+        const link = document.createElement('a');
+        link.href = eventLineLink(bookmark.selector);
+        link.textContent = event.title;
+        summary.replaceChildren(link, ' · ' + label(event.time) + (event.location ? ' · ' + event.location : ''));
+      }).catch(error => {
+        summary.textContent = error.message;
+      });
+    }
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    button.disabled = true;
+    status.textContent = '';
+    try {
+      await source.add(form.elements.link.value);
+      form.reset();
+      await render();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  try {
+    await render();
+  } catch (error) {
+    status.textContent = error.message;
+  }
 }
