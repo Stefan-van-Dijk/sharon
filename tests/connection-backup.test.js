@@ -36,8 +36,9 @@ test('Encrypted backup restores the same server identity on a clean installation
 
   globalThis.indexedDB = new IDBFactory();
   const existingStore = await new ObjectStore().open();
-  const existing = new ConnectionService(existingStore, {fetcher:async () => { calls++; }});
+  const existing = new ConnectionService(existingStore, {fetcher:async () => ({ok:true,json:async()=>({self})})});
   const previous = await existing.device();
+  await existingStore.put('objects',{id:'existing-item',type:'note'});
   await assert.rejects(existing.restoreBackup(backup, password), /al een andere Sharon-ID/);
   assert.deepEqual(await existing.device(), previous);
   assert.equal(calls, 2);
@@ -63,6 +64,7 @@ test('A full backup is reusable on clean installations with a choice of restore 
     globalThis.indexedDB = new IDBFactory();
     const clean = await new ObjectStore().open();
     const restored = new ConnectionService(clean, {fetcher:async()=>assert.fail('Geen server nodig voor een lokaal profiel')});
+    await restored.device(); // Viewing the ID during fresh onboarding creates a placeholder.
     await restored.restoreBackup(backup, password, {withLocal});
     assert.equal((await restored.device()).personId, device.personId);
     assert.deepEqual(await clean.getAll('objects'), withLocal?[item]:[]);

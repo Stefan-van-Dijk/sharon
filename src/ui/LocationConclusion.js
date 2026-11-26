@@ -1,4 +1,4 @@
-import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.5.15';
+import { distanceBetween } from '../core/location/LocationTriggerService.js?v=0.5.17';
 
 export function locationConclusion(name, point, current, radiusM = 100, now = Date.now()) {
   const label = String(name ?? '').trim();
