@@ -1,6 +1,9 @@
 const DB_NAME = 'sharon';
 const DB_VERSION = 1;
 
+const backupTables = ['objects', 'tracks', 'settings', 'meta'];
+const backupMeta = /^(?:agenda\.event-line\.bookmarks\.v1$|cards\.|connection\.(?:contact\.|read\.)|location\.|locations\.|notes\.|people\.list\.|shop\.view\.)/;
+
 export class ObjectStore {
   #db = null;
 
@@ -208,6 +211,53 @@ export class ObjectStore {
       } catch (error) {
         reject(error);
       }
+    });
+  }
+
+  async readLocalBackup() {
+    const tx = this.#db.transaction(backupTables, 'readonly');
+    const entries = await Promise.all(backupTables.map(async name => [
+      name, await requestResult(tx.objectStore(name).getAll())
+    ]));
+    const data = Object.fromEntries(entries);
+    data.meta = data.meta.filter(row => backupMeta.test(row.key));
+    return data;
+  }
+
+  async restoreLocalBackup(data, deviceKey, identity, assertIdentity) {
+    for (const name of backupTables) {
+      const key = name === 'objects' || name === 'tracks' ? 'id' : 'key';
+      const rows = data?.[name];
+      if (!Array.isArray(rows) || rows.some(row => typeof row?.[key] !== 'string' ||
+          (name === 'meta' && !backupMeta.test(row.key)))) {
+        throw Error('De lokale gegevens in deze back-up zijn ongeldig.');
+      }
+    }
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction(backupTables, 'readwrite');
+      const meta = tx.objectStore('meta');
+      const settings = tx.objectStore('settings');
+      const checks = [meta.get(deviceKey), tx.objectStore('objects').count(),
+        tx.objectStore('tracks').count(), settings.get('app')];
+      let failure;
+      checks.at(-1).onsuccess = () => {
+        try {
+          assertIdentity(checks[0].result?.value);
+          if (checks[1].result || checks[2].result || checks[3].result?.value?.profile?.name) {
+            throw Error('Zet lokale gegevens terug bij een schone installatie.');
+          }
+          for (const name of backupTables) {
+            const table = tx.objectStore(name);
+            for (const row of data[name]) table.put(row);
+          }
+          meta.put({ key: deviceKey, value: identity });
+        } catch (error) {
+          failure = error;
+          tx.abort();
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(failure || tx.error || Error('Het terugzetten is afgebroken.'));
     });
   }
 

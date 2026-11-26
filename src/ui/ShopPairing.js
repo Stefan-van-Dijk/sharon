@@ -1,10 +1,10 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.14';
-import {openNotesDeck} from './NotesDeck.js?v=0.5.14';
-import {mountShopApp} from './ShopApp.js?v=0.5.14';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.14';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.14';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.14';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.14';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.15';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.15';
+import {mountShopApp} from './ShopApp.js?v=0.5.15';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.15';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.15';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.15';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.15';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');

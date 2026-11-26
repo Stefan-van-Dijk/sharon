@@ -1,6 +1,6 @@
-import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.14';
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.14';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.14';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.15';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.15';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.15';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -162,13 +162,14 @@ export class ConnectionService {
       throw error;
     } finally { clearTimeout(timer); }
   }
-  async exportBackup(password) {
+  async exportBackup(password, { withLocal = false } = {}) {
     const device = await this.device();
-    if (!device.registered) throw Error('Verbind je Sharon-ID eerst met het netwerk.');
-    return encryptConnectionBackup(device, password);
+    if (!withLocal && !device.registered) throw Error('Verbind je Sharon-ID eerst met het netwerk.');
+    return encryptConnectionBackup(device, password, withLocal ? await this.store.readLocalBackup() : null);
   }
-  async restoreBackup(text, password) {
-    const device = await decryptConnectionBackup(text, password);
+  async restoreBackup(text, password, { withLocal = false } = {}) {
+    const { local, registered = true, ...device } = await decryptConnectionBackup(text, password);
+    if (withLocal && !local) throw Error('Dit bestand bevat alleen verbindingen. Kies Alleen mijn verbindingen.');
     const existing = (await this.store.get('meta', KEY))?.value ??
       (await this.store.get('meta', PREVIOUS_KEY))?.value;
     const check = current => {
@@ -177,11 +178,16 @@ export class ConnectionService {
       }
     };
     check(existing);
-    const { self } = await this.request('self', {}, device);
-    validSelf(self, device.personId);
-    await this.store.updateMeta(KEY, current => {
+    let self = null;
+    if (registered) {
+      ({ self } = await this.request('self', {}, device));
+      validSelf(self, device.personId);
+    }
+    const identity = { ...device, registered, self };
+    if (withLocal) await this.store.restoreLocalBackup(local, KEY, identity, check);
+    else await this.store.updateMeta(KEY, current => {
       check(current);
-      return { ...device, registered: true, self };
+      return identity;
     });
     return self;
   }

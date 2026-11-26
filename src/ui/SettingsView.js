@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.14';
-import {mountGraphInspector} from './GraphInspector.js?v=0.5.14';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.14';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.15';
+import {mountGraphInspector} from './GraphInspector.js?v=0.5.15';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.15';
 export function openSettings(root, {
   settings,
   install,
@@ -54,11 +54,14 @@ export function openSettings(root, {
       </section>`:''}
 
       ${store&&showConnectionBackup?`<section class="settings-section">
-        <span class="settings-kicker">Verbindingen back-uppen</span>
+        <span class="settings-kicker">Back-up</span>
         <details>
-          <summary>Maak een back-up van je Sharon-verbindingen</summary>
-          <p>Gebruik het bestand en je wachtzin tijdens de kennismaking na een schone installatie. Deze back-up bevat je identiteit voor online verbindingen. Lokale kaarten, notities en instellingen blijven op dit toestel.</p>
+          <summary>Maak een Sharon-back-up</summary>
+          <p>Gebruik het bestand en je wachtzin tijdens de kennismaking na een schone installatie. Kies of je ook lokale kaarten, locaties, notities, lijsten en instellingen wilt bewaren.</p>
           <form class="settings-form" data-connection-backup>
+            <label class="clean-field"><span>Wat wil je bewaren?</span>
+              <select name="scope"><option value="full">Verbindingen en lokale items</option><option value="connections">Alleen mijn verbindingen</option></select>
+            </label>
             <label class="clean-field"><span>Wachtzin voor dit bestand</span>
               <input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required>
             </label>
@@ -152,7 +155,7 @@ export function openSettings(root, {
     const submit = form.querySelector('button');
     if (submit.disabled) return;
     const status = form.querySelector('[role="status"]');
-    const { password, confirmation } = form.elements;
+    const { password, confirmation, scope } = form.elements;
     if (password.value !== confirmation.value) {
       status.textContent = 'De wachtzinnen komen niet overeen.';
       return;
@@ -160,11 +163,12 @@ export function openSettings(root, {
     submit.disabled = true;
     status.textContent = 'Back-up versleutelen…';
     try {
-      const backup = await roleService.exportBackup(password.value);
+      const withLocal = scope.value === 'full';
+      const backup = await roleService.exportBackup(password.value, {withLocal});
       if (disposed) return;
       const link = document.createElement('a');
       link.href = URL.createObjectURL(new Blob([backup], {type:'application/json'}));
-      link.download = 'Sharon-verbindingen.sharon-backup';
+      link.download = withLocal ? 'Sharon-volledig.sharon-backup' : 'Sharon-verbindingen.sharon-backup';
       document.body.append(link);
       link.click();
       link.remove();

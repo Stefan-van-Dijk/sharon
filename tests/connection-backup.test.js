@@ -42,3 +42,33 @@ test('Encrypted backup restores the same server identity on a clean installation
   assert.deepEqual(await existing.device(), previous);
   assert.equal(calls, 2);
 });
+
+test('A full backup is reusable on clean installations with a choice of restore scope', async () => {
+  globalThis.indexedDB = new IDBFactory();
+  const first = await new ObjectStore().open();
+  const original = new ConnectionService(first);
+  const device = await original.device();
+  const item = {id:'saved-note',type:'note',name:'Lokale notitie',data:{body:'Lokaal '.repeat(6000)}};
+  const prefs = {key:'app',value:{profile:{name:'Bestaand profiel'}}};
+  const agenda = {key:'agenda.event-line.bookmarks.v1',value:[{selector:'test'}]};
+  await first.put('objects',item);
+  await first.put('settings',prefs);
+  await first.put('meta',agenda);
+  await first.put('meta',{key:'connection.pending.log-json.v1',value:'temporary'});
+  const password = 'een aparte, lange testwachtzin';
+  const backup = await original.exportBackup(password, {withLocal:true});
+  assert(!backup.includes(item.name));
+
+  for (const withLocal of [false,true,true]) {
+    globalThis.indexedDB = new IDBFactory();
+    const clean = await new ObjectStore().open();
+    const restored = new ConnectionService(clean, {fetcher:async()=>assert.fail('Geen server nodig voor een lokaal profiel')});
+    await restored.restoreBackup(backup, password, {withLocal});
+    assert.equal((await restored.device()).personId, device.personId);
+    assert.deepEqual(await clean.getAll('objects'), withLocal?[item]:[]);
+    assert.deepEqual(await clean.get('settings','app'), withLocal?prefs:undefined);
+    assert.deepEqual(await clean.get('meta',agenda.key), withLocal?agenda:undefined);
+    assert.equal(await clean.get('meta','connection.pending.log-json.v1'),undefined);
+    if(withLocal) await assert.rejects(restored.restoreBackup(backup, password, {withLocal}), /schone installatie/);
+  }
+});
