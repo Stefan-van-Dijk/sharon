@@ -1,7 +1,7 @@
-import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.08';
+import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.10';
 
 const origin = 'https://sharon.life';
-const publicPath = '/eventlijn/openbaar.html';
+const publicPath = '/eventline/openbaar.html';
 const selectorPattern = /^[a-f0-9]{32}:[a-f0-9]{32}$/;
 const bookmarkKey = 'agenda.event-line.bookmarks.v1';
 
@@ -30,7 +30,7 @@ export class EventLineSource {
 
   async read(selector) {
     eventLineLink(selector);
-    const endpoint = new URL('/eventlijn/api/index.php', origin);
+    const endpoint = new URL('/eventline/api/index.php', origin);
     endpoint.searchParams.set('publicEvent', selector);
     const response = await this.request(endpoint, {
       credentials: 'omit', redirect: 'error', cache: 'no-store',

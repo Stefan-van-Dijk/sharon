@@ -1,6 +1,6 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.08';
-import {mountGraphInspector} from './GraphInspector.js?v=0.5.08';
-import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.08';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.10';
+import {mountGraphInspector} from './GraphInspector.js?v=0.5.10';
+import { demoWorkspace, setDemoEnabled } from '../core/skeleton/SkeletonCore.js?v=0.5.10';
 export function openSettings(root, {
   settings,
   install,
