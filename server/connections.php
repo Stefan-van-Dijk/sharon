@@ -1026,7 +1026,8 @@ function log_network_request(array $body, string $root, string $raw): never {
         // Strato uses Apache; add the deny rule without replacing existing rules.
         $deny=$root.'/.htaccess';
         if (!is_file($deny) && file_put_contents($deny,"Require all denied\n",LOCK_EX)===false) throw new RuntimeException('Private storage unavailable');
-        $service=new LogNetwork($root.'/network-v1.json',null,log_account_mailer($root));
+        $mailer=$body['action']==='account-email-start' ? log_account_mailer($root) : null;
+        $service=new LogNetwork($root.'/network-v1.json',null,$mailer);
         $token=header_value('X-Log-Access-Token') ?: null;
         $service->throttle($_SERVER['REMOTE_ADDR'] ?? 'unknown',$token,$body['action']==='register');
         if ($body['action']==='start') {
