@@ -1,10 +1,10 @@
-import {sharonLogo} from './Brand.js?v=0.5.22';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.22';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.22';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.22';
+import {sharonLogo} from './Brand.js?v=0.5.23';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.23';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.23';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.23';
 
 // One selected record is mounted; navigation uses the current filtered overview.
-export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false}){
+export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false,closeOnAppReturn=false}){
  const document=globalThis.document,previous=document.activeElement;
  const dialog=document.createElement('dialog');dialog.className='sh-card-share-overlay sh-notes-deck';
  const surface=document.createElement('section');surface.className='sh-share-board sh-notes-board';surface.dataset.cardBoard='';surface.tabIndex=-1;
@@ -13,7 +13,7 @@ export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppVie
  const close=(force=false)=>{if(closed||(!force&&!beforeLeave()))return;closed=true;cleanup();generation++;gestures?.dispose();document.defaultView.removeEventListener('message',onShopReturn);dialog.remove();previous?.focus();};
  const navigate=direction=>{if(fullscreen||!beforeLeave())return;const list=items();if(!list.length){close();return;}const index=list.findIndex(r=>r.id===selected);selected=list[(Math.max(0,index)+direction+list.length)%list.length].id;draw();};
  const bind=()=>{gestures?.dispose();gestures=fullscreen?null:bindBoardDeckGestures(stack,{onSwipe:navigate,onClose:close,layoutStore:store,layoutKey:'notes.board.layout'});};
- const setFullscreen=(value,{confirmed=false}={})=>{if(!beforeLeave())return;const frame=surface.querySelector('iframe.sh-shop-app');if(fullscreen&&!value&&!confirmed&&frame?.dataset.returnReady==='true'){frame.contentWindow.postMessage({type:'shop:prepare-return'},new URL(SHOPLIST_URL).origin);return;}const returning=fullscreen&&!value;fullscreen=value;dialog.classList.toggle('is-fullscreen',value);bind();draw();if(returning)onAppReturn();};
+ const setFullscreen=(value,{confirmed=false}={})=>{if(!beforeLeave())return;const frame=surface.querySelector('iframe.sh-shop-app');if(fullscreen&&!value&&!confirmed&&frame?.dataset.returnReady==='true'){frame.contentWindow.postMessage({type:'shop:prepare-return'},new URL(SHOPLIST_URL).origin);return;}const returning=fullscreen&&!value;if(returning&&closeOnAppReturn){close();onAppReturn();return;}fullscreen=value;dialog.classList.toggle('is-fullscreen',value);bind();draw();if(returning)onAppReturn();};
  function draw(){
   const row=items().find(r=>r.id===selected);if(!row){close();return;}
   cleanup();cleanup=()=>{};const ticket=++generation;beforeLeave=()=>true;surface.replaceChildren();dialog.classList.remove('shop-controls-ready');surface.classList.toggle('is-shop-list',!!row.linked);dialog.setAttribute('aria-label',row.title);

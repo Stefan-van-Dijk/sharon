@@ -1,20 +1,23 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.22';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.22';
-import {bindNotesBoard,openShopPairing} from './ShopPairing.js?v=0.5.22';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.22';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.23';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.23';
+import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.23';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.23';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.23';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.23';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
  const document=outlet.ownerDocument,known=new Map(items.map(item=>[item.id,item]));
  let selected=homeModules(settings.get(),items.map(item=>item.id));
  let order=homeOrder(settings.get(),items.map(item=>item.id));
- let mode='home',busy=false,disposed=false,dragged=null,closePairing=()=>{};
+ let mode='home',busy=false,disposed=false,dragged=null,closePairing=()=>{},unbindApps=()=>{};
+ let eventConnected=false,shopConnected=false,disconnecting=false,refreshId=0;
  const root=document.createElement('section');root.className='sh-apps-view module-view';
  const tabs=document.createElement('div');tabs.className='sh-apps-tabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Apps en onderdelen');
  const panel=document.createElement('div');panel.className='sh-apps-panel';
  const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const element=document.createElement('button');element.type='button';element.textContent=label;element.onclick=fn;return element;};
- for(const [id,label] of [['home','Mijn Sharon'],['apps','Apps verbinden']]){const tab=button(label,()=>{mode=id;paint();});tab.dataset.appsTab=id;tabs.append(tab);}
+ for(const [id,label] of [['home','Mijn Sharon'],['apps','Apps verbinden']]){const tab=button(label,()=>{mode=id;paint();if(id==='apps')refreshApps();});tab.dataset.appsTab=id;tabs.append(tab);}
  root.append(tabs,panel,status);outlet.replaceChildren(root);
  async function save(next,nextOrder=order){
   if(busy||disposed)return false;
@@ -29,6 +32,48 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
  function move(id,target){
   const from=order.indexOf(id);if(from<0||target<0||target>=order.length||from===target)return;
   const next=[...order];next.splice(from,1);next.splice(target,0,id);save(selected,next);
+ }
+ const shopRequest=async(action,input)=>connection.request('shop-pair-'+action,input,await connection.device());
+ async function refreshApps(){
+  const current=++refreshId;
+  const [event,shop]=await Promise.allSettled([eventLineConnected(store),shopRequest('list',{})]);
+  if(disposed||current!==refreshId)return;
+  eventConnected=event.status==='fulfilled'&&event.value;
+  shopConnected=shop.status==='fulfilled'&&Array.isArray(shop.value?.devices)&&shop.value.devices.some(device=>device.status==='active');
+  if(mode==='apps')paint();
+ }
+ function openEventLine(){
+  closePairing();
+  const previous=document.activeElement;
+  const dialog=document.createElement('dialog');
+  dialog.className='sh-external-app-fullscreen';
+  dialog.setAttribute('aria-label','Event Line');
+  const nav=document.createElement('div');nav.className='sh-eventline-controls';
+  const close=()=>{if(!dialog.isConnected)return;dialog.remove();previous?.focus();};
+  const back=button('Terug naar apps',close);
+  const external=document.createElement('a');
+  external.href=EVENT_LINE_URL;external.target='_blank';external.rel='noopener noreferrer';
+  external.textContent='Open in browser';
+  nav.append(back,external);
+  const frame=document.createElement('iframe');
+  frame.src=EVENT_LINE_URL;frame.title='Event Line';frame.className='sh-eventline-frame';
+  dialog.append(nav,frame);document.body.append(dialog);
+  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});
+  dialog.addEventListener('close',close,{once:true});
+  closePairing=close;dialog.showModal();back.focus();
+ }
+ async function disconnectApp(id){
+  if(disconnecting)return;
+  const shop=id==='shoplist';
+  if(!document.defaultView.confirm(shop?'Alle ShopList-installaties ontkoppelen?':'Event Line ontkoppelen?'))return;
+  disconnecting=true;status.textContent='';
+  try{
+   if(shop){
+    const {devices}=await shopRequest('list',{});
+    for(const device of devices)await shopRequest('revoke',{id:device.id});
+   }else await setEventLineConnected(store,false);
+  }catch(error){status.textContent=error.message;}
+  finally{await refreshApps();disconnecting=false;}
  }
  function openEventLineBoard(){
   closePairing();
@@ -49,6 +94,9 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
    try{
     await setEventLineConnected(store,connected);
     if(connected && !selected.includes('agenda') && known.has('agenda'))await save([...selected,'agenda']);
+    refreshApps();
+    eventConnected=connected;
+    if(mode==='apps')paint();
     if(dialog.isConnected)render(connected);
    }catch(error){
     feedback.textContent=error.message;
@@ -57,9 +105,8 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   };
   const render=connected=>{
    actions.replaceChildren(connected
-    ? button('Open Event Line',()=>{close();mode='eventline';paint();})
+    ? button('Open Event Line',openEventLine)
     : button('Verbind Event Line',()=>choose(true)));
-   if(connected)actions.append(button('Ontkoppelen',()=>choose(false)));
   };
   body.append(intro,actions,feedback,button('Sluiten',close));dialog.append(header,body);
   dialog.addEventListener('close',close,{once:true});
@@ -68,39 +115,35 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
  }
  function paint(){
   if(disposed)return;
-  tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===(mode==='eventline'?'apps':mode))));
+  unbindApps();
+  tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===mode)));
   panel.replaceChildren();
-  if(mode==='eventline'){
-   const nav=document.createElement('div');nav.className='sh-eventline-controls';
-   const back=button('Terug naar apps',()=>{
-    mode='apps';paint();panel.querySelector('[data-app-link="eventline"]')?.focus();
-   });
-   const external=document.createElement('a');
-   external.href=EVENT_LINE_URL;external.target='_blank';external.rel='noopener noreferrer';
-   external.textContent='Open in browser';
-   nav.append(back,external);
-   const frame=document.createElement('iframe');
-   frame.src=EVENT_LINE_URL;frame.title='Event Line';frame.className='sh-eventline-frame';
-   panel.append(nav,frame);back.focus();
-   return;
-  }
   if(mode==='apps'){
-   const strip=button('',()=>{
-    closePairing();closePairing=openShopPairing(connection,{layoutStore:store,onConnected:()=>{
-     if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
-    }});
-   });strip.className='sh-app-connection';strip.dataset.appConnection='shoplist';strip.disabled=busy;
-   const logo=document.createElement('span');logo.className='sh-module-icon';logo.innerHTML=moduleIcon('notes');
-   const copy=document.createElement('span'),name=document.createElement('strong');name.textContent='ShopList.';copy.append(name);
-   const arrow=document.createElement('span');arrow.textContent='↗';arrow.setAttribute('aria-hidden','true');strip.append(logo,copy,arrow);panel.append(strip);
-
-   const eventLine=button('',openEventLineBoard);
-   eventLine.className='sh-app-connection sh-eventline-link';
-   eventLine.dataset.appLink='eventline';
-   eventLine.innerHTML=moduleIcon('agenda')+
-    '<span><strong>Event Line</strong></span>'+
-    '<span aria-hidden="true">↗</span>';
-   panel.append(eventLine);
+   const rows=document.createElement('div');rows.className='swipe-list';
+   for(const [id,title,icon,color,connected] of [
+    ['shoplist','ShopList','notes','#ac482c',shopConnected],
+    ['eventline','Event Line','agenda','#326761',eventConnected]
+   ]){
+    rows.insertAdjacentHTML('beforeend',renderObjectStrip({
+     id,title,iconHtml:moduleIcon(icon),accentColor:color,
+     actions:connected?[{kind:'delete',label:'Ontkoppelen'}]:[],singleAction:true
+    }));
+   }
+   panel.append(rows);
+   unbindApps=bindSwipeRows(rows,{
+    onOpen:id=>{
+     if(disconnecting)return;
+     if(id==='eventline'){if(eventConnected)openEventLine();else openEventLineBoard();return;}
+     closePairing();
+     if(shopConnected){closePairing=openShopListFullscreen(store);return;}
+     closePairing=openShopPairing(connection,{layoutStore:store,onConnected:()=>{
+      shopConnected=true;
+      if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
+      else if(mode==='apps')paint();
+     }});
+    },
+    onDelete:disconnectApp
+   });
    return;
   }
   const hint=document.createElement('p');hint.className='sh-apps-hint';hint.textContent='Kies je onderdelen. Sleep onderdelen met het handvat in jouw volgorde.';panel.append(hint);
@@ -120,5 +163,5 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
    panel.append(row);
   }
  }
- paint();return ()=>{disposed=true;dragged=null;closePairing();};
+ paint();return ()=>{disposed=true;dragged=null;unbindApps();closePairing();};
 }

@@ -1,10 +1,10 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.22';
-import {openNotesDeck} from './NotesDeck.js?v=0.5.22';
-import {mountShopApp} from './ShopApp.js?v=0.5.22';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.22';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.22';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.22';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.22';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.23';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.23';
+import {mountShopApp} from './ShopApp.js?v=0.5.23';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.23';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.23';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.23';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.23';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -19,6 +19,13 @@ export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:e
  const cancel=event=>{event.preventDefault();close();};dialog.addEventListener('cancel',cancel);
  return ()=>{gestures?.dispose();dialog.removeEventListener('cancel',cancel);};
 }
+export function openShopListFullscreen(store, layoutStore=store){
+ return openNotesDeck({items:()=>[{id:'shop-app',title:'ShopList',linked:true}],id:'shop-app',
+  store:layoutStore,initialFullscreen:true,closeOnAppReturn:true,
+  render:(_, {body,setCleanup})=>mountShopApp(body,null,{
+   api:new ShopListService(store),registerCleanup:setCleanup
+  })});
+}
 // No permanent credential leaves Sharon. Only an expiring invitation is copied.
 export function openShopPairing(connection,{layoutStore=connection.store,onConnected=()=>{}}={}){
  const document=globalThis.document;
@@ -29,7 +36,7 @@ export function openShopPairing(connection,{layoutStore=connection.store,onConne
  const intro=document.createElement('p');intro.className='sh-shop-invitation';intro.textContent='Boodschappenlijsten en categorieën in Sharon.';
  const actions=document.createElement('div');actions.className='sh-shop-access-actions';
  const catalog=document.createElement('button');catalog.type='button';catalog.hidden=true;catalog.textContent='Catalogus en delen';catalog.onclick=()=>{close();openShopCatalog({store:connection.store});};actions.append(catalog);
- const open=document.createElement('button');open.type='button';open.hidden=true;open.textContent='Open ShopList';open.onclick=()=>{close();openNotesDeck({items:()=>[{id:'shop-app',title:'ShopList',linked:true}],id:'shop-app',store:layoutStore,initialFullscreen:true,render:(_, {body,setCleanup})=>mountShopApp(body,null,{api:new ShopListService(connection.store),registerCleanup:setCleanup})});};
+ const open=document.createElement('button');open.type='button';open.hidden=true;open.textContent='Open ShopList';open.onclick=()=>{close();openShopListFullscreen(connection.store,layoutStore);};
  const install=document.createElement('a');install.href=SHOPLIST_URL+'?install=1';install.target='_blank';install.rel='noopener';install.textContent='Zet ShopList op je beginscherm';actions.append(open,install);
  const body=document.createElement('div');body.className='sh-notes-body';const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;};
