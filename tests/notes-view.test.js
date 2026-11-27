@@ -123,20 +123,46 @@ test('Preview CTA opens the selected list in the remembered mode',async t=>{
  const url=new URL(document.querySelector('iframe').src);assert.equal(url.searchParams.get('shoplist'),'shared');assert.equal(url.searchParams.get('view'),'check');
 });
 
-test('ShopList catalog can be removed from the Sharon overview and restored after reopening',async t=>{
- const f=fixture(t,false);
+test('Connected ShopList catalog archives, then can be removed directly from the archive after unlinking',async t=>{
+ const f=fixture(t);
+ let connected=true;
+ f.api.isConnected=async()=>connected;
  let stop=await openNotesView(f.outlet,f);
  t.after(()=>stop());
  const catalog=()=>f.outlet.querySelector('[data-swipe-row="shop:catalog"]');
- catalog().querySelector('[data-swipe-delete]').click();
- [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijder uit Sharon').click();
+ const archive=()=>f.outlet.querySelector('[data-notes-archive]');
  await settle();
- assert.equal(catalog(),null);
- stop();stop=await openNotesView(f.outlet,f);
- assert.equal(catalog(),null);
- f.outlet.querySelector('[data-notes-archive]').click();
+ assert.equal(catalog().querySelector('[data-swipe-delete]'),null);
  catalog().querySelector('[data-swipe-secondary]').click();
  await settle();
- assert(catalog());
- assert.equal(f.records.size,0);
+ assert.equal(catalog(),null);
+ archive().click();
+ assert(catalog().querySelector('[data-swipe-secondary]'));
+ connected=false;
+ stop();stop=await openNotesView(f.outlet,f);
+ await settle();
+ archive().click();
+ assert.equal(catalog().querySelector('[data-swipe-secondary]'),null);
+ catalog().querySelector('[data-swipe-delete]').click();
+ [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();
+ await settle();
+ assert.equal(catalog(),null);
+ assert.equal(archive().parentElement.hidden,true);
+ stop();stop=await openNotesView(f.outlet,f);
+ await settle();
+ assert.equal(catalog(),null);
+ connected=true;
+ stop();stop=await openNotesView(f.outlet,f);
+ await settle();
+ assert(catalog().querySelector('[data-swipe-secondary]'));
+});
+
+test('An unavailable ShopList status does not allow removing the catalog',async t=>{
+ const f=fixture(t);
+ f.api.isConnected=async()=>{throw Error('Offline');};
+ const stop=await openNotesView(f.outlet,f);t.after(stop);
+ await settle();
+ const catalog=f.outlet.querySelector('[data-swipe-row="shop:catalog"]');
+ assert(catalog);
+ assert.equal(catalog.querySelector('[data-swipe-delete], [data-swipe-secondary]'),null);
 });
