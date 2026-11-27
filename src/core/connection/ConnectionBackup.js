@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.21';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.22';
 
 const connectionFormat = 'sharon-connections-v1';
 const fullFormat = 'sharon-local-backup-v1';

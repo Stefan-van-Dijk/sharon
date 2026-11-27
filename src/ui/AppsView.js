@@ -1,7 +1,7 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.21';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.21';
-import {bindNotesBoard,openShopPairing} from './ShopPairing.js?v=0.5.21';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.21';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.22';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.22';
+import {bindNotesBoard,openShopPairing} from './ShopPairing.js?v=0.5.22';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.22';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
