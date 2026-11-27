@@ -1,7 +1,7 @@
-import {sharonLogo} from './Brand.js?v=0.5.23';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.23';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.23';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.23';
+import {sharonLogo} from './Brand.js?v=0.5.24';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.24';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.24';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.24';
 
 // One selected record is mounted; navigation uses the current filtered overview.
 export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false,closeOnAppReturn=false}){
@@ -21,7 +21,7 @@ export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppVie
   if(row.linked){const brand=document.createElement('strong');brand.className='sh-notes-wordmark';brand.textContent='ShopList.';header.append(brand);}
   const title=document.createElement('h2');title.textContent=row.title;header.append(title);
   const toggle=document.createElement('button');toggle.type='button';toggle.className='sh-notes-expand';toggle.dataset.notesFullscreen='';
-  toggle.hidden=!!row.linked&&!fullscreen;if(fullscreen&&row.linked){toggle.innerHTML='<span aria-hidden="true">←</span>'+sharonLogo();}else toggle.textContent=fullscreen?'↙':'⛶';toggle.setAttribute('aria-label',fullscreen?'Terug naar boards':'Open volledig scherm');toggle.onclick=()=>setFullscreen(!fullscreen);header.append(toggle);
+  toggle.hidden=!!row.linked&&!fullscreen;if(fullscreen&&row.linked){toggle.innerHTML=sharonLogo();}else toggle.textContent=fullscreen?'↙':'⛶';toggle.setAttribute('aria-label',fullscreen?(row.linked?'Terug naar Sharon':'Terug naar boards'):'Open volledig scherm');toggle.onclick=()=>setFullscreen(!fullscreen);header.append(toggle);
   if(row.linked){const source=document.createElement('button');source.type='button';source.onclick=()=>setFullscreen(true);source.className='sh-notes-app-source';source.setAttribute('aria-label','Open deze lijst in ShopList');source.hidden=fullscreen;source.textContent='Open ShopList';header.append(source);}
  for(const [kind,label] of [['board','Hoogte van board aanpassen'],['media','Hoogte van afbeelding en informatie aanpassen']]){const resize=document.createElement('button');resize.type='button';resize.className='sh-board-resizer';resize.dataset.deckSize=kind;resize.setAttribute('aria-label',label);resize.hidden=fullscreen;header.append(resize);}
   const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab';grab.dataset.deckGrab='';grab.textContent=row.title;grab.setAttribute('aria-label','Boards oppakken en verplaatsen');grab.hidden=fullscreen;

@@ -1,4 +1,4 @@
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.23';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.24';
 
 export const PUBLICATION_STATUS = Object.freeze({
   LOCAL: 'local', ONLINE: 'online', OFFLINE: 'offline', DELETED: 'deleted'

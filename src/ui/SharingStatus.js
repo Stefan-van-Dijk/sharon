@@ -1,4 +1,4 @@
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.23';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.24';
 const QR_PREFIX='sharing.qr.';
 export const qrShareKey=id=>QR_PREFIX+id;
 export async function sharingRecords(store,objectId){
