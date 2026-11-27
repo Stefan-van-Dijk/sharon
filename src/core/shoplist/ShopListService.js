@@ -1,4 +1,4 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.17';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.18';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);}
@@ -15,6 +15,12 @@ export class ShopListService {
   const device=await this.connection.device();
   const {action,protocol,...payload}=input;
   return this.connection.request('shoplibrary-'+command,payload,device);
+ }
+ async isConnected(){
+  const device=await this.connection.device();
+  if(!device.registered||device.self?.line==null)return false;
+  const {devices}=await this.connection.request('shop-pair-list',{},device);
+  return devices.some(device=>device.status==='active');
  }
  index(){return this.request('index');}
  archive(id,archived=true){return this.request('archive',{id,archived});}
