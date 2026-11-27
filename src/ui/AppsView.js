@@ -1,24 +1,35 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.25';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.25';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.25';
-import {sharonLogo} from './Brand.js?v=0.5.25';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.25';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.25';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.25';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.26';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.26';
+import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.26';
+import {sharonLogo} from './Brand.js?v=0.5.26';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.26';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.26';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.26';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.26';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.26';
+
+const accountExtras = [
+ ['rides', 'Ritten', 'Bekijk je ritten en vind terug waar je bent geweest.'],
+ ['actions', 'Taken', 'Houd bij wat je nog wilt doen en koppel taken aan je eigen boards.'],
+ ['cards', 'Pasjes', 'Houd je klantenkaarten bij de hand als je gaat winkelen.'],
+ ['persons', 'Gesprekken', 'Houd gesprekken bij je contacten in Sharon.']
+];
 
 // Home visibility changes only navigation; module data and app grants stay intact.
-export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
+export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpenModule,connection=new ConnectionService(store)}){
+ const accounts=new AccountService(store,connection);
  const document=outlet.ownerDocument,known=new Map(items.map(item=>[item.id,item]));
  let selected=homeModules(settings.get(),items.map(item=>item.id));
  let order=homeOrder(settings.get(),items.map(item=>item.id));
  let mode='home',busy=false,disposed=false,dragged=null,closePairing=()=>{},unbindApps=()=>{};
+ let account=null,accountRefreshId=0;
  let eventConnected=false,shopConnected=false,disconnecting=false,refreshId=0;
  const root=document.createElement('section');root.className='sh-apps-view module-view';
  const tabs=document.createElement('div');tabs.className='sh-apps-tabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Apps en onderdelen');
  const panel=document.createElement('div');panel.className='sh-apps-panel';
  const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const element=document.createElement('button');element.type='button';element.textContent=label;element.onclick=fn;return element;};
- for(const [id,label] of [['home','Mijn Sharon'],['apps','Apps verbinden']]){const tab=button(label,()=>{mode=id;paint();if(id==='apps')refreshApps();});tab.dataset.appsTab=id;tabs.append(tab);}
+ for(const [id,label] of [['home','Mijn Sharon'],['apps','Apps verbinden']]){const tab=button(label,()=>{mode=id;paint();if(id==='apps')refreshAccount();});tab.dataset.appsTab=id;tabs.append(tab);}
  root.append(tabs,panel,status);outlet.replaceChildren(root);
  async function save(next,nextOrder=order){
   if(busy||disposed)return false;
@@ -35,9 +46,24 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   const next=[...order];next.splice(from,1);next.splice(target,0,id);save(selected,next);
  }
  const shopRequest=async(action,input)=>connection.request('shop-pair-'+action,input,await connection.device());
+ async function refreshAccount(){
+  const current=++accountRefreshId;
+  let result;
+  try{result=await accounts.status();}
+  catch{result=null;}
+  if(disposed||current!==accountRefreshId||mode!=='apps')return;
+  account=result;
+  paint();
+  if(account)await refreshApps();
+ }
+ function showAccountBoard(initial){
+  closePairing();
+  closePairing=openAccountBoard(document,accounts,{mode:initial,name:settings.get().profile?.name||'Sharon',
+   onLogin:value=>{if(disposed)return;++accountRefreshId;account=value;paint();refreshApps();}});
+ }
  async function refreshApps(){
   const current=++refreshId;
-  const [event,shop]=await Promise.allSettled([eventLineConnected(store),shopRequest('list',{})]);
+  const [event,shop]=await Promise.allSettled([eventLineConnected(store,accounts),shopRequest('list',{})]);
   if(disposed||current!==refreshId)return;
   eventConnected=event.status==='fulfilled'&&event.value;
   shopConnected=shop.status==='fulfilled'&&Array.isArray(shop.value?.devices)&&shop.value.devices.some(device=>device.status==='active');
@@ -63,8 +89,18 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   back.className='sh-external-app-return';
   back.setAttribute('aria-label','Terug naar Sharon');
   back.innerHTML=sharonLogo();
-  const receive=event=>{
+  let sharingAccount=false;
+  const receive=async event=>{
    if(event.source!==frame.contentWindow||event.origin!==url.origin)return;
+   if(event.data?.type==='eventline:account-request'&&!sharingAccount){
+    sharingAccount=true;
+    try{
+     const {code}=await accounts.request('app-code',{app:'eventline'});
+     if(dialog.isConnected)frame.contentWindow.postMessage({type:'eventline:account-code',code},url.origin);
+    }catch(error){
+     if(dialog.isConnected)frame.contentWindow.postMessage({type:'eventline:account-error',message:error.message},url.origin);
+    }finally{sharingAccount=false;}
+   }
    if(event.data?.type==='eventline:return-ready')back.hidden=true;
    if(event.data?.type==='eventline:return')close();
   };
@@ -91,7 +127,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   closePairing();
   const previous=document.activeElement;
   const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board';
+  dialog.className='sh-notes-board sh-app-info sh-app-info--eventline';
   dialog.setAttribute('aria-label','Event Line');
   const header=document.createElement('header');header.className='sh-notes-heading';
   const title=document.createElement('h2');title.textContent='Event Line';header.append(title);
@@ -104,6 +140,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   const choose=async connected=>{
    for(const control of actions.children)control.disabled=true;
    try{
+    await accounts.require();
     await setEventLineConnected(store,connected);
     if(connected && !selected.includes('agenda') && known.has('agenda'))await save([...selected,'agenda']);
     refreshApps();
@@ -123,7 +160,60 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   body.append(intro,actions,feedback,button('Sluiten',close));dialog.append(header,body);
   dialog.addEventListener('close',close,{once:true});
   closePairing=close;document.body.append(dialog);dialog.showModal();
-  eventLineConnected(store).then(render,error=>{feedback.textContent=error.message;});
+  eventLineConnected(store,accounts).then(render,error=>{feedback.textContent=error.message;});
+ }
+ function openAccountExtra(title, description, icon){
+  closePairing();
+  const previous=document.activeElement;
+  const dialog=document.createElement('dialog');
+  dialog.className='sh-notes-board sh-account-extra-board'+(title==='ShopList'?' sh-app-info sh-app-info--shoplist':title==='Event Line'?' sh-app-info sh-app-info--eventline':'');
+  const header=document.createElement('header');header.className='sh-notes-heading';
+  const heading=document.createElement('h2');heading.textContent=title;
+  header.innerHTML=moduleIcon(icon);header.append(heading);
+  dialog.setAttribute('aria-label',title);
+  const body=document.createElement('div');body.className='sh-notes-body';
+  const text=document.createElement('p');text.textContent=description;
+  const close=()=>{if(!dialog.isConnected)return;release();dialog.remove();previous?.focus();};
+  const release=bindNotesBoard(dialog,header,close);
+  body.append(text);
+  if(account&&known.has(icon)&&onOpenModule)body.append(button('Open '+title,()=>{close();onOpenModule(icon);}));
+  body.append(button('Sluiten',close));dialog.append(header,body);
+  dialog.addEventListener('close',close,{once:true});
+  closePairing=close;document.body.append(dialog);dialog.showModal();
+ }
+ function renderAccountHub(){
+  const hub=document.createElement('section');hub.className='sh-account-hero';
+  hub.innerHTML='<div class="sh-account-mark">'+sharonLogo()+'</div>'+
+   '<div><p>Sharon-account</p><h2>Verbind je wereld</h2></div>';
+  const controls=document.createElement('div');controls.className='sh-account-controls';
+  if(account){
+   const address=document.createElement('p');address.textContent=account.email;
+   controls.append(address,button('Uitloggen',async()=>{
+    try{await accounts.logout();++accountRefreshId;account=null;++refreshId;eventConnected=false;shopConnected=false;paint();}
+    catch(error){status.textContent=error.message;}
+   }));
+  }else{
+   controls.append(button('Account aanmaken',()=>showAccountBoard('register')),
+    button('Inloggen',()=>showAccountBoard('login')));
+  }
+  hub.append(controls);
+  const intro=document.createElement('p');intro.className='sh-account-intro';
+  intro.textContent='Met een Sharon-account kun je extra apps verbinden.';
+  panel.append(hub,intro);
+ }
+ function renderAccountExtras(){
+  const extras=document.createElement('section');extras.className='sh-account-extras';
+  const heading=document.createElement('h3');heading.textContent='Ook in Sharon';
+  extras.append(heading);
+  const grid=document.createElement('div');
+  for(const [icon,title,description] of accountExtras){
+   const tile=button('',()=>openAccountExtra(title,description,icon));
+   tile.className='sh-account-extra sh-account-extra--'+icon;
+   tile.innerHTML=moduleIcon(icon);
+   const label=document.createElement('span');label.textContent=title;tile.append(label);
+   grid.append(tile);
+  }
+  extras.append(grid);panel.append(extras);
  }
  function paint(){
   if(disposed)return;
@@ -131,24 +221,36 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===mode)));
   panel.replaceChildren();
   if(mode==='apps'){
+   renderAccountHub();
    const rows=document.createElement('div');rows.className='swipe-list sh-connected-apps';
    for(const [id,title,icon,color,connected] of [
-    ['shoplist','ShopList','notes','#a44932',shopConnected],
-    ['eventline','Event Line','agenda','#574493',eventConnected]
+    ['shoplist','ShopList','notes','#a44932',account&&shopConnected],
+    ['eventline','Event Line','agenda','#574493',account&&eventConnected]
    ]){
-    const action=connected?'Verbonden · Open app':'Verbinden';
+    const action=connected?'Verbonden · Open app':(account?'Verbinden':'Bekijk de app');
     rows.insertAdjacentHTML('beforeend',renderObjectStrip({
      id,title,subtitle:action,ariaLabel:title+' · '+action,
      className:'sh-connected-app sh-connected-app--'+id,
      iconHtml:moduleIcon(icon),accentColor:color,
-     trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">'+(connected?'↗':'+')+'</span>',
+     trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">'+(connected?'↗':'›')+'</span>',
      actions:connected?[{kind:'delete',label:'Deactiveren'}]:[],singleAction:true
     }));
    }
    panel.append(rows);
+   renderAccountExtras();
    unbindApps=bindSwipeRows(rows,{
-    onOpen:id=>{
+    onOpen:async id=>{
      if(disconnecting)return;
+     if(account){
+      try{account=await accounts.require();}
+      catch(error){account=null;eventConnected=false;shopConnected=false;status.textContent=error.message;paint();}
+      if(disposed)return;
+     }
+     if(!account){
+      if(id==='eventline')openAccountExtra('Event Line','Bewaar openbare evenementen in je agenda.','agenda');
+      else openAccountExtra('ShopList','Bekijk je boodschappenlijsten en categorieën in Sharon.','notes');
+      return;
+     }
      if(id==='eventline'){if(eventConnected)openEventLine();else openEventLineBoard();return;}
      closePairing();
      if(shopConnected){closePairing=openShopListFullscreen(store);return;}

@@ -1,23 +1,23 @@
-import { openAgendaView } from './AgendaView.js?v=0.5.25';
-import {openAppsView} from './AppsView.js?v=0.5.25';
-import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.5.25';
-import { openNotesView } from './NotesView.js?v=0.5.25';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.25';
-import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.5.25';
-import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.25';
-import { mountCardArrival } from './CardArrival.js?v=0.5.25';
-import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.5.25';
-import { mountHomeCardContext } from './HomeCardContext.js?v=0.5.25';
-import { syncViewportHeight } from './Viewport.js?v=0.5.25';
-import { SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.25';
-import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.5.25';
-import { openPeopleView } from './PeopleView.js?v=0.5.25';
-import { openCardsView } from './CardsView.js?v=0.5.25';
-import { openLocationsView } from './LocationsView.js?v=0.5.25';
-import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.5.25';
-import { openSettings } from './SettingsView.js?v=0.5.25';
-import { sharonWordmark } from './Brand.js?v=0.5.25';
-import { bindSwipeHome } from './SwipeHome.js?v=0.5.25';
+import { openAgendaView } from './AgendaView.js?v=0.5.26';
+import {openAppsView} from './AppsView.js?v=0.5.26';
+import {moduleIcon,homeModules} from './ModuleIcons.js?v=0.5.26';
+import { openNotesView } from './NotesView.js?v=0.5.26';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.26';
+import { ChatMonitor } from '../core/connection/ChatMonitor.js?v=0.5.26';
+import { ConnectionService } from '../core/connection/ConnectionService.js?v=0.5.26';
+import { mountCardArrival } from './CardArrival.js?v=0.5.26';
+import { createDemoWorkspaceStore } from '../core/skeleton/DemoWorkspaceStore.js?v=0.5.26';
+import { mountHomeCardContext } from './HomeCardContext.js?v=0.5.26';
+import { syncViewportHeight } from './Viewport.js?v=0.5.26';
+import { SKELETON_MODULES } from '../core/skeleton/SkeletonCore.js?v=0.5.26';
+import { mountSkeletonDemo } from './SkeletonDemoView.js?v=0.5.26';
+import { openPeopleView } from './PeopleView.js?v=0.5.26';
+import { openCardsView } from './CardsView.js?v=0.5.26';
+import { openLocationsView } from './LocationsView.js?v=0.5.26';
+import { openEnvironmentView } from './EnvironmentMapLibre.js?v=0.5.26';
+import { openSettings } from './SettingsView.js?v=0.5.26';
+import { sharonWordmark } from './Brand.js?v=0.5.26';
+import { bindSwipeHome } from './SwipeHome.js?v=0.5.26';
 
 const MODULE_GUIDE = Object.freeze({
   environment: ['Bekijk wat er om je heen gebeurt en welke informatie relevant is.', 'Verbindt met Locaties, Kaarten, Objecten en Thema\'s.'],
@@ -38,7 +38,7 @@ const MENU_ORDER = ['environment','locations','cards','persons','objects','theme
 const MENU_TITLES = Object.freeze({environment:'Omgeving',locations:'Locaties',cards:'Kaarten',persons:'Personen',objects:'Objecten',themes:"Thema's",actions:'Acties',notes:'Notities & lijsten',agenda:'Agenda',time:'Tijd',rides:'Ritten',codes:'Codes'});
 const MENU_TEST_ID = Object.freeze({persons:'persons',time:'tasks'});
 
-const APP_VERSION = '0.5.25';
+const APP_VERSION = '0.5.26';
 const VIEW_FADE_MS = 110;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -533,7 +533,7 @@ export function createShell(root, {
     if(!fromHistory)openHistoryModule('apps');
     setHeaderMode('detail','Apps en onderdelen','apps');
     if(demoMode){await swapView(()=>{outlet.innerHTML='<section class="module-view"><p>Beheer je onderdelen en appverbindingen in je gewone omgeving.</p></section>';});return;}
-    await swapView(()=>openAppsView(outlet,{settings,store,items:MENU_ORDER.map(id=>({id,title:MENU_TITLES[id]}))}));
+    await swapView(()=>openAppsView(outlet,{settings,store,items:MENU_ORDER.map(id=>({id,title:MENU_TITLES[id]})),onOpenModule:id=>openModule(id)}));
   };
 
   const openSettingsView = async ({ animate = true } = {}) => {

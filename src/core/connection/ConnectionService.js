@@ -1,6 +1,6 @@
-import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.25';
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.25';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.25';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.26';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.26';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.26';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -9,6 +9,14 @@ const PENDING = 'connection.pending.log-json.v1';
 const APP_URL = 'https://stefan-van-dijk.github.io/sharon/';
 const timestamp=value=>Number(value)||Date.parse(value)||0;
 const errors = {
+  account_email:'Vul een geldig e-mailadres in.',
+  account_password:'Gebruik een wachtwoord van minimaal 12 en maximaal 72 bytes.',
+  account_credentials:'E-mailadres of wachtwoord is onjuist.',
+  account_unverified:'Bevestig eerst je e-mailadres.',
+  account_verification:'De code is ongeldig of verlopen, of het wachtwoord klopt niet.',
+  account_required:'Log in met je Sharon-account via Apps verbinden.',
+  account_identity_conflict:'Dit account is al verbonden met een andere Sharon-identiteit. Gebruik de bijbehorende installatie of herstel eerst je back-up.',
+  account_mail_unavailable:'Sharon kan op dit moment geen verificatiemail sturen.',
   pair_expired:'Deze koppelcode is verlopen. Maak een nieuwe code.',
   pair_used:'Deze code is al door een andere Shop gebruikt.',
   pair_pending:'Plak eerst de code in Shop en bevestig daarna dezelfde controlecode.',
@@ -140,13 +148,14 @@ export class ConnectionService {
     return result.valid===true;
   }
   async clearPending() { await this.store.delete('meta',PENDING); }
-  async request(action, input = {}, device = null, publishKey = '') {
+  async request(action, input = {}, device = null, publishKey = '', accountToken) {
+    const sessionToken=accountToken===undefined?(await this.store.get('meta','account.session.v1'))?.value?.token:accountToken;
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),15000);
     try {
       const response = await this.fetcher(CONNECTION_ENDPOINT, {
         method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
-        headers:{'Content-Type':'application/json',...(device?{'X-Log-Access-Token':device.deviceToken}:{}),...(publishKey?{'X-Log-Publish-Key':publishKey}:{})},
+        headers:{'Content-Type':'application/json',...(sessionToken?{'X-Sharon-Account-Token':sessionToken}:{}),...(device?{'X-Log-Access-Token':device.deviceToken}:{}),...(publishKey?{'X-Log-Publish-Key':publishKey}:{})},
         body:JSON.stringify({protocol:'sharon-network-v1',action,...input}),signal:controller.signal
       });
       let data;
@@ -154,7 +163,9 @@ export class ConnectionService {
       if (!response.ok) {
         if(response.status===422 && String(data.error).includes('ConnectionId'))
           throw Error('Het bestaande Log-serverbestand connections.php moet nog worden bijgewerkt.');
-        throw Error(errors[data.error] || 'De server kon deze handeling niet uitvoeren.');
+        const error=Error(errors[data.error] || 'De server kon deze handeling niet uitvoeren.');
+        error.code=data.error;
+        throw error;
       }
       return data;
     } catch (error) {

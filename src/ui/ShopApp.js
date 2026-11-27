@@ -1,5 +1,5 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.25';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.25';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.26';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.26';
 export function shopAppUrl(id,account,mode,{categoryId,collectionId}={}){
  const url=new URL(SHOPLIST_URL);url.searchParams.set('v','20261118-category-board');if(id)url.searchParams.set('shoplist',id);url.searchParams.set('from','sharon');if(account)url.searchParams.set('account',account);if(mode==='collect'||mode==='check'||mode==='catalog')url.searchParams.set('view',mode);else if(!id)url.searchParams.set('view','collect');
  if(mode==='catalog'&&categoryId)url.searchParams.set('category',categoryId);
@@ -11,12 +11,13 @@ export function createShopSession(api,selectedId){
  const allowed=new Set(selectedId?[selectedId]:[]);let owner;
  return async(action,input={})=>{
   const device=await api.connection.device();
-  if(!device.registered||!device.personId||device.self?.line==null)throw Error('Verbind eerst je identiteit in Sharon.');
+  await api.accounts.require();
+  if(!device.personId)throw Error('De Sharon-identiteit ontbreekt.');
   if(owner&&owner!==device.personId)throw Error('De Sharon-identiteit is gewijzigd. Open Shop opnieuw.');
   owner=device.personId;
   if(action==='session'){
    if(selectedId)await api.read(selectedId);
-   return {self:{personId:owner,name:device.self.name||'Sharon'}};
+   return {self:{personId:owner,name:device.self?.name||'Sharon'}};
   }
   if(action==='index'){const result=await api.index();return {...result,lists:result.lists.filter(row=>allowed.has(row.id))};}
   if(action==='catalog')return api.catalog();

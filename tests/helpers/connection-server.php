@@ -2,6 +2,7 @@
 declare(strict_types=1);
 define('LOG_CONNECTION_LIBRARY_ONLY',true);
 require 'server/connections.php';
+require 'tests/helpers/account-fixture.php';
 $temporary=[];
 register_shutdown_function(function()use(&$temporary){foreach($temporary as $path){foreach(glob(dirname($path).'/*') as $file)unlink($file);rmdir(dirname($path));}});
 $checks=0;
@@ -165,39 +166,42 @@ fails(fn()=>$cs->handle('invite-code',['token'=>$bound['token']],$codeOwner['dev
 
 [$shopDb,$shop,$shopStart,$shopOwner]=fixture();
 $reader=person($shop,'Reader');$stranger=person($shop,'Stranger');joinPerson($shop,$shopOwner,$reader);joinPerson($shop,$shopOwner,$stranger);
+$ownerAccount=verified_account_session($shop,$shopOwner);
+$readerAccount=verified_account_session($shop,$reader);
+$strangerAccount=verified_account_session($shop,$stranger);
 $payload=['list'=>['id'=>'list-1','name'=>'Boodschappen','items'=>[]],'products'=>[],'categories'=>[]];
 $input=['id'=>'list-1','payload'=>$payload,'revision'=>0,'operation'=>'00000000-0000-4000-8000-000000000001'];
-$created=$shop->handle('shoplist-create',$input,$shopOwner['deviceToken']);check($created['list']['revision']===1);
-fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
-$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken']);
-check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'])['role']==='read');
-fails(fn()=>$shop->handle('shoplist-put',$input,$reader['deviceToken']),'list_read_only');
-fails(fn()=>$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$stranger['personId'],'role'=>'write'],$reader['deviceToken']),'owner_required');
-check(count($shop->handle('shoplist-index',[],$stranger['deviceToken'])['lists'])===0);
-$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'write'],$shopOwner['deviceToken']);
+$created=$shop->handle('shoplist-create',$input,$shopOwner['deviceToken'], $ownerAccount);check($created['list']['revision']===1);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'], $readerAccount),'list_forbidden');
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken'], $ownerAccount);
+check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'], $readerAccount)['role']==='read');
+fails(fn()=>$shop->handle('shoplist-put',$input,$reader['deviceToken'], $readerAccount),'list_read_only');
+fails(fn()=>$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$stranger['personId'],'role'=>'write'],$reader['deviceToken'], $readerAccount),'owner_required');
+check(count($shop->handle('shoplist-index',[],$stranger['deviceToken'], $strangerAccount)['lists'])===0);
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'write'],$shopOwner['deviceToken'], $ownerAccount);
 $update=[...$input,'revision'=>1,'operation'=>'00000000-0000-4000-8000-000000000002'];
-check($shop->handle('shoplist-put',$update,$reader['deviceToken'])['list']['revision']===2);
-check($shop->handle('shoplist-put',$update,$reader['deviceToken'])['list']['revision']===2);
-fails(fn()=>$shop->handle('shoplist-put',[...$input,'operation'=>'00000000-0000-4000-8000-000000000003'],$shopOwner['deviceToken']),'list_conflict');
-$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>null],$shopOwner['deviceToken']);
-fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
-fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken']),'list_forbidden');
+check($shop->handle('shoplist-put',$update,$reader['deviceToken'], $readerAccount)['list']['revision']===2);
+check($shop->handle('shoplist-put',$update,$reader['deviceToken'], $readerAccount)['list']['revision']===2);
+fails(fn()=>$shop->handle('shoplist-put',[...$input,'operation'=>'00000000-0000-4000-8000-000000000003'],$shopOwner['deviceToken'], $ownerAccount),'list_conflict');
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>null],$shopOwner['deviceToken'], $ownerAccount);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'], $readerAccount),'list_forbidden');
+fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken'], $readerAccount),'list_forbidden');
 
 
 
 
 // Per-person archive and departure preserve the other participants.
-$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken']);
-$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>true],$reader['deviceToken']);
-check($shop->handle('shoplist-index',[],$reader['deviceToken'])['lists'][0]['archived']===true);
-check($shop->handle('shoplist-index',[],$shopOwner['deviceToken'])['lists'][0]['archived']===false);
-$shop->handle('shoplist-leave',['id'=>'list-1'],$shopOwner['deviceToken']);
-fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$shopOwner['deviceToken']),'list_forbidden');
-check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'])['role']==='read');
-fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken']),'list_read_only');
-$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>false],$reader['deviceToken']);
-$shop->handle('shoplist-leave',['id'=>'list-1'],$reader['deviceToken']);
-fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken']),'list_forbidden');
-check($shop->handle('shoplist-create',$input,$shopOwner['deviceToken'])['list']['revision']===1);
+$shop->handle('shoplist-share',['id'=>'list-1','personId'=>$reader['personId'],'role'=>'read'],$shopOwner['deviceToken'], $ownerAccount);
+$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>true],$reader['deviceToken'], $readerAccount);
+check($shop->handle('shoplist-index',[],$reader['deviceToken'], $readerAccount)['lists'][0]['archived']===true);
+check($shop->handle('shoplist-index',[],$shopOwner['deviceToken'], $ownerAccount)['lists'][0]['archived']===false);
+$shop->handle('shoplist-leave',['id'=>'list-1'],$shopOwner['deviceToken'], $ownerAccount);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$shopOwner['deviceToken'], $ownerAccount),'list_forbidden');
+check($shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'], $readerAccount)['role']==='read');
+fails(fn()=>$shop->handle('shoplist-put',$update,$reader['deviceToken'], $readerAccount),'list_read_only');
+$shop->handle('shoplist-archive',['id'=>'list-1','archived'=>false],$reader['deviceToken'], $readerAccount);
+$shop->handle('shoplist-leave',['id'=>'list-1'],$reader['deviceToken'], $readerAccount);
+fails(fn()=>$shop->handle('shoplist-read',['id'=>'list-1'],$reader['deviceToken'], $readerAccount),'list_forbidden');
+check($shop->handle('shoplist-create',$input,$shopOwner['deviceToken'], $ownerAccount)['list']['revision']===1);
 
 echo json_encode(['checks'=>$checks,'ok'=>true]);

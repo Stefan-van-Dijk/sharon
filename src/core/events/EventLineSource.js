@@ -1,4 +1,5 @@
-import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.25';
+import {AccountService} from '../connection/AccountService.js?v=0.5.26';
+import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.26';
 
 export const EVENT_LINE_URL = 'https://sharon.life/eventline/';
 const { origin, pathname } = new URL(EVENT_LINE_URL);
@@ -8,7 +9,8 @@ const bookmarkKey = 'agenda.event-line.bookmarks.v1';
 
 const connectionKey = 'agenda.event-line.connected.v1';
 
-export async function eventLineConnected(store) {
+export async function eventLineConnected(store, accounts = new AccountService(store)) {
+  try { await accounts.require(); } catch { return false; }
   const saved = await store.get('meta', connectionKey);
   return saved ? saved.value === true : Boolean((await store.get('meta', bookmarkKey))?.value?.length);
 }
