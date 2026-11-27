@@ -1,4 +1,4 @@
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.21';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.22';
 export function openSettings(root, {
   settings,
   install,

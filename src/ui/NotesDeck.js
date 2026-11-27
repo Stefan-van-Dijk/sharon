@@ -1,7 +1,7 @@
-import {sharonLogo} from './Brand.js?v=0.5.21';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.21';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.21';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.21';
+import {sharonLogo} from './Brand.js?v=0.5.22';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.22';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.22';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.22';
 
 // One selected record is mounted; navigation uses the current filtered overview.
 export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false}){
