@@ -25,6 +25,8 @@ test.afterAll(async()=>{await new Promise(done=>server.close(done));});
 test('Account registration unlocks app connections and logout restores information boards',async({page},testInfo)=>{
  await page.goto(base+'/account-fixture.html');
  await page.addStyleTag({content:readFileSync('index.html','utf8').match(/<style>([\s\S]*?)<\/style>/)[1]});
+ // The full shell reserves this space above the sticky module tabs.
+ await page.addStyleTag({content:'.sh-apps-view{padding-top:80px}'});
  await page.evaluate(async()=>{
   const {openAppsView}=await import('/src/ui/AppsView.js');
   const records=new Map();
@@ -48,6 +50,13 @@ test('Account registration unlocks app connections and logout restores informati
   openAppsView(document.querySelector('main'),{store,settings,connection,items:[{id:'agenda',title:'Agenda'}]});
  });
  await page.getByRole('button',{name:'Apps verbinden',exact:true}).click();
+ const tabs=await page.locator('.sh-apps-tabs').boundingBox();
+ const hero=await page.locator('.sh-account-hero').boundingBox();
+ expect(hero.y).toBeGreaterThanOrEqual(tabs.y+tabs.height);
+ for(const id of ['shoplist','eventline']){
+  const followsAppColor=await page.locator('[data-swipe-row="'+id+'"] .sh-strip-icon svg').evaluate(element=>getComputedStyle(element).stroke===getComputedStyle(element.parentElement).color);
+  expect(followsAppColor).toBe(true);
+ }
  await page.screenshot({path:testInfo.outputPath('account-guest.png')});
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  let board=page.getByRole('dialog',{name:'Event Line',exact:true});
