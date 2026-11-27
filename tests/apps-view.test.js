@@ -53,13 +53,20 @@ test('Existing profile without Home preference starts with all current choices e
  assert.deepEqual(f.settings.get().home.modules,['environment','notes']);
 });
 
-test('Event Line opens the standalone webapp from Apps independently of ShopList', t => {
+test('Event Line opens inside Apps with a standalone link and can return to the app list', t => {
  const f=fixture(t);
  document.querySelector('[data-apps-tab="apps"]').click();
- const link=document.querySelector('a[data-app-link="eventline"]');
- assert.equal(link.href,'https://sharon.life/eventline/');
- assert.equal(link.target,'_blank');
- assert.equal(link.relList.contains('noopener'),true);
+ const launch=document.querySelector('button[data-app-link="eventline"]');
  assert(document.querySelector('button[data-app-connection="shoplist"]'));
+ launch.click();
+ const frame=document.querySelector('iframe[title="Event Line"]');
+ assert.equal(frame.src,'https://sharon.life/eventline/');
+ const external=document.querySelector('.sh-eventline-controls a');
+ assert.equal(external.href,frame.src);
+ assert.equal(external.target,'_blank');
+ assert.equal(external.relList.contains('noopener'),true);
+ document.querySelector('.sh-eventline-controls button').click();
+ assert.equal(document.querySelector('iframe'),null);
+ assert.equal(document.activeElement.dataset.appLink,'eventline');
  assert.deepEqual(f.settings.get().home.modules,['environment','locations']);
 });
