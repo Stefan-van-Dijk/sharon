@@ -1,10 +1,10 @@
-import {agendaLinksKey,objectRelationChanges} from './ObjectRelations.js?v=0.5.20';
+import {agendaLinksKey,objectRelationChanges} from './ObjectRelations.js?v=0.5.21';
 
 const DB_NAME = 'sharon';
 const DB_VERSION = 1;
 
 const backupTables = ['objects', 'tracks', 'settings', 'meta'];
-const backupMeta = /^(?:agenda\.event-line\.bookmarks\.v1$|cards\.|connection\.(?:contact\.|read\.)|location\.|locations\.|notes\.|people\.list\.|shop\.view\.)/;
+const backupMeta = /^(?:agenda\.event-line\.(?:bookmarks|connected)\.v1$|cards\.|connection\.(?:contact\.|read\.)|location\.|locations\.|notes\.|people\.list\.|shop\.view\.)/;
 
 export class ObjectStore {
   #db = null;

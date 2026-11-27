@@ -3,7 +3,7 @@ function fixture(t,online=true){
  const dom=new JSDOM('<main></main>',{url:'https://stefan-van-dijk.github.io/sharon/'});const prev={document:globalThis.document,window:globalThis.window,CustomEvent:globalThis.CustomEvent};Object.assign(globalThis,{document:dom.window.document,window:dom.window,CustomEvent:dom.window.CustomEvent});
  dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new dom.window.Event('close'));};
  const records=new Map(),shares=[],metadata=new Map();const store={get:async(_,key)=>metadata.get(key),getAll:async()=>[...records.values()],put:async(table,r)=>(table==='meta'?metadata:records).set(table==='meta'?r.key:r.id,structuredClone(r))};
- const api={index:async()=>{if(!online)throw Error('Offline');return {lists:[{id:'shared',name:'Weekend',role:'owner'}]};},read:async()=>({role:'owner',list:{members:{},payload:{products:[{id:'milk',name:'Melk'}],list:{items:[{productId:'milk',quantity:6,done:false}]}}}}),share:async(...args)=>shares.push(args),connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}}),contacts:async()=>[{personId:'person',name:'Kim'}]}};
+ const api={isConnected:async()=>online,index:async()=>{if(!online)throw Error('Offline');return {lists:[{id:'shared',name:'Weekend',role:'owner'}]};},read:async()=>({role:'owner',list:{members:{},payload:{products:[{id:'milk',name:'Melk'}],list:{items:[{productId:'milk',quantity:6,done:false}]}}}}),share:async(...args)=>shares.push(args),connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}}),contacts:async()=>[{personId:'person',name:'Kim'}]}};
  t.after(()=>{document.querySelector('[data-share-close]')?.click();Object.assign(globalThis,prev);dom.window.close();});return {outlet:document.querySelector('main'),dom,records,store,api,shares,metadata};
 }
 const settle=()=>new Promise(r=>setTimeout(r,0));
@@ -123,46 +123,30 @@ test('Preview CTA opens the selected list in the remembered mode',async t=>{
  const url=new URL(document.querySelector('iframe').src);assert.equal(url.searchParams.get('shoplist'),'shared');assert.equal(url.searchParams.get('view'),'check');
 });
 
-test('Connected ShopList catalog archives, then can be removed directly from the archive after unlinking',async t=>{
+test('Untethered ShopList data stays hidden, including the archive',async t=>{
  const f=fixture(t);
- let connected=true;
+ let connected=true, reads=0;
  f.api.isConnected=async()=>connected;
+ const index=f.api.index;
+ f.api.index=async()=>{reads++;return index();};
  let stop=await openNotesView(f.outlet,f);
  t.after(()=>stop());
  const catalog=()=>f.outlet.querySelector('[data-swipe-row="shop:catalog"]');
- const archive=()=>f.outlet.querySelector('[data-notes-archive]');
  await settle();
- assert.equal(catalog().querySelector('[data-swipe-delete]'),null);
+ assert(catalog());
+ assert(f.outlet.querySelector('[data-swipe-row="linked:shared"]'));
  catalog().querySelector('[data-swipe-secondary]').click();
  await settle();
- assert.equal(catalog(),null);
- archive().click();
- assert(catalog().querySelector('[data-swipe-secondary]'));
  connected=false;
  stop();stop=await openNotesView(f.outlet,f);
  await settle();
- archive().click();
- assert.equal(catalog().querySelector('[data-swipe-secondary]'),null);
- catalog().querySelector('[data-swipe-delete]').click();
- [...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Verwijderen').click();
- await settle();
+ assert.equal(reads,1);
  assert.equal(catalog(),null);
- assert.equal(archive().parentElement.hidden,true);
- stop();stop=await openNotesView(f.outlet,f);
- await settle();
- assert.equal(catalog(),null);
+ assert.equal(f.outlet.querySelector('[data-swipe-row="linked:shared"]'),null);
+ assert.equal(f.outlet.querySelector('[data-notes-archive]').parentElement.hidden,true);
  connected=true;
  stop();stop=await openNotesView(f.outlet,f);
  await settle();
- assert(catalog().querySelector('[data-swipe-secondary]'));
-});
-
-test('An unavailable ShopList status does not allow removing the catalog',async t=>{
- const f=fixture(t);
- f.api.isConnected=async()=>{throw Error('Offline');};
- const stop=await openNotesView(f.outlet,f);t.after(stop);
- await settle();
- const catalog=f.outlet.querySelector('[data-swipe-row="shop:catalog"]');
- assert(catalog);
- assert.equal(catalog.querySelector('[data-swipe-delete], [data-swipe-secondary]'),null);
+ f.outlet.querySelector('[data-notes-archive]').click();
+ assert(catalog());
 });
