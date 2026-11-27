@@ -13,7 +13,7 @@ export class AccountService {
  async status() {
   const session = (await this.store.get('meta', ACCOUNT_SESSION_KEY))?.value;
   if (!session?.token) return null;
-  const {account} = await this.request('status');
+  const {account} = await this.connection.request('account-status',{},null,'',session.token);
   if ((await this.store.get('meta', ACCOUNT_SESSION_KEY))?.value?.token !== session.token) return null;
   if (!account) await this.clear(session.token);
   return account;
@@ -38,12 +38,13 @@ export class AccountService {
  }
  async logout() {
   const session = (await this.store.get('meta', ACCOUNT_SESSION_KEY))?.value;
-  await this.request('logout');
+  if (!session?.token) return;
+  await this.connection.request('account-logout',{},null,'',session.token);
   await this.clear(session?.token);
  }
  async clear(expectedToken) {
-  if (expectedToken && (await this.store.get('meta', ACCOUNT_SESSION_KEY))?.value?.token !== expectedToken) return;
-  await this.store.delete('meta', ACCOUNT_SESSION_KEY);
+  if (!expectedToken) return;
+  await this.store.updateMeta(ACCOUNT_SESSION_KEY,current=>current?.token===expectedToken?null:current);
  }
 
 }

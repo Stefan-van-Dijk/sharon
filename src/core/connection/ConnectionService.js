@@ -148,14 +148,14 @@ export class ConnectionService {
     return result.valid===true;
   }
   async clearPending() { await this.store.delete('meta',PENDING); }
-  async request(action, input = {}, device = null, publishKey = '') {
-    const accountSession=(await this.store.get('meta','account.session.v1'))?.value;
+  async request(action, input = {}, device = null, publishKey = '', accountToken) {
+    const sessionToken=accountToken===undefined?(await this.store.get('meta','account.session.v1'))?.value?.token:accountToken;
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),15000);
     try {
       const response = await this.fetcher(CONNECTION_ENDPOINT, {
         method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
-        headers:{'Content-Type':'application/json',...(accountSession?.token?{'X-Sharon-Account-Token':accountSession.token}:{}),...(device?{'X-Log-Access-Token':device.deviceToken}:{}),...(publishKey?{'X-Log-Publish-Key':publishKey}:{})},
+        headers:{'Content-Type':'application/json',...(sessionToken?{'X-Sharon-Account-Token':sessionToken}:{}),...(device?{'X-Log-Access-Token':device.deviceToken}:{}),...(publishKey?{'X-Log-Publish-Key':publishKey}:{})},
         body:JSON.stringify({protocol:'sharon-network-v1',action,...input}),signal:controller.signal
       });
       let data;

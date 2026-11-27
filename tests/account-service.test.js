@@ -10,7 +10,8 @@ test('Account login proves the existing identity, stores only the issued session
  const store = {
   get:async (_,key)=>rows.get(key),
   getOrCreateMeta:async (key,create)=>rows.get(key)??{value:create()},
-  put:async (_,row)=>rows.set(row.key,row), delete:async (_,key)=>rows.delete(key)
+  put:async (_,row)=>rows.set(row.key,row),
+  updateMeta:async(key,update)=>rows.set(key,{value:update(rows.get(key)?.value)})
  };
  let live = false;
  const requests = [];
@@ -35,13 +36,13 @@ test('Account login proves the existing identity, stores only the issued session
  assert(!JSON.stringify(rows.get(ACCOUNT_SESSION_KEY)).includes('password'));
  assert(requests.every(({url})=>!url.includes('s'.repeat(43))));
  await service.logout();
- assert.equal(rows.has(ACCOUNT_SESSION_KEY),false);
+ assert.equal(rows.get(ACCOUNT_SESSION_KEY).value,null);
  await assert.rejects(service.require(),/Log in/);
 });
 
 test('Expired and mismatched account sessions do not grant access to local identity',async()=>{
  const rows = new Map([[ACCOUNT_SESSION_KEY,{value:{token:'s'.repeat(43)}}]]);
- const store={get:async(_,key)=>rows.get(key),delete:async(_,key)=>rows.delete(key)};
+ const store={get:async(_,key)=>rows.get(key),updateMeta:async(key,update)=>rows.set(key,{value:update(rows.get(key)?.value)})};
  let account={personId:'AnotherId001'};
  const service=new AccountService(store,{
   request:async()=>({account}),device:async()=>({personId:'DeviceUser01'})
@@ -49,13 +50,13 @@ test('Expired and mismatched account sessions do not grant access to local ident
  await assert.rejects(service.require(),/andere Sharon-identiteit/);
  account=null;
  assert.equal(await service.status(),null);
- assert.equal(rows.size,0);
+ assert.equal(rows.get(ACCOUNT_SESSION_KEY).value,null);
 });
 
 test('An expired status response cannot erase a session created by a later login',async()=>{
  let row={value:{token:'old'}};
  let finish;
- const store={get:async()=>row,delete:async()=>{row=null;}};
+ const store={get:async()=>row,updateMeta:async(_,update)=>{row={value:update(row?.value)};}};
  const service=new AccountService(store,{request:()=>new Promise(resolve=>{finish=resolve;})});
  const status=service.status();
  await new Promise(resolve=>setTimeout(resolve,0));
@@ -63,4 +64,16 @@ test('An expired status response cannot erase a session created by a later login
  finish({account:null});
  assert.equal(await status,null);
  assert.equal(row.value.token,'new');
+});
+
+test('Logout revokes its captured session and preserves a concurrent login',async()=>{
+ let current={token:'old'};
+ const store={get:async()=>({value:current}),updateMeta:async(_,update)=>{current=update(current);}};
+ const service=new AccountService(store,{request:async(action,input,device,key,token)=>{
+  assert.equal(action,'account-logout');
+  assert.equal(token,'old');
+  current={token:'new'};
+ }});
+ await service.logout();
+ assert.equal(current.token,'new');
 });

@@ -28,7 +28,7 @@ test('Account registration unlocks app connections and logout restores informati
  await page.evaluate(async()=>{
   const {openAppsView}=await import('/src/ui/AppsView.js');
   const records=new Map();
-  const store={get:async(_,key)=>records.get(key),put:async(_,row)=>records.set(row.key,row),delete:async(_,key)=>records.delete(key)};
+  const store={get:async(_,key)=>records.get(key),put:async(_,row)=>records.set(row.key,row),updateMeta:async(key,update)=>records.set(key,{value:update(records.get(key)?.value)})};
   const device={personId:'BrowserUser1',deviceToken:'d'.repeat(43)};
   let registered=false,verified=false,session=false;
   const account={id:'BrowserAcct1',email:'browser@example.test',personId:device.personId};
