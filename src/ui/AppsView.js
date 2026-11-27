@@ -142,7 +142,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
      className:'sh-connected-app sh-connected-app--'+id,
      iconHtml:moduleIcon(icon),accentColor:color,
      trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">'+(connected?'↗':'+')+'</span>',
-     actions:connected?[{kind:'delete',label:'Ontkoppelen'}]:[],singleAction:true
+     actions:connected?[{kind:'delete',label:'Deactiveren'}]:[],singleAction:true
     }));
    }
    panel.append(rows);
