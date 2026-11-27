@@ -1,6 +1,6 @@
-import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.22';
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.22';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.22';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.23';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.23';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.23';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';

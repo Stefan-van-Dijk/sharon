@@ -87,8 +87,10 @@ test('Een ontkoppelde Event Line toont geen bewaarde evenementen of invoerveld',
   }]});
   await app.boot();
   (await until(() => app.document.querySelector('button[data-module="agenda"]'))).click();
-  const agenda = await until(() => app.document.querySelector('[data-agenda-status]')?.textContent);
-  assert(agenda);
+  const outlet = app.document.querySelector('[data-view-outlet]');
+  await until(() => Array.from(outlet.querySelectorAll('p')).some(
+    paragraph => paragraph.textContent === 'Voeg tijdkoppelingen toe via Tijd.'
+  ));
   assert.equal(app.document.querySelector('[data-view-outlet] form'),null);
   assert.equal(app.requests.some(url=>url.includes('publicEvent')),false);
 });
