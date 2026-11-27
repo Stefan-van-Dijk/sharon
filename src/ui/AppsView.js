@@ -1,10 +1,10 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.24';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.24';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.24';
-import {sharonLogo} from './Brand.js?v=0.5.24';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.24';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.24';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.24';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.25';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.25';
+import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.25';
+import {sharonLogo} from './Brand.js?v=0.5.25';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.25';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.25';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.25';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){

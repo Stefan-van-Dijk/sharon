@@ -1,5 +1,5 @@
-const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.5.24';
-const LOGO_ASSET = './assets/sharon-logo.svg?v=0.5.24';
+const PARTS_ASSET = './assets/sharon-wordmark.svg?v=0.5.25';
+const LOGO_ASSET = './assets/sharon-logo.svg?v=0.5.25';
 
 export function sharonWordmark({
   mode = 'sharon',
@@ -26,10 +26,10 @@ export function sharonWordmark({
         <use href="${PARTS_ASSET}#e"></use>
       </g>
       <g class="vector-part vector-logo">
-        <g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
-        <g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
-        <g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
-        <g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
+        <g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.25" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
+        <g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.25" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
+        <g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.25" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
+        <g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.25" x="126.02" y="37.57" width="35.26" height="35.26"></image></g>
       </g>
       <g class="vector-part vector-o">
         <use href="${PARTS_ASSET}#o"></use>

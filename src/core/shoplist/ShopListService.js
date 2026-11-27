@@ -1,4 +1,4 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.24';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.25';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);}
