@@ -1,20 +1,20 @@
-import {openShopCatalog} from './ShopCatalog.js?v=0.5.19';
-import {shopContextMode,shopPreview} from '../core/shoplist/ShopContext.js?v=0.5.19';
-import {mountShopApp} from './ShopApp.js?v=0.5.19';
-import {openNotesDeck} from './NotesDeck.js?v=0.5.19';
-import {bindNotesBoard} from './ShopPairing.js?v=0.5.19';
-import {openListShare} from './ListSharing.js?v=0.5.19';
-import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.5.19';
-import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.5.19';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.19';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.19';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.19';
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.19';
+import {openShopCatalog} from './ShopCatalog.js?v=0.5.20';
+import {shopContextMode,shopPreview} from '../core/shoplist/ShopContext.js?v=0.5.20';
+import {mountShopApp} from './ShopApp.js?v=0.5.20';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.20';
+import {bindNotesBoard} from './ShopPairing.js?v=0.5.20';
+import {openListShare} from './ListSharing.js?v=0.5.20';
+import {renderListControls,bindListControls,renderOrderControls} from './ListControls.js?v=0.5.20';
+import {sortList,moveInOrder,moveToPosition} from '../core/storage/ListOrder.js?v=0.5.20';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.20';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.20';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.20';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.20';
 export async function openNotesView(outlet,{store,api=new ShopListService(store),headerActions,location}){
  const document=outlet.ownerDocument,window=document.defaultView;
  const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,action)=>{const b=node('button',text);b.type='button';b.onclick=action;return b;};
- let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],showArchive=false;
+ let disposed=false,release=()=>{},releaseControls=()=>{},local=[],linked=[],closeBoard=()=>{},closeShare=()=>{},visible=[],showArchive=false,removals=new Map();
  let prefs=(await store.get?.('meta','notes.list.preferences'))?.value||{sort:'alpha',order:[]};if(!['alpha','recent','custom'].includes(prefs.sort))prefs.sort='alpha';
  outlet.replaceChildren();const root=node('section',null,'module-view locations-view sh-card-view sh-notes-view'),tools=node('div',null,'sh-notes-tools'),controls=node('div'),rows=node('div',null,'sh-locations-list swipe-list'),status=node('p');status.setAttribute('role','status');
  controls.innerHTML=renderListControls({placeholder:'Zoek notities, ideeën en lijsten',sort:prefs.sort});const search=controls.querySelector('input');
@@ -93,7 +93,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
  }
  async function changeArchive(row){
   if(row.linked){await api.archive(row.record.id,!row.record.archived);await loadLinked();}
-  else{await store.put('objects',{...row.record,archivedAt:row.record.archivedAt?null:Date.now()});await loadLocal();}
+  else{if(!row.record.archivedAt&&store.removeLocalObject)await store.removeLocalObject(row.record.id);else await store.put('objects',{...row.record,archivedAt:row.record.archivedAt?null:Date.now()});await loadLocal();}
  }
  function openArchived(row){
   const {body,dialog}=board(row.title);const restore=button('Terugzetten',async()=>{restore.disabled=true;try{await changeArchive(row);dialog.close();}catch(error){report(error);restore.disabled=false;}});body.append(node('p','Zet dit item terug in je notities en lijsten.'),restore);
@@ -122,7 +122,7 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   if(!hasArchive()){showArchive=false;}
   archiveSlot.hidden=!hasArchive();archive.setAttribute('aria-pressed',String(showArchive));archive.textContent=showArchive?'Terug naar notities en lijsten':'Archief · herstellen';
   visible=sortList([...local.filter(r=>!!r.archivedAt===showArchive).map(r=>({id:'local:'+r.id,title:r.name,subtitle:({note:'Notitie',idea:'Idee',list:'Lijst'})[r.data?.kind]||'Notitie',record:r,updatedAt:r.updatedAt,createdAt:r.createdAt})),...linked.filter(r=>!!r.archived===showArchive).map(r=>({id:'linked:'+r.id,title:r.name,subtitle:'Boodschappen · ShopList',record:r,linked:true,updatedAt:r.updatedAt}))].filter(r=>(r.title+' '+(r.record.data?.body||'')).toLocaleLowerCase('nl').includes(q)),{sort:prefs.sort,order:prefs.order});
-  for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:[...(!row.linked?[{kind:'edit',label:'Bewerk'}]:[]),{kind:'secondary',label:showArchive?'Terugzetten':'Archiveren'},{kind:'delete',label:'Verwijder'}]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
+  for(const row of visible)rows.insertAdjacentHTML('beforeend','<div class="sh-list-item" data-list-item>'+renderObjectStrip({module:'tasks',id:row.id,title:row.title,subtitle:row.subtitle,shareable:row.linked&&row.record.role==='owner',accentColor:row.linked?'#da6342':'#489ff8',actions:[...(!row.linked?[{kind:'edit',label:'Bewerk'}]:[]),...(showArchive?[{kind:'secondary',label:'Terugzetten'},{kind:'delete',label:'Definitief verwijderen'}]:row.linked||removals.get(row.record.id)==='archive'?[{kind:'secondary',label:'Archiveren'}]:[{kind:'delete',label:'Verwijder'}])]})+(prefs.sort==='custom'?renderOrderControls(row.id):'')+'</div>');
   const showCatalog=!catalogRemoved()&&showArchive===catalogArchived()&&'catalogus producten categorieën shoplist'.includes(q);
   if(showCatalog)rows.insertAdjacentHTML('beforeend',renderObjectStrip({module:'objects',id:'shop:catalog',title:'Catalogus',subtitle:'Categorieën over je lijsten heen · ShopList',accentColor:'#da6342',actions:shopConnected===true?[{kind:'secondary',label:showArchive?'Terugzetten':'Archiveren'}]:shopConnected===false?[{kind:'delete',label:'Verwijder'}]:[]}));
   if(!visible.length&&!showCatalog)rows.append(node('p','Nog geen passende notities of lijsten.'));
@@ -132,10 +132,10 @@ export async function openNotesView(outlet,{store,api=new ShopListService(store)
   release=bindSwipeRows(rows,{onOpen:id=>{if(id==='shop:catalog'){if(shopConnected!==true){if(shopConnected===false)confirmCatalogRemoval();return;}if(showArchive){const {body,dialog}=board('Catalogus terugzetten');body.append(button('Terugzetten',async()=>{try{await setCatalogState(false);dialog.close();}catch(e){report(e);}}));return;}closeBoard();closeShare();closeShare=openShopCatalog({store,api});return;}const r=find(id);if(r){if(showArchive)openArchived(r);else r.linked?openLinked(r.record):openLocal(r.record);}},onShare:id=>{const r=find(id);if(r?.linked)openLinked(r.record,true);},onEdit:id=>edit(find(id).record),onSecondary:async id=>{const r=find(id);try{if(id==='shop:catalog'){if(shopConnected===true)await setCatalogState(!showArchive);}else await changeArchive(r);}catch(e){report(e);}},onDelete:id=>{
    if(id==='shop:catalog'){confirmCatalogRemoval();return;}
    const r=find(id);const {body,dialog}=board('Verwijderen');
-   body.append(node('p',r.linked?'Verwijder deze lijst uit jouw overzicht in Sharon en ShopList. Andere deelnemers behouden toegang. Als laatste deelnemer verwijder je de lijst volledig.':'Verwijder deze notitie of lijst uit jouw overzicht.'),button('Verwijderen',async()=>{try{if(r.linked){await api.leave(r.record.id);await loadLinked();}else{await store.put('objects',{...r.record,deletedAt:Date.now()});await loadLocal();}dialog.close();}catch(e){report(e);}}));
+   body.append(node('p',r.linked?'Verwijder deze lijst uit jouw overzicht in Sharon en ShopList. Andere deelnemers behouden toegang. Als laatste deelnemer verwijder je de lijst volledig.':showArchive?'Verwijder dit item definitief en maak de lokale verbindingen los.':'Verwijder deze notitie of lijst.'),button('Verwijderen',async()=>{try{if(r.linked){await api.leave(r.record.id);await loadLinked();}else{if(store.removeLocalObject)await store.removeLocalObject(r.record.id,{permanent:!!r.record.archivedAt});else await store.put('objects',{...r.record,deletedAt:Date.now()});await loadLocal();}dialog.close();}catch(e){report(e);}}));
   }});
  }
- async function loadLocal(){local=(await store.getAll('objects')).filter(r=>r.type==='note'&&!r.deletedAt);paint();}
+ async function loadLocal(){const records=await store.getAll('objects');local=records.filter(r=>r.type==='note'&&!r.deletedAt);removals=await store.removalActions?.(local,records)??new Map();paint();}
  search.oninput=paint;controls.querySelectorAll('[data-list-sort]').forEach(b=>b.onclick=async()=>{prefs.sort=b.dataset.listSort;try{await savePrefs();paint();}catch(e){report(e);}});
  await loadLocal();
  if(!root.isConnected)return ()=>{};
