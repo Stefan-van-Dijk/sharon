@@ -1,7 +1,7 @@
-import { EventLineSource, eventLineLink } from '../core/events/EventLineSource.js?v=0.5.19';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.19';
-import { availablePeople } from './PersonLinks.js?v=0.5.19';
-import { TimeRegister, referenceKey } from '../core/time/TimeRegister.js?v=0.5.19';
+import { EventLineSource, eventLineLink } from '../core/events/EventLineSource.js?v=0.5.20';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.20';
+import { availablePeople } from './PersonLinks.js?v=0.5.20';
+import { TimeRegister, referenceKey } from '../core/time/TimeRegister.js?v=0.5.20';
 
 function localTargets(records) {
   const targets = new Map();

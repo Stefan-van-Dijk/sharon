@@ -1,4 +1,4 @@
-import { resolveLocation } from './LocationHierarchy.js?v=0.5.19';
+import { resolveLocation } from './LocationHierarchy.js?v=0.5.20';
 
 export class LocationTriggerService {
   #store;
@@ -45,7 +45,7 @@ export class LocationTriggerService {
 
       for (const action of actions) {
         const target = locations.get(action.data?.locationId);
-        if (!target) continue;
+        if (!target || target.archivedAt || target.status === 'archived') continue;
 
         const coordinates = resolveLocation(target, locations).coordinates;
         if (!coordinates) continue;

@@ -1,22 +1,22 @@
-import { mountSharingBadges } from './SharingStatus.js?v=0.5.19';
-import { openCardShare } from './CardSharing.js?v=0.5.19';
-import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.19';
-import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.5.19';
-import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.5.19';
-import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.5.19';
-import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.5.19';
-import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.5.19';
-import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.5.19';
-import { openCardBoard } from './CardBoard.js?v=0.5.19';
-import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.5.19';
-import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.5.19';
-import { mountCardScanner } from './CardScanner.js?v=0.5.19';
-import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.5.19';
-import { renderStrip } from './Strip.js?v=0.5.19';
-import { renderObjectStrip } from './ObjectStrip.js?v=0.5.19';
-import { bindSwipeRows } from './SwipeRows.js?v=0.5.19';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.19';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.5.19';
+import { mountSharingBadges } from './SharingStatus.js?v=0.5.20';
+import { openCardShare } from './CardSharing.js?v=0.5.20';
+import { isTransferScan, receiveTransfer } from './ObjectTransfer.js?v=0.5.20';
+import { recognizeChain } from '../core/chains/ChainRecognition.js?v=0.5.20';
+import { CHAIN_CATALOG, chainById } from '../core/chains/ChainCatalog.js?v=0.5.20';
+import { ConnectionService, parseConnectionLink } from '../core/connection/ConnectionService.js?v=0.5.20';
+import { renderListControls, bindListControls, renderOrderControls } from './ListControls.js?v=0.5.20';
+import { sortList, moveInOrder, moveToPosition } from '../core/storage/ListOrder.js?v=0.5.20';
+import { resolveLocation } from '../core/location/LocationHierarchy.js?v=0.5.20';
+import { openCardBoard } from './CardBoard.js?v=0.5.20';
+import { CARD_NAME_QUESTIONS } from './CardQuestions.js?v=0.5.20';
+import { buildCardPayload, parseCardPayload } from './CardPayload.js?v=0.5.20';
+import { mountCardScanner } from './CardScanner.js?v=0.5.20';
+import { CARD_FORMATS, renderCardCode, validateCardCode } from './CardCodes.js?v=0.5.20';
+import { renderStrip } from './Strip.js?v=0.5.20';
+import { renderObjectStrip } from './ObjectStrip.js?v=0.5.20';
+import { bindSwipeRows } from './SwipeRows.js?v=0.5.20';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.20';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.5.20';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -62,7 +62,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
     header();
     const cards = await records();
     const archived=(await store.getAll('objects')).filter(item=>item.type==='card'&&(!item.deletedAt||store.restoreObject)&&(item.archivedAt||item.status==='archived'));
-    const removal=new Map(await Promise.all(cards.map(async item=>[item.id,await store.removalAction?.(item.id)||'delete'])));
+    const removal=await store.removalActions?.(cards,await store.getAll('objects')) ?? new Map(await Promise.all(cards.map(async item=>[item.id,await store.removalAction?.(item.id)||'delete'])));
     const locationItems = (await store.getAll('objects')).filter(item => item.type === 'location' && !item.deletedAt);
     const locationLookup = new Map(locationItems.map(item => [String(item.id),item]));
     const coordinateOf = card => {
@@ -108,7 +108,7 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
             doubleSwipe: false
           }) + (sort==='custom' ? renderOrderControls(card.id,{first:index===0,last:index===cards.length-1}) : '') + '</div>').join('') : '<p class="empty-state">Nog geen kaarten. Voeg een kaart toe om te beginnen.</p>'}
         </div>
-        ${archived.length?'<details class="sh-archive-recovery" data-card-archive><summary>Archief · herstellen</summary>'+archived.map(card=>'<button type="button" data-card-restore="'+escapeHtml(card.id)+'">'+escapeHtml(card.name)+' · Herstellen</button>').join('')+'</details>':''}
+        ${archived.length?'<details class="sh-archive-recovery" data-card-archive><summary>Archief · herstellen</summary>'+archived.map(card=>'<button type="button" data-card-restore="'+escapeHtml(card.id)+'">'+escapeHtml(card.name)+' · Herstellen</button>'+(store.removeLocalObject?'<button type="button" data-card-remove="'+escapeHtml(card.id)+'">Definitief verwijderen</button>':'')).join('')+'</details>':''}
       </section>`;
     const cardLookup=new Map(cards.map(card=>[card.id,card]));
     outlet.querySelectorAll('[data-swipe-row]').forEach(row=>{const icon=row.querySelector('.sh-strip-icon');if(icon)applyCardAppearance(icon,cardLookup.get(row.dataset.swipeRow)?.color);});
@@ -117,14 +117,21 @@ export async function openCardsView(outlet, { store, location, events, setTitle,
       onShare: async id=>{const card=await store.get('objects',id);if(card){closeShare?.();closeShare=openCardShare(card,{store,location,onStatusChange:()=>mountSharingBadges(outlet,store)});}},
       onOpen: id => showDetail(id),
       onEdit: id => showForm(id),
-      onSecondary:async id=>{if(removal.get(id)!=='archive')return;if(!confirm('Wil je deze kaart archiveren?'))return;await store.archiveObject(id);events?.emit('cards.changed',{id});await showList();},
+      onSecondary:async id=>{if(removal.get(id)!=='archive')return;if(!confirm('Wil je deze kaart archiveren?'))return;if(store.removeLocalObject)await store.removeLocalObject(id);else await store.archiveObject(id);events?.emit('cards.changed',{id});await showList();},
       onDelete: async id => {
         const card = await store.get('objects', id);
         if (!card || card.type !== 'card' || removal.get(id)==='archive' || !confirm('Wil je deze kaart verwijderen?')) return;
-        await store.delete('objects', id);
+        if(store.removeLocalObject)await store.removeLocalObject(id);else await store.delete('objects', id);
         events?.emit('cards.changed',{id});
         await showList();
       }
+    });
+    outlet.querySelectorAll('[data-card-remove]').forEach(button=>button.onclick=async()=>{
+      if(!confirm('Kaart definitief verwijderen en bijbehorende lokale verbindingen losmaken?'))return;
+      button.disabled=true;
+      const id=button.dataset.cardRemove;
+      try{await store.removeLocalObject(id,{permanent:true});events?.emit('cards.changed',{id});await showList();}
+      catch(error){button.disabled=false;outlet.querySelector('[data-card-sort-status]').textContent=error.message;}
     });
     outlet.querySelectorAll('[data-card-restore]').forEach(button=>button.onclick=async()=>{
       button.disabled=true;try{const id=button.dataset.cardRestore;if(store.restoreObject)await store.restoreObject(id);else {const card=await store.get('objects',id);await store.put('objects',{...card,archivedAt:null,status:'active'});}events?.emit('cards.changed',{id});await showList();}catch(error){button.disabled=false;outlet.querySelector('[data-card-sort-status]').textContent=error.message;}

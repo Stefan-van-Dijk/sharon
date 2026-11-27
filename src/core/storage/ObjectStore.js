@@ -1,3 +1,5 @@
+import {agendaLinksKey,objectRelationChanges} from './ObjectRelations.js?v=0.5.20';
+
 const DB_NAME = 'sharon';
 const DB_VERSION = 1;
 
@@ -211,6 +213,45 @@ export class ObjectStore {
       } catch (error) {
         reject(error);
       }
+    });
+  }
+
+  async removalActions(items, records) {
+    const bookmarks = (await this.get('meta', agendaLinksKey))?.value;
+    return new Map(items.map(item => [
+      item.id, objectRelationChanges(item, records, bookmarks).linked ? 'archive' : 'delete'
+    ]));
+  }
+
+  async removeLocalObject(id, {permanent = false} = {}) {
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction(['objects', 'meta'], 'readwrite');
+      const objects = tx.objectStore('objects'), meta = tx.objectStore('meta');
+      const records = objects.getAll(), agenda = meta.get(agendaLinksKey);
+      let failure, result;
+      agenda.onsuccess = () => {
+        try {
+          const item = records.result.find(record => record.id === id && !record.deletedAt);
+          if (!item || !['note', 'card', 'location'].includes(item.type)) throw Error('Dit item is niet beschikbaar.');
+          if (permanent && !(item.archivedAt || item.status === 'archived')) throw Error('Archiveer dit item eerst.');
+          const changes = objectRelationChanges(item, records.result, agenda.result?.value);
+          if (changes.linked && !permanent) {
+            objects.put({...item, archivedAt: Date.now()});
+            result = 'archive';
+            return;
+          }
+          for (const row of changes.updates) objects.put(row);
+          for (const key of changes.remove) objects.delete(key);
+          if (changes.bookmarks) meta.put({key:agendaLinksKey, value:changes.bookmarks});
+          objects.delete(id);
+          result = 'delete';
+        } catch (error) {
+          failure = error;
+          tx.abort();
+        }
+      };
+      tx.oncomplete = () => resolve(result);
+      tx.onabort = () => reject(failure || tx.error || Error('De wijziging is afgebroken.'));
     });
   }
 
