@@ -1,7 +1,7 @@
-import {EVENT_LINE_URL} from '../core/events/EventLineSource.js?v=0.5.20';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.20';
-import {openShopPairing} from './ShopPairing.js?v=0.5.20';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.20';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.21';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.21';
+import {bindNotesBoard,openShopPairing} from './ShopPairing.js?v=0.5.21';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.21';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
@@ -30,6 +30,42 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   const from=order.indexOf(id);if(from<0||target<0||target>=order.length||from===target)return;
   const next=[...order];next.splice(from,1);next.splice(target,0,id);save(selected,next);
  }
+ function openEventLineBoard(){
+  closePairing();
+  const previous=document.activeElement;
+  const dialog=document.createElement('dialog');
+  dialog.className='sh-notes-board';
+  dialog.setAttribute('aria-label','Event Line');
+  const header=document.createElement('header');header.className='sh-notes-heading';
+  const title=document.createElement('h2');title.textContent='Event Line';header.append(title);
+  const body=document.createElement('div');body.className='sh-notes-body';
+  const intro=document.createElement('p');intro.textContent='Bewaar openbare evenementen in je agenda.';
+  const actions=document.createElement('div');
+  const feedback=document.createElement('p');feedback.setAttribute('role','status');
+  const close=()=>{if(!dialog.isConnected)return;release();dialog.remove();previous?.focus();};
+  const release=bindNotesBoard(dialog,header,close);
+  const choose=async connected=>{
+   for(const control of actions.children)control.disabled=true;
+   try{
+    await setEventLineConnected(store,connected);
+    if(connected && !selected.includes('agenda') && known.has('agenda'))await save([...selected,'agenda']);
+    if(dialog.isConnected)render(connected);
+   }catch(error){
+    feedback.textContent=error.message;
+    for(const control of actions.children)control.disabled=false;
+   }
+  };
+  const render=connected=>{
+   actions.replaceChildren(connected
+    ? button('Open Event Line',()=>{close();mode='eventline';paint();})
+    : button('Verbind Event Line',()=>choose(true)));
+   if(connected)actions.append(button('Ontkoppelen',()=>choose(false)));
+  };
+  body.append(intro,actions,feedback,button('Sluiten',close));dialog.append(header,body);
+  dialog.addEventListener('close',close,{once:true});
+  closePairing=close;document.body.append(dialog);dialog.showModal();
+  eventLineConnected(store).then(render,error=>{feedback.textContent=error.message;});
+ }
  function paint(){
   if(disposed)return;
   tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===(mode==='eventline'?'apps':mode))));
@@ -50,18 +86,19 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   }
   if(mode==='apps'){
    const strip=button('',()=>{
-    closePairing();closePairing=openShopPairing(connection,{layoutStore:store});
-    if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
+    closePairing();closePairing=openShopPairing(connection,{layoutStore:store,onConnected:()=>{
+     if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
+    }});
    });strip.className='sh-app-connection';strip.dataset.appConnection='shoplist';strip.disabled=busy;
    const logo=document.createElement('span');logo.className='sh-module-icon';logo.innerHTML=moduleIcon('notes');
-   const copy=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');name.textContent='ShopList.';detail.textContent='Lijsten verschijnen in Notities en lijsten.';copy.append(name,detail);
+   const copy=document.createElement('span'),name=document.createElement('strong');name.textContent='ShopList.';copy.append(name);
    const arrow=document.createElement('span');arrow.textContent='↗';arrow.setAttribute('aria-hidden','true');strip.append(logo,copy,arrow);panel.append(strip);
 
-   const eventLine=button('',()=>{mode='eventline';paint();});
+   const eventLine=button('',openEventLineBoard);
    eventLine.className='sh-app-connection sh-eventline-link';
    eventLine.dataset.appLink='eventline';
    eventLine.innerHTML=moduleIcon('agenda')+
-    '<span><strong>Event Line</strong><small>Open binnen Sharon.</small></span>'+
+    '<span><strong>Event Line</strong></span>'+
     '<span aria-hidden="true">↗</span>';
    panel.append(eventLine);
    return;

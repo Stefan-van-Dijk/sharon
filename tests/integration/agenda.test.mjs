@@ -34,6 +34,7 @@ test('Agenda volgt een openbaar evenement bij de bron, met behoud van persoonlij
   const settings = await app.store.get('settings', 'app');
   settings.value.home = { modules: ['agenda'] };
   await app.store.put('settings', settings);
+  await app.store.put('meta', {key:'agenda.event-line.connected.v1',value:true});
   const selector = 'a'.repeat(32) + ':' + 'b'.repeat(32);
   let publicEvent = true;
   app.window.fetch = async (url, options) => {
@@ -72,4 +73,22 @@ test('Agenda volgt een openbaar evenement bij de bron, met behoud van persoonlij
   assert.deepEqual(await app.store.get('meta', 'agenda.event-line.bookmarks.v1'),
     { key: 'agenda.event-line.bookmarks.v1', value: saved });
   assert.deepEqual(app.errors, []);
+});
+
+test('Een ontkoppelde Event Line toont geen bewaarde evenementen of invoerveld', async t => {
+  const app = await appHarness({ root: resolve('.') });
+  t.after(() => app.close());
+  const settings = await app.store.get('settings', 'app');
+  settings.value.home = { modules: ['agenda'] };
+  await app.store.put('settings', settings);
+  await app.store.put('meta', {key:'agenda.event-line.connected.v1',value:false});
+  await app.store.put('meta', {key:'agenda.event-line.bookmarks.v1',value:[{
+    selector:'saved-event',ref:{source:'event-line',class:'event',id:'EventAbcd123'},connections:[]
+  }]});
+  await app.boot();
+  (await until(() => app.document.querySelector('button[data-module="agenda"]'))).click();
+  const agenda = await until(() => app.document.querySelector('[data-agenda-status]')?.textContent);
+  assert(agenda);
+  assert.equal(app.document.querySelector('[data-view-outlet] form'),null);
+  assert.equal(app.requests.some(url=>url.includes('publicEvent')),false);
 });

@@ -1,7 +1,7 @@
-import { EventLineSource, eventLineLink } from '../core/events/EventLineSource.js?v=0.5.20';
-import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.20';
-import { availablePeople } from './PersonLinks.js?v=0.5.20';
-import { TimeRegister, referenceKey } from '../core/time/TimeRegister.js?v=0.5.20';
+import { eventLineConnected, EventLineSource, eventLineLink } from '../core/events/EventLineSource.js?v=0.5.21';
+import { IdentifierService } from '../core/ids/IdentifierService.js?v=0.5.21';
+import { availablePeople } from './PersonLinks.js?v=0.5.21';
+import { TimeRegister, referenceKey } from '../core/time/TimeRegister.js?v=0.5.21';
 
 function localTargets(records) {
   const targets = new Map();
@@ -80,7 +80,7 @@ export async function openAgendaView(host, { store, edit = false }) {
     status.textContent = error.message;
     return;
   }
-  if (!edit) await mountEventLine(section, store, targets);
+  if (!edit && await eventLineConnected(store)) await mountEventLine(section, store, targets);
   if (!edit || !targets.size) {
     const hint = document.createElement('p');
     hint.textContent = edit ? 'Voeg eerst een notitie, persoon of locatie toe.' :

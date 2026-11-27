@@ -1,10 +1,21 @@
-import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.20';
+import { objectReference, referenceKey, temporalExtent } from '../time/TimeRegister.js?v=0.5.21';
 
 export const EVENT_LINE_URL = 'https://sharon.life/eventline/';
 const { origin, pathname } = new URL(EVENT_LINE_URL);
 const publicPath = pathname + 'openbaar.html';
 const selectorPattern = /^[a-f0-9]{32}:[a-f0-9]{32}$/;
 const bookmarkKey = 'agenda.event-line.bookmarks.v1';
+
+const connectionKey = 'agenda.event-line.connected.v1';
+
+export async function eventLineConnected(store) {
+  const saved = await store.get('meta', connectionKey);
+  return saved ? saved.value === true : Boolean((await store.get('meta', bookmarkKey))?.value?.length);
+}
+
+export function setEventLineConnected(store, value) {
+  return store.put('meta', {key:connectionKey,value});
+}
 
 export function eventLineSelector(value) {
   const link = new URL(value);
