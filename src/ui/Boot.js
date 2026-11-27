@@ -1,5 +1,5 @@
-import { MAX_CONNECTION_BACKUP_BYTES } from '../core/connection/ConnectionBackup.js?v=0.5.24';
-import { focusTextField } from './TextInputFocus.js?v=0.5.24';
+import { MAX_CONNECTION_BACKUP_BYTES } from '../core/connection/ConnectionBackup.js?v=0.5.25';
+import { focusTextField } from './TextInputFocus.js?v=0.5.25';
 
 const FIRST_RUN_PROMPT_MS = 1100;
 const RETURNING_SHARE_MS = 650;
