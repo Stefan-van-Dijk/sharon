@@ -1055,11 +1055,20 @@ final class LogNetwork {
 
 function log_account_mail_from(): string {
     $from = getenv('SHARON_ACCOUNT_MAIL_FROM');
-    if ($from !== false && $from !== '') return $from;
+    if ($from !== false && trim($from) !== '') return trim($from);
     $path = dirname(__DIR__) . '/private/account-config.php';
+    if (is_file($path)) {
+        $config = require $path;
+        if (is_array($config) && is_string($config['mailFrom'] ?? null) && trim($config['mailFrom']) !== '') {
+            return trim($config['mailFrom']);
+        }
+    }
+    $from = getenv('EVENTLIJN_MAIL_FROM');
+    if ($from !== false && trim($from) !== '') return trim($from);
+    $path = dirname(__DIR__, 2) . '/eventline/server/config.local.php';
     if (!is_file($path)) return '';
     $config = require $path;
-    return is_array($config) && is_string($config['mailFrom'] ?? null) ? $config['mailFrom'] : '';
+    return is_array($config) && is_string($config['MAIL_FROM'] ?? null) ? trim($config['MAIL_FROM']) : '';
 }
 
 function log_account_eventline_key(): string {

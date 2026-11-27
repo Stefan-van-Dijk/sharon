@@ -35,7 +35,7 @@ test('Account registration unlocks app connections and logout restores informati
   let registered=false,verified=false,session=false;
   const account={id:'BrowserAcct1',email:'browser@example.test',personId:device.personId};
   const connection={device:async()=>device,request:async(action,input={})=>{
-   if(action==='account-register'){registered=true;return {ok:true};}
+   if(action==='account-register'){if(window.failAccountMail)throw Error('De e-mailafzender voor Sharon is nog niet ingesteld op de server.');registered=true;return {ok:true};}
    if(action==='account-verify'){if(!registered||input.code!=='test-confirmation')throw Error('Code klopt niet');verified=true;return {ok:true};}
    if(action==='account-login'){
     if(!verified||input.personId!==device.personId||input.deviceToken!==device.deviceToken)throw Error('Toegang geweigerd');
@@ -66,7 +66,15 @@ test('Account registration unlocks app connections and logout restores informati
  board=page.getByRole('dialog',{name:'Sharon-account',exact:true});
  await board.getByLabel('E-mailadres',{exact:true}).fill('browser@example.test');
  await board.getByLabel('Wachtwoord',{exact:true}).fill('Een lang testwachtwoord');
+ await page.evaluate(()=>{window.failAccountMail=true;});
  await board.getByRole('button',{name:'Account aanmaken',exact:true}).click();
+ await expect(board.getByRole('status')).toContainText('De e-mailafzender voor Sharon is nog niet ingesteld');
+ const register=board.getByRole('button',{name:'Account aanmaken',exact:true});
+ await expect(register).toBeEnabled();
+ await expect(register).toHaveCSS('background-color','rgb(103, 59, 210)');
+ await expect(register).toHaveCSS('color','rgb(255, 255, 255)');
+ await page.evaluate(()=>{window.failAccountMail=false;});
+ await register.click();
  await expect(board.getByRole('button',{name:'Bevestig e-mailadres',exact:true})).toBeVisible();
  await board.getByLabel('Code uit je e-mail').fill('test-confirmation');
  await board.getByRole('button',{name:'Bevestig e-mailadres',exact:true}).click();

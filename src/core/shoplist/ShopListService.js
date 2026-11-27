@@ -1,5 +1,5 @@
-import {AccountService} from '../connection/AccountService.js?v=0.5.26';
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.26';
+import {AccountService} from '../connection/AccountService.js?v=0.5.27';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.27';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
  constructor(store){this.connection=new ConnectionService(store);this.accounts=new AccountService(store,this.connection);}
