@@ -52,7 +52,7 @@ test('archive recovery follows the items and restores a saved note',async({page}
  await expect(slot).toBeHidden();await expect(page.locator('.swipe-list')).toContainText('Oude notitie');await expect(page.locator('dialog')).toHaveCount(0);
 });
 
-test('embedded Shop uses a compact return bar and the remaining viewport, then restores the board',async({page})=>{
+test('embedded Shop fills the screen behind the Sharon logo and restores the board on return',async({page})=>{
  await page.goto(base+'/fixture.html');await page.addStyleTag({content:styles});
  await page.evaluate(async()=>{
   const {openNotesDeck}=await import('/src/ui/NotesDeck.js');const metadata=new Map();
@@ -60,10 +60,15 @@ test('embedded Shop uses a compact return bar and the remaining viewport, then r
    if(fullscreen){const frame=document.createElement('iframe');frame.className='sh-shop-app';frame.title='ShopList';frame.srcdoc='<h1>ShopList</h1><p>Deze week</p>';body.append(frame);}else body.textContent='Bewaarde lijst';
   }});
  });
- const board=page.locator('.sh-notes-board'),header=board.locator('header'),toggle=board.locator('[data-notes-fullscreen]');
+ const board=page.locator('.sh-notes-board'),toggle=board.locator('[data-notes-fullscreen]');
  const before=await board.boundingBox();await expect(toggle).toBeHidden();await board.locator('.sh-notes-app-source').click();
- const bar=await header.boundingBox(),frame=await page.locator('.sh-shop-app').boundingBox(),viewport=page.viewportSize();
- expect(bar.height).toBeLessThanOrEqual(48);expect(frame.y).toBeCloseTo(bar.y+bar.height,0);expect(frame.y+frame.height).toBeCloseTo(viewport.height,0);
+ const frame=await page.locator('.sh-shop-app').boundingBox(),viewport=page.viewportSize();
+ expect(frame.x).toBeCloseTo(0,0);expect(frame.y).toBeCloseTo(0,0);
+ expect(frame.width).toBeCloseTo(viewport.width,0);expect(frame.height).toBeCloseTo(viewport.height,0);
+ await expect(toggle).toHaveAccessibleName('Terug naar Sharon');
+ await expect(toggle.locator('img')).toBeVisible();
+ const logo=await toggle.boundingBox();
+ expect(logo.x).toBeLessThanOrEqual(16);expect(logo.y).toBeLessThanOrEqual(16);
  await expect(board.locator('.sh-notes-app-source')).toBeHidden();
  await toggle.click();await expect(page.locator('.sh-shop-app')).toHaveCount(0);
  await expect.poll(async()=>Math.abs((await board.boundingBox()).height-before.height)).toBeLessThan(2);

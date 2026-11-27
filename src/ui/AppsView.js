@@ -1,9 +1,10 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.23';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.23';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.23';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.23';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.23';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.23';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.24';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.24';
+import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.24';
+import {sharonLogo} from './Brand.js?v=0.5.24';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.24';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.24';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.24';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
@@ -48,16 +49,27 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   const dialog=document.createElement('dialog');
   dialog.className='sh-external-app-fullscreen';
   dialog.setAttribute('aria-label','Event Line');
-  const nav=document.createElement('div');nav.className='sh-eventline-controls';
-  const close=()=>{if(!dialog.isConnected)return;dialog.remove();previous?.focus();};
-  const back=button('Terug naar apps',close);
-  const external=document.createElement('a');
-  external.href=EVENT_LINE_URL;external.target='_blank';external.rel='noopener noreferrer';
-  external.textContent='Open in browser';
-  nav.append(back,external);
+  const view=document.defaultView;
   const frame=document.createElement('iframe');
-  frame.src=EVENT_LINE_URL;frame.title='Event Line';frame.className='sh-eventline-frame';
-  dialog.append(nav,frame);document.body.append(dialog);
+  const url=new URL(EVENT_LINE_URL);
+  url.searchParams.set('from','sharon');
+  frame.src=url.href;frame.title='Event Line';frame.className='sh-eventline-frame';
+  frame.referrerPolicy='origin';
+  const close=()=>{
+   view.removeEventListener('message',receive);
+   if(dialog.isConnected){dialog.remove();previous?.focus();}
+  };
+  const back=button('',close);
+  back.className='sh-external-app-return';
+  back.setAttribute('aria-label','Terug naar Sharon');
+  back.innerHTML=sharonLogo();
+  const receive=event=>{
+   if(event.source!==frame.contentWindow||event.origin!==url.origin)return;
+   if(event.data?.type==='eventline:return-ready')back.hidden=true;
+   if(event.data?.type==='eventline:return')close();
+  };
+  view.addEventListener('message',receive);
+  dialog.append(frame,back);document.body.append(dialog);
   dialog.addEventListener('cancel',event=>{event.preventDefault();close();});
   dialog.addEventListener('close',close,{once:true});
   closePairing=close;dialog.showModal();back.focus();
@@ -119,13 +131,17 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
   tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===mode)));
   panel.replaceChildren();
   if(mode==='apps'){
-   const rows=document.createElement('div');rows.className='swipe-list';
+   const rows=document.createElement('div');rows.className='swipe-list sh-connected-apps';
    for(const [id,title,icon,color,connected] of [
-    ['shoplist','ShopList','notes','#ac482c',shopConnected],
-    ['eventline','Event Line','agenda','#326761',eventConnected]
+    ['shoplist','ShopList','notes','#a44932',shopConnected],
+    ['eventline','Event Line','agenda','#574493',eventConnected]
    ]){
+    const action=connected?'Verbonden · Open app':'Verbinden';
     rows.insertAdjacentHTML('beforeend',renderObjectStrip({
-     id,title,iconHtml:moduleIcon(icon),accentColor:color,
+     id,title,subtitle:action,ariaLabel:title+' · '+action,
+     className:'sh-connected-app sh-connected-app--'+id,
+     iconHtml:moduleIcon(icon),accentColor:color,
+     trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">'+(connected?'↗':'+')+'</span>',
      actions:connected?[{kind:'delete',label:'Ontkoppelen'}]:[],singleAction:true
     }));
    }

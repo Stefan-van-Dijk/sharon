@@ -80,17 +80,23 @@ test('Event Line connects from its board and opens inside Apps', async t => {
  await settle();
  [...board.querySelectorAll('button')].find(b=>b.textContent==='Open Event Line').click();
  const frame=document.querySelector('iframe[title="Event Line"]');
- assert.equal(frame.src,'https://sharon.life/eventline/');
+ assert.equal(frame.src,'https://sharon.life/eventline/?from=sharon');
  assert(frame.closest('.sh-external-app-fullscreen'));
- const external=document.querySelector('.sh-eventline-controls a');
- assert.equal(external.href,frame.src);
- assert.equal(external.target,'_blank');
- assert.equal(external.relList.contains('noopener'),true);
- document.querySelector('.sh-eventline-controls button').click();
+ const back=()=>document.querySelector('.sh-external-app-return');
+ assert(back().querySelector('img'));
+ back().click();
  assert.equal(document.querySelector('iframe'),null);
  launch().click();
- assert(document.querySelector('.sh-external-app-fullscreen iframe'));
- document.querySelector('.sh-eventline-controls button').click();
+ const embedded=document.querySelector('.sh-external-app-fullscreen iframe');
+ const send=(type,origin='https://sharon.life')=>f.dom.window.dispatchEvent(
+  new f.dom.window.MessageEvent('message',{data:{type},origin,source:embedded.contentWindow})
+ );
+ send('eventline:return','https://example.org');
+ assert(embedded.isConnected);
+ send('eventline:return-ready');
+ assert.equal(back().hidden,true);
+ send('eventline:return');
+ assert.equal(document.querySelector('iframe'),null);
  f.dom.window.confirm=()=>true;
  const surface=launch();
  for(const [type,x] of [['pointerdown',120],['pointermove',10],['pointerup',10]]){

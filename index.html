@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.23">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.23">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.24">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.24">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3286,7 +3286,33 @@
     .sh-list-share .sh-share-fixed{background:#f6f1e7;--share-accent:#da6342}.sh-list-share .sh-notes-brand{border:0;padding:12px 18px;overflow:auto}.sh-list-share-role{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;margin:12px 0}.sh-list-share-role select{max-width:50%;padding:8px;border:1px solid #ddd;border-radius:12px;background:transparent}.sh-list-share [data-share-close]{display:block;margin:10px auto}
 
 
-.sh-app-connection{width:100%;display:flex;align-items:center;gap:14px;text-align:left;border:0;border-radius:16px;padding:20px;background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:white;cursor:pointer}.sh-eventline-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px}.sh-eventline-controls button,.sh-eventline-controls a{padding:10px;min-height:44px}.sh-external-app-fullscreen{position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;background:#fff}.sh-external-app-fullscreen[open]{display:flex;flex-direction:column}.sh-external-app-fullscreen .sh-eventline-controls{margin:0;padding:0 12px}.sh-eventline-frame{display:block;width:100%;flex:1;min-height:0;border:0;background:#fff}
+.sh-connected-apps{display:grid;gap:10px}
+.sh-connected-app.sh-object-strip .sh-strip-surface{
+  min-height:78px;padding:12px 14px;border:1px solid var(--app-edge);border-radius:16px;
+  background:radial-gradient(ellipse at right top,var(--app-glow),transparent 68%),var(--app-bg);
+  box-shadow:inset 0 1px 0 #ffffff16;color:#fff;
+}
+.sh-connected-app--shoplist{--app-bg:#542519;--app-glow:#943f29;--app-edge:#b95f46;--app-ink:#ffdccc}
+.sh-connected-app--eventline{--app-bg:#231a45;--app-glow:#493b80;--app-edge:#7364a7;--app-ink:#e0d6ff}
+.sh-connected-app.sh-object-strip .sh-strip-icon{
+  flex-basis:46px;width:46px;height:46px;border-radius:13px;background:#ffffff24;color:var(--app-ink);
+}
+.sh-connected-app.sh-object-strip .sh-strip-copy strong{font-size:17px;font-weight:700;color:#fff}
+.sh-connected-app.sh-object-strip .sh-strip-copy small{color:var(--app-ink)}
+.sh-app-launch-icon{margin-inline-start:auto;color:var(--app-ink);font-size:22px;line-height:1;padding:4px}
+.sh-external-app-fullscreen{
+  position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;
+  border:0;padding:0;background:#10111a;overflow:hidden;
+}
+.sh-eventline-frame{display:block;width:100%;height:100%;border:0;background:#10111a}
+.sh-external-app-return,.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-expand{
+  position:absolute;z-index:2;left:max(8px,env(safe-area-inset-left));right:auto;
+  top:max(8px,env(safe-area-inset-top));width:44px;height:44px;display:grid;place-items:center;
+  padding:0;border:1px solid #0002;border-radius:12px;background:#fff;cursor:pointer;
+}
+.sh-external-app-return[hidden]{display:none}
+.sh-external-app-return img,.sh-notes-expand img{width:28px;height:28px}
+
 .sh-eventline-link{box-sizing:border-box;margin-top:12px;text-decoration:none;background:linear-gradient(115deg,#235748,#326761)}.sh-app-connection strong{font-size:1.4rem}.sh-app-connection span:last-child{margin-left:auto;font-size:1.6rem}
 
 .sh-notes-view .sh-list-controls.sh-card-search-toolbar{grid-template-columns:minmax(70px,1fr) auto}.sh-notes-view .sh-list-controls.sh-card-search-toolbar::after{display:none}.sh-app-connection span{min-width:0}
@@ -3352,9 +3378,10 @@
 .sh-archive-recovery{margin-top:16px;border-top:1px solid #0002}
 .sh-archive-recovery summary{padding:16px 0;min-height:52px;cursor:pointer;font:inherit}
 .sh-archive-recovery button{display:block;width:100%;min-height:48px;padding:12px 0;text-align:left;border:0;border-bottom:1px solid #0001;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.sh-notes-deck.is-fullscreen .sh-notes-body:has(.sh-shop-app){padding:0;overflow:hidden;flex:1;min-height:0}
-.sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-media{height:48px;min-height:48px;flex-basis:48px;padding:0;border-radius:0;background:#f6f1e7;color:#29251f}
-.sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-media h2,.sh-notes-deck.is-fullscreen:has(.sh-shop-app) .sh-notes-wordmark{display:none}
+.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-body{padding:0;overflow:hidden;flex:1;min-height:0}
+.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-media{position:absolute;inset:0;z-index:2;width:auto;height:auto;min-height:0;padding:0;border:0;background:transparent;pointer-events:none}
+.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-expand{pointer-events:auto}
+.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-media h2,.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-wordmark{display:none}
 .sh-shop-app{display:block;width:100%;height:100%;min-height:0;border:0;background:#f6f1e7}
 
 .sh-notes-board:focus{outline:none}.sh-notes-board:focus-visible{outline:2px solid #756b5e;outline-offset:2px}
@@ -3364,8 +3391,6 @@
 .sh-shop-preview{display:flex;flex-direction:column;gap:12px;align-self:start}.sh-shop-preview h3,.sh-shop-preview p{margin:0}.sh-shop-preview h3{font:500 28px/1.15 Georgia,serif}.sh-shop-preview small,.sh-shop-progress{font-size:13px;color:#716655}
 .sh-shop-preview-row{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid #dcd2c2;padding:10px 0;font-size:15px}
 .sh-notes-board .sh-shop-preview-open{background:#ad3b27;color:#fff;padding:14px 18px;min-height:48px;font-weight:650;margin-top:8px}
-.sh-notes-deck.is-fullscreen .is-shop-list .sh-notes-expand{left:12px;right:auto;top:2px;width:64px;height:44px;display:flex;gap:6px;background:transparent;border-radius:0;padding:6px}
-.sh-notes-expand img{width:28px;height:28px}
 .sh-notes-deck.is-fullscreen.shop-controls-ready .sh-notes-media{display:none}
 .sh-notes-board.sh-catalog-board{width:min(620px,calc(100vw - 24px));max-height:90dvh;overflow:auto}
 .sh-catalog-board>nav,.sh-catalog-board>div,.sh-catalog-board>p{margin:12px 16px}
@@ -3392,16 +3417,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.23#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.23#e"></use></g>
-          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.23" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.23" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.23" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.23" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.23#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.23#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.24#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.24#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.24" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.24#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.24#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.23"></script>
+  <script type="module" src="./src/main.js?v=0.5.24"></script>
 </body>
 </html>
