@@ -1,6 +1,6 @@
-import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.26';
-import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.26';
-import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.26';
+import {decryptConnectionBackup,encryptConnectionBackup} from './ConnectionBackup.js?v=0.5.27';
+import { isInvitationReference, unsealInvitation } from './InvitationReference.js?v=0.5.27';
+import { IdentifierService } from '../ids/IdentifierService.js?v=0.5.27';
 
 export const CONNECTION_ENDPOINT = 'https://sharon.life/log/api/connections.php';
 const PREVIOUS_KEY = 'connection.device.v1';
@@ -16,7 +16,7 @@ const errors = {
   account_verification:'De code is ongeldig of verlopen, of het wachtwoord klopt niet.',
   account_required:'Log in met je Sharon-account via Apps verbinden.',
   account_identity_conflict:'Dit account is al verbonden met een andere Sharon-identiteit. Gebruik de bijbehorende installatie of herstel eerst je back-up.',
-  account_mail_unavailable:'Sharon kan op dit moment geen verificatiemail sturen.',
+  account_mail_unavailable:'De e-mailafzender voor Sharon is nog niet ingesteld op de server.',
   pair_expired:'Deze koppelcode is verlopen. Maak een nieuwe code.',
   pair_used:'Deze code is al door een andere Shop gebruikt.',
   pair_pending:'Plak eerst de code in Shop en bevestig daarna dezelfde controlecode.',

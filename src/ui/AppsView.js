@@ -1,12 +1,12 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.26';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.26';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.26';
-import {sharonLogo} from './Brand.js?v=0.5.26';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.26';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.26';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.26';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.26';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.26';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.27';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.27';
+import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.27';
+import {sharonLogo} from './Brand.js?v=0.5.27';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.27';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.27';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.27';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.27';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.27';
 
 const accountExtras = [
  ['rides', 'Ritten', 'Bekijk je ritten en vind terug waar je bent geweest.'],

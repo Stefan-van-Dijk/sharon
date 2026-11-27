@@ -1,4 +1,4 @@
-# Sharon-account, release 0.5.26
+# Sharon-account, release 0.5.27
 
 Onder Apps verbinden staat het account boven de uitleg en de appstroken. De boards
 van ShopList en Eventline zijn openbaar te bekijken. Aanmelden maakt de knop
@@ -18,8 +18,11 @@ verloopt na twee uur. Wachtwoordherstel trekt alle accountsessies in.
 2. Upload `server/connections.php` naar `/log/api/connections.php`.
 3. Upload `server/account-config.example.php` als
    `/log/private/account-config.php`. Vul bij `mailFrom` een bestaande mailbox in
-   die de hosting als afzender toestaat. De omgevingsvariabele
-   `SHARON_ACCOUNT_MAIL_FROM` heeft voorrang als die is ingesteld.
+   die de hosting als afzender toestaat. Als deze waarde leeg is, gebruikt Sharon
+   de afzender van Eventline via `EVENTLIJN_MAIL_FROM` of het bestaande bestand
+   `/eventline/server/config.local.php` naast de map `/log`.
+   `SHARON_ACCOUNT_MAIL_FROM` heeft voorrang, gevolgd door de eigen
+   `mailFrom`. Een expliciet ingevulde ongeldige afzender geeft een foutmelding.
 4. Upload `server/account-mail-retry.php` naar `/log/api/account-mail-retry.php`.
    Een geplande taak kan `php /absoluut/pad/log/api/account-mail-retry.php` iedere
    vijf minuten uitvoeren. De account-endpoints proberen de wachtrij ook opnieuw.

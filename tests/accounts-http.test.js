@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:net';
 import {spawn} from 'node:child_process';
-import {mkdtemp,mkdir,copyFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,copyFile,readFile,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
@@ -16,7 +16,7 @@ test('Account HTTP endpoints enforce app exchange keys and the authenticated Sho
  await new Promise(resolve=>listener.close(resolve));
  const key='k'.repeat(43);
  const child=spawn('php',['-d','sendmail_path=/bin/false','-S','127.0.0.1:'+port,'-t',directory],{
-  env:{...process.env,SHARON_ACCOUNT_MAIL_FROM:'accounts@example.test',SHARON_EVENTLINE_KEY:key},stdio:'ignore'
+  env:{...process.env,SHARON_ACCOUNT_MAIL_FROM:'',EVENTLIJN_MAIL_FROM:'',SHARON_EVENTLINE_KEY:key},stdio:'ignore'
  });
  let stopped=false;
  child.once('exit',()=>{stopped=true;});
@@ -38,6 +38,15 @@ test('Account HTTP endpoints enforce app exchange keys and the authenticated Sho
    body:JSON.stringify({protocol:'sharon-network-v1',action,...input})});
   return {status:response.status,body:await response.json()};
  };
+ assert.deepEqual(await request('account-resend'),{status:503,body:{error:'account_mail_unavailable'}});
+ await mkdir(join(directory,'eventline/server'),{recursive:true});
+ await writeFile(join(directory,'eventline/server/config.local.php'),"<?php return ['MAIL_FROM'=>'eventline@example.test'];");
+ assert.deepEqual(await request('account-resend'),{status:400,body:{error:'account_email'}});
+ // An explicit Sharon setting takes precedence. An empty example reuses Eventline.
+ await writeFile(join(directory,'log/private/account-config.php'),"<?php return ['mailFrom'=>'invalid'];");
+ assert.equal((await request('account-resend')).status,503);
+ await writeFile(join(directory,'log/private/account-config.php'),"<?php return ['mailFrom'=>''];");
+ assert.equal((await request('account-resend')).status,400);
  const credentials={email:'http@example.test',password:'Http-password-123'};
  const registration=await request('account-register',credentials);
  assert.deepEqual(registration,{status:200,body:{ok:true}});
