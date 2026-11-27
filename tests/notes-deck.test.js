@@ -12,7 +12,7 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  let stop=()=>{};t.after(()=>{stop();dom.window.close();Object.assign(globalThis,old);});
  const metadata=new Map(),calls=[];
  const store={get:async(_,key)=>metadata.get(key),getAll:async()=>[{id:'note',type:'note',name:'Alpha',data:{kind:'note',body:'Mijn notitie'}},{id:'other',type:'note',name:'Zulu',data:{kind:'idea',body:'Andere'}}],put:async(_,record)=>metadata.set(record.key,record)};
- const api={connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}})},index:async()=>({lists:[{id:'shop',name:'Boodschappen',role:'owner'}]}),read:async id=>{calls.push(id);return {list:{payload:{list:{id,name:'Boodschappen',items:[]},products:[]}}};}};
+ const api={isConnected:async()=>true,connection:{device:async()=>({personId:'me',registered:true,self:{line:1,name:'Test'}})},index:async()=>({lists:[{id:'shop',name:'Boodschappen',role:'owner'}]}),read:async id=>{calls.push(id);return {list:{payload:{list:{id,name:'Boodschappen',items:[]},products:[]}}};}};
  stop=await openNotesView(document.querySelector('main'),{store,api});await settle();
  document.querySelector('[data-swipe-row="local:note"] [data-swipe-surface]').click();await settle();
  const heading=()=>document.querySelector('.sh-notes-deck h2');

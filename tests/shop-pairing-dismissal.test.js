@@ -51,9 +51,14 @@ test('Reopening an active connection only reads status, even after the invitatio
  fixture(t);const calls=[];
  const connection={device:async()=>({}),request:async action=>{calls.push(action);return {devices:[{id:'active',status:'active',fingerprint:'ABCD',expiresAt:1}]};}};
  for(let i=0;i<2;i++){
-  const close=openShopPairing(connection);await new Promise(r=>setTimeout(r,0));
-  assert.match(document.querySelector('.sh-shop-invitation').textContent,/is verbonden/);
-  assert.equal(document.querySelector('input'),null);assert.equal(document.querySelector('[data-pair-create]').textContent,'Andere installatie koppelen');close();
+  const close=openShopPairing(connection);
+  try{
+   await new Promise(r=>setTimeout(r,0));
+   const open=[...document.querySelectorAll('dialog button')].find(button=>button.textContent==='Open ShopList');
+   assert.equal(open?.hidden,false);
+   assert.equal(document.querySelector('input'),null);
+   assert.equal(document.querySelector('[data-pair-create]').textContent,'Andere installatie koppelen');
+  } finally {close();}
  }
  assert.deepEqual(calls,['shop-pair-list','shop-pair-list']);
 });
