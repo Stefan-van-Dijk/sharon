@@ -1,7 +1,7 @@
-import {EVENT_LINE_URL} from '../core/events/EventLineSource.js?v=0.5.18';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.18';
-import {openShopPairing} from './ShopPairing.js?v=0.5.18';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.18';
+import {EVENT_LINE_URL} from '../core/events/EventLineSource.js?v=0.5.19';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.19';
+import {openShopPairing} from './ShopPairing.js?v=0.5.19';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.19';
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},connection=new ConnectionService(store)}){
@@ -32,8 +32,22 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
  }
  function paint(){
   if(disposed)return;
-  tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===mode)));
+  tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===(mode==='eventline'?'apps':mode))));
   panel.replaceChildren();
+  if(mode==='eventline'){
+   const nav=document.createElement('div');nav.className='sh-eventline-controls';
+   const back=button('Terug naar apps',()=>{
+    mode='apps';paint();panel.querySelector('[data-app-link="eventline"]')?.focus();
+   });
+   const external=document.createElement('a');
+   external.href=EVENT_LINE_URL;external.target='_blank';external.rel='noopener noreferrer';
+   external.textContent='Open in browser';
+   nav.append(back,external);
+   const frame=document.createElement('iframe');
+   frame.src=EVENT_LINE_URL;frame.title='Event Line';frame.className='sh-eventline-frame';
+   panel.append(nav,frame);back.focus();
+   return;
+  }
   if(mode==='apps'){
    const strip=button('',()=>{
     closePairing();closePairing=openShopPairing(connection,{layoutStore:store});
@@ -43,14 +57,11 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},conne
    const copy=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');name.textContent='ShopList.';detail.textContent='Lijsten verschijnen in Notities en lijsten.';copy.append(name,detail);
    const arrow=document.createElement('span');arrow.textContent='↗';arrow.setAttribute('aria-hidden','true');strip.append(logo,copy,arrow);panel.append(strip);
 
-   const eventLine=document.createElement('a');
+   const eventLine=button('',()=>{mode='eventline';paint();});
    eventLine.className='sh-app-connection sh-eventline-link';
    eventLine.dataset.appLink='eventline';
-   eventLine.href=EVENT_LINE_URL;
-   eventLine.target='_blank';
-   eventLine.rel='noopener noreferrer';
    eventLine.innerHTML=moduleIcon('agenda')+
-    '<div><strong>Event Line</strong><small>Bekijk evenementen in de webapp.</small></div>'+
+    '<span><strong>Event Line</strong><small>Open binnen Sharon.</small></span>'+
     '<span aria-hidden="true">↗</span>';
    panel.append(eventLine);
    return;
