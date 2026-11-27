@@ -36,8 +36,12 @@ test('Agenda volgt een openbaar evenement bij de bron, met behoud van persoonlij
   await app.store.put('settings', settings);
   await app.store.put('meta', {key:'agenda.event-line.connected.v1',value:true});
   const selector = 'a'.repeat(32) + ':' + 'b'.repeat(32);
+  await app.store.put('meta',{key:'account.session.v1',value:{token:'s'.repeat(43)}});
+  const {ConnectionService}=await app.load('./src/core/connection/ConnectionService.js?v=0.5.26');
+  const device=await new ConnectionService(app.store).device();
   let publicEvent = true;
   app.window.fetch = async (url, options) => {
+    if(typeof url==='string' && url.endsWith('/connections.php'))return {ok:true,json:async()=>({account:{id:'TestAccount1',email:'test@example.test',personId:device.personId}})};
     assert.equal(url.searchParams.get('publicEvent'), selector);
     assert.equal(options.credentials, 'omit');
     if (!publicEvent) return { ok: false, status: 404 };

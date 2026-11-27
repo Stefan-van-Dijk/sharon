@@ -112,6 +112,17 @@ final class LogNetwork {
         if ($r['count'] >= $limit) throw new LogNetworkError('rate_limit',429);
         $r['count']++; $this->state['rates'][$bucket]=$r;
     }
+    public function throttleAccount(string $ip, string $action, mixed $email = null): void {
+        if (!in_array($action, ['account-register', 'account-login', 'account-verify', 'account-resend', 'account-forgot', 'account-reset'], true)) return;
+        $this->transaction(function () use ($ip, $action, $email) {
+            $this->rate($action . ':' . hash('sha256', $ip), 15, 900);
+            if (is_string($email) && strlen($email) <= 254 && filter_var(trim($email),FILTER_VALIDATE_EMAIL)) {
+                $mailAction=in_array($action,['account-register','account-resend','account-forgot'],true);
+                $bucket=$mailAction ? 'account-mail' : $action;
+                $this->rate($bucket . ':' . hash('sha256',strtolower(trim($email))),$mailAction ? 4 : 30,900);
+            }
+        });
+    }
     public function throttle(string $ip, ?string $token, bool $registration): void {
         $this->transaction(function () use ($ip,$token,$registration) {
             foreach ($this->state['rates'] as $key=>$r) if ($r['until']<=$this->now()) unset($this->state['rates'][$key]);
@@ -615,7 +626,8 @@ final class LogNetwork {
             $id=$entry['id'];$r=$this->state['shopDevices'][$id];
             $p=$this->state['people'][$r['personId']]??null;$grant=$p?$this->grant($p['id']):null;
             if(!$p||($grant&&$grant['status']!=='active'))throw new LogNetworkError('unauthorized',401);
-            $this->member($p);$hash=self::hashToken($in['deviceToken']??null);
+            if (!$this->personAccount($p['id'])) throw new LogNetworkError('account_required',401);
+            $hash=self::hashToken($in['deviceToken']??null);
             foreach($this->state['people'] as $person)if($person['tokenHash']===$hash)throw new LogNetworkError('invalid_token');
             foreach($this->state['shopDevices'] as $other)if($other['id']!==$id&&$other['tokenHash']===$hash)throw new LogNetworkError('invalid_token');
             if($r['tokenHash']!==null&&$r['tokenHash']!==$hash)throw new LogNetworkError('pair_used',409);
@@ -667,7 +679,7 @@ final class LogNetwork {
             if($r['status']!=='active'&&!($r['status']==='ready'&&in_array($action,['shop-device-self','shop-device-ack','shop-device-revoke'],true)))throw new LogNetworkError('pair_pending',403);
             $p=$this->state['people'][$r['personId']]??null;$grant=$p?$this->grant($p['id']):null;
             if(!$p||($grant&&$grant['status']!=='active'))throw new LogNetworkError('unauthorized',401);
-            $this->member($p);
+            if (!$this->personAccount($p['id'])) throw new LogNetworkError('account_required',401);
             if($action==='shop-device-ack'){
                 if(!($r['compact']??false))throw new LogNetworkError('shop_scope',403);
                 if($r['status']!=='active'){$this->state['shopDevices'][$r['id']]['status']='active';$this->state['shopDevices'][$r['id']]['connectedAt']=$this->now();}
@@ -683,8 +695,178 @@ final class LogNetwork {
         }
         return null;
     }
-    public function handle(string $action, array $in, ?string $auth): array {
-        return $this->transaction(function () use ($action,$in,$auth) {
+    private static function accountEmail(array $input): string {
+        $email = $input['email'] ?? null;
+        if (!is_string($email) || strlen($email) > 254 || !filter_var(trim($email), FILTER_VALIDATE_EMAIL)) {
+            throw new LogNetworkError('account_email');
+        }
+        return strtolower(trim($email));
+    }
+    private static function accountPassword(array $input): string {
+        $password = $input['password'] ?? null;
+        if (!is_string($password) || strlen($password) < 12 || strlen($password) > 72 || str_contains($password, "\0")) {
+            throw new LogNetworkError('account_password');
+        }
+        return $password;
+    }
+    private function publicAccount(array $account): array {
+        return ['id'=>$account['id'], 'email'=>$account['email'], 'personId'=>$account['personId'] ?? null];
+    }
+    private function sessionAccount(?string $token): ?array {
+        if ($token === null || !preg_match('/\A[A-Za-z0-9_-]{43}\z/', $token)) return null;
+        $hash = self::hashToken($token);
+        $session = $this->state['accountSessions'][$hash] ?? null;
+        if (!$session || $session['until'] <= $this->now()) {
+            unset($this->state['accountSessions'][$hash]);
+            return null;
+        }
+        $account = $this->state['accounts'][$session['account']] ?? null;
+        return $account && !isset($account['verification']) ? $account : null;
+    }
+    private function personAccount(string $personId): ?array {
+        foreach ($this->state['accounts'] ?? [] as $account) {
+            if (($account['personId'] ?? null) === $personId && !isset($account['verification'])) return $account;
+        }
+        return null;
+    }
+    private function requireAccount(array $person, ?string $sessionToken): array {
+        $account = $this->sessionAccount($sessionToken);
+        if (!$account) throw new LogNetworkError('account_required',401);
+        if (($account['personId'] ?? null) !== $person['id']) throw new LogNetworkError('account_identity_conflict',409);
+        return $account;
+    }
+    private function bindAccountPerson(array &$account, array $input): void {
+        $id = self::validId($input['personId'] ?? null);
+        $hash = self::hashToken($input['deviceToken'] ?? null);
+        if (isset($account['personId']) && $account['personId'] !== $id) throw new LogNetworkError('account_identity_conflict',409);
+        foreach ($this->state['accounts'] ?? [] as $other) {
+            if (($other['personId'] ?? null) === $id && $other['id'] !== $account['id']) throw new LogNetworkError('account_identity_conflict',409);
+        }
+        $existing = $this->state['people'][$id] ?? null;
+        if ($existing) {
+            if (!hash_equals($existing['tokenHash'], $hash)) throw new LogNetworkError('account_identity_conflict',409);
+            $this->person($input['deviceToken']);
+        } else {
+            $name = $input['name'] ?? '';
+            if (!is_string($name) || trim($name)==='' || strlen($name)>240 || !preg_match('//u',$name) || preg_match('/[\x00-\x1f\x7f]/',$name)) throw new LogNetworkError('invalid_name');
+            foreach ($this->state['people'] as $person) if (hash_equals($person['tokenHash'],$hash)) throw new LogNetworkError('account_identity_conflict',409);
+            if (count($this->state['people']) >= 10000) throw new LogNetworkError('capacity',409);
+            $this->state['people'][$id] = ['id'=>$id,'name'=>trim($name),'tokenHash'=>$hash];
+        }
+        $account['personId'] = $id;
+    }
+    private function queueAccountMail(string $accountKey, string $kind): void {
+        $account = &$this->state['accounts'][$accountKey];
+        $code = self::token();
+        $expires = $this->now() + 3600;
+        $field = $kind === 'verify' ? 'verification' : 'reset';
+        $account[$field] = ['hash'=>self::hashToken($code),'until'=>$expires];
+        foreach ($this->state['accountMail'] ?? [] as $id=>$item) {
+            if ($item['account'] === $accountKey && $item['kind'] === $kind) unset($this->state['accountMail'][$id]);
+        }
+        $this->state['accountMail'][self::id()] = [
+            'account'=>$accountKey,'kind'=>$kind,'email'=>$account['email'],'code'=>$code,
+            'until'=>$expires,'attempt'=>0,'retryAt'=>$this->now(),
+        ];
+    }
+    public function deliverAccountMail(callable $sender): array {
+        return $this->transaction(function () use ($sender) {
+            $sent=0; $attempted=0;
+            foreach ($this->state['accountMail'] ?? [] as $id=>$item) {
+                if ($item['until'] <= $this->now()) { unset($this->state['accountMail'][$id]); continue; }
+                if ($item['retryAt'] > $this->now()) continue;
+                if ($attempted >= 5) break;
+                $attempted++;
+                try { $delivered = $sender($item); } catch (Throwable $error) { $delivered=false; }
+                if ($delivered) { unset($this->state['accountMail'][$id]); $sent++; continue; }
+                $attempt=$item['attempt']+1;
+                $this->state['accountMail'][$id]['attempt']=$attempt;
+                $this->state['accountMail'][$id]['retryAt']=$this->now()+min(900,30*(2**min($attempt,5)));
+            }
+            return ['sent'=>$sent,'pending'=>count($this->state['accountMail'] ?? [])];
+        });
+    }
+    private function clearAccountSessions(string $key): void {
+        foreach ($this->state['accountSessions'] ?? [] as $hash=>$session) {
+            if ($session['account'] === $key || $session['until'] <= $this->now()) unset($this->state['accountSessions'][$hash]);
+        }
+    }
+    public function redeemAccountAppCode(string $app, string $code): array {
+        return $this->transaction(function () use ($app,$code) {
+            if ($app !== 'eventline' || !preg_match('/\A[A-Za-z0-9_-]{43}\z/',$code)) throw new LogNetworkError('account_verification',403);
+            $hash = self::hashToken($code);
+            $ticket = $this->state['accountAppCodes'][$hash] ?? null;
+            if (!$ticket || $ticket['app'] !== $app || $ticket['until'] <= $this->now()) throw new LogNetworkError('account_verification',403);
+            $session = $this->state['accountSessions'][$ticket['session']] ?? null;
+            $account = $this->state['accounts'][$ticket['account']] ?? null;
+            if (!$session || $session['until'] <= $this->now() || $session['account'] !== $ticket['account'] || !$account || isset($account['verification'])) throw new LogNetworkError('account_required',401);
+            unset($this->state['accountAppCodes'][$hash]);
+            $person = $this->state['people'][$account['personId']] ?? null;
+            if (!$person) throw new LogNetworkError('account_identity_conflict',409);
+            return ['account' => $this->publicAccount($account) + ['name'=>$person['name']]];
+        });
+    }
+    private function accountAction(string $action, array $input, ?string $sessionToken): array {
+        if ($action === 'account-app-code') {
+            $account = $this->sessionAccount($sessionToken);
+            if (!$account || !isset($account['personId'])) throw new LogNetworkError('account_required',401);
+            if (($input['app'] ?? null) !== 'eventline') throw new LogNetworkError('unknown_action',404);
+            foreach ($this->state['accountAppCodes'] ?? [] as $hash=>$ticket) if ($ticket['until'] <= $this->now()) unset($this->state['accountAppCodes'][$hash]);
+            if (count($this->state['accountAppCodes'] ?? []) >= 10000) throw new LogNetworkError('capacity',409);
+            $code = self::token();
+            $this->state['accountAppCodes'][self::hashToken($code)] = ['app'=>'eventline','account'=>hash('sha256',$account['email']),
+                'session'=>self::hashToken($sessionToken),'until'=>$this->now()+60];
+            return ['code'=>$code];
+        }
+        if ($action === 'account-status') return ['account'=>($account=$this->sessionAccount($sessionToken)) ? $this->publicAccount($account) : null];
+        if ($action === 'account-logout') {
+            if ($sessionToken !== null && preg_match('/\A[A-Za-z0-9_-]{43}\z/',$sessionToken)) unset($this->state['accountSessions'][self::hashToken($sessionToken)]);
+            return ['account'=>null];
+        }
+        if (!in_array($action,['account-register','account-login','account-verify','account-resend','account-forgot','account-reset'],true)) throw new LogNetworkError('unknown_action',404);
+        $email=self::accountEmail($input); $key=hash('sha256',$email);
+        $account=$this->state['accounts'][$key] ?? null;
+        if ($action === 'account-register') {
+            $password=self::accountPassword($input);
+            if ($account) return ['ok'=>true];
+            if (count($this->state['accounts'] ?? []) >= 10000) throw new LogNetworkError('capacity',409);
+            $this->state['accounts'][$key]=['id'=>self::id(),'email'=>$email,'password'=>password_hash($password,PASSWORD_DEFAULT)];
+            $this->queueAccountMail($key,'verify');
+            return ['ok'=>true];
+        }
+        if ($action === 'account-resend' || $action === 'account-forgot') {
+            if ($account) {
+                $kind=$action === 'account-forgot' ? 'reset' : 'verify';
+                if ($action === 'account-forgot' || isset($account['verification'])) $this->queueAccountMail($key,$kind);
+            }
+            return ['ok'=>true];
+        }
+        if ($action === 'account-verify' || $action === 'account-reset') {
+            $field=$action === 'account-verify' ? 'verification' : 'reset';
+            $code=$input['code'] ?? null; $entry=$account[$field] ?? null;
+            if (!$entry || $entry['until'] <= $this->now() || !is_string($code) || !preg_match('/\A[A-Za-z0-9_-]{43}\z/',$code) || !hash_equals($entry['hash'],self::hashToken($code))) throw new LogNetworkError('account_verification',403);
+            $this->state['accounts'][$key]['password']=password_hash(self::accountPassword($input),PASSWORD_DEFAULT);
+            $this->clearAccountSessions($key);
+            unset($this->state['accounts'][$key][$field]);
+            if ($field === 'reset') unset($this->state['accounts'][$key]['verification']);
+            foreach ($this->state['accountMail'] ?? [] as $id=>$item) if ($item['account'] === $key && ($field === 'reset' || $item['kind'] === 'verify')) unset($this->state['accountMail'][$id]);
+            return ['ok'=>true];
+        }
+        $password=self::accountPassword($input);
+        $dummy='$2y$10$w/2f1WSqy3D8lR2WRjEth.Nhphm91cM3FrEzg1YKItZq/ekKOQZfK';
+        if (!password_verify($password,$account['password'] ?? $dummy) || !$account) throw new LogNetworkError('account_credentials',401);
+        if (isset($account['verification'])) throw new LogNetworkError('account_unverified',403);
+        $this->bindAccountPerson($account,$input);
+        $this->state['accounts'][$key]=$account;
+        foreach ($this->state['accountSessions'] ?? [] as $hash=>$session) if ($session['until'] <= $this->now()) unset($this->state['accountSessions'][$hash]);
+        if ($sessionToken !== null && preg_match('/\A[A-Za-z0-9_-]{43}\z/',$sessionToken)) unset($this->state['accountSessions'][self::hashToken($sessionToken)]);
+        $token=self::token();
+        $this->state['accountSessions'][self::hashToken($token)]=['account'=>$key,'until'=>$this->now()+7200];
+        return ['account'=>$this->publicAccount($account),'sessionToken'=>$token];
+    }
+    public function handle(string $action, array $in, ?string $auth, ?string $accountToken = null): array {
+        return $this->transaction(function () use ($action,$in,$auth,$accountToken) {
+            if (str_starts_with($action, 'account-')) return $this->accountAction($action, $in, $accountToken);
             if(in_array($action,['shop-pair-claim','shop-pair-probe','shop-pair-redeem'],true))return $this->shopPairAction($action,$in);
             $delegated=$this->shopDevice($action,$in,$auth);if($delegated!==null)return $delegated;
             if($action==='share-check'){$id=self::validId($in['id']??null);return ['valid'=>isset($this->state['shareCodes'][hash('sha256',$id)])];}
@@ -764,7 +946,8 @@ final class LogNetwork {
                 return ['self'=>$this->selfData($this->person($auth)),'contact'=>$contact];
             }
             if ($action==='self') return ['self'=>$this->selfData($p)];
-            $this->member($p);
+            if (str_starts_with($action,'shop')) $this->requireAccount($p,$accountToken);
+            else $this->member($p);
             if(str_starts_with($action,'shop-pair-'))return $this->shopPairAction($action,$in,$p);
             if(str_starts_with($action,'shoplibrary-'))return $this->shopLibrary($action,$in,$pid);
             if(str_starts_with($action,'shopcatalog-'))return $this->shopcatalogAction($action,$in,$pid);
@@ -870,6 +1053,35 @@ final class LogNetwork {
     }
 }
 
+function log_account_mail_from(): string {
+    $from = getenv('SHARON_ACCOUNT_MAIL_FROM');
+    if ($from !== false && $from !== '') return $from;
+    $path = dirname(__DIR__) . '/private/account-config.php';
+    if (!is_file($path)) return '';
+    $config = require $path;
+    return is_array($config) && is_string($config['mailFrom'] ?? null) ? $config['mailFrom'] : '';
+}
+
+function log_account_eventline_key(): string {
+    $key = getenv('SHARON_EVENTLINE_KEY');
+    if ($key !== false && $key !== '') return $key;
+    $path = dirname(__DIR__) . '/private/account-config.php';
+    if (!is_file($path)) return '';
+    $config = require $path;
+    return is_array($config) && is_string($config['eventlineKey'] ?? null) ? $config['eventlineKey'] : '';
+}
+
+function log_account_send_mail(array $item, string $from): bool {
+    if (!filter_var($from,FILTER_VALIDATE_EMAIL)) return false;
+    $reset = $item['kind'] === 'reset';
+    $subject = $reset ? 'Herstel je Sharon-wachtwoord' : 'Bevestig je Sharon-account';
+    $body = ($reset ? 'Kies Wachtwoord vergeten in Sharon en gebruik deze code.' : 'Kies E-mailadres bevestigen in Sharon en gebruik deze code.')
+        . "\nDe code is een uur geldig.\n\n" . $item['code'];
+    return mail($item['email'],'=?UTF-8?B?'.base64_encode($subject).'?=',$body,[
+        'From'=>$from,'MIME-Version'=>'1.0','Content-Type'=>'text/plain; charset=UTF-8',
+    ]);
+}
+
 function log_network_request(array $body, string $root, string $raw): never {
     ini_set('display_errors','0');
     header('X-Content-Type-Options: nosniff');
@@ -897,7 +1109,22 @@ function log_network_request(array $body, string $root, string $raw): never {
             if ($key==='' || !hash_equals(LOG_PUBLISH_KEY,$key)) out(401,['error'=>'invalid_publish_key']);
             out(200,['invitation'=>$service->start()]);
         }
-        out(200,$service->handle($body['action'],$body,$token));
+        $action = $body['action'];
+        $service->throttleAccount($_SERVER['REMOTE_ADDR'] ?? 'unknown', $action, $body['email'] ?? null);
+        $from = log_account_mail_from();
+        $mailActions=['account-register','account-resend','account-forgot'];
+        if (in_array($action,$mailActions,true) && !filter_var($from,FILTER_VALIDATE_EMAIL)) out(503,['error'=>'account_mail_unavailable']);
+        if ($action === 'account-app-redeem') {
+            $key = log_account_eventline_key();
+            if (strlen($key) < 32 || !hash_equals($key,header_value('X-Sharon-App-Key'))) out(403,['error'=>'account_required']);
+            if (!is_string($body['app'] ?? null) || !is_string($body['code'] ?? null)) out(400,['error'=>'account_verification']);
+            out(200,$service->redeemAccountAppCode($body['app'],$body['code']));
+        }
+        $result=$service->handle($action,$body,$token,header_value('X-Sharon-Account-Token') ?: null);
+        if (filter_var($from,FILTER_VALIDATE_EMAIL) && str_starts_with($action,'account-')) {
+            $service->deliverAccountMail(static fn(array $item): bool => log_account_send_mail($item,$from));
+        }
+        out(200,$result);
     } catch (LogNetworkError $e) { out($e->status,['error'=>$e->reason]); }
     catch (Throwable $e) { out(503,['error'=>'service_unavailable']); }
 }
@@ -982,7 +1209,7 @@ if ($origin !== '' && in_array($origin, LOG_CONNECTION_ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, X-Log-Access-Token, X-Log-Publish-Key');
+    header('Access-Control-Allow-Headers: Content-Type, X-Log-Access-Token, X-Log-Publish-Key, X-Sharon-Account-Token');
     header('Access-Control-Max-Age: 600');
 }
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {

@@ -1,10 +1,11 @@
-import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.25';
+import {AccountService} from '../connection/AccountService.js?v=0.5.26';
+import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.26';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
- constructor(store){this.connection=new ConnectionService(store);}
+ constructor(store){this.connection=new ConnectionService(store);this.accounts=new AccountService(store,this.connection);}
  async request(action,input={}){
   const device=await this.connection.device();
-  if(!device.registered||device.self?.line==null)throw Error('Verbind eerst je identiteit in Sharon → Personen.');
+  await this.accounts.require();
   return this.connection.request('shoplist-'+action,input,device);
  }
  async catalog(){const device=await this.connection.device();return this.connection.request('shopcatalog-read',{},device);}
@@ -18,7 +19,7 @@ export class ShopListService {
  }
  async isConnected(){
   const device=await this.connection.device();
-  if(!device.registered||device.self?.line==null)return false;
+  if(!await this.accounts.status())return false;
   const {devices}=await this.connection.request('shop-pair-list',{},device);
   return devices.some(device=>device.status==='active');
  }
