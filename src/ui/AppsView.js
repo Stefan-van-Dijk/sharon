@@ -1,13 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.31';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.31';
-import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.31';
-import {sharonLogo} from './Brand.js?v=0.5.31';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.31';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.31';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.31';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.31';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.31';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.31';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.32';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.32';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.32';
+import {sharonLogo} from './Brand.js?v=0.5.32';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.32';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.32';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.32';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.32';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.32';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.32';
 
 // Keep the saved ShopList layout as the shared starting point.
 const appBoardLayoutKey = 'apps.shoplist.board.layout';
@@ -27,16 +27,27 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  const document=outlet.ownerDocument,known=new Map(items.map(item=>[item.id,item]));
  let selected=homeModules(settings.get(),items.map(item=>item.id));
  let order=homeOrder(settings.get(),items.map(item=>item.id));
- let mode='home',busy=false,disposed=false,dragged=null,closePairing=()=>{},unbindApps=()=>{};
+ let mode='apps',busy=false,disposed=false,dragged=null,closePairing=()=>{},unbindApps=()=>{};
  let account=null,accountRefreshId=0;
  let eventConnected=false,shopConnected=false,disconnecting=false,refreshId=0;
  const root=document.createElement('section');root.className='sh-apps-view module-view';
- const tabs=document.createElement('div');tabs.className='sh-apps-tabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Apps en onderdelen');
- const panel=document.createElement('div');panel.className='sh-apps-panel';
+ const toolbar=document.createElement('header');toolbar.className='sh-apps-toolbar';
+ const heading=document.createElement('h2');
+ const panelId='sh-apps-panel';
+ const panel=document.createElement('div');panel.className='sh-apps-panel';panel.id=panelId;
  const status=document.createElement('p');status.setAttribute('role','status');
  const button=(label,fn)=>{const element=document.createElement('button');element.type='button';element.textContent=label;element.onclick=fn;return element;};
- for(const [id,label] of [['home','Mijn Sharon'],['apps','Apps verbinden']]){const tab=button(label,()=>{mode=id;paint();if(id==='apps')refreshAccount();});tab.dataset.appsTab=id;tabs.append(tab);}
- root.append(tabs,panel,status);outlet.replaceChildren(root);
+ const ordering=button('',()=>{
+  mode=mode==='apps'?'home':'apps';
+  paint();
+  outlet.scrollTop=0;
+ });
+ ordering.className='sh-apps-order';ordering.dataset.appsOrder='';
+ ordering.setAttribute('aria-label','Onderdelen ordenen');
+ ordering.setAttribute('aria-controls',panelId);
+ ordering.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M5 6v12m-2-2 2 2 2-2"/></svg>';
+ toolbar.append(heading,ordering);
+ root.append(toolbar,panel,status);outlet.replaceChildren(root);
  async function save(next,nextOrder=order){
   if(busy||disposed)return false;
   busy=true;status.textContent='';paint();
@@ -57,9 +68,9 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
   let result;
   try{result=await accounts.status();}
   catch{result=null;}
-  if(disposed||current!==accountRefreshId||mode!=='apps')return;
+  if(disposed||current!==accountRefreshId)return;
   account=result;
-  paint();
+  if(mode==='apps')paint();
   if(account)await refreshApps();
  }
  function showAccountBoard(initial){
@@ -226,7 +237,8 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  function paint(){
   if(disposed)return;
   unbindApps();
-  tabs.querySelectorAll('button').forEach(tab=>tab.setAttribute('aria-pressed',String(tab.dataset.appsTab===mode)));
+  heading.textContent=mode==='apps'?'Apps verbinden':'Ordening op Home';
+  ordering.setAttribute('aria-pressed',String(mode==='home'));
   panel.replaceChildren();
   if(mode==='apps'){
    renderAccountHub();
@@ -277,5 +289,5 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
    panel.append(row);
   }
  }
- paint();return ()=>{disposed=true;dragged=null;unbindApps();closePairing();};
+ paint();refreshAccount();return ()=>{disposed=true;dragged=null;unbindApps();closePairing();};
 }

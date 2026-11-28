@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 import {openAppsView} from '../src/ui/AppsView.js';
+const orderModules=()=>document.querySelector('[data-apps-order]').click();
 const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
 const items=[{id:'environment',title:'Omgeving'},{id:'locations',title:'Locaties'},{id:'notes',title:'Notities en lijsten'}];
 function fixture(t,connection,initial={home:{modules:['environment','locations']}},signedIn=true){
@@ -20,19 +21,19 @@ function fixture(t,connection,initial={home:{modules:['environment','locations']
  return {dom,settings,changes,fail:()=>{fail=true;},close:()=>close(),reopen:()=>{close();close=openAppsView(document.querySelector('main'),{settings,store,items,connection});}};
 }
 test('Home module choices persist, reorder and keep all choices reachable when every module is hidden',async t=>{
- const f=fixture(t);const toggle=id=>document.querySelector(`[data-module-choice="${id}"] [role="switch"]`);
+ const f=fixture(t);orderModules();const toggle=id=>document.querySelector(`[data-module-choice="${id}"] [role="switch"]`);
  assert.equal(toggle('notes').getAttribute('aria-checked'),'false');toggle('notes').click();await settle();assert.deepEqual(f.settings.get().home.modules,['environment','locations','notes']);
  document.querySelector('[data-module-handle="notes"]').dispatchEvent(new f.dom.window.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));await settle();assert.deepEqual(f.settings.get().home.modules,['environment','notes','locations']);
- f.reopen();assert.equal(toggle('notes').getAttribute('aria-checked'),'true');
+ f.reopen();orderModules();assert.equal(toggle('notes').getAttribute('aria-checked'),'true');
  for(const id of ['environment','notes','locations']){toggle(id).click();await settle();}
  assert.deepEqual(f.settings.get().home.modules,[]);assert.equal(document.querySelectorAll('[role="switch"]').length,3);
 });
 test('Failed Home settings write retains prior toggles and exposes the storage error',async t=>{
- const f=fixture(t);f.fail();document.querySelector('[data-module-choice="environment"] button').click();await settle();
+ const f=fixture(t);orderModules();f.fail();document.querySelector('[data-module-choice="environment"] button').click();await settle();
  assert.equal(document.querySelector('[data-module-choice="environment"] [role="switch"]').getAttribute('aria-checked'),'true');assert.match(document.querySelector('[role="status"]').textContent,/Opslag vol/);assert.equal(f.changes.length,0);
 });
 test('Dragging a selected module reorders it without changing membership',async t=>{
- const f=fixture(t),source=document.querySelector('[data-module-choice="locations"]'),target=document.querySelector('[data-module-choice="environment"]');
+ const f=fixture(t);orderModules();const source=document.querySelector('[data-module-choice="locations"]'),target=document.querySelector('[data-module-choice="environment"]');
  const handle=source.querySelector('[data-module-handle]');document.elementFromPoint=()=>target;
  for(const type of ['pointerdown','pointermove','pointerup']){const event=new f.dom.window.Event(type,{bubbles:true,cancelable:true});Object.assign(event,{pointerId:1,clientX:20,clientY:20,button:0});handle.dispatchEvent(event);}
  await settle();assert.deepEqual(f.settings.get().home.modules,['locations','environment']);
@@ -40,16 +41,15 @@ test('Dragging a selected module reorders it without changing membership',async 
  document.querySelector('[data-module-choice="locations"] [role="switch"]').click();await settle();
  document.querySelector('[data-module-choice="locations"] [role="switch"]').click();await settle();
  assert.deepEqual(f.settings.get().home.order,order);assert.deepEqual(f.settings.get().home.modules,['locations','environment']);
- f.reopen();assert.deepEqual([...document.querySelectorAll('[data-module-choice]')].map(el=>el.dataset.moduleChoice),order);
+ f.reopen();orderModules();assert.deepEqual([...document.querySelectorAll('[data-module-choice]')].map(el=>el.dataset.moduleChoice),order);
 
 });
 test('ShopList connects through the signed-in account and then opens fullscreen',async t=>{
  const calls=[];
  const f=fixture(t,{request:async action=>{calls.push(action);return {devices:[]};}});
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- const enterApps=async()=>{document.querySelector('[data-apps-tab="apps"]').click();await settle();};
  const openShop=()=>document.querySelector('[data-swipe-row="shoplist"] [data-swipe-surface]').click();
- await enterApps();openShop();await settle();
+ await settle();openShop();await settle();
  const board=document.querySelector('dialog[aria-label="ShopList"]');
  const pill=board.querySelector('[data-deck-grab]');
  assert.equal(pill.textContent,'Verbind ShopList');
@@ -69,7 +69,7 @@ test('ShopList connects through the signed-in account and then opens fullscreen'
  assert.deepEqual(f.settings.get().home.modules,['environment','locations','notes']);
  assert.deepEqual(calls,['shop-pair-list']);
  f.reopen();
- await enterApps();openShop();await settle();
+ await settle();openShop();await settle();
  document.querySelector('dialog[aria-label="ShopList"] .sh-board-photo-source').click();
  const fullscreen=document.querySelector('.sh-notes-deck.is-fullscreen');
  assert(fullscreen?.querySelector('iframe'));
@@ -82,7 +82,7 @@ test('Horizontal swipes cycle app boards and keep each app connection separate',
  const f=fixture(t,{request:async()=>({devices:[]})});
  const win=f.dom.window;
  win.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- document.querySelector('[data-apps-tab="apps"]').click();await settle();
+ await settle();
  document.querySelector('[data-swipe-row="shoplist"] [data-swipe-surface]').click();await settle();
  const board=()=>document.querySelector('dialog');
  const swipe=dx=>{
@@ -122,7 +122,7 @@ test('Horizontal swipes cycle app boards and keep each app connection separate',
 });
 
 test('Existing profile without Home preference starts with all current choices enabled',async t=>{
- const f=fixture(t,undefined,{profile:{name:'Stefan'}});
+ const f=fixture(t,undefined,{profile:{name:'Stefan'}});orderModules();
  assert.equal(document.querySelectorAll('[role="switch"][aria-checked="true"]').length,items.length);
  document.querySelector('[data-module-choice="locations"] button').click();await settle();
  assert.deepEqual(f.settings.get().home.modules,['environment','notes']);
@@ -131,7 +131,7 @@ test('Existing profile without Home preference starts with all current choices e
 test('Event Line connects from its board and opens inside Apps', async t => {
  const f=fixture(t);
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- document.querySelector('[data-apps-tab="apps"]').click();
+
  await settle();
  const launch=()=>document.querySelector('[data-swipe-row="eventline"] [data-swipe-surface]');
  assert(document.querySelector('[data-swipe-row="shoplist"]'));
@@ -188,7 +188,7 @@ test('Ontkoppelen op de ShopList-strook deactiveert de app in Sharon na bevestig
   calls.push(action);
   return {devices:[{id:'existing',status:'active'}]};
  }});
- document.querySelector('[data-apps-tab="apps"]').click();await settle();
+ await settle();
  const remove=()=>document.querySelector('[data-swipe-row="shoplist"] [data-swipe-delete]');
  f.dom.window.confirm=()=>false;
  remove().click();await settle();
@@ -203,8 +203,12 @@ test('Apps verbinden introduces the account above app strips and opens the extra
  const connection={device:async()=>({}),request:async()=>({devices:[]})};
  const f=fixture(t,connection);
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- document.querySelector('[data-apps-tab="apps"]').click();await settle();
+ await settle();
  const panel=document.querySelector('.sh-apps-panel');
+ assert.equal(document.querySelector('.sh-apps-toolbar h2').textContent,'Apps verbinden');
+ orderModules();
+ assert(panel.querySelector('[data-module-choice]'));
+ orderModules();
  assert(panel.firstElementChild.matches('.sh-account-hero'));
  assert(panel.children[1].matches('.sh-account-intro'));
  assert(panel.children[2].matches('.sh-connected-apps'));
@@ -224,7 +228,7 @@ test('Apps verbinden introduces the account above app strips and opens the extra
 test('Without a Sharon account app boards are readable and connecting requires login',async t=>{
  const f=fixture(t,undefined,undefined,false);
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
- document.querySelector('[data-apps-tab="apps"]').click();await settle();
+ await settle();
  for(const [id,title] of [['shoplist','ShopList'],['eventline','Event Line']]){
   document.querySelector(`[data-swipe-row="${id}"] [data-swipe-surface]`).click();
   const board=document.querySelector('dialog');
