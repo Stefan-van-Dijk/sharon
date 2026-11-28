@@ -2,7 +2,11 @@ import {AccountService} from '../connection/AccountService.js?v=0.5.27';
 import {ConnectionService} from '../connection/ConnectionService.js?v=0.5.27';
 export const SHOPLIST_URL='https://stefan-van-dijk.github.io/shop/';
 export class ShopListService {
- constructor(store){this.connection=new ConnectionService(store);this.accounts=new AccountService(store,this.connection);}
+ constructor(store,connection=new ConnectionService(store)){
+  this.store=store;
+  this.connection=connection;
+  this.accounts=new AccountService(store,connection);
+ }
  async request(action,input={}){
   const device=await this.connection.device();
   await this.accounts.require();
@@ -18,10 +22,16 @@ export class ShopListService {
   return this.connection.request('shoplibrary-'+command,payload,device);
  }
  async isConnected(){
-  const device=await this.connection.device();
-  if(!await this.accounts.status())return false;
-  const {devices}=await this.connection.request('shop-pair-list',{},device);
+  let account;
+  try{account=await this.accounts.require();}catch{return false;}
+  const saved=await this.store.get('meta','apps.shoplist.connected.'+account.personId);
+  if(saved)return saved.value===true;
+  const {devices}=await this.connection.request('shop-pair-list',{},await this.connection.device());
   return devices.some(device=>device.status==='active');
+ }
+ async setConnected(value){
+  const account=await this.accounts.require();
+  await this.store.put('meta',{key:'apps.shoplist.connected.'+account.personId,value});
  }
  index(){return this.request('index');}
  archive(id,archived=true){return this.request('archive',{id,archived});}

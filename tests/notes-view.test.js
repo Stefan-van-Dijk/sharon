@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {JSDOM} from 'jsdom';import {openShopPairing} from '../src/ui/ShopPairing.js';import {openNotesView} from '../src/ui/NotesView.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {JSDOM} from 'jsdom';import {openNotesView} from '../src/ui/NotesView.js';
 function fixture(t,online=true){
  const dom=new JSDOM('<main></main>',{url:'https://stefan-van-dijk.github.io/sharon/'});const prev={document:globalThis.document,window:globalThis.window,CustomEvent:globalThis.CustomEvent};Object.assign(globalThis,{document:dom.window.document,window:dom.window,CustomEvent:dom.window.CustomEvent});
  dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new dom.window.Event('close'));};
@@ -39,33 +39,6 @@ test('List sharing preserves failed selections and closes cleanly',async t=>{
  const f=fixture(t);f.api.connection.contacts=async()=>[{personId:'one',name:'One'},{personId:'two',name:'Two'}];let fail=true;f.api.share=async(...args)=>{if(args[1]==='two'&&fail)throw Error('Offline');f.shares.push(args);};
  const {openListShare}=await import('../src/ui/ListSharing.js');const close=openListShare({id:'shared',name:'Weekend'},f);await settle();const panel=document.querySelector('.sh-list-share');panel.querySelectorAll('[data-swipe-surface]').forEach(b=>b.click());panel.querySelector('[data-share-send]').click();await settle();assert.deepEqual(f.shares,[['shared','one','read']]);assert.equal(panel.querySelectorAll('[data-swipe-surface][aria-pressed="true"]').length,1);assert.match(panel.textContent,/Offline/);fail=false;panel.querySelector('[data-share-send]').click();await settle();assert.deepEqual(f.shares,[['shared','one','read'],['shared','two','read']]);close();assert.equal(document.querySelector('.sh-card-share-overlay'),null);
 });
-test('Pairing requires a matching explicit confirmation without sharing lists',async t=>{
- const f=fixture(t),calls=[];let phase='empty';
- f.api.connection.device=async()=>({deviceToken:'private'});
- f.api.connection.request=async(action,input)=>{calls.push({action,input});if(action==='shop-pair-list')return {devices:phase==='empty'?[]:[{id:'device',status:phase,fingerprint:'1234ABCD'}]};if(action==='shop-pair-create'){phase='pending';return {id:'device',code:'SP1.code'};}if(action==='shop-pair-confirm'){phase='active';return {ok:true};}if(action==='shop-pair-revoke'){phase='pending';return {ok:true};}};
- const stop=await openNotesView(f.outlet,f);t.after(stop);const closePair=openShopPairing(f.api.connection);t.after(closePair);await settle();
- const board=document.querySelector('dialog'),pill=board.querySelector('[data-deck-grab]');
- assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
- pill.click();await settle();
- assert.match(board.textContent,/Tijdelijke koppelcode: SP1.code/);
- assert.equal(calls.some(c=>c.action==='shop-pair-confirm'),false);
- Object.defineProperty(document,'hidden',{value:false,configurable:true});
- phase='claimed';document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();
- assert.match(board.textContent,/1234ABCD/);
- assert.equal(pill.textContent,'Bevestig koppeling');
- pill.click();await settle();
- assert.deepEqual(calls.find(c=>c.action==='shop-pair-confirm').input,{id:'device',fingerprint:'1234ABCD'});
- assert.equal(f.shares.length,0);closePair();stop();assert.equal(document.querySelector('dialog'),null);
-});
-test('Compact pairing shows success only after Shop acknowledgement and refreshes on return',async t=>{
- const f=fixture(t);let phase='empty';const calls=[];
- Object.defineProperty(document,'hidden',{value:false,configurable:true});
- f.api.connection.device=async()=>({});f.api.connection.request=async(action,input)=>{calls.push(action);if(action==='shop-pair-create'){phase='pending';return {id:'device',code:'abcdefghijkl',expiresAt:Date.now()+604800000};}return {devices:phase==='empty'?[]:[{id:'device',compact:true,status:phase,fingerprint:'1234ABCD'}]};};
- const stop=await openNotesView(f.outlet,f);const closePair=openShopPairing(f.api.connection);t.after(closePair);await settle();document.querySelector('dialog [data-deck-grab]').click();await settle();assert.match(document.querySelector('dialog').textContent,/Tijdelijke koppelcode: abcdefghijkl/);
- phase='ready';document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.match(document.querySelector('dialog').textContent,/rondt het opslaan/);assert.doesNotMatch(document.querySelector('dialog').textContent,/Shop verbonden/);
- phase='active';document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.match(document.querySelector('dialog').textContent,/Koppeling geslaagd/);assert.doesNotMatch(document.querySelector('dialog').textContent,/abcdefghijkl/);assert.equal(calls.includes('shop-pair-confirm'),false);closePair();stop();const n=calls.length;document.dispatchEvent(new f.dom.window.Event('visibilitychange'));await settle();assert.equal(calls.length,n);
-});
-
 test('Notes only shows items; archive recovery follows every item and restores a local item',async t=>{
  const f=fixture(t);f.records.set('old',{id:'old',type:'note',name:'Oud idee',archivedAt:123,data:{kind:'idea',body:'Bewaren'}});
  const stop=await openNotesView(f.outlet,f);t.after(stop);await settle();

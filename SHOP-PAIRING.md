@@ -1,9 +1,18 @@
-# Shop koppelen — 0.5.26
+# ShopList verbinden
+
+Open **Apps verbinden** in Sharon, log in met je Sharon-account en tik op de pil
+**Verbind ShopList**. Tik daarna op **Open ShopList**. Binnen Sharon gebruikt
+ShopList je bestaande Sharon-sessie.
+
+## Bestaande zelfstandige installaties
+
+De onderstaande koppelprocedure documenteert de eerdere versies van de
+zelfstandige ShopList-app.
 
 Upload `server/connections.php` naar `/log/api/connections.php` op sharon.life.
 Behoud configuratie en private gegevens. GitHub Pages plaatst dit PHP-bestand niet.
 
-Registreer en bevestig eerst een Sharon-account via Apps verbinden. De installatie en mailconfiguratie staan in [Accounts](server/ACCOUNTS.md). Open daarna het ShopList-board en tik op de pil Verbind ShopList. Bij geweigerde klembordtoegang kun je de getoonde code selecteren of opnieuw op de pil tikken.
+Registreer en bevestig eerst een Sharon-account via Apps verbinden. De installatie en mailconfiguratie staan in [Accounts](server/ACCOUNTS.md). Voor de eerdere procedure was een tijdelijke koppelcode nodig.
 Het maken van de code geeft één Shop-installatie toestemming voor toegang tot de
 boodschappenlijsten van deze identiteit, binnen bestaande lijstbevoegdheden.
 De code bestaat uit twaalf willekeurige tekens en is zeven dagen geldig.
