@@ -154,7 +154,7 @@
     .app-stage.is-home-swiping,.app-stage.is-home-swipe-animating{transform:translate3d(var(--home-swipe-x),0,0);box-shadow:-10px 0 30px rgba(0,0,0,var(--home-swipe-shadow))}
     .app-stage.is-home-swipe-animating{transition:transform .24s cubic-bezier(.22,.61,.36,1),box-shadow .24s ease,border-radius .24s cubic-bezier(.22,.61,.36,1)}
     .app-frame{width:min(560px,100%);min-height:calc(100dvh - max(46px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));margin:0 auto;display:flex;flex-direction:column;position:relative;background:#fff}
-    .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;backdrop-filter:blur(10px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
+    .app-header{min-height:92px;padding:18px 1px 34px;display:flex;align-items:center;gap:9px;position:sticky;top:max(0px,env(safe-area-inset-top));z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid transparent;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:min-height .30s cubic-bezier(.22,.61,.36,1),padding .30s cubic-bezier(.22,.61,.36,1),border-color .2s ease}
     .app-header.is-detail{min-height:54px;padding:0 1px;border-bottom-color:#ececef}
     .persistent-brand-button{position:relative;width:110px;height:40px;padding:0;border:0;background:transparent;overflow:visible;flex:0 0 auto;transition:width .34s cubic-bezier(.22,.61,.36,1)}
     .app-header.is-detail .persistent-brand-button{width:30px}
@@ -560,20 +560,10 @@
       background:transparent;border:0;backdrop-filter:none;
       -webkit-backdrop-filter:none;pointer-events:none;isolation:isolate;
     }
-    /* iOS-like top glass: backdrop includes the status bar and gracefully
-       fades into module content. It never receives touches or dims controls. */
     .app-stage[data-view="detail"] .app-header::before{
-      content:"";position:absolute;left:0;right:0;top:0;
-      height:calc(env(safe-area-inset-top) + 104px);
-      background:linear-gradient(180deg,
-        rgba(255,255,255,.57) 0%,
-        rgba(255,255,255,.42) 33%,
-        rgba(255,255,255,.16) 70%,
-        rgba(255,255,255,0) 100%);
-      -webkit-backdrop-filter:blur(12px) saturate(130%);
-      backdrop-filter:blur(12px) saturate(130%);
-      -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 33%,transparent 100%);
-      mask-image:linear-gradient(to bottom,#000 0%,#000 33%,transparent 100%);
+      content:"";position:absolute;inset:0;
+      background:rgba(255,255,255,.92);
+      -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
       z-index:-1;pointer-events:none;
     }
     .app-stage[data-view="detail"] .app-header .persistent-brand-button,
@@ -3442,11 +3432,6 @@
 @media(prefers-reduced-motion:reduce){.sh-notes-archive-slot{transition:none}}
 
 .app-stage[data-module="apps"] .app-view>.sh-apps-view{padding-top:calc(env(safe-area-inset-top) + var(--sharon-header-height,54px) + 16px)}
-.app-stage[data-module="apps"] .app-header{background:rgba(255,255,255,.92)}
-.app-stage[data-module="apps"] .app-header::before{
-  height:100%;background:none;mask-image:none;-webkit-mask-image:none;
-  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
-}
 .app-stage[data-module="apps"] .app-view{scroll-padding-top:calc(env(safe-area-inset-top) + var(--sharon-header-height,54px) + 8px)}
 
 .sh-archive-recovery{margin-top:16px;border-top:1px solid #0002}
