@@ -1,5 +1,5 @@
 // Swipe the pill right to gather the boards, then drag the collected deck.
-export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout',onGrabTap,onGrabSearch}={}) {
+export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutKey='cards.board.layout',onGrabTap,onGrabSearch,closeFromGrab=false}={}) {
   const window=stack.ownerDocument?.defaultView||globalThis.window;
   let gesture=null,closed=false,interacted=false,suppressGrabClickUntil=0;
   let layout={x:0,y:0,height:Math.min(580,window.innerHeight-112),media:Math.min(330,window.innerHeight*.34)};
@@ -63,6 +63,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
     const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
     if(gesture.mode==='gather'){
       event.preventDefault();
+      if(closeFromGrab&&dy>22&&dy>Math.abs(dx)*1.2){gesture.mode='vertical';return;}
       if(onGrabSearch&&dx < -22&&Math.abs(dx)>Math.abs(dy)*1.2){gesture.mode='search';return;}
       if(dx>22&&dx>Math.abs(dy)*1.2){
         gesture.mode='move';
@@ -88,7 +89,7 @@ export function bindBoardDeckGestures(stack,{onSwipe,onClose,layoutStore,layoutK
   const up=event=>{
     if(!gesture||gesture.id!==event.pointerId)return;
     const current=gesture,dx=event.clientX-current.x,dy=event.clientY-current.y;end();
-    if(['move','search'].includes(current.mode)||(current.mode==='gather'&&Math.max(Math.abs(dx),Math.abs(dy))>9))suppressGrabClickUntil=Date.now()+400;
+    if(['move','search'].includes(current.mode)||(['gather','vertical'].includes(current.mode)&&Math.max(Math.abs(dx),Math.abs(dy))>9))suppressGrabClickUntil=Date.now()+400;
     if(current.mode==='search'&&dx < -45&&Math.abs(dx)>Math.abs(dy)*1.2)onGrabSearch?.();
     else if(['move','board','media'].includes(current.mode))save();
     else if(current.mode==='swipe'&&Math.abs(dx)>45)onSwipe?.(dx<0?1:-1);

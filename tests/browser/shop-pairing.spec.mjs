@@ -19,9 +19,15 @@ test.afterAll(async()=>{if(server)await new Promise(r=>server.close(r));});
 async function openPairing(page,{pending=false}={}){
  await page.goto(base+'/fixture.html');await page.addStyleTag({content:styles});
  await page.evaluate(async pending=>{
-  const {openShopPairing}=await import('/src/ui/ShopPairing.js');
+  const {openAppIntroBoard}=await import('/src/ui/ShopPairing.js');
   document.querySelector('#launch').focus();
-  window.requests=0;window.stopPairing=openShopPairing({store:{get:async(_,key)=>JSON.parse(localStorage.getItem(key)||'null'),put:async(_,record)=>localStorage.setItem(record.key,JSON.stringify(record))},device:async()=>({}),request:async()=>{window.requests++;if(pending)return new Promise(resolve=>window.finishPairing=resolve);return {devices:Array.from({length:12},(_,i)=>({id:'device'+i,status:'active',fingerprint:'TEST '+i}))};}});
+  window.requests=0;
+  const {close}=openAppIntroBoard({
+   title:'ShopList',description:'Uitleg over ShopList. '.repeat(70),layoutKey:'apps.shoplist.board.layout',
+   layoutStore:{get:async(_,key)=>JSON.parse(localStorage.getItem(key)||'null'),put:async(_,record)=>localStorage.setItem(record.key,JSON.stringify(record))},
+   onTap:async()=>{window.requests++;if(pending)await new Promise(resolve=>window.finishPairing=resolve);}
+  });
+  window.stopPairing=close;
  },pending);
 }
 async function drag(page,target,dy){
@@ -33,14 +39,16 @@ test('connection board stays within viewport and can close while its server requ
  const dialog=page.locator('.sh-shop-access'),surface=dialog.locator('.sh-shop-access-board'),close=dialog.locator('[data-shop-close]');
  await expect(close).toHaveCount(0);const box=await surface.boundingBox(),viewport=page.viewportSize();
  expect(box.width).toBeGreaterThan(250);expect(box.height).toBeGreaterThan(250);expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(viewport.width);expect(box.y+box.height).toBeLessThanOrEqual(viewport.height);
+ await dialog.locator('[data-deck-grab]').click();
  await drag(page,dialog.locator('h2'),100);await expect(dialog).toHaveCount(0);await expect(page.locator('#launch')).toBeFocused();
- await page.evaluate(()=>{window.finishPairing({devices:[]});document.dispatchEvent(new Event('visibilitychange'));});
+ await page.evaluate(()=>{window.finishPairing();});
  await expect(dialog).toHaveCount(0);expect(await page.evaluate(()=>window.requests)).toBe(1);
 });
 test('connection board keeps scrolling inside content and closes on a downward media swipe',async({page})=>{
  await openPairing(page);
  const dialog=page.locator('.sh-shop-access'),media=dialog.locator('[data-card-media]'),content=dialog.locator('.sh-shop-access-content'),grab=dialog.locator('[data-deck-grab]');
- await expect(dialog.locator('.sh-notes-body')).toContainText('TEST 11');
+ await expect(content).toContainText('Uitleg over ShopList.');
+ await expect(content.locator('button')).toHaveCount(0);
  expect(await media.evaluate(el=>getComputedStyle(el).touchAction)).toBe('none');
  expect(await grab.evaluate(el=>getComputedStyle(el).position)).toBe('absolute');
  expect(await content.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
@@ -72,7 +80,7 @@ test('connection board keeps its moved position and sizes after reopening and st
  await expect.poll(async()=>Math.abs((await surface.boundingBox()).y-before.y)).toBeLessThan(2);
  expect(Math.abs((await surface.boundingBox()).height-before.height)).toBeLessThan(2);
  expect(Math.abs((await media.boundingBox()).height-picture.height)).toBeLessThan(2);
- await page.getByRole('button',{name:'Vernieuwen',exact:true}).click();
+ await page.getByRole('button',{name:'Verbind ShopList',exact:true}).click();
  expect(Math.abs((await surface.boundingBox()).y-before.y)).toBeLessThan(2);
  expect(Math.abs((await surface.boundingBox()).height-before.height)).toBeLessThan(2);
 });

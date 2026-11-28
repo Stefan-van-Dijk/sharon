@@ -1,12 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.27';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.27';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.27';
-import {sharonLogo} from './Brand.js?v=0.5.27';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.27';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.27';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.27';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.27';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.27';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.28';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.28';
+import {bindNotesBoard,openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.28';
+import {sharonLogo} from './Brand.js?v=0.5.28';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.28';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.28';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.28';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.28';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.28';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.28';
 
 const accountExtras = [
  ['rides', 'Ritten', 'Bekijk je ritten en vind terug waar je bent geweest.'],
@@ -18,6 +19,7 @@ const accountExtras = [
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpenModule,connection=new ConnectionService(store)}){
  const accounts=new AccountService(store,connection);
+ const shopLists=new ShopListService(store,connection);
  const document=outlet.ownerDocument,known=new Map(items.map(item=>[item.id,item]));
  let selected=homeModules(settings.get(),items.map(item=>item.id));
  let order=homeOrder(settings.get(),items.map(item=>item.id));
@@ -45,7 +47,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
   const from=order.indexOf(id);if(from<0||target<0||target>=order.length||from===target)return;
   const next=[...order];next.splice(from,1);next.splice(target,0,id);save(selected,next);
  }
- const shopRequest=async(action,input)=>connection.request('shop-pair-'+action,input,await connection.device());
+
  async function refreshAccount(){
   const current=++accountRefreshId;
   let result;
@@ -63,10 +65,10 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  }
  async function refreshApps(){
   const current=++refreshId;
-  const [event,shop]=await Promise.allSettled([eventLineConnected(store,accounts),shopRequest('list',{})]);
+  const [event,shop]=await Promise.allSettled([eventLineConnected(store,accounts),shopLists.isConnected()]);
   if(disposed||current!==refreshId)return;
   eventConnected=event.status==='fulfilled'&&event.value;
-  shopConnected=shop.status==='fulfilled'&&Array.isArray(shop.value?.devices)&&shop.value.devices.some(device=>device.status==='active');
+  shopConnected=shop.status==='fulfilled'&&shop.value;
   if(mode==='apps')paint();
  }
  function openEventLine(){
@@ -113,60 +115,55 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  async function disconnectApp(id){
   if(disconnecting)return;
   const shop=id==='shoplist';
-  if(!document.defaultView.confirm(shop?'Alle ShopList-installaties ontkoppelen?':'Event Line ontkoppelen?'))return;
+  if(!document.defaultView.confirm(shop?'ShopList ontkoppelen in Sharon?':'Event Line ontkoppelen?'))return;
   disconnecting=true;status.textContent='';
   try{
-   if(shop){
-    const {devices}=await shopRequest('list',{});
-    for(const device of devices)await shopRequest('revoke',{id:device.id});
-   }else await setEventLineConnected(store,false);
+   if(shop)await shopLists.setConnected(false);
+   else await setEventLineConnected(store,false);
   }catch(error){status.textContent=error.message;}
   finally{await refreshApps();disconnecting=false;}
  }
- function openEventLineBoard(){
+ function openApp(id){
+  if(id==='eventline')openEventLine();
+  else{closePairing();closePairing=openShopListFullscreen(store);}
+ }
+ function openAppBoard(id){
   closePairing();
-  const previous=document.activeElement;
-  const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board sh-app-info sh-app-info--eventline';
-  dialog.setAttribute('aria-label','Event Line');
-  const header=document.createElement('header');header.className='sh-notes-heading';
-  const title=document.createElement('h2');title.textContent='Event Line';header.append(title);
-  const body=document.createElement('div');body.className='sh-notes-body';
-  const intro=document.createElement('p');intro.textContent='Bewaar openbare evenementen in je agenda.';
-  const actions=document.createElement('div');
-  const feedback=document.createElement('p');feedback.setAttribute('role','status');
-  const close=()=>{if(!dialog.isConnected)return;release();dialog.remove();previous?.focus();};
-  const release=bindNotesBoard(dialog,header,close);
-  const choose=async connected=>{
-   for(const control of actions.children)control.disabled=true;
-   try{
-    await accounts.require();
-    await setEventLineConnected(store,connected);
-    if(connected && !selected.includes('agenda') && known.has('agenda'))await save([...selected,'agenda']);
-    refreshApps();
-    eventConnected=connected;
-    if(mode==='apps')paint();
-    if(dialog.isConnected)render(connected);
-   }catch(error){
-    feedback.textContent=error.message;
-    for(const control of actions.children)control.disabled=false;
+  const shop=id==='shoplist';
+  const title=shop?'ShopList':'Event Line';
+  const module=shop?'notes':'agenda';
+  const board=openAppIntroBoard({
+   title,
+   tagline:shop?'Boodschappenlijsten en categorieën in Sharon.':'Evenementen in je Sharon-agenda.',
+   description:shop
+    ?'Verbind ShopList met je Sharon-account. Daarna open je ShopList vanuit Sharon en vind je gekoppelde lijsten en categorieën bij Notities en lijsten.'
+    :'Verbind Event Line met je Sharon-account. Evenementen die je koppelt verschijnen in je agenda.',
+   layoutStore:store,layoutKey:'apps.'+id+'.board.layout',
+   onOpen:()=>openApp(id),
+   onTap:async()=>{
+    if(!account){showAccountBoard('login');return;}
+    if(shop){
+     await shopLists.setConnected(true);
+     shopConnected=true;
+    }else{
+     await accounts.require();
+     await setEventLineConnected(store,true);
+     eventConnected=true;
+    }
+    ++refreshId;
+    board.showConnected();
+    if(!selected.includes(module)&&known.has(module))await save([...selected,module]);
+    else if(mode==='apps')paint();
    }
-  };
-  const render=connected=>{
-   actions.replaceChildren(connected
-    ? button('Open Event Line',openEventLine)
-    : button('Verbind Event Line',()=>choose(true)));
-  };
-  body.append(intro,actions,feedback,button('Sluiten',close));dialog.append(header,body);
-  dialog.addEventListener('close',close,{once:true});
-  closePairing=close;document.body.append(dialog);dialog.showModal();
-  eventLineConnected(store,accounts).then(render,error=>{feedback.textContent=error.message;});
+  });
+  if(!account)board.pill.textContent='Inloggen bij Sharon';
+  closePairing=board.close;
  }
  function openAccountExtra(title, description, icon){
   closePairing();
   const previous=document.activeElement;
   const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board sh-account-extra-board'+(title==='ShopList'?' sh-app-info sh-app-info--shoplist':title==='Event Line'?' sh-app-info sh-app-info--eventline':'');
+  dialog.className='sh-notes-board sh-account-extra-board';
   const header=document.createElement('header');header.className='sh-notes-heading';
   const heading=document.createElement('h2');heading.textContent=title;
   header.innerHTML=moduleIcon(icon);header.append(heading);
@@ -246,19 +243,8 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
       catch(error){account=null;eventConnected=false;shopConnected=false;status.textContent=error.message;paint();}
       if(disposed)return;
      }
-     if(!account){
-      if(id==='eventline')openAccountExtra('Event Line','Bewaar openbare evenementen in je agenda.','agenda');
-      else openAccountExtra('ShopList','Bekijk je boodschappenlijsten en categorieën in Sharon.','notes');
-      return;
-     }
-     if(id==='eventline'){if(eventConnected)openEventLine();else openEventLineBoard();return;}
-     closePairing();
-     if(shopConnected){closePairing=openShopListFullscreen(store);return;}
-     closePairing=openShopPairing(connection,{layoutStore:store,onConnected:()=>{
-      shopConnected=true;
-      if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
-      else if(mode==='apps')paint();
-     }});
+     if(account&&(id==='shoplist'?shopConnected:eventConnected))openApp(id);
+     else openAppBoard(id);
     },
     onDelete:disconnectApp
    });

@@ -61,7 +61,7 @@ test('Account registration unlocks app connections and logout restores informati
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  let board=page.getByRole('dialog',{name:'Event Line',exact:true});
  await expect(board.getByRole('button',{name:'Verbind Event Line'})).toHaveCount(0);
- await board.getByRole('button',{name:'Sluiten',exact:true}).click();
+ await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Account aanmaken',exact:true}).click();
  board=page.getByRole('dialog',{name:'Sharon-account',exact:true});
  await board.getByLabel('E-mailadres',{exact:true}).fill('browser@example.test');
@@ -86,8 +86,16 @@ test('Account registration unlocks app connections and logout restores informati
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  board=page.getByRole('dialog',{name:'Event Line',exact:true});
  await board.getByRole('button',{name:'Verbind Event Line',exact:true}).click();
- await expect(board.getByRole('button',{name:'Open Event Line',exact:true})).toBeVisible();
- await board.getByRole('button',{name:'Sluiten',exact:true}).click();
+ const source=board.locator('[data-card-media] .sh-board-photo-source');
+ await expect(source).toHaveAccessibleName('Open Event Line');
+ await expect(source).toBeVisible();
+ await expect(source).toHaveCSS('border-radius','50%');
+ const pill=await board.locator('[data-deck-grab]').boundingBox();
+ await page.mouse.move(pill.x+pill.width/2,pill.y+pill.height/2);
+ await page.mouse.down();
+ await page.mouse.move(pill.x+pill.width/2,pill.y+pill.height/2+90,{steps:8});
+ await page.mouse.up();
+ await expect(board).toHaveCount(0);
  const surface=page.locator('[data-swipe-row="eventline"] [data-swipe-surface]');
  const box=await surface.boundingBox();
  await page.mouse.move(box.x+box.width*.7,box.y+box.height/2);

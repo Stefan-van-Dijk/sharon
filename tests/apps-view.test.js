@@ -43,18 +43,32 @@ test('Dragging a selected module reorders it without changing membership',async 
  f.reopen();assert.deepEqual([...document.querySelectorAll('[data-module-choice]')].map(el=>el.dataset.moduleChoice),order);
 
 });
-test('ShopList opens a pairing board until connected and then opens fullscreen',async t=>{
- let devices=[];
- const connection={device:async()=>({}),request:async()=>({devices})};
- const f=fixture(t,connection);
+test('ShopList connects through the signed-in account and then opens fullscreen',async t=>{
+ const calls=[];
+ const f=fixture(t,{request:async action=>{calls.push(action);return {devices:[]};}});
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
  const enterApps=async()=>{document.querySelector('[data-apps-tab="apps"]').click();await settle();};
  const openShop=()=>document.querySelector('[data-swipe-row="shoplist"] [data-swipe-surface]').click();
- await enterApps();openShop();await settle();await settle();
- assert(document.querySelector('.sh-shop-access'));
+ await enterApps();openShop();await settle();
+ const board=document.querySelector('dialog[aria-label="ShopList"]');
+ const pill=board.querySelector('[data-deck-grab]');
+ assert.equal(pill.textContent,'Verbind ShopList');
+ assert.equal(board.querySelector('.sh-board-photo-source').hidden,true);
+ assert.equal(board.querySelectorAll('.sh-shop-access-content button, input').length,0);
  assert.equal(document.querySelector('iframe'),null);
+ pill.click();await settle();
+ assert.equal(pill.textContent,'ShopList verbonden');
+ assert.equal(pill.getAttribute('aria-disabled'),'true');
+ const source=board.querySelector('[data-card-media] .sh-board-photo-source');
+ assert.equal(source.getAttribute('aria-label'),'Open ShopList');
+ assert.equal(source.hidden,false);
+ pill.click();
+ assert.equal(document.querySelector('iframe'),null);
+ source.click();
+ assert(document.querySelector('.sh-notes-deck.is-fullscreen iframe'));
+ assert.deepEqual(f.settings.get().home.modules,['environment','locations','notes']);
+ assert.deepEqual(calls,['shop-pair-list']);
  f.reopen();
- devices=[{id:'shop',status:'active'}];
  await enterApps();openShop();await settle();
  const fullscreen=document.querySelector('.sh-notes-deck.is-fullscreen');
  assert(fullscreen?.querySelector('iframe'));
@@ -82,9 +96,10 @@ test('Event Line connects from its board and opens inside Apps', async t => {
  const board=document.querySelector('dialog[aria-label="Event Line"]');
  assert(board);
  assert.equal(document.querySelector('iframe'),null);
- [...board.querySelectorAll('button')].find(b=>b.textContent==='Verbind Event Line').click();
+ assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
+ board.querySelector('[data-deck-grab]').click();
  await settle();
- [...board.querySelectorAll('button')].find(b=>b.textContent==='Open Event Line').click();
+ board.querySelector('[data-card-media] .sh-board-photo-source').click();
  const frame=document.querySelector('iframe[title="Event Line"]');
  assert.equal(frame.src,'https://sharon.life/eventline/?from=sharon');
  assert(frame.closest('.sh-external-app-fullscreen'));
@@ -122,23 +137,21 @@ test('Event Line connects from its board and opens inside Apps', async t => {
  assert.deepEqual(f.settings.get().home.modules,['environment','locations']);
 });
 
-test('Ontkoppelen op de ShopList-strook trekt de koppelingen pas na bevestiging in',async t=>{
- let devices=[{id:'first',status:'active'},{id:'second',status:'pending'}];
- const revoked=[];
- const connection={device:async()=>({}),request:async(action,{id}={})=>{
-  if(action==='shop-pair-revoke'){revoked.push(id);devices=devices.filter(device=>device.id!==id);}
-  return {devices};
- }};
- const f=fixture(t,connection);
+test('Ontkoppelen op de ShopList-strook deactiveert de app in Sharon na bevestiging',async t=>{
+ const calls=[];
+ const f=fixture(t,{request:async action=>{
+  calls.push(action);
+  return {devices:[{id:'existing',status:'active'}]};
+ }});
  document.querySelector('[data-apps-tab="apps"]').click();await settle();
  const remove=()=>document.querySelector('[data-swipe-row="shoplist"] [data-swipe-delete]');
  f.dom.window.confirm=()=>false;
  remove().click();await settle();
- assert.deepEqual(revoked,[]);
+ assert(remove());
  f.dom.window.confirm=()=>true;
  remove().click();await settle();
- assert.deepEqual(revoked,['first','second']);
  assert.equal(remove(),null);
+ assert.deepEqual(calls,['shop-pair-list']);
 });
 
 test('Apps verbinden introduces the account above app strips and opens the extras boards',async t=>{
@@ -169,7 +182,9 @@ test('Without a Sharon account app boards are readable and connecting requires l
   document.querySelector(`[data-swipe-row="${id}"] [data-swipe-surface]`).click();
   const board=document.querySelector('dialog');
   assert.equal(board.getAttribute('aria-label'),title);
-  assert(![...board.querySelectorAll('button')].some(button=>button.textContent.includes('Verbind')));
+  assert.equal(board.querySelector('[data-deck-grab]').textContent,'Inloggen bij Sharon');
+  assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
+  board.dispatchEvent(new f.dom.window.Event('cancel',{cancelable:true}));
  }
  [...document.querySelectorAll('.sh-account-controls button')].find(button=>button.textContent==='Account aanmaken').click();
  assert(document.querySelector('dialog[aria-label="Sharon-account"] input[autocomplete="new-password"]'));

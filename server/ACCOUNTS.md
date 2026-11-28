@@ -1,8 +1,8 @@
 # Sharon-account, release 0.5.27
 
 Onder Apps verbinden staat het account boven de uitleg en de appstroken. De boards
-van ShopList en Eventline zijn openbaar te bekijken. Aanmelden maakt de knop
-Verbinden beschikbaar. Een verbonden app opent schermvullend. Via de Sharon-knop
+van ShopList en Event Line kun je voor het inloggen bekijken. Tik op de pil
+om in te loggen of de app met je Sharon-account te verbinden. Een verbonden app opent schermvullend. Via de Sharon-knop
 keer je terug. Een swipe naar links toont Deactiveren.
 
 Registreren vraagt een e-mailadres en een wachtwoord van minimaal twaalf tekens.
