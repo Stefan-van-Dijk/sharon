@@ -1,9 +1,9 @@
-import {openNotesDeck} from './NotesDeck.js?v=0.5.30';
-import {mountShopApp} from './ShopApp.js?v=0.5.30';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.30';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.30';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.30';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.30';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.31';
+import {mountShopApp} from './ShopApp.js?v=0.5.31';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.31';
+import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.31';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.31';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.31';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -60,7 +60,13 @@ export function openAppIntroBoard({title,tagline,description,iconHtml,layoutStor
  }
  const pill=document.createElement('button');
  pill.type='button';pill.className='sh-card-deck-grab sh-board-compass';pill.dataset.deckGrab='';
- pill.textContent=onTap?'Verbind '+title:'Verplaatsen';
+ pill.innerHTML=boardDeckPill('<span data-app-pill-label></span>');
+ const label=pill.querySelector('[data-app-pill-label]');
+ label.textContent=onTap?'Verbind '+title:'';
+ if(!onTap){
+  pill.classList.add('is-without-location');
+  pill.setAttribute('aria-label','Swipe naar rechts en sleep om de boards te verplaatsen');
+ }
  header.append(pill);
  const source=document.createElement('button');
  source.type='button';
@@ -101,8 +107,8 @@ export function openAppIntroBoard({title,tagline,description,iconHtml,layoutStor
  });
  dialog.addEventListener('close',close,{once:true});
  document.body.append(dialog);dialog.showModal();surface.focus({preventScroll:true});
- return {close,pill,showConnected(){
-  pill.textContent=title+' verbonden';
+ return {close,pill,label,showConnected(){
+  label.textContent=title+' verbonden';
   pill.setAttribute('aria-disabled','true');
   source.hidden=false;
  }};

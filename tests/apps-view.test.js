@@ -111,6 +111,12 @@ test('Horizontal swipes cycle app boards and keep each app connection separate',
  swipe(-100);
  assert.equal(board().getAttribute('aria-label'),'Event Line');
  assert.equal(board().querySelector('.sh-board-photo-source').hidden,false);
+ for(const title of ['Ritten','Taken','Pasjes','Gesprekken','ShopList']){
+  swipe(-100);
+  assert.equal(board().getAttribute('aria-label'),title);
+  assert(board().querySelector('[data-deck-grab] [data-deck-start]'));
+  assert(board().querySelector('[data-deck-grab] [data-deck-icon]'));
+ }
  assert.equal(document.querySelectorAll('dialog').length,1);
  assert.equal(document.querySelector('iframe'),null);
 });

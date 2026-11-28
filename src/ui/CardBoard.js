@@ -1,9 +1,9 @@
-import { mountChainZonePanel } from './ChainZonePanel.js?v=0.5.30';
-import { renderCardCode } from './CardCodes.js?v=0.5.30';
-import { wrapBoardSurface } from './BoardChrome.js?v=0.5.30';
-import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.5.30';
-import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.5.30';
-import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.5.30';
+import { mountChainZonePanel } from './ChainZonePanel.js?v=0.5.31';
+import { renderCardCode } from './CardCodes.js?v=0.5.31';
+import { boardDeckPill, wrapBoardSurface } from './BoardChrome.js?v=0.5.31';
+import { bindBoardDeckGestures } from './BoardDeckGestures.js?v=0.5.31';
+import { createCardDeck,cardDistanceLabel } from '../core/cards/CardDeck.js?v=0.5.31';
+import { cardSymbol, applyCardAppearance } from './CardSymbols.js?v=0.5.31';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={loyalty:'Klantenpas',membership:'Lidmaatschap',access:'Toegangspas',ticket:'Ticket',other:'Overige kaart'};
@@ -24,7 +24,7 @@ export function openCardBoard(card,{cards=[],locations=[],store,location,events,
         '<h2 class="sh-card-face-title" data-card-title>'+esc(current.name)+'</h2>'+
         '<div class="sh-card-board-code" data-code></div>'+
         '<span class="sh-card-location-pin" data-card-location-pin role="img" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>'+
-        '<button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts om de boards te verzamelen en sleep daarna het deck" aria-pressed="false"><span data-deck-start aria-hidden="true"></span><span data-distance></span><svg data-deck-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg></button>'+
+        '<button type="button" class="sh-card-deck-grab sh-board-compass" data-deck-grab aria-label="Swipe naar rechts om de boards te verzamelen en sleep daarna het deck" aria-pressed="false">'+boardDeckPill('<span data-distance></span>')+'</button>'+
         '<span class="sh-card-kind-badge sh-board-photo-source" data-card-kind role="img" aria-label="'+esc(kind)+'" title="'+esc(kind)+'">'+cardSymbol(current.cardKind)+'</span>'+
       '<button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van codevlak en informatie aanpassen"></button>'+
       '</div>'+

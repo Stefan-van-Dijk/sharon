@@ -1,13 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.30';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.30';
-import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.30';
-import {sharonLogo} from './Brand.js?v=0.5.30';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.30';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.30';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.30';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.30';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.30';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.30';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.31';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.31';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.31';
+import {sharonLogo} from './Brand.js?v=0.5.31';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.31';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.31';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.31';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.31';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.31';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.31';
 
 // Keep the saved ShopList layout as the shared starting point.
 const appBoardLayoutKey = 'apps.shoplist.board.layout';
@@ -18,6 +18,7 @@ const accountExtras = [
  ['cards', 'Pasjes', 'Houd je klantenkaarten bij de hand als je gaat winkelen.'],
  ['persons', 'Gesprekken', 'Houd gesprekken bij je contacten in Sharon.']
 ];
+const appBoardOrder = ['shoplist','eventline',...accountExtras.map(([id])=>id)];
 
 // Home visibility changes only navigation; module data and app grants stay intact.
 export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpenModule,connection=new ConnectionService(store)}){
@@ -132,6 +133,15 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  }
  function openAppBoard(id){
   closePairing();
+  const nextBoard=direction=>{
+   const index=appBoardOrder.indexOf(id);
+   openAppBoard(appBoardOrder[(index+direction+appBoardOrder.length)%appBoardOrder.length]);
+  };
+  const extra=accountExtras.find(([module])=>module===id);
+  if(extra){
+   openAccountExtra(...extra,nextBoard);
+   return;
+  }
   const shop=id==='shoplist';
   const title=shop?'ShopList':'Event Line';
   const module=shop?'notes':'agenda';
@@ -143,7 +153,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
     :'Verbind Event Line met je Sharon-account. Evenementen die je koppelt verschijnen in je agenda.',
    layoutStore:store,layoutKey:appBoardLayoutKey,
    onOpen:()=>openApp(id),
-   onSwipe:()=>openAppBoard(shop?'eventline':'shoplist'),
+   onSwipe:nextBoard,
    onTap:async()=>{
     if(!account){showAccountBoard('login');return;}
     if(shop?shopConnected:eventConnected){board.showConnected();return;}
@@ -161,16 +171,16 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
     else if(mode==='apps')paint();
    }
   });
-  if(!account)board.pill.textContent='Inloggen bij Sharon';
+  if(!account)board.label.textContent='Inloggen bij Sharon';
   else if(shop?shopConnected:eventConnected)board.showConnected();
   closePairing=board.close;
  }
- function openAccountExtra(title, description, icon){
-  closePairing();
+ function openAccountExtra(icon, title, description, onSwipe){
   const board=openAppIntroBoard({
    title,
    description,
    iconHtml:moduleIcon(icon),
+   onSwipe,
    layoutStore:store,layoutKey:appBoardLayoutKey,
    onOpen:account&&known.has(icon)&&onOpenModule?()=>{
     board.close();
@@ -204,8 +214,8 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
   const heading=document.createElement('h3');heading.textContent='Ook in Sharon';
   extras.append(heading);
   const grid=document.createElement('div');
-  for(const [icon,title,description] of accountExtras){
-   const tile=button('',()=>openAccountExtra(title,description,icon));
+  for(const [icon,title] of accountExtras){
+   const tile=button('',()=>openAppBoard(icon));
    tile.className='sh-account-extra sh-account-extra--'+icon;
    tile.innerHTML=moduleIcon(icon);
    const label=document.createElement('span');label.textContent=title;tile.append(label);
