@@ -1,13 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.33';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.33';
-import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.33';
-import {sharonLogo} from './Brand.js?v=0.5.33';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.33';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.33';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.33';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.33';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.33';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.33';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.34';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.34';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.34';
+import {sharonLogo} from './Brand.js?v=0.5.34';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.34';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.34';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.34';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.34';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.34';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.34';
 
 // Keep the saved ShopList layout as the shared starting point.
 const appBoardLayoutKey = 'apps.shoplist.board.layout';
@@ -21,7 +21,7 @@ const accountExtras = [
 const appBoardOrder = ['shoplist','eventline',...accountExtras.map(([id])=>id)];
 
 // Home visibility changes only navigation; module data and app grants stay intact.
-export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpenModule,connection=new ConnectionService(store)}){
+export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpenModule,headerActions,connection=new ConnectionService(store)}){
  const accounts=new AccountService(store,connection);
  const shopLists=new ShopListService(store,connection);
  const document=outlet.ownerDocument,known=new Map(items.map(item=>[item.id,item]));
@@ -31,8 +31,6 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  let account=null,accountRefreshId=0;
  let eventConnected=false,shopConnected=false,disconnecting=false,refreshId=0;
  const root=document.createElement('section');root.className='sh-apps-view module-view';
- const toolbar=document.createElement('header');toolbar.className='sh-apps-toolbar';
- const heading=document.createElement('h2');
  const panelId='sh-apps-panel';
  const panel=document.createElement('div');panel.className='sh-apps-panel';panel.id=panelId;
  const status=document.createElement('p');status.setAttribute('role','status');
@@ -46,8 +44,8 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  ordering.setAttribute('aria-label','Onderdelen ordenen');
  ordering.setAttribute('aria-controls',panelId);
  ordering.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M5 6v12m-2-2 2 2 2-2"/></svg>';
- toolbar.append(heading,ordering);
- root.append(toolbar,panel,status);outlet.replaceChildren(root);
+ (headerActions||root).append(ordering);
+ root.append(panel,status);outlet.replaceChildren(root);
  async function save(next,nextOrder=order){
   if(busy||disposed)return false;
   busy=true;status.textContent='';paint();
@@ -237,7 +235,6 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  function paint(){
   if(disposed)return;
   unbindApps();
-  heading.textContent=mode==='apps'?'Apps verbinden':'Ordening op Home';
   ordering.setAttribute('aria-pressed',String(mode==='home'));
   panel.replaceChildren();
   if(mode==='apps'){
@@ -289,5 +286,5 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
    panel.append(row);
   }
  }
- paint();refreshAccount();return ()=>{disposed=true;dragged=null;unbindApps();closePairing();};
+ paint();refreshAccount();return ()=>{disposed=true;dragged=null;unbindApps();closePairing();ordering.remove();};
 }

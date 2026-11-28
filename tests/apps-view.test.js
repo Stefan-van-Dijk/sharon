@@ -205,7 +205,7 @@ test('Apps verbinden introduces the account above app strips and opens the extra
  f.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
  await settle();
  const panel=document.querySelector('.sh-apps-panel');
- assert.equal(document.querySelector('.sh-apps-toolbar h2').textContent,'Apps verbinden');
+ assert.equal(document.querySelector('[data-apps-order]').getAttribute('aria-pressed'),'false');
  orderModules();
  assert(panel.querySelector('[data-module-choice]'));
  orderModules();

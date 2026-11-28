@@ -440,16 +440,20 @@ test('Home offers bare board and management icons, configurable modules and the 
  await expect(manage).toBeVisible();await expect(page.locator('.module-list [data-module]')).toHaveCount(2);await expect(page.locator('[data-home-invitation]')).toBeVisible();
  for(const control of [manage,boards]){expect(await control.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');expect(await control.evaluate(el=>getComputedStyle(el).borderTopWidth)).toBe('0px');const box=await control.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);}
  const a=await boards.boundingBox(),b=await manage.boundingBox();expect(b.x).toBeGreaterThanOrEqual(a.x+a.width);
- await manage.click();await expect(page.locator('.sh-apps-toolbar')).toBeVisible();
- const header=page.locator('[data-app-header]'),tabs=page.locator('.sh-apps-toolbar');
- let headerBox=await header.boundingBox(),tabsBox=await tabs.boundingBox();expect(tabsBox.y).toBeGreaterThanOrEqual(headerBox.y+headerBox.height);
- await page.locator('[data-view-outlet]').evaluate(el=>{el.scrollTop=160;});
- headerBox=await header.boundingBox();tabsBox=await tabs.boundingBox();expect(tabsBox.y).toBeGreaterThanOrEqual(headerBox.y+headerBox.height);
- await page.locator('[data-view-outlet]').evaluate(el=>{el.scrollTop=0;});
- await page.getByRole('button',{name:'Onderdelen ordenen'}).click();
+ await manage.click();
+ const header=page.locator('[data-app-header]'),ordering=header.getByRole('button',{name:'Onderdelen ordenen'});
+ await expect(ordering).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Apps verbinden',exact:true})).toHaveCount(0);
+ const headerBox=await header.boundingBox(),orderBox=await ordering.boundingBox();
+ expect(orderBox.y+orderBox.height).toBeLessThanOrEqual(headerBox.y+headerBox.height);
+ expect(orderBox.x+orderBox.width).toBeGreaterThan(headerBox.x+headerBox.width-40);
+ const hero=await page.locator('.sh-account-hero').boundingBox();
+ expect(hero.y).toBeGreaterThanOrEqual(headerBox.y+headerBox.height);
+ await ordering.click();
+ await expect(page.getByRole('heading',{name:'Ordening op Home',exact:true})).toHaveCount(0);
  await page.getByRole('switch',{name:'Kaarten',exact:true}).click();await expect(page.getByRole('switch',{name:'Kaarten',exact:true})).toHaveAttribute('aria-checked','true');
  await page.getByRole('switch',{name:'Notities & lijsten',exact:true}).click();await expect(page.getByRole('switch',{name:'Notities & lijsten',exact:true})).toHaveAttribute('aria-checked','true');
  await page.locator('[data-brand-control]').click();await expect(page.locator('.module-list [data-module]')).toHaveCount(4);await expect(page.locator('[data-home-invitation]')).toHaveCount(0);
  await manage.click();await page.getByRole('button',{name:'Onderdelen ordenen'}).click();for(const name of ['Omgeving','Locaties','Kaarten','Notities & lijsten']){await page.getByRole('switch',{name,exact:true}).click();await expect(page.getByRole('switch',{name,exact:true})).toHaveAttribute('aria-checked','false');}
- await page.locator('[data-brand-control]').click();await expect(page.locator('.module-list [data-module]')).toHaveCount(0);await page.locator('[data-home-invitation]').click();await expect(page.getByRole('heading',{name:'Apps verbinden',exact:true})).toBeVisible();
+ await page.locator('[data-brand-control]').click();await expect(page.locator('.module-list [data-module]')).toHaveCount(0);await page.locator('[data-home-invitation]').click();await expect(page.getByRole('button',{name:'Onderdelen ordenen'})).toBeVisible();
 });
