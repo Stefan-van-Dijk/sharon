@@ -93,7 +93,16 @@ test('Horizontal swipes cycle app boards and keep each app connection separate',
    header.dispatchEvent(event);
   }
  };
- swipe(-100);
+ const stack=()=>board().querySelector('.sh-board-stack');
+ const handle=board().querySelector('[data-deck-size="board"]');
+ for(const [type,y] of [['pointerdown',20],['pointermove',70],['pointerup',70]]){
+  const event=new win.Event(type,{bubbles:true,cancelable:true});
+  Object.assign(event,{pointerId:2,pointerType:'touch',clientX:120,clientY:y});
+  handle.dispatchEvent(event);
+ }
+ const height=stack().style.getPropertyValue('--card-deck-height');
+ swipe(-100);await settle();
+ assert.equal(stack().style.getPropertyValue('--card-deck-height'),height);
  assert.equal(board().getAttribute('aria-label'),'Event Line');
  board().querySelector('[data-deck-grab]').click();await settle();
  swipe(100);
@@ -199,7 +208,9 @@ test('Apps verbinden introduces the account above app strips and opens the extra
   tile.click();
   const board=document.querySelector('.sh-account-extra-board');
   assert.equal(board.querySelector('h2').textContent,title);
-  [...board.querySelectorAll('button')].find(control=>control.textContent==='Sluiten').click();
+  assert(board.querySelector('.sh-shop-access-content p').textContent);
+  assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
+  board.dispatchEvent(new f.dom.window.Event('cancel',{cancelable:true}));
   assert.equal(document.activeElement,tile);
  }
 });

@@ -1,8 +1,8 @@
-import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.29';
-import {SHOPLIST_URL,ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.29';
-import {mountShopApp} from './ShopApp.js?v=0.5.29';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.29';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.29';
+import {IdentifierService} from '../core/ids/IdentifierService.js?v=0.5.30';
+import {SHOPLIST_URL,ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.30';
+import {mountShopApp} from './ShopApp.js?v=0.5.30';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.30';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.30';
 
 export function openShopCatalog({store,api=new ShopListService(store),categoryId=null,collectionId=null}={}){
  const doc=globalThis.document,previous=doc.activeElement,dialog=doc.createElement('dialog');

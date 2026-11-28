@@ -1,4 +1,4 @@
-import {agendaLinksKey,objectRelationChanges} from './ObjectRelations.js?v=0.5.29';
+import {agendaLinksKey,objectRelationChanges} from './ObjectRelations.js?v=0.5.30';
 
 const DB_NAME = 'sharon';
 const DB_VERSION = 1;

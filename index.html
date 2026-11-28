@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.29">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.29">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.30">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.30">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3328,9 +3328,6 @@
     .sh-account-extra--actions {--extra-bg:#fcebd4;--extra-ink:#6f3e12}
     .sh-account-extra--cards {--extra-bg:#eee6ff;--extra-ink:#4b3084}
     .sh-account-extra--persons {--extra-bg:#e0eefa;--extra-ink:#22496e}
-    .sh-account-extra-board header svg {width:30px;height:30px;color:#673bd2}
-    .sh-account-extra-board .sh-notes-body p {margin:0}
-    .sh-account-extra-board .sh-notes-body button {justify-self:start}
 
 .sh-connected-apps{display:grid;gap:10px}
 .sh-connected-app.sh-object-strip{border-radius:14px}
@@ -3355,8 +3352,14 @@
 .sh-connected-app.sh-object-strip .sh-strip-copy strong{font-size:19px;font-weight:800;color:var(--app-ink)}
 .sh-connected-app.sh-object-strip .sh-strip-copy small{color:var(--app-detail)}
 .sh-app-launch-icon{margin-inline-start:auto;color:var(--app-ink);font-size:22px;line-height:1;padding:4px}
-.sh-connected-app[data-swipe-single]>.swipe-actions{width:88px;grid-template-columns:88px}
-.sh-connected-app[data-swipe-single]>.swipe-actions:focus-within{z-index:3;opacity:1;pointer-events:auto}
+.sh-connected-app[data-swipe-single]>.swipe-actions{
+  width:calc(88px + 14px);grid-template-columns:88px;justify-content:end;
+  background:#b42318;
+}
+.sh-connected-app[data-swipe-single]>.swipe-actions button{border-radius:0}
+.sh-connected-app[data-swipe-single]:not(.is-actions-open)>.swipe-actions:has(button:focus-visible){
+  z-index:3;width:88px;opacity:1;pointer-events:auto;
+}
 .sh-external-app-fullscreen{
   position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;
   border:0;padding:0;background:#10111a;overflow:hidden;
@@ -3417,6 +3420,9 @@
 .sh-shop-access:not([open]){display:none}.sh-shop-access::backdrop{background:#0005;backdrop-filter:blur(8px)}
 .sh-shop-access .sh-shop-access-board{width:100%;height:100%;max-height:none;display:flex;flex-direction:column;overflow:hidden;background:#fff}
 .sh-shop-access .sh-share-fixed{flex:0 0 var(--card-deck-media,250px);height:var(--card-deck-media,250px);padding:28px 24px 70px;border-radius:28px 28px 23px 23px;background:linear-gradient(115deg,#673bd2,#bb386e 60%,#da633b);color:white;touch-action:none;justify-content:center}
+.sh-account-extra-board .sh-share-fixed{background:linear-gradient(115deg,#402c78,#673bd2)}
+.sh-account-extra-board-icon{display:block;margin-bottom:8px}
+.sh-account-extra-board-icon svg{display:block;width:30px;height:30px}
 .sh-eventline-access .sh-share-fixed{background:radial-gradient(ellipse at right top,#30224d,transparent 72%),#10111a;color:#d9ff43}
 .sh-shop-access .sh-share-fixed{border:0}.sh-shop-access .sh-share-fixed .sh-card-deck-grab{position:absolute;left:13px;bottom:20px;max-width:calc(100% - 80px)}
 .sh-shop-access .sh-notes-app-source{bottom:20px;padding:0;border:1px solid #ffffffb3;background:#ffffffdb;color:#1e354b}
@@ -3477,16 +3483,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.29#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.29#e"></use></g>
-          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.29" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.29" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.29" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.29" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.29#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.29#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.30#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.30#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.30" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.30" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.30" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.30" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.30#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.30#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.29"></script>
+  <script type="module" src="./src/main.js?v=0.5.30"></script>
 </body>
 </html>

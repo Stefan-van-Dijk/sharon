@@ -1,11 +1,11 @@
-import { moduleIcon } from './ModuleIcons.js?v=0.5.29';
-import { sharonWordmark } from './Brand.js?v=0.5.29';
-import { focusTextField } from './TextInputFocus.js?v=0.5.29';
-import { environmentStyle } from './EnvironmentStyle.js?v=0.5.29';
-import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.5.29';
+import { moduleIcon } from './ModuleIcons.js?v=0.5.30';
+import { sharonWordmark } from './Brand.js?v=0.5.30';
+import { focusTextField } from './TextInputFocus.js?v=0.5.30';
+import { environmentStyle } from './EnvironmentStyle.js?v=0.5.30';
+import { loadSharonRenderer, createSharonMap } from './SharonMapRuntime.js?v=0.5.30';
 
-import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.5.29';
-import { locationType } from '../core/location/LocationTypeRegistry.js?v=0.5.29';
+import { mountLocationTypeSphere } from './LocationTypeSphere.js?v=0.5.30';
+import { locationType } from '../core/location/LocationTypeRegistry.js?v=0.5.30';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
