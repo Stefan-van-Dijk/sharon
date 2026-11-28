@@ -111,7 +111,18 @@ test('Account registration unlocks app connections and logout restores informati
  const box=await surface.boundingBox();
  await page.mouse.move(box.x+box.width*.7,box.y+box.height/2);
  await page.mouse.down();await page.mouse.move(box.x+box.width*.7-105,box.y+box.height/2,{steps:8});await page.mouse.up();
- await expect(page.locator('[data-swipe-row="eventline"] [data-swipe-delete]')).toBeVisible();
+ const deactivate=page.locator('[data-swipe-row="eventline"] [data-swipe-delete]');
+ const actions=deactivate.locator('..');
+ await expect(deactivate).toBeVisible();
+ await expect(actions).toHaveCSS('width','102px');
+ await expect(actions).toHaveCSS('z-index','1');
+ await deactivate.focus();
+ await expect(actions).toHaveCSS('z-index','1');
+ await expect.poll(async()=>{
+  const strip=await surface.boundingBox();
+  const background=await actions.boundingBox();
+  return Math.round(strip.x+strip.width-background.x);
+ }).toBe(14);
  await page.getByRole('button',{name:'Uitloggen',exact:true}).click();
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  board=page.getByRole('dialog',{name:'Event Line',exact:true});

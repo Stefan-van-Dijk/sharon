@@ -3352,8 +3352,14 @@
 .sh-connected-app.sh-object-strip .sh-strip-copy strong{font-size:19px;font-weight:800;color:var(--app-ink)}
 .sh-connected-app.sh-object-strip .sh-strip-copy small{color:var(--app-detail)}
 .sh-app-launch-icon{margin-inline-start:auto;color:var(--app-ink);font-size:22px;line-height:1;padding:4px}
-.sh-connected-app[data-swipe-single]>.swipe-actions{width:88px;grid-template-columns:88px}
-.sh-connected-app[data-swipe-single]>.swipe-actions:focus-within{z-index:3;opacity:1;pointer-events:auto}
+.sh-connected-app[data-swipe-single]>.swipe-actions{
+  width:calc(88px + 14px);grid-template-columns:88px;justify-content:end;
+  background:#b42318;
+}
+.sh-connected-app[data-swipe-single]>.swipe-actions button{border-radius:0}
+.sh-connected-app[data-swipe-single]:not(.is-actions-open)>.swipe-actions:has(button:focus-visible){
+  z-index:3;width:88px;opacity:1;pointer-events:auto;
+}
 .sh-external-app-fullscreen{
   position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;
   border:0;padding:0;background:#10111a;overflow:hidden;
