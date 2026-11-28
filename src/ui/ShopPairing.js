@@ -25,7 +25,7 @@ export function openShopListFullscreen(store, layoutStore=store){
    api:new ShopListService(store),registerCleanup:setCleanup
   })});
 }
-export function openAppIntroBoard({title,tagline,description,layoutStore,layoutKey,onTap}){
+export function openAppIntroBoard({title,tagline,description,layoutStore,layoutKey,onTap,onOpen}){
  const document=globalThis.document;
  const previous=document.activeElement;
  const dialog=document.createElement('dialog');
@@ -54,6 +54,15 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  pill.type='button';pill.className='sh-card-deck-grab sh-board-compass';pill.dataset.deckGrab='';
  pill.textContent='Verbind '+title;
  header.append(pill);
+ const source=document.createElement('button');
+ source.type='button';
+ source.className='sh-board-source sh-board-photo-source sh-notes-app-source';
+ source.hidden=true;
+ source.title='Open '+title;
+ source.setAttribute('aria-label',source.title);
+ source.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 18 18 6M8 6h10v10"/></svg>';
+ source.onclick=onOpen;
+ if(onOpen)header.append(source);
  const content=document.createElement('div');
  content.className='sh-share-board-info sh-shop-access-content';
  const explanation=document.createElement('p');
@@ -70,6 +79,7 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  dialog.removeAttribute('data-card-board');
  const gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore,layoutKey,closeFromGrab:true});
  pill.onclick=async()=>{
+  if(pill.getAttribute('aria-disabled')==='true')return;
   pill.disabled=true;status.textContent='';
   try{await onTap();}
   catch(error){if(!closed)status.textContent=error.message;}
@@ -77,5 +87,9 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  };
  dialog.addEventListener('close',close,{once:true});
  document.body.append(dialog);dialog.showModal();surface.focus({preventScroll:true});
- return {close,pill};
+ return {close,pill,showConnected(){
+  pill.textContent=title+' verbonden';
+  pill.setAttribute('aria-disabled','true');
+  source.hidden=false;
+ }};
 }

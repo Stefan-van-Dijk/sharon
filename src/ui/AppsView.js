@@ -139,9 +139,9 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
     ?'Verbind ShopList met je Sharon-account. Daarna open je ShopList vanuit Sharon en vind je gekoppelde lijsten en categorieën bij Notities en lijsten.'
     :'Verbind Event Line met je Sharon-account. Evenementen die je koppelt verschijnen in je agenda.',
    layoutStore:store,layoutKey:'apps.'+id+'.board.layout',
+   onOpen:()=>openApp(id),
    onTap:async()=>{
     if(!account){showAccountBoard('login');return;}
-    if(shop?shopConnected:eventConnected){openApp(id);return;}
     if(shop){
      await shopLists.setConnected(true);
      shopConnected=true;
@@ -151,7 +151,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
      eventConnected=true;
     }
     ++refreshId;
-    board.pill.textContent='Open '+title;
+    board.showConnected();
     if(!selected.includes(module)&&known.has(module))await save([...selected,module]);
     else if(mode==='apps')paint();
    }

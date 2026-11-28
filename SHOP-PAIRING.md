@@ -1,7 +1,7 @@
 # ShopList verbinden
 
 Open **Apps verbinden** in Sharon, log in met je Sharon-account en tik op de pil
-**Verbind ShopList**. Tik daarna op **Open ShopList**. Binnen Sharon gebruikt
+**Verbind ShopList**. Tik daarna op de ronde bronknop rechtsonder in het bovenste deel van het board. Binnen Sharon gebruikt
 ShopList je bestaande Sharon-sessie.
 
 ## Bestaande zelfstandige installaties

@@ -86,7 +86,10 @@ test('Account registration unlocks app connections and logout restores informati
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  board=page.getByRole('dialog',{name:'Event Line',exact:true});
  await board.getByRole('button',{name:'Verbind Event Line',exact:true}).click();
- await expect(board.getByRole('button',{name:'Open Event Line',exact:true})).toBeVisible();
+ const source=board.locator('[data-card-media] .sh-board-photo-source');
+ await expect(source).toHaveAccessibleName('Open Event Line');
+ await expect(source).toBeVisible();
+ await expect(source).toHaveCSS('border-radius','50%');
  const pill=await board.locator('[data-deck-grab]').boundingBox();
  await page.mouse.move(pill.x+pill.width/2,pill.y+pill.height/2);
  await page.mouse.down();
