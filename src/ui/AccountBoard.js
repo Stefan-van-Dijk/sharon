@@ -1,4 +1,4 @@
-import {bindNotesBoard} from './ShopPairing.js?v=0.5.33';
+import {bindNotesBoard} from './ShopPairing.js?v=0.5.34';
 
 export function openAccountBoard(document, service, {mode:initial='login', name='', onLogin=()=>{}}={}) {
  const previous = document.activeElement;

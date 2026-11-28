@@ -49,8 +49,8 @@ test('Account registration unlocks app connections and logout restores informati
   const settings={get:()=>({profile:{name:'Browser user'}}),update:async()=>{}};
   openAppsView(document.querySelector('main'),{store,settings,connection,items:[{id:'agenda',title:'Agenda'}]});
  });
- await expect(page.getByRole('heading',{name:'Apps verbinden',exact:true})).toBeVisible();
- const tabs=await page.locator('.sh-apps-toolbar').boundingBox();
+ await expect(page.getByRole('button',{name:'Onderdelen ordenen'})).toBeVisible();
+ const tabs=await page.locator('[data-apps-order]').boundingBox();
  const hero=await page.locator('.sh-account-hero').boundingBox();
  expect(hero.y).toBeGreaterThanOrEqual(tabs.y+tabs.height);
  for(const id of ['shoplist','eventline']){

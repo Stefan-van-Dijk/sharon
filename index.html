@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.33">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.33">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.34">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.34">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3401,9 +3401,8 @@
 .app-header-actions .sh-home-board-stack,.app-header-actions .sh-home-manage{display:grid;place-items:center;width:44px;height:44px;min-width:44px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:inherit;cursor:pointer}
 .app-header-actions .sh-home-board-stack:disabled{opacity:.35}.app-header-actions:has(.sh-home-manage){gap:2px}
 .sh-home-invitation{min-height:76px;padding:12px 1px;color:#5b4a89;font-size:14px;line-height:1.5}.sh-home-invitation [data-home-invitation-text]{min-height:42px}.sh-home-invitation [data-home-invitation-text]::after{content:'|';opacity:.55;animation:sh-location-caret 800ms steps(1,end) infinite}
-.sh-apps-toolbar{position:sticky;top:calc(env(safe-area-inset-top) + var(--sharon-header-height,54px) + 8px);z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;margin-bottom:12px}
-.sh-apps-toolbar h2{margin:0;font-size:20px;line-height:1.2}
 .sh-apps-order{width:44px;height:44px;flex:none;display:grid;place-items:center;border:0;border-radius:12px;background:transparent;color:#51358c;cursor:pointer}
+.sh-apps-view>.sh-apps-order{margin-inline-start:auto;margin-bottom:12px}
 .sh-apps-order[aria-pressed=true]{background:#eee6ff}
 .sh-apps-hint{color:#737379;font-size:13px;line-height:1.5}.sh-apps-module-row{display:flex;align-items:center;border-bottom:1px solid #ececef;min-height:60px;gap:4px}.sh-apps-module-toggle{display:flex;align-items:center;gap:14px;flex:1;min-width:0;min-height:56px;padding:8px 0;background:transparent;border:0;text-align:left;color:inherit;font:inherit;cursor:pointer}.sh-apps-module-toggle>span:nth-child(2){flex:1}
 .sh-apps-switch{width:32px;height:20px;border-radius:999px;background:#ddd;flex:none;position:relative}.sh-apps-switch::after{content:'';position:absolute;left:3px;top:3px;width:14px;height:14px;background:#fff;border-radius:50%}.sh-apps-module-toggle[aria-checked=true] .sh-apps-switch{background:#673bd2}.sh-apps-module-toggle[aria-checked=true] .sh-apps-switch::after{left:15px}
@@ -3443,7 +3442,12 @@
 @media(prefers-reduced-motion:reduce){.sh-notes-archive-slot{transition:none}}
 
 .app-stage[data-module="apps"] .app-view>.sh-apps-view{padding-top:calc(env(safe-area-inset-top) + var(--sharon-header-height,54px) + 16px)}
-.app-stage[data-module="apps"] .app-header{background:rgba(255,255,255,.98)}
+.app-stage[data-module="apps"] .app-header{background:rgba(255,255,255,.92)}
+.app-stage[data-module="apps"] .app-header::before{
+  height:100%;background:none;mask-image:none;-webkit-mask-image:none;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.app-stage[data-module="apps"] .app-view{scroll-padding-top:calc(env(safe-area-inset-top) + var(--sharon-header-height,54px) + 8px)}
 
 .sh-archive-recovery{margin-top:16px;border-top:1px solid #0002}
 .sh-archive-recovery summary{padding:16px 0;min-height:52px;cursor:pointer;font:inherit}
@@ -3487,16 +3491,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.33#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.33#e"></use></g>
-          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.33#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.33#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.34#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.34#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.34#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.34#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.33"></script>
+  <script type="module" src="./src/main.js?v=0.5.34"></script>
 </body>
 </html>
