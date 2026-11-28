@@ -1,13 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.28';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.28';
-import {bindNotesBoard,openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.28';
-import {sharonLogo} from './Brand.js?v=0.5.28';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.28';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.28';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.28';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.28';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.28';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.28';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.29';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.29';
+import {bindNotesBoard,openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.29';
+import {sharonLogo} from './Brand.js?v=0.5.29';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.29';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.29';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.29';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.29';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.29';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.29';
 
 const accountExtras = [
  ['rides', 'Ritten', 'Bekijk je ritten en vind terug waar je bent geweest.'],
@@ -140,8 +140,10 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
     :'Verbind Event Line met je Sharon-account. Evenementen die je koppelt verschijnen in je agenda.',
    layoutStore:store,layoutKey:'apps.'+id+'.board.layout',
    onOpen:()=>openApp(id),
+   onSwipe:()=>openAppBoard(shop?'eventline':'shoplist'),
    onTap:async()=>{
     if(!account){showAccountBoard('login');return;}
+    if(shop?shopConnected:eventConnected){board.showConnected();return;}
     if(shop){
      await shopLists.setConnected(true);
      shopConnected=true;
@@ -157,6 +159,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
    }
   });
   if(!account)board.pill.textContent='Inloggen bij Sharon';
+  else if(shop?shopConnected:eventConnected)board.showConnected();
   closePairing=board.close;
  }
  function openAccountExtra(title, description, icon){
@@ -224,12 +227,12 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
     ['shoplist','ShopList','notes','#a44932',account&&shopConnected],
     ['eventline','Event Line','agenda','#574493',account&&eventConnected]
    ]){
-    const action=connected?'Verbonden · Open app':(account?'Verbinden':'Bekijk de app');
+    const action=connected?'Verbonden':(account?'Verbinden':'Bekijk de app');
     rows.insertAdjacentHTML('beforeend',renderObjectStrip({
      id,title,subtitle:action,ariaLabel:title+' · '+action,
      className:'sh-connected-app sh-connected-app--'+id,
      iconHtml:moduleIcon(icon),accentColor:color,
-     trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">'+(connected?'↗':'›')+'</span>',
+     trailingHtml:'<span class="sh-app-launch-icon" aria-hidden="true">›</span>',
      actions:connected?[{kind:'delete',label:'Deactiveren'}]:[],singleAction:true
     }));
    }
@@ -243,8 +246,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
       catch(error){account=null;eventConnected=false;shopConnected=false;status.textContent=error.message;paint();}
       if(disposed)return;
      }
-     if(account&&(id==='shoplist'?shopConnected:eventConnected))openApp(id);
-     else openAppBoard(id);
+     openAppBoard(id);
     },
     onDelete:disconnectApp
    });

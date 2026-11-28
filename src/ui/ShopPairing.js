@@ -1,9 +1,9 @@
-import {openNotesDeck} from './NotesDeck.js?v=0.5.28';
-import {mountShopApp} from './ShopApp.js?v=0.5.28';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.28';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.28';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.28';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.28';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.29';
+import {mountShopApp} from './ShopApp.js?v=0.5.29';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.29';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.29';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.29';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.29';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -25,7 +25,7 @@ export function openShopListFullscreen(store, layoutStore=store){
    api:new ShopListService(store),registerCleanup:setCleanup
   })});
 }
-export function openAppIntroBoard({title,tagline,description,layoutStore,layoutKey,onTap,onOpen}){
+export function openAppIntroBoard({title,tagline,description,layoutStore,layoutKey,onTap,onOpen,onSwipe}){
  const document=globalThis.document;
  const previous=document.activeElement;
  const dialog=document.createElement('dialog');
@@ -77,7 +77,7 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  };
  const releaseHeader=bindNotesBoard(dialog,header,close,{gestures:false});
  dialog.removeAttribute('data-card-board');
- const gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore,layoutKey,closeFromGrab:true});
+ const gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore,layoutKey,onSwipe,closeFromGrab:true});
  pill.onclick=async()=>{
   if(pill.getAttribute('aria-disabled')==='true')return;
   pill.disabled=true;status.textContent='';
@@ -85,6 +85,12 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
   catch(error){if(!closed)status.textContent=error.message;}
   finally{pill.disabled=false;}
  };
+ surface.addEventListener('keydown',event=>{
+  if(event.target!==surface||!onSwipe)return;
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+   event.preventDefault();onSwipe(event.key==='ArrowLeft'?1:-1);
+  }
+ });
  dialog.addEventListener('close',close,{once:true});
  document.body.append(dialog);dialog.showModal();surface.focus({preventScroll:true});
  return {close,pill,showConnected(){
