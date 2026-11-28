@@ -82,7 +82,8 @@ test('Event Line connects from its board and opens inside Apps', async t => {
  const board=document.querySelector('dialog[aria-label="Event Line"]');
  assert(board);
  assert.equal(document.querySelector('iframe'),null);
- [...board.querySelectorAll('button')].find(b=>b.textContent==='Verbind Event Line').click();
+ assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
+ board.querySelector('[data-deck-grab]').click();
  await settle();
  [...board.querySelectorAll('button')].find(b=>b.textContent==='Open Event Line').click();
  const frame=document.querySelector('iframe[title="Event Line"]');
@@ -169,7 +170,9 @@ test('Without a Sharon account app boards are readable and connecting requires l
   document.querySelector(`[data-swipe-row="${id}"] [data-swipe-surface]`).click();
   const board=document.querySelector('dialog');
   assert.equal(board.getAttribute('aria-label'),title);
-  assert(![...board.querySelectorAll('button')].some(button=>button.textContent.includes('Verbind')));
+  assert.equal(board.querySelector('[data-deck-grab]').textContent,'Inloggen bij Sharon');
+  assert.equal(board.querySelectorAll('.sh-shop-access-content button').length,0);
+  board.dispatchEvent(new f.dom.window.Event('cancel',{cancelable:true}));
  }
  [...document.querySelectorAll('.sh-account-controls button')].find(button=>button.textContent==='Account aanmaken').click();
  assert(document.querySelector('dialog[aria-label="Sharon-account"] input[autocomplete="new-password"]'));

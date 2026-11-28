@@ -1,6 +1,6 @@
 import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.27';
 import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.27';
-import {bindNotesBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.27';
+import {bindNotesBoard,openAppIntroBoard,openShopPairing,openShopListFullscreen} from './ShopPairing.js?v=0.5.27';
 import {sharonLogo} from './Brand.js?v=0.5.27';
 import {renderObjectStrip} from './ObjectStrip.js?v=0.5.27';
 import {bindSwipeRows} from './SwipeRows.js?v=0.5.27';
@@ -125,48 +125,29 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  }
  function openEventLineBoard(){
   closePairing();
-  const previous=document.activeElement;
-  const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board sh-app-info sh-app-info--eventline';
-  dialog.setAttribute('aria-label','Event Line');
-  const header=document.createElement('header');header.className='sh-notes-heading';
-  const title=document.createElement('h2');title.textContent='Event Line';header.append(title);
-  const body=document.createElement('div');body.className='sh-notes-body';
-  const intro=document.createElement('p');intro.textContent='Bewaar openbare evenementen in je agenda.';
-  const actions=document.createElement('div');
-  const feedback=document.createElement('p');feedback.setAttribute('role','status');
-  const close=()=>{if(!dialog.isConnected)return;release();dialog.remove();previous?.focus();};
-  const release=bindNotesBoard(dialog,header,close);
-  const choose=async connected=>{
-   for(const control of actions.children)control.disabled=true;
-   try{
+  const board=openAppIntroBoard({
+   title:'Event Line',tagline:'Evenementen in je Sharon-agenda.',
+   description:'Met je Sharon-account open je Event Line vanuit Sharon. Evenementen die je verbindt verschijnen in je agenda.',
+   layoutStore:store,layoutKey:'apps.eventline.board.layout',
+   onTap:async()=>{
+    if(!account){showAccountBoard('login');return;}
+    if(eventConnected){openEventLine();return;}
     await accounts.require();
-    await setEventLineConnected(store,connected);
-    if(connected && !selected.includes('agenda') && known.has('agenda'))await save([...selected,'agenda']);
-    refreshApps();
-    eventConnected=connected;
-    if(mode==='apps')paint();
-    if(dialog.isConnected)render(connected);
-   }catch(error){
-    feedback.textContent=error.message;
-    for(const control of actions.children)control.disabled=false;
+    await setEventLineConnected(store,true);
+    ++refreshId;eventConnected=true;
+    board.pill.textContent='Open Event Line';
+    if(!selected.includes('agenda')&&known.has('agenda'))await save([...selected,'agenda']);
+    else if(mode==='apps')paint();
    }
-  };
-  const render=connected=>{
-   actions.replaceChildren(connected
-    ? button('Open Event Line',openEventLine)
-    : button('Verbind Event Line',()=>choose(true)));
-  };
-  body.append(intro,actions,feedback,button('Sluiten',close));dialog.append(header,body);
-  dialog.addEventListener('close',close,{once:true});
-  closePairing=close;document.body.append(dialog);dialog.showModal();
-  eventLineConnected(store,accounts).then(render,error=>{feedback.textContent=error.message;});
+  });
+  if(!account)board.pill.textContent='Inloggen bij Sharon';
+  closePairing=board.close;
  }
  function openAccountExtra(title, description, icon){
   closePairing();
   const previous=document.activeElement;
   const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board sh-account-extra-board'+(title==='ShopList'?' sh-app-info sh-app-info--shoplist':title==='Event Line'?' sh-app-info sh-app-info--eventline':'');
+  dialog.className='sh-notes-board sh-account-extra-board';
   const header=document.createElement('header');header.className='sh-notes-heading';
   const heading=document.createElement('h2');heading.textContent=title;
   header.innerHTML=moduleIcon(icon);header.append(heading);
@@ -246,15 +227,10 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
       catch(error){account=null;eventConnected=false;shopConnected=false;status.textContent=error.message;paint();}
       if(disposed)return;
      }
-     if(!account){
-      if(id==='eventline')openAccountExtra('Event Line','Bewaar openbare evenementen in je agenda.','agenda');
-      else openAccountExtra('ShopList','Bekijk je boodschappenlijsten en categorieën in Sharon.','notes');
-      return;
-     }
-     if(id==='eventline'){if(eventConnected)openEventLine();else openEventLineBoard();return;}
+     if(id==='eventline'){if(account&&eventConnected)openEventLine();else openEventLineBoard();return;}
      closePairing();
-     if(shopConnected){closePairing=openShopListFullscreen(store);return;}
-     closePairing=openShopPairing(connection,{layoutStore:store,onConnected:()=>{
+     if(account&&shopConnected){closePairing=openShopListFullscreen(store);return;}
+     closePairing=openShopPairing(connection,{layoutStore:store,onLogin:account?undefined:()=>showAccountBoard('login'),onOpen:()=>{closePairing=openShopListFullscreen(store);},onConnected:()=>{
       shopConnected=true;
       if(!selected.includes('notes')&&known.has('notes'))save([...selected,'notes']);
       else if(mode==='apps')paint();

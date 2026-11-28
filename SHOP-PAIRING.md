@@ -3,7 +3,7 @@
 Upload `server/connections.php` naar `/log/api/connections.php` op sharon.life.
 Behoud configuratie en private gegevens. GitHub Pages plaatst dit PHP-bestand niet.
 
-Registreer en bevestig eerst een Sharon-account via Apps verbinden. De installatie en mailconfiguratie staan in [Accounts](server/ACCOUNTS.md). Open daarna het ShopList-board en kies Koppelcode maken. Bij geweigerde klembordtoegang verschijnt Kopieer code als herhaalactie.
+Registreer en bevestig eerst een Sharon-account via Apps verbinden. De installatie en mailconfiguratie staan in [Accounts](server/ACCOUNTS.md). Open daarna het ShopList-board en tik op de pil Verbind ShopList. Bij geweigerde klembordtoegang kun je de getoonde code selecteren of opnieuw op de pil tikken.
 Het maken van de code geeft één Shop-installatie toestemming voor toegang tot de
 boodschappenlijsten van deze identiteit, binnen bestaande lijstbevoegdheden.
 De code bestaat uit twaalf willekeurige tekens en is zeven dagen geldig.
