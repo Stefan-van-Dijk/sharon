@@ -1,9 +1,9 @@
-import {openNotesDeck} from './NotesDeck.js?v=0.5.32';
-import {mountShopApp} from './ShopApp.js?v=0.5.32';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.32';
-import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.32';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.32';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.32';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.33';
+import {mountShopApp} from './ShopApp.js?v=0.5.33';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.33';
+import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.33';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.33';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.33';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -60,8 +60,8 @@ export function openAppIntroBoard({title,tagline,description,iconHtml,layoutStor
  }
  const pill=document.createElement('button');
  pill.type='button';pill.className='sh-card-deck-grab sh-board-compass';pill.dataset.deckGrab='';
- pill.innerHTML=boardDeckPill('<span data-app-pill-label></span>');
- const label=pill.querySelector('[data-app-pill-label]');
+ pill.innerHTML=boardDeckPill();
+ const label=pill.querySelector('[data-deck-label]');
  label.textContent=onTap?'Verbind '+title:'';
  if(!onTap){
   pill.classList.add('is-without-location');

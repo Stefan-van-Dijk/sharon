@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.32">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.32">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.33">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.33">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3030,6 +3030,8 @@
 .sh-card-media .sh-card-deck-grab{position:absolute;left:13px;bottom:12px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;width:auto;height:35px;min-width:44px;padding:0 11px;border:1px solid #ffffffb3;border-radius:999px;background:#ffffffdb;box-shadow:0 1px 5px #0000001b;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);color:#1e354b;cursor:grab;touch-action:none;font:600 12px/1.2 system-ui,sans-serif}
 .sh-card-deck-grab svg{width:17px;height:17px;flex-shrink:0}
 .sh-card-deck-grab [data-deck-icon][hidden]{display:none}
+.sh-card-deck-grab [data-deck-label]:empty,
+.sh-card-deck-grab:has(>[data-deck-label]:not(:empty))>:is([data-deck-start],[data-deck-icon]){display:none}
 .sh-card-deck-grab [data-deck-start]{display:block;width:4px;height:4px;flex-shrink:0;border-radius:50%;background:currentColor;opacity:.65}
 .sh-card-deck-grab [data-deck-start][hidden],.sh-card-deck-grab [data-distance][hidden]{display:none}
 .sh-card-media .sh-card-deck-grab.is-without-location{min-width:88px;justify-content:space-between;gap:22px}
@@ -3485,16 +3487,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.32#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.32#e"></use></g>
-          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.32" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.32" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.32" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.32" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.32#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.32#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.33#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.33#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.33" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.33#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.33#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.32"></script>
+  <script type="module" src="./src/main.js?v=0.5.33"></script>
 </body>
 </html>

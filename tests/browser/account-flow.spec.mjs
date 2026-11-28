@@ -72,6 +72,11 @@ test('Account registration unlocks app connections and logout restores informati
  await expect(shopBoard).toBeVisible();
  await swipeBoard(shopBoard,-95);
  await expect(board).toBeVisible();
+ await expect(board.locator('[data-deck-icon]')).toBeHidden();
+ await swipeBoard(board,-95);
+ const ridesBoard=page.getByRole('dialog',{name:'Ritten',exact:true});
+ await expect(ridesBoard.locator('[data-deck-icon]')).toBeVisible();
+ await expect(ridesBoard.locator('[data-deck-start]')).toBeVisible();
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Account aanmaken',exact:true}).click();
  board=page.getByRole('dialog',{name:'Sharon-account',exact:true});

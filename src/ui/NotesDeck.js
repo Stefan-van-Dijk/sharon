@@ -1,7 +1,7 @@
-import {sharonLogo} from './Brand.js?v=0.5.32';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.32';
-import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.32';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.32';
+import {sharonLogo} from './Brand.js?v=0.5.33';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.33';
+import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.33';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.33';
 
 // One selected record is mounted; navigation uses the current filtered overview.
 export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false,closeOnAppReturn=false}){
@@ -24,7 +24,7 @@ export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppVie
   toggle.hidden=!!row.linked&&!fullscreen;if(fullscreen&&row.linked){toggle.innerHTML=sharonLogo();}else toggle.textContent=fullscreen?'↙':'⛶';toggle.setAttribute('aria-label',fullscreen?(row.linked?'Terug naar Sharon':'Terug naar boards'):'Open volledig scherm');toggle.onclick=()=>setFullscreen(!fullscreen);header.append(toggle);
   if(row.linked){const source=document.createElement('button');source.type='button';source.onclick=()=>setFullscreen(true);source.className='sh-notes-app-source';source.setAttribute('aria-label','Open deze lijst in ShopList');source.hidden=fullscreen;source.textContent='Open ShopList';header.append(source);}
  for(const [kind,label] of [['board','Hoogte van board aanpassen'],['media','Hoogte van afbeelding en informatie aanpassen']]){const resize=document.createElement('button');resize.type='button';resize.className='sh-board-resizer';resize.dataset.deckSize=kind;resize.setAttribute('aria-label',label);resize.hidden=fullscreen;header.append(resize);}
-  const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab';grab.dataset.deckGrab='';grab.innerHTML=boardDeckPill('<span></span>');grab.querySelector('span:not([data-deck-start])').textContent=row.title;grab.setAttribute('aria-label','Boards oppakken en verplaatsen');grab.hidden=fullscreen;
+  const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab';grab.dataset.deckGrab='';grab.innerHTML=boardDeckPill();grab.querySelector('[data-deck-label]').textContent=row.title;grab.setAttribute('aria-label','Boards oppakken en verplaatsen');grab.hidden=fullscreen;
   const body=document.createElement('div');body.className='sh-notes-body';header.append(grab);surface.append(header,body);
   const current=()=>!closed&&ticket===generation&&body.isConnected;
   Promise.resolve(render(row,{body,dialog,title,fullscreen,openApp:()=>setFullscreen(true),isCurrent:current,setBeforeLeave:fn=>{if(current())beforeLeave=fn;},setCleanup:fn=>{if(current())cleanup=fn;else fn();}})).catch(error=>{if(current())body.textContent=error.message;});
