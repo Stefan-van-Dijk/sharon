@@ -1,13 +1,13 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.32';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.32';
-import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.32';
-import {sharonLogo} from './Brand.js?v=0.5.32';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.32';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.32';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.32';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.32';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.32';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.32';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.33';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.33';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.33';
+import {sharonLogo} from './Brand.js?v=0.5.33';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.33';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.33';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.33';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.33';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.33';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.33';
 
 // Keep the saved ShopList layout as the shared starting point.
 const appBoardLayoutKey = 'apps.shoplist.board.layout';
