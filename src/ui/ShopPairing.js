@@ -1,9 +1,9 @@
-import {openNotesDeck} from './NotesDeck.js?v=0.5.29';
-import {mountShopApp} from './ShopApp.js?v=0.5.29';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.29';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.29';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.29';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.29';
+import {openNotesDeck} from './NotesDeck.js?v=0.5.30';
+import {mountShopApp} from './ShopApp.js?v=0.5.30';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.30';
+import {wrapBoardSurface} from './BoardChrome.js?v=0.5.30';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.30';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.30';
 // Reuse the board's pull-down gesture, leaving scrolling and links native.
 export function bindNotesBoard(dialog,header,close,{shop=false,onOpen,gestures:enableGestures=true}={}){
  dialog.setAttribute('data-card-board','');header.setAttribute('data-card-media','');
@@ -25,11 +25,11 @@ export function openShopListFullscreen(store, layoutStore=store){
    api:new ShopListService(store),registerCleanup:setCleanup
   })});
 }
-export function openAppIntroBoard({title,tagline,description,layoutStore,layoutKey,onTap,onOpen,onSwipe}){
+export function openAppIntroBoard({title,tagline,description,iconHtml,layoutStore,layoutKey,onTap,onOpen,onSwipe}){
  const document=globalThis.document;
  const previous=document.activeElement;
  const dialog=document.createElement('dialog');
- dialog.className='sh-card-share-overlay sh-shop-access'+(title==='Event Line'?' sh-eventline-access':'');
+ dialog.className='sh-card-share-overlay sh-shop-access'+(iconHtml?' sh-account-extra-board':title==='Event Line'?' sh-eventline-access':'');
  dialog.setAttribute('aria-label',title);
  const surface=document.createElement('section');
  surface.className='sh-share-board sh-notes-board sh-shop-access-board';
@@ -44,7 +44,15 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  const intro=document.createElement('p');
  intro.className='sh-shop-invitation';
  intro.textContent=tagline;
- header.append(heading,intro);
+ if(iconHtml){
+  const icon=document.createElement('span');
+  icon.className='sh-account-extra-board-icon';
+  icon.setAttribute('aria-hidden','true');
+  icon.innerHTML=iconHtml;
+  header.append(icon);
+ }
+ header.append(heading);
+ if(tagline)header.append(intro);
  for(const [kind,label] of [['board','Hoogte van board aanpassen'],['media','Hoogte van afbeelding en informatie aanpassen']]){
   const resize=document.createElement('button');
   resize.type='button';resize.className='sh-board-resizer';resize.dataset.deckSize=kind;
@@ -52,12 +60,12 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  }
  const pill=document.createElement('button');
  pill.type='button';pill.className='sh-card-deck-grab sh-board-compass';pill.dataset.deckGrab='';
- pill.textContent='Verbind '+title;
+ pill.textContent=onTap?'Verbind '+title:'Verplaatsen';
  header.append(pill);
  const source=document.createElement('button');
  source.type='button';
  source.className='sh-board-source sh-board-photo-source sh-notes-app-source';
- source.hidden=true;
+ source.hidden=Boolean(onTap);
  source.title='Open '+title;
  source.setAttribute('aria-label',source.title);
  source.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 18 18 6M8 6h10v10"/></svg>';
@@ -78,7 +86,7 @@ export function openAppIntroBoard({title,tagline,description,layoutStore,layoutK
  const releaseHeader=bindNotesBoard(dialog,header,close,{gestures:false});
  dialog.removeAttribute('data-card-board');
  const gestures=bindBoardDeckGestures(stack,{onClose:close,layoutStore,layoutKey,onSwipe,closeFromGrab:true});
- pill.onclick=async()=>{
+ if(onTap)pill.onclick=async()=>{
   if(pill.getAttribute('aria-disabled')==='true')return;
   pill.disabled=true;status.textContent='';
   try{await onTap();}

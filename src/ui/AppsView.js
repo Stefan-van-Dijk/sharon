@@ -1,13 +1,16 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.29';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.29';
-import {bindNotesBoard,openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.29';
-import {sharonLogo} from './Brand.js?v=0.5.29';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.29';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.29';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.29';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.29';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.29';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.29';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.30';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.30';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.30';
+import {sharonLogo} from './Brand.js?v=0.5.30';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.30';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.30';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.30';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.30';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.30';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.30';
+
+// Keep the saved ShopList layout as the shared starting point.
+const appBoardLayoutKey = 'apps.shoplist.board.layout';
 
 const accountExtras = [
  ['rides', 'Ritten', 'Bekijk je ritten en vind terug waar je bent geweest.'],
@@ -138,7 +141,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
    description:shop
     ?'Verbind ShopList met je Sharon-account. Daarna open je ShopList vanuit Sharon en vind je gekoppelde lijsten en categorieën bij Notities en lijsten.'
     :'Verbind Event Line met je Sharon-account. Evenementen die je koppelt verschijnen in je agenda.',
-   layoutStore:store,layoutKey:'apps.'+id+'.board.layout',
+   layoutStore:store,layoutKey:appBoardLayoutKey,
    onOpen:()=>openApp(id),
    onSwipe:()=>openAppBoard(shop?'eventline':'shoplist'),
    onTap:async()=>{
@@ -164,22 +167,17 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
  }
  function openAccountExtra(title, description, icon){
   closePairing();
-  const previous=document.activeElement;
-  const dialog=document.createElement('dialog');
-  dialog.className='sh-notes-board sh-account-extra-board';
-  const header=document.createElement('header');header.className='sh-notes-heading';
-  const heading=document.createElement('h2');heading.textContent=title;
-  header.innerHTML=moduleIcon(icon);header.append(heading);
-  dialog.setAttribute('aria-label',title);
-  const body=document.createElement('div');body.className='sh-notes-body';
-  const text=document.createElement('p');text.textContent=description;
-  const close=()=>{if(!dialog.isConnected)return;release();dialog.remove();previous?.focus();};
-  const release=bindNotesBoard(dialog,header,close);
-  body.append(text);
-  if(account&&known.has(icon)&&onOpenModule)body.append(button('Open '+title,()=>{close();onOpenModule(icon);}));
-  body.append(button('Sluiten',close));dialog.append(header,body);
-  dialog.addEventListener('close',close,{once:true});
-  closePairing=close;document.body.append(dialog);dialog.showModal();
+  const board=openAppIntroBoard({
+   title,
+   description,
+   iconHtml:moduleIcon(icon),
+   layoutStore:store,layoutKey:appBoardLayoutKey,
+   onOpen:account&&known.has(icon)&&onOpenModule?()=>{
+    board.close();
+    onOpenModule(icon);
+   }:undefined
+  });
+  closePairing=board.close;
  }
  function renderAccountHub(){
   const hub=document.createElement('section');hub.className='sh-account-hero';
