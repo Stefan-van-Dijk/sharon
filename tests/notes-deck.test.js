@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 import {openNotesView} from '../src/ui/NotesView.js';
 const settle=()=>new Promise(r=>setTimeout(r,0));
-function pointer(win,target,type,x,y){const event=new win.Event(type,{bubbles:true,cancelable:true});Object.assign(event,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});target.dispatchEvent(event);}
+function pointer(win,target,type,x,y){const event=new win.Event(type,{bubbles:true,cancelable:true});Object.assign(event,{pointerId:1,pointerType:'touch',isPrimary:true,button:0,clientX:x,clientY:y});target.dispatchEvent(event);}
 function swipe(win,target,dx,dy=0){pointer(win,target,'pointerdown',150,50);pointer(win,target,'pointermove',150+dx,50+dy);pointer(win,target,'pointerup',150+dx,50+dy);}
 test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, returns and picks up',async t=>{
  const dom=new JSDOM('<main/>',{url:'https://sharon.test/'}),old={document:globalThis.document,window:globalThis.window,CustomEvent:globalThis.CustomEvent};
@@ -27,7 +27,7 @@ test('Mixed notes deck swipes in filtered order, freezes navigation fullscreen, 
  const sent=[];frame.contentWindow.postMessage=(message,origin)=>sent.push({message,origin});
  dom.window.dispatchEvent(new dom.window.MessageEvent('message',{origin:'https://stefan-van-dijk.github.io',source:frame.contentWindow,data:{type:'shop:return-ready'}}));
  assert(document.querySelector('.shop-controls-ready'));
- document.querySelector('[data-notes-fullscreen]').click();await settle();
+ swipe(dom.window,document.querySelector('.sh-app-return-swipe'),90);await settle();
  assert.equal(document.querySelector('iframe'),frame);assert(document.querySelector('.is-fullscreen'));
  assert.deepEqual(sent,[{message:{type:'shop:prepare-return'},origin:'https://stefan-van-dijk.github.io'}]);
  assert.equal(document.querySelector('.sh-notes-app-source').hidden,true);

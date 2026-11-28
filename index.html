@@ -11,8 +11,8 @@
   <title>Sharon</title>
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.34">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.34">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.5.35">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/sharon-icon-180.png?v=0.5.35">
   <style>
     :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:#fff;color:#111}
     *{box-sizing:border-box}
@@ -3362,6 +3362,12 @@
   top:max(8px,env(safe-area-inset-top));width:44px;height:44px;display:grid;place-items:center;
   padding:0;border:1px solid #0002;border-radius:12px;background:#fff;cursor:pointer;
 }
+button.sh-app-return-swipe{
+  position:absolute;z-index:3;inset-inline-start:env(safe-area-inset-left);top:50%;translate:0 -50%;
+  width:24px;height:48px;padding:0;border:1px solid #0003;border-inline-start:0;
+  border-radius:0 12px 12px 0;background:#fffffff2;color:#302641;
+  font:600 23px/1 system-ui;touch-action:none;user-select:none;cursor:ew-resize;
+}
 .sh-external-app-return[hidden]{display:none}
 .sh-external-app-return img,.sh-notes-expand img{width:28px;height:28px}
 
@@ -3476,16 +3482,16 @@
           role="img"
           aria-label="Share on"
         >
-          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.34#shar"></use></g>
-          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.34#e"></use></g>
-          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.34" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
-          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.34#o"></use></g>
-          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.34#n"></use></g>
+          <g class="vector-part vector-shar"><use href="./assets/sharon-wordmark.svg?v=0.5.35#shar"></use></g>
+          <g class="vector-part vector-e"><use href="./assets/sharon-wordmark.svg?v=0.5.35#e"></use></g>
+          <g class="vector-part vector-logo"><g class="logo-layer logo-layer--outer-arcs"><image href="./assets/sharon-logo-outer-arcs.svg?v=0.5.35" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--inner-ring"><image href="./assets/sharon-logo-inner-ring.svg?v=0.5.35" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--diagonal-beam"><image href="./assets/sharon-logo-diagonal-beam.svg?v=0.5.35" x="126.02" y="37.57" width="35.26" height="35.26"></image></g><g class="logo-layer logo-layer--center-crescent"><image href="./assets/sharon-logo-center-crescent.svg?v=0.5.35" x="126.02" y="37.57" width="35.26" height="35.26"></image></g></g>
+          <g class="vector-part vector-o"><use href="./assets/sharon-wordmark.svg?v=0.5.35#o"></use></g>
+          <g class="vector-part vector-n"><use href="./assets/sharon-wordmark.svg?v=0.5.35#n"></use></g>
         </svg>
         <div class="intro-copy" data-intro-copy aria-live="polite"></div>
       </div>
     </section>
   </div>
-  <script type="module" src="./src/main.js?v=0.5.34"></script>
+  <script type="module" src="./src/main.js?v=0.5.35"></script>
 </body>
 </html>

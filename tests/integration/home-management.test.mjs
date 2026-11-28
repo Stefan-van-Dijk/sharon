@@ -38,7 +38,7 @@ test('A completed delayed save updates Home after leaving management; Apps parti
  const app=await appHarness({root:resolve('.')});t.after(()=>app.close());const saved=await app.store.get('settings','app');saved.value.home={modules:['environment','locations']};await app.store.put('settings',saved);
  await app.boot();(await until(()=>app.document.querySelector('[data-home-manage]'))).click();
  await openOrdering(app);await until(()=>app.document.querySelector('[data-module-choice="cards"]'));assert.equal(app.window.history.state.__sharonNavigation,'apps');
- const {ObjectStore}=await app.load('./src/core/storage/ObjectStore.js?v=0.5.34');const original=ObjectStore.prototype.put;let finish;
+ const {ObjectStore}=await app.load('./src/core/storage/ObjectStore.js?v=0.5.35');const original=ObjectStore.prototype.put;let finish;
  ObjectStore.prototype.put=async function(name,record){if(name==='settings')await new Promise(resolve=>finish=resolve);return original.call(this,name,record);};
  app.document.querySelector('[data-module-choice="cards"] [role=switch]').click();await until(()=>finish);app.document.querySelector('[data-brand-control]').click();await until(()=>app.document.querySelector('[data-home-manage]'));assert.equal(app.document.querySelector('[data-module="cards"]'),null);
  finish();await until(()=>app.document.querySelector('[data-module="cards"]'));ObjectStore.prototype.put=original;

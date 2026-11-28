@@ -1,7 +1,7 @@
-import {sharonLogo} from './Brand.js?v=0.5.34';
-import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.34';
-import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.34';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.34';
+import {sharonLogo} from './Brand.js?v=0.5.35';
+import {SHOPLIST_URL} from '../core/shoplist/ShopListService.js?v=0.5.35';
+import {boardDeckPill,createAppReturnSwipe,wrapBoardSurface} from './BoardChrome.js?v=0.5.35';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.35';
 
 // One selected record is mounted; navigation uses the current filtered overview.
 export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppView=()=>{},initialFullscreen=false,closeOnAppReturn=false}){
@@ -26,6 +26,7 @@ export function openNotesDeck({items,id,store,render,onAppReturn=()=>{},onAppVie
  for(const [kind,label] of [['board','Hoogte van board aanpassen'],['media','Hoogte van afbeelding en informatie aanpassen']]){const resize=document.createElement('button');resize.type='button';resize.className='sh-board-resizer';resize.dataset.deckSize=kind;resize.setAttribute('aria-label',label);resize.hidden=fullscreen;header.append(resize);}
   const grab=document.createElement('button');grab.type='button';grab.className='sh-card-deck-grab';grab.dataset.deckGrab='';grab.innerHTML=boardDeckPill();grab.querySelector('[data-deck-label]').textContent=row.title;grab.setAttribute('aria-label','Boards oppakken en verplaatsen');grab.hidden=fullscreen;
   const body=document.createElement('div');body.className='sh-notes-body';header.append(grab);surface.append(header,body);
+  if(fullscreen&&row.linked)surface.append(createAppReturnSwipe(document,()=>setFullscreen(false)));
   const current=()=>!closed&&ticket===generation&&body.isConnected;
   Promise.resolve(render(row,{body,dialog,title,fullscreen,openApp:()=>setFullscreen(true),isCurrent:current,setBeforeLeave:fn=>{if(current())beforeLeave=fn;},setCleanup:fn=>{if(current())cleanup=fn;else fn();}})).catch(error=>{if(current())body.textContent=error.message;});
  }
