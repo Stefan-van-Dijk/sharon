@@ -61,6 +61,17 @@ test('Account registration unlocks app connections and logout restores informati
  await page.locator('[data-swipe-row="eventline"] [data-swipe-surface]').click();
  let board=page.getByRole('dialog',{name:'Event Line',exact:true});
  await expect(board.getByRole('button',{name:'Verbind Event Line'})).toHaveCount(0);
+ const swipeBoard=async(dialog,dx)=>{
+  const header=await dialog.locator('h2').boundingBox();
+  const x=header.x+header.width/2,y=header.y+header.height/2;
+  await page.mouse.move(x,y);await page.mouse.down();
+  await page.mouse.move(x+dx,y,{steps:8});await page.mouse.up();
+ };
+ await swipeBoard(board,95);
+ const shopBoard=page.getByRole('dialog',{name:'ShopList',exact:true});
+ await expect(shopBoard).toBeVisible();
+ await swipeBoard(shopBoard,-95);
+ await expect(board).toBeVisible();
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Account aanmaken',exact:true}).click();
  board=page.getByRole('dialog',{name:'Sharon-account',exact:true});

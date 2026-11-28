@@ -1,4 +1,4 @@
-import {ConnectionService} from './ConnectionService.js?v=0.5.28';
+import {ConnectionService} from './ConnectionService.js?v=0.5.29';
 
 export const ACCOUNT_SESSION_KEY = 'account.session.v1';
 

@@ -70,10 +70,39 @@ test('ShopList connects through the signed-in account and then opens fullscreen'
  assert.deepEqual(calls,['shop-pair-list']);
  f.reopen();
  await enterApps();openShop();await settle();
+ document.querySelector('dialog[aria-label="ShopList"] .sh-board-photo-source').click();
  const fullscreen=document.querySelector('.sh-notes-deck.is-fullscreen');
  assert(fullscreen?.querySelector('iframe'));
  assert.equal(document.querySelector('.sh-shop-access'),null);
  fullscreen.dispatchEvent(new f.dom.window.Event('cancel',{cancelable:true}));
+ assert.equal(document.querySelector('iframe'),null);
+});
+
+test('Horizontal swipes cycle app boards and keep each app connection separate',async t=>{
+ const f=fixture(t,{request:async()=>({devices:[]})});
+ const win=f.dom.window;
+ win.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+ document.querySelector('[data-apps-tab="apps"]').click();await settle();
+ document.querySelector('[data-swipe-row="shoplist"] [data-swipe-surface]').click();await settle();
+ const board=()=>document.querySelector('dialog');
+ const swipe=dx=>{
+  const header=board().querySelector('[data-card-media]');
+  for(const [type,x] of [['pointerdown',120],['pointermove',120+dx],['pointerup',120+dx]]){
+   const event=new win.Event(type,{bubbles:true,cancelable:true});
+   Object.assign(event,{pointerId:1,pointerType:'touch',clientX:x,clientY:40});
+   header.dispatchEvent(event);
+  }
+ };
+ swipe(-100);
+ assert.equal(board().getAttribute('aria-label'),'Event Line');
+ board().querySelector('[data-deck-grab]').click();await settle();
+ swipe(100);
+ assert.equal(board().getAttribute('aria-label'),'ShopList');
+ assert.equal(board().querySelector('.sh-board-photo-source').hidden,true);
+ swipe(-100);
+ assert.equal(board().getAttribute('aria-label'),'Event Line');
+ assert.equal(board().querySelector('.sh-board-photo-source').hidden,false);
+ assert.equal(document.querySelectorAll('dialog').length,1);
  assert.equal(document.querySelector('iframe'),null);
 });
 
@@ -108,6 +137,7 @@ test('Event Line connects from its board and opens inside Apps', async t => {
  back().click();
  assert.equal(document.querySelector('iframe'),null);
  launch().click();await settle();
+ document.querySelector('dialog[aria-label="Event Line"] .sh-board-photo-source').click();
  const embedded=document.querySelector('.sh-external-app-fullscreen iframe');
  const send=(type,origin='https://sharon.life')=>f.dom.window.dispatchEvent(
   new f.dom.window.MessageEvent('message',{data:{type},origin,source:embedded.contentWindow})
