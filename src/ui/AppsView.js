@@ -1,13 +1,14 @@
-import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.34';
-import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.34';
-import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.34';
-import {sharonLogo} from './Brand.js?v=0.5.34';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.34';
-import {bindSwipeRows} from './SwipeRows.js?v=0.5.34';
-import {AccountService} from '../core/connection/AccountService.js?v=0.5.34';
-import {openAccountBoard} from './AccountBoard.js?v=0.5.34';
-import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.34';
-import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.34';
+import {createAppReturnSwipe} from './BoardChrome.js?v=0.5.35';
+import {EVENT_LINE_URL,eventLineConnected,setEventLineConnected} from '../core/events/EventLineSource.js?v=0.5.35';
+import {moduleIcon,homeModules,homeOrder} from './ModuleIcons.js?v=0.5.35';
+import {openAppIntroBoard,openShopListFullscreen} from './ShopPairing.js?v=0.5.35';
+import {sharonLogo} from './Brand.js?v=0.5.35';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.35';
+import {bindSwipeRows} from './SwipeRows.js?v=0.5.35';
+import {AccountService} from '../core/connection/AccountService.js?v=0.5.35';
+import {openAccountBoard} from './AccountBoard.js?v=0.5.35';
+import {ShopListService} from '../core/shoplist/ShopListService.js?v=0.5.35';
+import {ConnectionService} from '../core/connection/ConnectionService.js?v=0.5.35';
 
 // Keep the saved ShopList layout as the shared starting point.
 const appBoardLayoutKey = 'apps.shoplist.board.layout';
@@ -120,7 +121,7 @@ export function openAppsView(outlet,{settings,store,items,onChanged=()=>{},onOpe
    if(event.data?.type==='eventline:return')close();
   };
   view.addEventListener('message',receive);
-  dialog.append(frame,back);document.body.append(dialog);
+  dialog.append(frame,back,createAppReturnSwipe(document,close));document.body.append(dialog);
   dialog.addEventListener('cancel',event=>{event.preventDefault();close();});
   dialog.addEventListener('close',close,{once:true});
   closePairing=close;dialog.showModal();back.focus();

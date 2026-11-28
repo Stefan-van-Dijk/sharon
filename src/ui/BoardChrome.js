@@ -23,3 +23,33 @@ export function wrapBoardSurface(overlay, surface) {
   overlay.append(stack);
   return stack;
 }
+
+export function createAppReturnSwipe(document, onReturn) {
+  const edge = document.createElement('button');
+  edge.type = 'button';
+  edge.className = 'sh-app-return-swipe';
+  edge.setAttribute('aria-label', 'Terug naar Sharon');
+  edge.title = 'Veeg naar rechts om terug te gaan';
+  edge.textContent = '›';
+  let start = null;
+  let moved = false;
+  edge.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0) return;
+    moved = false;
+    start = {id: event.pointerId, x: event.clientX, y: event.clientY};
+    edge.setPointerCapture?.(event.pointerId);
+  });
+  edge.addEventListener('pointercancel', () => { start = null; });
+  edge.addEventListener('pointerup', event => {
+    if (start?.id !== event.pointerId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    start = null;
+    moved = Math.hypot(dx, dy) > 12;
+    if (dx > 48 && dx > Math.abs(dy) * 1.25) onReturn();
+  });
+  edge.addEventListener('click', event => {
+    if (event.detail === 0 || !moved) onReturn();
+  });
+  return edge;
+}
