@@ -102,7 +102,7 @@ test('share board immediately shows people, ranks linked contacts and renews enc
  assert.ok(app.document.querySelector('.sh-board-stack .sh-share-board'));
  assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,false);
  assert.equal(app.document.querySelector('[data-share-person-toggle]'),null);
- assert.equal(app.document.querySelector('[data-deck-grab] svg'),null);
+ assert.ok(app.document.querySelector('[data-deck-grab] [data-deck-icon]'));
  assert.equal(app.document.querySelector('[data-share-title]').textContent,'Mijn kaart');
  assert.equal(app.document.querySelector('[data-share-person-panel]').hidden,false);
  assert.equal(app.document.querySelector('[data-share-person]').dataset.sharePerson,'AlphaUser001');

@@ -1,4 +1,9 @@
 // Shared visual layers only; each module keeps its content and interactions.
+export function boardDeckPill(labelHtml = '') {
+  return '<span data-deck-start aria-hidden="true"></span>'+labelHtml+
+    '<svg data-deck-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="3"/><path d="M7 3h10a3 3 0 0 1 3 3v11"/></svg>';
+}
+
 export function createBoardDeck() {
   const deck = document.createElement('div');
   deck.className = 'sh-board-deck';

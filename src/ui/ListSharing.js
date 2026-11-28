@@ -1,14 +1,14 @@
-import {bindNotesBoard} from './ShopPairing.js?v=0.5.30';
-import {renderListControls} from './ListControls.js?v=0.5.30';
-import {renderObjectStrip} from './ObjectStrip.js?v=0.5.30';
-import {sortList} from '../core/storage/ListOrder.js?v=0.5.30';
-import {wrapBoardSurface} from './BoardChrome.js?v=0.5.30';
-import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.30';
+import {bindNotesBoard} from './ShopPairing.js?v=0.5.31';
+import {renderListControls} from './ListControls.js?v=0.5.31';
+import {renderObjectStrip} from './ObjectStrip.js?v=0.5.31';
+import {sortList} from '../core/storage/ListOrder.js?v=0.5.31';
+import {boardDeckPill,wrapBoardSurface} from './BoardChrome.js?v=0.5.31';
+import {bindBoardDeckGestures} from './BoardDeckGestures.js?v=0.5.31';
 
 // Same board shell and people strips as card sharing; grants stay list-specific.
 export function openListShare(list,{store,api,onOpen,onClose=()=>{}}){
  const previous=document.activeElement,layer=document.createElement('div');layer.className='sh-card-share-overlay';
- layer.innerHTML='<section class="sh-card-share-dialog sh-share-board sh-list-share" role="dialog" aria-modal="true" aria-label="Lijst delen" tabindex="-1" data-card-board><div class="sh-share-fixed sh-card-media" data-card-media><button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button><header class="sh-notes-brand"><strong class="sh-notes-wordmark">ShopList.</strong><h2></h2></header><button type="button" class="sh-card-deck-grab" data-deck-grab aria-label="Deelboard verplaatsen"><span data-deck-start aria-hidden="true"></span>Deel lijst</button><button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van informatie aanpassen"></button></div><div class="sh-share-board-info"><div data-share-toolbar></div><label class="sh-list-share-role">Toegang voor geselecteerde personen<select aria-label="Toegang"><option value="read">Bekijken</option><option value="write">Bewerken</option><option value="">Toegang intrekken</option></select></label><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button><p role="status">Contacten laden…</p></div></section>';
+ layer.innerHTML='<section class="sh-card-share-dialog sh-share-board sh-list-share" role="dialog" aria-modal="true" aria-label="Lijst delen" tabindex="-1" data-card-board><div class="sh-share-fixed sh-card-media" data-card-media><button type="button" class="sh-board-resizer" data-deck-size="board" aria-label="Hoogte van board aanpassen"></button><header class="sh-notes-brand"><strong class="sh-notes-wordmark">ShopList.</strong><h2></h2></header><button type="button" class="sh-card-deck-grab" data-deck-grab aria-label="Deelboard verplaatsen">'+boardDeckPill('Deel lijst')+'</button><button type="button" class="sh-board-resizer" data-deck-size="media" aria-label="Hoogte van informatie aanpassen"></button></div><div class="sh-share-board-info"><div data-share-toolbar></div><label class="sh-list-share-role">Toegang voor geselecteerde personen<select aria-label="Toegang"><option value="read">Bekijken</option><option value="write">Bewerken</option><option value="">Toegang intrekken</option></select></label><div data-share-people></div><button type="button" data-share-send disabled>Deel met geselecteerde personen</button><p role="status">Contacten laden…</p></div></section>';
  const surface=layer.firstElementChild,stack=wrapBoardSurface(layer,surface);stack.classList.add('sh-share-zone-stack');surface.querySelector('h2').textContent=list.name;
  const toolbar=layer.querySelector('[data-share-toolbar]');toolbar.innerHTML=renderListControls({placeholder:'Zoek persoon',sort:'alpha'});toolbar.querySelector('[data-list-sort="custom"]').remove();
  const search=toolbar.querySelector('input'),people=layer.querySelector('[data-share-people]'),send=layer.querySelector('[data-share-send]'),role=layer.querySelector('select'),status=layer.querySelector('[role=status]');

@@ -182,7 +182,7 @@ test('sharing opens QR automatically, reuses it and supports touch dragging and 
 
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();
   await expect(page.locator('[data-share-person-toggle]')).toHaveCount(0);
-  await expect(page.locator('[data-deck-grab] svg')).toHaveCount(0);
+  await expect(page.locator('[data-deck-grab] [data-deck-icon]')).toBeVisible();
   await expect(page.locator('.sh-share-side-left')).toHaveCSS('writing-mode','vertical-rl');
   await expect(page.locator('[data-share-person-panel]')).toBeVisible();
   await expect(page.locator('[data-sharing-state="online"]')).toHaveCount(1);
