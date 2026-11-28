@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {appHarness,until} from '../helpers/app-harness.mjs';
+const openOrdering=async app=>(await until(()=>app.document.querySelector('[data-apps-order]'))).click();
 for(const chosen of [[],['environment','locations'],['environment','locations','cards'],['environment','locations','cards','notes']])test('Home invitation threshold and icons for '+chosen.length+' selected modules',async t=>{
  const app=await appHarness({root:resolve('.')});t.after(()=>app.close());
  const settings=await app.store.get('settings','app');settings.value.home={modules:chosen};await app.store.put('settings',settings);
@@ -18,11 +19,12 @@ test('Manage Home enables, orders and hides modules without touching objects, in
  const saved=await app.store.get('settings','app');saved.value.home={modules:['environment','locations']};await app.store.put('settings',saved);
  const objects=JSON.stringify(await app.store.getAll('objects'));
  await app.boot();(await until(()=>app.document.querySelector('[data-home-manage]'))).click();
+ await openOrdering(app);
  const toggle=await until(()=>app.document.querySelector('[data-module-choice="cards"] [role=switch]'));toggle.click();
  await until(async()=> (await app.store.get('settings','app')).value.home.modules.includes('cards'));
  app.document.querySelector('[data-brand-control]').click();await until(()=>app.document.querySelector('[data-module="cards"]'));
  assert.equal(JSON.stringify(await app.store.getAll('objects')),objects);
- app.document.querySelector('[data-home-manage]').click();await until(()=>app.document.querySelector('[data-module-choice="cards"] [role=switch]'));
+ app.document.querySelector('[data-home-manage]').click();await openOrdering(app);await until(()=>app.document.querySelector('[data-module-choice="cards"] [role=switch]'));
  assert.equal(app.document.querySelector('[data-module-choice="cards"] [role=switch]').getAttribute('aria-checked'),'true');assert.deepEqual(app.errors,[]);
 });
 test('Demo management cannot change live Home preferences or link a real app',async t=>{
@@ -35,12 +37,12 @@ test('Demo management cannot change live Home preferences or link a real app',as
 test('A completed delayed save updates Home after leaving management; Apps participates in navigation history',async t=>{
  const app=await appHarness({root:resolve('.')});t.after(()=>app.close());const saved=await app.store.get('settings','app');saved.value.home={modules:['environment','locations']};await app.store.put('settings',saved);
  await app.boot();(await until(()=>app.document.querySelector('[data-home-manage]'))).click();
- await until(()=>app.document.querySelector('[data-module-choice="cards"]'));assert.equal(app.window.history.state.__sharonNavigation,'apps');
- const {ObjectStore}=await app.load('./src/core/storage/ObjectStore.js?v=0.5.31');const original=ObjectStore.prototype.put;let finish;
+ await openOrdering(app);await until(()=>app.document.querySelector('[data-module-choice="cards"]'));assert.equal(app.window.history.state.__sharonNavigation,'apps');
+ const {ObjectStore}=await app.load('./src/core/storage/ObjectStore.js?v=0.5.32');const original=ObjectStore.prototype.put;let finish;
  ObjectStore.prototype.put=async function(name,record){if(name==='settings')await new Promise(resolve=>finish=resolve);return original.call(this,name,record);};
  app.document.querySelector('[data-module-choice="cards"] [role=switch]').click();await until(()=>finish);app.document.querySelector('[data-brand-control]').click();await until(()=>app.document.querySelector('[data-home-manage]'));assert.equal(app.document.querySelector('[data-module="cards"]'),null);
  finish();await until(()=>app.document.querySelector('[data-module="cards"]'));ObjectStore.prototype.put=original;
- app.window.dispatchEvent(new app.window.PopStateEvent('popstate',{state:{__sharonNavigation:'apps'}}));await until(()=>app.document.querySelector('[data-module-choice="cards"]'));assert.deepEqual(app.errors,[]);
+ app.window.dispatchEvent(new app.window.PopStateEvent('popstate',{state:{__sharonNavigation:'apps'}}));await until(()=>app.document.querySelector('.sh-connected-apps'));assert.deepEqual(app.errors,[]);
 });
 
 test('Repeated returns to Home consume the module history entry instead of leaving extra back steps',async t=>{
@@ -48,7 +50,7 @@ test('Repeated returns to Home consume the module history entry instead of leavi
  const history=app.window.history,initialLength=history.length;
  for(let i=0;i<3;i++){
   (await until(()=>app.document.querySelector('[data-home-manage]'))).click();
-  await until(()=>app.document.querySelector('[data-module-choice]'));
+  await until(()=>app.document.querySelector('.sh-connected-apps'));
   assert.equal(history.state.__sharonNavigation,'apps');
   if(i===1){
    const stage=app.document.querySelector('.app-stage');
@@ -63,7 +65,7 @@ test('Repeated returns to Home consume the module history entry instead of leavi
   // Let the completed swipe's synthetic-click suppression expire before the next tap.
   if(i===1)await new Promise(resolve=>setTimeout(resolve,450));
  }
- history.forward();await until(()=>app.document.querySelector('[data-module-choice]'));
+ history.forward();await until(()=>app.document.querySelector('.sh-connected-apps'));
  assert.equal(history.state.__sharonNavigation,'apps');
  history.back();await until(()=>app.document.querySelector('[data-home-manage]'));
  assert.equal(history.state.__sharonNavigation,'home');assert.deepEqual(app.errors,[]);
